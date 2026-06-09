@@ -8,9 +8,13 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         const paths = ["/", "/sobre-mi", "/clases", "/reservas", "/cuenta"];
-        const urls = paths.map((p) => `  <url><loc>${BASE_URL}${p}</loc></url>`).join("\n");
+        const urls = paths
+          .map((p) => `  <url><loc>${BASE_URL}${p}</loc></url>`)
+          .join("\n");
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
-        return new Response(xml, { headers: { "Content-Type": "application/xml" } });
+        return new Response(xml, {
+          headers: { "Content-Type": "application/xml" },
+        });
       },
     },
   },

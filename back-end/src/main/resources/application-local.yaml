@@ -30,3 +30,11 @@ app:
     base-url: http://localhost:8080
   mail:
     from: dev@localhost
+  scheduling:
+    teacher-timezone: Europe/Madrid
+    teacher-email: paula@kuky.es
+  zoom:
+    account-id: ""
+    client-id: ""
+    client-secret: ""
+    user-id: "me"
