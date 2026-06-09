@@ -11,7 +11,9 @@ import { register as apiRegister, type ApiError } from "@/lib/auth";
 const schema = z
   .object({
     email: z.string().email("El correo electrónico no es válido."),
-    password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres."),
+    password: z
+      .string()
+      .min(8, "La contraseña debe tener al menos 8 caracteres."),
     confirmPassword: z.string(),
     gdprConsent: z.boolean().refine((v) => v, {
       message: "Debes aceptar la política de privacidad para crear una cuenta.",
@@ -36,7 +38,10 @@ export function RegistrationForm({ onSuccess }: Props) {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormData>({ resolver: zodResolver(schema), defaultValues: { gdprConsent: false } });
+  } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: { gdprConsent: false },
+  });
 
   const gdprConsent = watch("gdprConsent");
 
@@ -47,7 +52,9 @@ export function RegistrationForm({ onSuccess }: Props) {
       onSuccess();
     } catch (err) {
       const apiErr = err as ApiError;
-      setServerError(apiErr.message ?? "Ha ocurrido un error. Inténtalo de nuevo.");
+      setServerError(
+        apiErr.message ?? "Ha ocurrido un error. Inténtalo de nuevo.",
+      );
     }
   };
 
@@ -55,21 +62,42 @@ export function RegistrationForm({ onSuccess }: Props) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1">
         <Label htmlFor="reg-email">Correo electrónico</Label>
-        <Input id="reg-email" type="email" placeholder="tu@correo.com" {...register("email")} />
-        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+        <Input
+          id="reg-email"
+          type="email"
+          placeholder="tu@correo.com"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-sm text-destructive">{errors.email.message}</p>
+        )}
       </div>
 
       <div className="space-y-1">
         <Label htmlFor="reg-password">Contraseña</Label>
-        <Input id="reg-password" type="password" placeholder="Mínimo 8 caracteres" {...register("password")} />
-        {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+        <Input
+          id="reg-password"
+          type="password"
+          placeholder="Mínimo 8 caracteres"
+          {...register("password")}
+        />
+        {errors.password && (
+          <p className="text-sm text-destructive">{errors.password.message}</p>
+        )}
       </div>
 
       <div className="space-y-1">
         <Label htmlFor="reg-confirm">Confirmar contraseña</Label>
-        <Input id="reg-confirm" type="password" placeholder="Repite tu contraseña" {...register("confirmPassword")} />
+        <Input
+          id="reg-confirm"
+          type="password"
+          placeholder="Repite tu contraseña"
+          {...register("confirmPassword")}
+        />
         {errors.confirmPassword && (
-          <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.confirmPassword.message}
+          </p>
         )}
       </div>
 
@@ -81,7 +109,12 @@ export function RegistrationForm({ onSuccess }: Props) {
         />
         <Label htmlFor="gdpr" className="text-sm leading-snug cursor-pointer">
           Acepto la{" "}
-          <a href="/politica-privacidad" className="underline" target="_blank" rel="noopener noreferrer">
+          <a
+            href="/politica-privacidad"
+            className="underline"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             política de privacidad
           </a>
         </Label>

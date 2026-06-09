@@ -5,7 +5,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Español con Paula — Clases de español para rumanos" },
-      { name: "description", content: "Clases de español personalizadas, 100% online, para estudiantes rumanos de todos los niveles." },
+      {
+        name: "description",
+        content:
+          "Clases de español personalizadas, 100% online, para estudiantes rumanos de todos los niveles.",
+      },
     ],
   }),
   component: Index,
@@ -23,16 +27,24 @@ function Index() {
               Clases para estudiantes rumanos
             </span>
             <h1 className="mt-5 font-display text-5xl font-semibold leading-tight md:text-6xl">
-              Aprende español <span className="text-primary italic">con confianza</span>.
+              Aprende español{" "}
+              <span className="text-primary italic">con confianza</span>.
             </h1>
             <p className="mt-5 max-w-lg text-lg text-muted-foreground">
-              Clases personalizadas, conversación real y un método pensado para hablantes de rumano. Da el siguiente paso en tu español hoy.
+              Clases personalizadas, conversación real y un método pensado para
+              hablantes de rumano. Da el siguiente paso en tu español hoy.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/reservas" className="rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
+              <Link
+                to="/reservas"
+                className="rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+              >
                 Reservar una clase
               </Link>
-              <Link to="/sobre-mi" className="rounded-md border border-border bg-background px-5 py-3 text-sm font-medium hover:bg-accent/30">
+              <Link
+                to="/sobre-mi"
+                className="rounded-md border border-border bg-background px-5 py-3 text-sm font-medium hover:bg-accent/30"
+              >
                 Conóceme
               </Link>
             </div>
@@ -52,11 +64,23 @@ function Index() {
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-8 md:grid-cols-3">
           {[
-            { t: "Método personalizado", d: "Cada clase se adapta a tu nivel, tus objetivos y tu ritmo." },
-            { t: "Pensado para rumanos", d: "Aprovechamos las similitudes entre el rumano y el español para avanzar más rápido." },
-            { t: "Materiales incluidos", d: "Recibes ejercicios, audios y lecturas para practicar entre clases." },
+            {
+              t: "Método personalizado",
+              d: "Cada clase se adapta a tu nivel, tus objetivos y tu ritmo.",
+            },
+            {
+              t: "Pensado para rumanos",
+              d: "Aprovechamos las similitudes entre el rumano y el español para avanzar más rápido.",
+            },
+            {
+              t: "Materiales incluidos",
+              d: "Recibes ejercicios, audios y lecturas para practicar entre clases.",
+            },
           ].map((f) => (
-            <div key={f.t} className="rounded-xl border border-border bg-card p-6">
+            <div
+              key={f.t}
+              className="rounded-xl border border-border bg-card p-6"
+            >
               <h3 className="font-display text-xl font-semibold">{f.t}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{f.d}</p>
             </div>
@@ -67,11 +91,17 @@ function Index() {
       {/* CTA */}
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="rounded-2xl bg-primary px-8 py-12 text-center text-primary-foreground md:py-16">
-          <h2 className="font-display text-3xl font-semibold md:text-4xl">¿Listo para empezar?</h2>
+          <h2 className="font-display text-3xl font-semibold md:text-4xl">
+            ¿Listo para empezar?
+          </h2>
           <p className="mx-auto mt-3 max-w-xl text-primary-foreground/80">
-            Reserva tu primera clase de prueba y descubre cómo el español puede formar parte de tu día a día.
+            Reserva tu primera clase de prueba y descubre cómo el español puede
+            formar parte de tu día a día.
           </p>
-          <Link to="/reservas" className="mt-6 inline-block rounded-md bg-background px-5 py-3 text-sm font-medium text-foreground hover:bg-secondary">
+          <Link
+            to="/reservas"
+            className="mt-6 inline-block rounded-md bg-background px-5 py-3 text-sm font-medium text-foreground hover:bg-secondary"
+          >
             Reservar ahora
           </Link>
         </div>

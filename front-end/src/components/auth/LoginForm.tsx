@@ -35,7 +35,9 @@ export function LoginForm({ onSuccess, onForgotPassword }: Props) {
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr.error === "RATE_LIMIT_EXCEEDED") {
-        setServerError("Demasiados intentos. Por favor, espera un momento e inténtalo de nuevo.");
+        setServerError(
+          "Demasiados intentos. Por favor, espera un momento e inténtalo de nuevo.",
+        );
       } else {
         setServerError("Correo electrónico o contraseña incorrectos.");
       }
@@ -46,14 +48,28 @@ export function LoginForm({ onSuccess, onForgotPassword }: Props) {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-1">
         <Label htmlFor="login-email">Correo electrónico</Label>
-        <Input id="login-email" type="email" placeholder="tu@correo.com" {...register("email")} />
-        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+        <Input
+          id="login-email"
+          type="email"
+          placeholder="tu@correo.com"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-sm text-destructive">{errors.email.message}</p>
+        )}
       </div>
 
       <div className="space-y-1">
         <Label htmlFor="login-password">Contraseña</Label>
-        <Input id="login-password" type="password" placeholder="Tu contraseña" {...register("password")} />
-        {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+        <Input
+          id="login-password"
+          type="password"
+          placeholder="Tu contraseña"
+          {...register("password")}
+        />
+        {errors.password && (
+          <p className="text-sm text-destructive">{errors.password.message}</p>
+        )}
       </div>
 
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}

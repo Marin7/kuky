@@ -4,6 +4,11 @@ import com.kuky.backend.auth.exception.AuthException;
 import com.kuky.backend.auth.exception.DuplicateEmailException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
+import com.kuky.backend.scheduling.exception.BookingNotAllowedException;
+import com.kuky.backend.scheduling.exception.BookingNotFoundException;
+import com.kuky.backend.scheduling.exception.MeetingProvisioningException;
+import com.kuky.backend.scheduling.exception.SlotUnavailableException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -48,5 +53,45 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInvalidToken(InvalidTokenException ex) {
         return ResponseEntity.badRequest()
                 .body(Map.of("error", "INVALID_OR_EXPIRED_TOKEN", "message", ex.getMessage()));
+    }
+
+    // Scheduling exceptions
+
+    @ExceptionHandler(SlotUnavailableException.class)
+    public ResponseEntity<Map<String, String>> handleSlotUnavailable(SlotUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "SLOT_UNAVAILABLE", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicateKey(DuplicateKeyException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "SLOT_UNAVAILABLE", "message", "Esta hora ya ha sido reservada."));
+    }
+
+    @ExceptionHandler(BookingNotAllowedException.class)
+    public ResponseEntity<Map<String, String>> handleBookingNotAllowed(BookingNotAllowedException ex) {
+        return switch (ex.getReason()) {
+            case RANGE -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("error", "SLOT_OUT_OF_RANGE", "message", "Esta hora no está disponible para reservar."));
+            case LEAD -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("error", "BOOKING_TOO_SOON", "message", "Reserva con al menos 24 horas de antelación."));
+            case CUTOFF -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("error", "CANCELLATION_TOO_LATE", "message", "El plazo de cancelación ha pasado."));
+            case STATE -> ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "ALREADY_CANCELLED", "message", "Esta reserva ya fue cancelada."));
+        };
+    }
+
+    @ExceptionHandler(MeetingProvisioningException.class)
+    public ResponseEntity<Map<String, String>> handleMeetingProvisioning(MeetingProvisioningException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(Map.of("error", "MEETING_PROVISIONING_FAILED", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(BookingNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleBookingNotFound(BookingNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "BOOKING_NOT_FOUND", "message", ex.getMessage()));
     }
 }

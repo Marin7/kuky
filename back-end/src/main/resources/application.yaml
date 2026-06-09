@@ -33,3 +33,16 @@ app:
     base-url: ${FRONTEND_BASE_URL}
   mail:
     from: ${MAIL_FROM:noreply@kuky.es}
+  scheduling:
+    teacher-timezone: Europe/Madrid
+    teacher-email: ${TEACHER_EMAIL:noreply@kuky.es}
+    day-start: "09:00"
+    day-end: "18:00"
+    class-duration-minutes: 60
+    min-lead-hours: 24
+    cancel-cutoff-hours: 24
+  zoom:
+    account-id: ${ZOOM_ACCOUNT_ID:}
+    client-id: ${ZOOM_CLIENT_ID:}
+    client-secret: ${ZOOM_CLIENT_SECRET:}
+    user-id: ${ZOOM_USER_ID:me}

@@ -1,1 +1,1 @@
-console.log('Hello from Kuky Frontend!');
+console.log("Hello from Kuky Frontend!");

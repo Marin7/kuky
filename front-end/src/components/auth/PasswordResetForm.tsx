@@ -13,7 +13,9 @@ const emailSchema = z.object({
 
 const newPasswordSchema = z
   .object({
-    newPassword: z.string().min(8, "La contraseña debe tener al menos 8 caracteres."),
+    newPassword: z
+      .string()
+      .min(8, "La contraseña debe tener al menos 8 caracteres."),
     confirmPassword: z.string(),
   })
   .refine((d) => d.newPassword === d.confirmPassword, {
@@ -56,8 +58,8 @@ function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
     return (
       <div className="space-y-4 text-center">
         <p className="text-sm text-muted-foreground">
-          Si existe una cuenta con ese correo, recibirás un enlace para restablecer tu contraseña.
-          Revisa tu bandeja de entrada.
+          Si existe una cuenta con ese correo, recibirás un enlace para
+          restablecer tu contraseña. Revisa tu bandeja de entrada.
         </p>
         <Button variant="outline" onClick={onSuccess} className="w-full">
           Volver
@@ -69,24 +71,43 @@ function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Introduce tu correo y te enviaremos un enlace para restablecer tu contraseña.
+        Introduce tu correo y te enviaremos un enlace para restablecer tu
+        contraseña.
       </p>
       <div className="space-y-1">
         <Label htmlFor="forgot-email">Correo electrónico</Label>
-        <Input id="forgot-email" type="email" placeholder="tu@correo.com" {...register("email")} />
-        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+        <Input
+          id="forgot-email"
+          type="email"
+          placeholder="tu@correo.com"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-sm text-destructive">{errors.email.message}</p>
+        )}
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? "Enviando…" : "Enviar enlace"}
       </Button>
-      <Button type="button" variant="outline" onClick={onSuccess} className="w-full">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onSuccess}
+        className="w-full"
+      >
         Cancelar
       </Button>
     </form>
   );
 }
 
-function NewPasswordForm({ token, onSuccess }: { token: string; onSuccess: () => void }) {
+function NewPasswordForm({
+  token,
+  onSuccess,
+}: {
+  token: string;
+  onSuccess: () => void;
+}) {
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -103,7 +124,7 @@ function NewPasswordForm({ token, onSuccess }: { token: string; onSuccess: () =>
       const apiErr = err as ApiError;
       if (apiErr.error === "INVALID_OR_EXPIRED_TOKEN") {
         setServerError(
-          "El enlace de recuperación no es válido o ha expirado. Solicita uno nuevo."
+          "El enlace de recuperación no es válido o ha expirado. Solicita uno nuevo.",
         );
       } else {
         setServerError("Ha ocurrido un error. Inténtalo de nuevo.");
@@ -113,7 +134,9 @@ function NewPasswordForm({ token, onSuccess }: { token: string; onSuccess: () =>
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <p className="text-sm text-muted-foreground">Introduce tu nueva contraseña.</p>
+      <p className="text-sm text-muted-foreground">
+        Introduce tu nueva contraseña.
+      </p>
       <div className="space-y-1">
         <Label htmlFor="new-password">Nueva contraseña</Label>
         <Input
@@ -123,7 +146,9 @@ function NewPasswordForm({ token, onSuccess }: { token: string; onSuccess: () =>
           {...register("newPassword")}
         />
         {errors.newPassword && (
-          <p className="text-sm text-destructive">{errors.newPassword.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.newPassword.message}
+          </p>
         )}
       </div>
       <div className="space-y-1">
@@ -135,7 +160,9 @@ function NewPasswordForm({ token, onSuccess }: { token: string; onSuccess: () =>
           {...register("confirmPassword")}
         />
         {errors.confirmPassword && (
-          <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+          <p className="text-sm text-destructive">
+            {errors.confirmPassword.message}
+          </p>
         )}
       </div>
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}

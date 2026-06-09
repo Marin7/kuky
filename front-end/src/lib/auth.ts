@@ -34,7 +34,11 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
-export const register = (email: string, password: string, gdprConsent: boolean) =>
+export const register = (
+  email: string,
+  password: string,
+  gdprConsent: boolean,
+) =>
   apiCall<AuthResponse>("/register", {
     method: "POST",
     body: JSON.stringify({ email, password, gdprConsent }),

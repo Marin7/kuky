@@ -5,7 +5,11 @@ export const Route = createFileRoute("/sobre-mi")({
   head: () => ({
     meta: [
       { title: "Sobre mí — Español con Paula" },
-      { name: "description", content: "Conoce a Paula, profesora de español dedicada a ayudar a estudiantes rumanos a dominar el idioma." },
+      {
+        name: "description",
+        content:
+          "Conoce a Paula, profesora de español dedicada a ayudar a estudiantes rumanos a dominar el idioma.",
+      },
     ],
   }),
   component: SobreMi,
@@ -24,16 +28,27 @@ function SobreMi() {
           <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-primary">
             Sobre mí
           </span>
-          <h1 className="mt-4 font-display text-4xl font-semibold md:text-5xl">¡Hola! Soy Paula.</h1>
+          <h1 className="mt-4 font-display text-4xl font-semibold md:text-5xl">
+            ¡Hola! Soy Paula.
+          </h1>
           <div className="mt-6 space-y-4 text-muted-foreground">
             <p>
-              Soy profesora de español con años de experiencia ayudando a estudiantes rumanos a descubrir y dominar este precioso idioma. Mi pasión es crear un espacio cálido donde aprender se sienta natural y divertido.
+              Soy profesora de español con años de experiencia ayudando a
+              estudiantes rumanos a descubrir y dominar este precioso idioma. Mi
+              pasión es crear un espacio cálido donde aprender se sienta natural
+              y divertido.
             </p>
             <p>
-              Creo en clases dinámicas, conversación real desde el primer día y materiales que se adaptan a cada estudiante. Trabajo con todos los niveles, desde principiantes absolutos hasta hablantes avanzados que quieren pulir su fluidez.
+              Creo en clases dinámicas, conversación real desde el primer día y
+              materiales que se adaptan a cada estudiante. Trabajo con todos los
+              niveles, desde principiantes absolutos hasta hablantes avanzados
+              que quieren pulir su fluidez.
             </p>
             <p>
-              Mi objetivo no es solo enseñarte gramática y vocabulario — quiero que te sientas seguro hablando español en cualquier situación, ya sea para viajar, trabajar o conectar con la cultura hispanohablante.
+              Mi objetivo no es solo enseñarte gramática y vocabulario — quiero
+              que te sientas seguro hablando español en cualquier situación, ya
+              sea para viajar, trabajar o conectar con la cultura
+              hispanohablante.
             </p>
           </div>
 
@@ -44,8 +59,13 @@ function SobreMi() {
               { k: "Idiomas", v: "Español y rumano" },
               { k: "Enfoque", v: "Conversación + gramática" },
             ].map((i) => (
-              <div key={i.k} className="rounded-lg border border-border bg-card p-4">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">{i.k}</div>
+              <div
+                key={i.k}
+                className="rounded-lg border border-border bg-card p-4"
+              >
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {i.k}
+                </div>
                 <div className="mt-1 font-medium">{i.v}</div>
               </div>
             ))}

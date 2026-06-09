@@ -17,7 +17,10 @@ export const Route = createFileRoute("/cuenta")({
   head: () => ({
     meta: [
       { title: "Mi cuenta — Español con Paula" },
-      { name: "description", content: "Gestiona tu cuenta y tu perfil de estudiante." },
+      {
+        name: "description",
+        content: "Gestiona tu cuenta y tu perfil de estudiante.",
+      },
     ],
   }),
   component: CuentaPage,
@@ -140,7 +143,13 @@ function CuentaPage() {
   );
 }
 
-function AuthCard({ title, children }: { title: string; children: React.ReactNode }) {
+function AuthCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="mx-auto max-w-md px-4 py-16 space-y-6">
       <h1 className="font-display text-2xl font-bold text-center">{title}</h1>

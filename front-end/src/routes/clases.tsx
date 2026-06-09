@@ -5,7 +5,11 @@ export const Route = createFileRoute("/clases")({
   head: () => ({
     meta: [
       { title: "Clases y materiales — Español con Paula" },
-      { name: "description", content: "Explora las clases disponibles y accede a materiales de estudio." },
+      {
+        name: "description",
+        content:
+          "Explora las clases disponibles y accede a materiales de estudio.",
+      },
     ],
   }),
   component: () => (
