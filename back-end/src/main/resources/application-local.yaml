@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/kuky_dev
+    username: kuky
+    password: kuky
+
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+logging:
+  level:
+    org.flywaydb: DEBUG
+
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
+app:
+  jwt:
+    secret: local-dev-secret-at-least-32-chars-long
+    expiry-seconds: 604800
+  cors:
+    allowed-origin: http://localhost:8080
+  frontend:
+    base-url: http://localhost:8080
+  mail:
+    from: dev@localhost
