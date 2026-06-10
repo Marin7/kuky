@@ -1,0 +1,81 @@
+import type { HomeworkItem } from "@/lib/learning";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+
+function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat("es", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(iso));
+}
+
+const STATUS_LABEL: Record<HomeworkItem["status"], string> = {
+  PENDING: "Pendiente",
+  SUBMITTED: "Entregada",
+  REVIEWED: "Revisada",
+};
+
+const STATUS_CLASS: Record<HomeworkItem["status"], string> = {
+  PENDING: "bg-muted text-muted-foreground",
+  SUBMITTED: "bg-green-100 text-green-700",
+  REVIEWED: "bg-blue-100 text-blue-700",
+};
+
+interface HomeworkItemCardProps {
+  item: HomeworkItem;
+  onOpen: (item: HomeworkItem) => void;
+}
+
+export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
+  return (
+    <Card className="text-sm">
+      <CardContent className="pt-4 space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <p className="font-medium text-foreground">{item.title}</p>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {item.overdue && (
+              <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                Atrasada
+              </span>
+            )}
+            <span
+              className={[
+                "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
+                STATUS_CLASS[item.status],
+              ].join(" ")}
+            >
+              {STATUS_LABEL[item.status]}
+            </span>
+          </div>
+        </div>
+
+        <p className="text-muted-foreground">{item.instructions}</p>
+
+        {item.dueOn && (
+          <p className="text-xs text-muted-foreground">
+            Fecha límite: <span className="capitalize">{formatDate(item.dueOn)}</span>
+          </p>
+        )}
+
+        {item.response && (
+          <p className="rounded-md bg-secondary/40 p-2 text-muted-foreground">
+            <span className="font-medium text-foreground">Tu respuesta: </span>
+            {item.response}
+          </p>
+        )}
+
+        {item.status !== "REVIEWED" && (
+          <Button
+            variant={item.status === "PENDING" ? "default" : "outline"}
+            size="sm"
+            onClick={() => onOpen(item)}
+            className="h-8 text-xs"
+          >
+            {item.status === "PENDING" ? "Entregar tarea" : "Editar respuesta"}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

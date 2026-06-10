@@ -4,6 +4,8 @@ import com.kuky.backend.auth.exception.AuthException;
 import com.kuky.backend.auth.exception.DuplicateEmailException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
+import com.kuky.backend.learning.exception.AssignmentNotFoundException;
+import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
 import com.kuky.backend.resources.exception.AlreadyOwnedException;
 import com.kuky.backend.resources.exception.NotPurchasableException;
 import com.kuky.backend.resources.exception.ResourceLockedException;
@@ -123,5 +125,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleNotPurchasable(NotPurchasableException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(Map.of("error", "NOT_PURCHASABLE", "message", ex.getMessage()));
+    }
+
+    // Learning exceptions
+
+    @ExceptionHandler(AssignmentNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleAssignmentNotFound(AssignmentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "ASSIGNMENT_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SubmissionNotAllowedException.class)
+    public ResponseEntity<Map<String, String>> handleSubmissionNotAllowed(SubmissionNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "SUBMISSION_NOT_ALLOWED", "message", ex.getMessage()));
     }
 }
