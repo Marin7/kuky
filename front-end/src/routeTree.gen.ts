@@ -12,8 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreMiRouteImport } from './routes/sobre-mi'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReservasRouteImport } from './routes/reservas'
+import { Route as RecursosRouteImport } from './routes/recursos'
 import { Route as CuentaRouteImport } from './routes/cuenta'
-import { Route as ClasesRouteImport } from './routes/clases'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SobreMiRoute = SobreMiRouteImport.update({
@@ -31,14 +31,14 @@ const ReservasRoute = ReservasRouteImport.update({
   path: '/reservas',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RecursosRoute = RecursosRouteImport.update({
+  id: '/recursos',
+  path: '/recursos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CuentaRoute = CuentaRouteImport.update({
   id: '/cuenta',
   path: '/cuenta',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClasesRoute = ClasesRouteImport.update({
-  id: '/clases',
-  path: '/clases',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,16 +49,16 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/clases': typeof ClasesRoute
   '/cuenta': typeof CuentaRoute
+  '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/clases': typeof ClasesRoute
   '/cuenta': typeof CuentaRoute
+  '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
@@ -66,8 +66,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/clases': typeof ClasesRoute
   '/cuenta': typeof CuentaRoute
+  '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
@@ -76,18 +76,18 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/clases'
     | '/cuenta'
+    | '/recursos'
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/clases' | '/cuenta' | '/reservas' | '/sitemap.xml' | '/sobre-mi'
+  to: '/' | '/cuenta' | '/recursos' | '/reservas' | '/sitemap.xml' | '/sobre-mi'
   id:
     | '__root__'
     | '/'
-    | '/clases'
     | '/cuenta'
+    | '/recursos'
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
@@ -95,8 +95,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ClasesRoute: typeof ClasesRoute
   CuentaRoute: typeof CuentaRoute
+  RecursosRoute: typeof RecursosRoute
   ReservasRoute: typeof ReservasRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreMiRoute: typeof SobreMiRoute
@@ -125,18 +125,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReservasRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/recursos': {
+      id: '/recursos'
+      path: '/recursos'
+      fullPath: '/recursos'
+      preLoaderRoute: typeof RecursosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cuenta': {
       id: '/cuenta'
       path: '/cuenta'
       fullPath: '/cuenta'
       preLoaderRoute: typeof CuentaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/clases': {
-      id: '/clases'
-      path: '/clases'
-      fullPath: '/clases'
-      preLoaderRoute: typeof ClasesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -151,8 +151,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ClasesRoute: ClasesRoute,
   CuentaRoute: CuentaRoute,
+  RecursosRoute: RecursosRoute,
   ReservasRoute: ReservasRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
