@@ -1,18 +1,46 @@
-import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { getMe } from "@/lib/auth";
 
-const nav = [
+const baseNav = [
   { to: "/", label: "Inicio" },
   { to: "/sobre-mi", label: "Sobre mí" },
   { to: "/recursos", label: "Recursos" },
   { to: "/reservas", label: "Reservas" },
-  { to: "/cuenta", label: "Mi cuenta" },
 ] as const;
+
+// Visible only to logged-in users
+const learningNav = { to: "/aprendizaje", label: "Mi aprendizaje" } as const;
+const accountNav = { to: "/cuenta", label: "Mi cuenta" } as const;
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [authed, setAuthed] = useState(false);
+  // Re-check auth on every navigation so the protected link stays in sync.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    let active = true;
+    const check = () =>
+      getMe()
+        .then(() => active && setAuthed(true))
+        .catch(() => active && setAuthed(false));
+    check();
+    // Update immediately on login/logout without a full reload.
+    window.addEventListener("auth-changed", check);
+    return () => {
+      active = false;
+      window.removeEventListener("auth-changed", check);
+    };
+  }, [pathname]);
+
+  const nav = [
+    ...baseNav,
+    ...(authed ? [learningNav] : []),
+    accountNav,
+  ];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">

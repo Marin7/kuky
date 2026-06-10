@@ -255,5 +255,5 @@ The following scheduling defaults can be overridden via `app.scheduling.*` in YA
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/004-resources-marketplace/plan.md`
+`specs/005-classes-homework-tab/plan.md`
 <!-- SPECKIT END -->
