@@ -37,6 +37,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/schedule").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/resources/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .build();
