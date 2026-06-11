@@ -71,13 +71,61 @@ public class ContentRepository {
         return jdbc.query(sql, Map.of(), PAST_CLASS_MAPPER);
     }
 
-    public List<HomeworkAssignment> findPublishedAssignments() {
-        String sql = "SELECT * FROM homework_assignments WHERE published = true ORDER BY sort_order";
-        return jdbc.query(sql, Map.of(), ASSIGNMENT_MAPPER);
+    /** Homework visible to a student: only assignments targeted at them (per-student model). */
+    public List<HomeworkAssignment> findAssignmentsForUser(UUID userId) {
+        String sql = """
+                SELECT a.* FROM homework_assignments a
+                JOIN homework_targets t ON t.assignment_id = a.id
+                WHERE t.user_id = :userId
+                ORDER BY a.sort_order, a.created_at
+                """;
+        return jdbc.query(sql, Map.of("userId", userId), ASSIGNMENT_MAPPER);
     }
 
     public Optional<HomeworkAssignment> findPublishedAssignmentById(UUID id) {
         String sql = "SELECT * FROM homework_assignments WHERE id = :id AND published = true";
         return jdbc.query(sql, Map.of("id", id), ASSIGNMENT_MAPPER).stream().findFirst();
+    }
+
+    // --- admin (teacher backoffice) writes ----------------------------------
+
+    public List<HomeworkAssignment> findAllAssignments() {
+        return jdbc.query("SELECT * FROM homework_assignments ORDER BY created_at DESC",
+                Map.of(), ASSIGNMENT_MAPPER);
+    }
+
+    public Optional<HomeworkAssignment> findAssignmentById(UUID id) {
+        return jdbc.query("SELECT * FROM homework_assignments WHERE id = :id",
+                Map.of("id", id), ASSIGNMENT_MAPPER).stream().findFirst();
+    }
+
+    public UUID insertAssignment(String title, String instructions, LocalDate dueOn) {
+        UUID id = UUID.randomUUID();
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("id", id);
+        params.put("title", title);
+        params.put("instructions", instructions);
+        params.put("dueOn", dueOn == null ? null : java.sql.Date.valueOf(dueOn));
+        jdbc.update("""
+                INSERT INTO homework_assignments (id, title, instructions, due_on, published, sort_order)
+                VALUES (:id, :title, :instructions, :dueOn, true, 0)
+                """, params);
+        return id;
+    }
+
+    public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn) {
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("id", id);
+        params.put("title", title);
+        params.put("instructions", instructions);
+        params.put("dueOn", dueOn == null ? null : java.sql.Date.valueOf(dueOn));
+        return jdbc.update("""
+                UPDATE homework_assignments SET title = :title, instructions = :instructions, due_on = :dueOn
+                WHERE id = :id
+                """, params);
+    }
+
+    public int deleteAssignment(UUID id) {
+        return jdbc.update("DELETE FROM homework_assignments WHERE id = :id", Map.of("id", id));
     }
 }

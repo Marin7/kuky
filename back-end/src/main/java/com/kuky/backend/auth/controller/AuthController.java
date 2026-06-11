@@ -42,7 +42,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
                                                   HttpServletResponse response) {
         AuthResponse body = authService.register(request);
-        String token = jwtConfig.generateToken(body.id(), body.email());
+        String token = jwtConfig.generateToken(body.id(), body.email(), "STUDENT");
         setAuthCookie(response, token);
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
@@ -56,7 +56,7 @@ public class AuthController {
             throw new RateLimitException("Demasiados intentos. Por favor, espera un momento e inténtalo de nuevo.");
         }
         UserResponse body = authService.login(request);
-        String token = jwtConfig.generateToken(body.id(), body.email());
+        String token = jwtConfig.generateToken(body.id(), body.email(), body.role());
         setAuthCookie(response, token);
         return ResponseEntity.ok(body);
     }
@@ -79,7 +79,7 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return authService.findByEmail(email)
-                .map(u -> ResponseEntity.ok(new UserResponse(u.getId(), u.getEmail())))
+                .map(u -> ResponseEntity.ok(new UserResponse(u.getId(), u.getEmail(), u.getRole())))
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
@@ -96,7 +96,7 @@ public class AuthController {
             @Valid @RequestBody ResetPasswordRequest request,
             HttpServletResponse response) {
         UserResponse user = passwordResetService.consumeToken(request.token(), request.newPassword());
-        String token = jwtConfig.generateToken(user.id(), user.email());
+        String token = jwtConfig.generateToken(user.id(), user.email(), user.role());
         setAuthCookie(response, token);
         return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente."));
     }

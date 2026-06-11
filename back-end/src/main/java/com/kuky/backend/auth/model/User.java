@@ -9,6 +9,7 @@ public class User {
     private String email;
     private String passwordHash;
     private String status = "ACTIVE";
+    private String role = "STUDENT";
     private boolean gdprConsent;
     private Instant createdAt;
     private Instant updatedAt;
@@ -21,6 +22,8 @@ public class User {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
     public boolean isGdprConsent() { return gdprConsent; }
     public void setGdprConsent(boolean gdprConsent) { this.gdprConsent = gdprConsent; }
     public Instant getCreatedAt() { return createdAt; }

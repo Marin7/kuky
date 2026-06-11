@@ -13,11 +13,14 @@ const baseNav = [
 
 // Visible only to logged-in users
 const learningNav = { to: "/aprendizaje", label: "Mi aprendizaje" } as const;
+// Visible only to the teacher/admin
+const panelNav = { to: "/panel", label: "Panel" } as const;
 const accountNav = { to: "/cuenta", label: "Mi cuenta" } as const;
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   // Re-check auth on every navigation so the protected link stays in sync.
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -25,8 +28,16 @@ export function SiteHeader() {
     let active = true;
     const check = () =>
       getMe()
-        .then(() => active && setAuthed(true))
-        .catch(() => active && setAuthed(false));
+        .then((me) => {
+          if (!active) return;
+          setAuthed(true);
+          setIsAdmin(me.role === "ADMIN");
+        })
+        .catch(() => {
+          if (!active) return;
+          setAuthed(false);
+          setIsAdmin(false);
+        });
     check();
     // Update immediately on login/logout without a full reload.
     window.addEventListener("auth-changed", check);
@@ -39,6 +50,7 @@ export function SiteHeader() {
   const nav = [
     ...baseNav,
     ...(authed ? [learningNav] : []),
+    ...(isAdmin ? [panelNav] : []),
     accountNav,
   ];
 

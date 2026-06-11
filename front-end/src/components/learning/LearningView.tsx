@@ -4,6 +4,7 @@ import { ClassPresentation } from "./ClassPresentation";
 import { PastClassesList } from "./PastClassesList";
 import { HomeworkList } from "./HomeworkList";
 import { HomeworkSubmitDialog } from "./HomeworkSubmitDialog";
+import { SharedPresentationsList } from "./SharedPresentationsList";
 
 export function LearningView() {
   const [data, setData] = useState<LearningResponse | null>(null);
@@ -57,6 +58,7 @@ export function LearningView() {
       {!loading && !error && data && (
         <>
           <ClassPresentation blocks={data.presentation} />
+          <SharedPresentationsList presentations={data.sharedPresentations} />
           <PastClassesList classes={data.pastClasses} />
           <HomeworkList items={data.homework} onOpen={setDialogItem} />
         </>

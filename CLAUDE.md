@@ -245,15 +245,39 @@ The following scheduling defaults can be overridden via `app.scheduling.*` in YA
 | `/cuenta` | ✅ Live | Register, login, logout, forgot/reset password |
 | `/reservas` | ✅ Live | Public schedule, 1-on-1 booking with Zoom, my bookings + cancel |
 | `/recursos` | ✅ Live | Free & paid teaching resources, purchase + unlock, history + receipts |
+| `/aprendizaje` | ✅ Live | Student-only: class intro, shared presentations, past classes, per-student homework + submit |
+| `/panel` | ✅ Live | **Teacher/admin-only** control panel — availability, homework authoring/assignment, presentation builder |
+
+### Teacher backoffice (`/panel`) — admin-only
+
+- **Admin role**: `users.role` is `STUDENT` or `ADMIN` (migration `V6`). The role is carried as a JWT
+  claim and enforced by `SecurityConfig` (`.requestMatchers("/api/v1/admin/**").hasRole("ADMIN")`);
+  guests get 401, authenticated non-admins get 403 `ACCESS_DENIED` (JSON handlers in `SecurityConfig`).
+  `/me` (and login/register/reset) return `role` so the frontend gates the `Panel` nav entry and the
+  `/panel` route. **`AdminBootstrap`** (a `CommandLineRunner`) promotes the account whose email equals
+  `app.scheduling.teacher-email` to `ADMIN` on startup — the role lands in the JWT on that user's **next login**.
+- **Availability is now data-driven**: the public `/reservas` schedule is generated from teacher-managed
+  `availability_rules` (weekly pattern) + `availability_exceptions` (date BLOCK/OPEN) — migration `V7`,
+  seeded to reproduce the old Mon–Fri 09–18 schedule with the lunch gap. The hard-coded
+  `day-start`/`day-end`/`lunch-break-*` config is gone; `AvailabilityService` still layers the existing
+  min-lead-time, no-past, and confirmed-booking `BOOKED` safeguards on top. Saving availability never
+  cancels bookings; the save response returns confirmed bookings now outside availability as a warning.
+- **Homework is per-student**: a `homework_targets` join table (migration `V8`) replaces the old
+  shared-to-all model — a student sees a homework item only if assigned to them. The `V5` seeded
+  assignments have no targets, so they are now unshared drafts.
+- **Presentations**: teacher-authored decks (`presentations` / `presentation_slides` / `presentation_shares`,
+  migration `V9`) with uploaded images stored in an `images` BYTEA table and served via
+  `GET /api/v1/images/{id}`. A deck is visible to a student only if shared (else 404). Image uploads are
+  validated for type (jpeg/png/webp) and size (≤ 2 MB).
 
 ## Planned future phases
 
-1. **Teacher availability management** — Paula edits her open slots via a teacher-only interface on `/reservas`
-2. **Resources backoffice** — Paula authors and publishes materials via a teacher-only interface on `/recursos`
-3. **Student profiles** — extend `/cuenta` with profile editing, class history
+1. **Resources backoffice** — Paula authors and publishes materials via a teacher-only interface on `/recursos`
+2. **Student profiles** — extend `/cuenta` with profile editing, class history
+3. **Homework review** — teacher marks submissions `REVIEWED` (the status already exists, reserved/read-only today)
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/005-classes-homework-tab/plan.md`
+`specs/006-teacher-backoffice/plan.md`
 <!-- SPECKIT END -->

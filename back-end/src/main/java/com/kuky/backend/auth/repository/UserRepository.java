@@ -28,6 +28,7 @@ public class UserRepository {
         u.setEmail(rs.getString("email"));
         u.setPasswordHash(rs.getString("password_hash"));
         u.setStatus(rs.getString("status"));
+        u.setRole(rs.getString("role"));
         u.setGdprConsent(rs.getBoolean("gdpr_consent"));
         u.setCreatedAt(rs.getTimestamp("created_at").toInstant());
         u.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
@@ -52,19 +53,32 @@ public class UserRepository {
         return count != null && count > 0;
     }
 
+    public List<User> findStudents() {
+        String sql = "SELECT * FROM users WHERE role = 'STUDENT' ORDER BY email";
+        return jdbc.query(sql, Map.of(), USER_MAPPER);
+    }
+
+    /** Promote a user to ADMIN by email (idempotent). Returns rows affected. */
+    public int promoteToAdminByEmail(String email) {
+        String sql = "UPDATE users SET role = 'ADMIN', updated_at = NOW() "
+                + "WHERE LOWER(email) = LOWER(:email) AND role <> 'ADMIN'";
+        return jdbc.update(sql, Map.of("email", email));
+    }
+
     public User save(User user) {
         if (user.getId() == null) {
             Instant now = Instant.now();
             UUID id = UUID.randomUUID();
             String sql = """
-                    INSERT INTO users (id, email, password_hash, status, gdpr_consent, created_at, updated_at)
-                    VALUES (:id, :email, :passwordHash, :status, :gdprConsent, :createdAt, :updatedAt)
+                    INSERT INTO users (id, email, password_hash, status, role, gdpr_consent, created_at, updated_at)
+                    VALUES (:id, :email, :passwordHash, :status, :role, :gdprConsent, :createdAt, :updatedAt)
                     """;
             MapSqlParameterSource params = new MapSqlParameterSource()
                     .addValue("id", id)
                     .addValue("email", user.getEmail())
                     .addValue("passwordHash", user.getPasswordHash())
                     .addValue("status", user.getStatus())
+                    .addValue("role", user.getRole())
                     .addValue("gdprConsent", user.isGdprConsent())
                     .addValue("createdAt", Timestamp.from(now))
                     .addValue("updatedAt", Timestamp.from(now));
@@ -76,7 +90,7 @@ public class UserRepository {
             Instant now = Instant.now();
             String sql = """
                     UPDATE users
-                    SET email = :email, password_hash = :passwordHash, status = :status,
+                    SET email = :email, password_hash = :passwordHash, status = :status, role = :role,
                         gdpr_consent = :gdprConsent, updated_at = :updatedAt
                     WHERE id = :id
                     """;
@@ -85,6 +99,7 @@ public class UserRepository {
                     .addValue("email", user.getEmail())
                     .addValue("passwordHash", user.getPasswordHash())
                     .addValue("status", user.getStatus())
+                    .addValue("role", user.getRole())
                     .addValue("gdprConsent", user.isGdprConsent())
                     .addValue("updatedAt", Timestamp.from(now));
             jdbc.update(sql, params);
