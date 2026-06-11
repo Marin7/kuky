@@ -36,7 +36,9 @@ jobs:
 
       - name: Build and test
         working-directory: back-end
-        run: ./gradlew build
+        run: |
+          chmod +x gradlew
+          ./gradlew build
 
   frontend:
     runs-on: ubuntu-latest
