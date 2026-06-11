@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { listPurchases, getReceipt, formatEur, type PurchaseSummary, type ReceiptResponse, type ApiError } from "@/lib/resources";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Printer } from "lucide-react";
 
 interface MyPurchasesProps {
@@ -45,7 +47,21 @@ export function MyPurchases({ onRefreshRef, onCatalogRefresh }: MyPurchasesProps
   if (loading) {
     return (
       <div className="mx-auto max-w-6xl px-6 pb-10">
-        <p className="text-muted-foreground animate-pulse">Cargando tus recursos…</p>
+        <Skeleton className="h-6 w-40 mb-4" />
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-border p-4"
+            >
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-64" />
+              </div>
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -99,11 +115,22 @@ interface ReceiptViewProps {
 }
 
 function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
+  // Rendered through Radix Dialog primitives (not the styled DialogContent) so
+  // we keep focus trapping, Escape-to-close and aria-modal while preserving the
+  // receipt's bespoke print styling: the overlay is hidden and the card flows
+  // statically on print. aria-describedby is opted out (no description element).
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:bg-white print:inset-auto print:relative print:flex-none">
-      <div className="bg-white rounded-lg p-8 max-w-sm w-full shadow-xl print:shadow-none print:rounded-none" id="receipt-content">
+    <DialogPrimitive.Root open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 print:hidden" />
+      <DialogPrimitive.Content
+        aria-describedby={undefined}
+        id="receipt-content"
+        className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-8 shadow-xl focus:outline-none print:static print:translate-x-0 print:translate-y-0 print:shadow-none print:rounded-none"
+      >
         <div className="text-center mb-6">
-          <h3 className="text-lg font-bold">Español con Paula</h3>
+          <DialogPrimitive.Title className="text-lg font-bold">
+            Español con Paula
+          </DialogPrimitive.Title>
           <p className="text-xs text-gray-500">Recibo de compra</p>
         </div>
 
@@ -143,7 +170,7 @@ function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
             Cerrar
           </Button>
         </div>
-      </div>
-    </div>
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Root>
   );
 }

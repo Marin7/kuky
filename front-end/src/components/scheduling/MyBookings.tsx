@@ -113,6 +113,8 @@ export function MyBookings({ onScheduleRefresh, onRefreshRef }: MyBookingsProps)
     }
   };
 
+  // Secondary panel: render nothing while loading and when there are no
+  // bookings, so users without classes never see it appear then vanish.
   if (loading) return null;
   if (!data || (data.upcoming.length === 0 && data.past.length === 0))
     return null;

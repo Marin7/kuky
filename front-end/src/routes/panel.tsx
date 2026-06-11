@@ -2,17 +2,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { AdminPanel } from "@/components/admin/AdminPanel";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/panel")({
   head: () => ({
-    meta: [
-      { title: "Panel de control — Español con Paula" },
-      {
-        name: "description",
-        content:
-          "Panel de la profesora: disponibilidad, tareas y presentaciones.",
-      },
-    ],
+    meta: seo({
+      title: "Panel de control — Español con Paula",
+      description:
+        "Panel de la profesora: disponibilidad, tareas y presentaciones.",
+      path: "/panel",
+    }),
   }),
   component: PanelPage,
 });

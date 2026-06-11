@@ -3,17 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { ResourcesView } from "@/components/resources/ResourcesView";
 import { MyPurchases } from "@/components/resources/MyPurchases";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/recursos")({
   head: () => ({
-    meta: [
-      { title: "Recursos — Español con Paula" },
-      {
-        name: "description",
-        content:
-          "Explora recursos didácticos para enseñar español. Fichas, guías y materiales de práctica.",
-      },
-    ],
+    meta: seo({
+      title: "Recursos — Español con Paula",
+      description:
+        "Explora recursos didácticos para enseñar español. Fichas, guías y materiales de práctica.",
+      path: "/recursos",
+    }),
   }),
   component: RecursosPage,
 });

@@ -2,17 +2,16 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { LearningView } from "@/components/learning/LearningView";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/aprendizaje")({
   head: () => ({
-    meta: [
-      { title: "Mi aprendizaje — Español con Paula" },
-      {
-        name: "description",
-        content:
-          "Tu espacio de aprendizaje: presentación de las clases, tus clases anteriores y tus tareas.",
-      },
-    ],
+    meta: seo({
+      title: "Mi aprendizaje — Español con Paula",
+      description:
+        "Tu espacio de aprendizaje: presentación de las clases, tus clases anteriores y tus tareas.",
+      path: "/aprendizaje",
+    }),
   }),
   component: AprendizajePage,
 });

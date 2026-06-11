@@ -3,17 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { ScheduleView } from "@/components/scheduling/ScheduleView";
 import { MyBookings } from "@/components/scheduling/MyBookings";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/reservas")({
   head: () => ({
-    meta: [
-      { title: "Reservas — Español con Paula" },
-      {
-        name: "description",
-        content:
-          "Consulta el horario disponible y reserva tu clase de español.",
-      },
-    ],
+    meta: seo({
+      title: "Reservas — Español con Paula",
+      description:
+        "Consulta el horario disponible y reserva tu clase de español.",
+      path: "/reservas",
+    }),
   }),
   component: ReservasPage,
 });

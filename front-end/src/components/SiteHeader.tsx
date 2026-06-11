@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Menu, X } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { getMe } from "@/lib/auth";
 
 const baseNav = [
@@ -89,6 +94,7 @@ export function SiteHeader() {
             </button>
           </SheetTrigger>
           <SheetContent side="right" className="w-64 pt-10">
+            <SheetTitle className="sr-only">Menú de navegación</SheetTitle>
             <nav className="flex flex-col gap-1">
               {nav.map((n) => (
                 <Link

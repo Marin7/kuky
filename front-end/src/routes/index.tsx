@@ -1,16 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import teacherUrl from "@/assets/teacher.jpg";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [
-      { title: "Español con Paula — Clases de español para rumanos" },
-      {
-        name: "description",
-        content:
-          "Clases de español personalizadas, 100% online, para estudiantes rumanos de todos los niveles.",
-      },
-    ],
+    meta: seo({
+      title: "Español con Paula — Clases de español para rumanos",
+      description:
+        "Clases de español personalizadas, 100% online, para estudiantes rumanos de todos los niveles.",
+      path: "/",
+    }),
   }),
   component: Index,
 });

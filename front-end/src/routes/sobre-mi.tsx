@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import teacherUrl from "@/assets/teacher.jpg";
+import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/sobre-mi")({
   head: () => ({
-    meta: [
-      { title: "Sobre mí — Español con Paula" },
-      {
-        name: "description",
-        content:
-          "Conoce a Paula, profesora de español dedicada a ayudar a estudiantes rumanos a dominar el idioma.",
-      },
-    ],
+    meta: seo({
+      title: "Sobre mí — Español con Paula",
+      description:
+        "Conoce a Paula, profesora de español dedicada a ayudar a estudiantes rumanos a dominar el idioma.",
+      path: "/sobre-mi",
+    }),
   }),
   component: SobreMi,
 });

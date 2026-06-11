@@ -1,10 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import { getCatalog, type CatalogResponse, type ResourceCard, type BundleCard } from "@/lib/resources";
+import { Skeleton } from "@/components/ui/skeleton";
 import { FreeResourcesSection } from "./FreeResourcesSection";
 import { ResourceCard as ResourceCardComponent } from "./ResourceCard";
 import { BundleCard as BundleCardComponent } from "./BundleCard";
 import { ResourceDetailDialog } from "./ResourceDetailDialog";
 import { PurchaseDialog } from "./PurchaseDialog";
+
+// Section heading + a grid of card placeholders matching the loaded catalog.
+function CatalogSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-6 w-44" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-border p-4 space-y-3">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-8 w-24 rounded-md" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface ResourcesViewProps {
   onRefreshRef?: React.MutableRefObject<(() => void) | null>;
@@ -82,9 +102,7 @@ export function ResourcesView({ onRefreshRef, onPurchaseSuccess }: ResourcesView
         </p>
       </div>
 
-      {loading && (
-        <p className="text-muted-foreground animate-pulse">Cargando recursos…</p>
-      )}
+      {loading && <CatalogSkeleton />}
 
       {error && (
         <p className="text-destructive">{error}</p>

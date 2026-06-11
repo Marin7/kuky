@@ -19,6 +19,7 @@ import {
   type ApiError,
   type UserResponse,
 } from "@/lib/auth";
+import { seo } from "@/lib/seo";
 
 const IMAGE_BASE = "http://localhost:8081/api/v1/images";
 
@@ -30,13 +31,11 @@ const searchSchema = z.object({
 export const Route = createFileRoute("/cuenta")({
   validateSearch: searchSchema,
   head: () => ({
-    meta: [
-      { title: "Mi cuenta — Español con Paula" },
-      {
-        name: "description",
-        content: "Gestiona tu cuenta y tu perfil de estudiante.",
-      },
-    ],
+    meta: seo({
+      title: "Mi cuenta — Español con Paula",
+      description: "Gestiona tu cuenta y tu perfil de estudiante.",
+      path: "/cuenta",
+    }),
   }),
   component: CuentaPage,
 });

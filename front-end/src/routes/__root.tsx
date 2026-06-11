@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader, SiteFooter } from "../components/SiteHeader";
+import { seo } from "../lib/seo";
 
 function NotFoundComponent() {
   return (
@@ -77,15 +78,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       meta: [
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
-        { title: "Español con Paula — Clases de español para rumanos" },
-        {
-          name: "description",
-          content:
+        ...seo({
+          title: "Español con Paula — Clases de español para rumanos",
+          description:
             "Aprende español con una profesora dedicada. Clases personalizadas para estudiantes rumanos de todos los niveles.",
-        },
+        }),
+        { name: "theme-color", content: "#bc5a3c" },
       ],
       links: [
         { rel: "stylesheet", href: appCss },
+        { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+        { rel: "manifest", href: "/site.webmanifest" },
         { rel: "preconnect", href: "https://fonts.googleapis.com" },
         {
           rel: "preconnect",
