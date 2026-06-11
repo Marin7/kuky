@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { register as apiRegister, updateProfile, type ApiError } from "@/lib/auth";
+import {
+  register as apiRegister,
+  updateProfile,
+  type ApiError,
+} from "@/lib/auth";
 
 const schema = z
   .object({
@@ -85,7 +89,10 @@ export function RegistrationForm({ onSuccess }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label htmlFor="reg-firstName">
-            Nombre <span className="text-muted-foreground font-normal">(opcional)</span>
+            Nombre{" "}
+            <span className="text-muted-foreground font-normal">
+              (opcional)
+            </span>
           </Label>
           <Input
             id="reg-firstName"
@@ -93,12 +100,17 @@ export function RegistrationForm({ onSuccess }: Props) {
             {...register("firstName")}
           />
           {errors.firstName && (
-            <p className="text-sm text-destructive">{errors.firstName.message}</p>
+            <p className="text-sm text-destructive">
+              {errors.firstName.message}
+            </p>
           )}
         </div>
         <div className="space-y-1">
           <Label htmlFor="reg-lastName">
-            Apellidos <span className="text-muted-foreground font-normal">(opcional)</span>
+            Apellidos{" "}
+            <span className="text-muted-foreground font-normal">
+              (opcional)
+            </span>
           </Label>
           <Input
             id="reg-lastName"
@@ -106,7 +118,9 @@ export function RegistrationForm({ onSuccess }: Props) {
             {...register("lastName")}
           />
           {errors.lastName && (
-            <p className="text-sm text-destructive">{errors.lastName.message}</p>
+            <p className="text-sm text-destructive">
+              {errors.lastName.message}
+            </p>
           )}
         </div>
       </div>

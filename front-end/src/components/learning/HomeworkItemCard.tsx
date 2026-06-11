@@ -101,7 +101,8 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
 
         {item.dueOn && (
           <p className="text-xs text-muted-foreground">
-            Fecha límite: <span className="capitalize">{formatDate(item.dueOn)}</span>
+            Fecha límite:{" "}
+            <span className="capitalize">{formatDate(item.dueOn)}</span>
           </p>
         )}
 

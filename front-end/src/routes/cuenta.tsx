@@ -42,7 +42,8 @@ export const Route = createFileRoute("/cuenta")({
 });
 
 function displayName(user: UserResponse): string {
-  if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
+  if (user.firstName && user.lastName)
+    return `${user.firstName} ${user.lastName}`;
   if (user.firstName) return user.firstName;
   if (user.username) return `@${user.username}`;
   return user.email.split("@")[0];
@@ -205,7 +206,7 @@ function ActivateView({
         setState("error");
         setErrorMsg(err.message ?? "El enlace no es válido o ha expirado.");
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   if (state === "activating") {
@@ -248,8 +249,8 @@ function PendingActivationView({
     <div className="mx-auto max-w-md px-4 py-16 text-center space-y-4">
       <h1 className="font-display text-2xl font-bold">Revisa tu correo</h1>
       <p className="text-muted-foreground text-sm">
-        Hemos enviado un enlace de activación a{" "}
-        <strong>{email}</strong>. Haz clic en él para activar tu cuenta.
+        Hemos enviado un enlace de activación a <strong>{email}</strong>. Haz
+        clic en él para activar tu cuenta.
       </p>
       {resent ? (
         <p className="text-sm text-green-600">
@@ -363,9 +364,7 @@ function ProfileView({
     }
   };
 
-  const handleAvatarChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -467,11 +466,11 @@ function ProfileView({
           </div>
         </div>
 
-        {saveError && (
-          <p className="text-sm text-destructive">{saveError}</p>
-        )}
+        {saveError && <p className="text-sm text-destructive">{saveError}</p>}
         {saveSuccess && (
-          <p className="text-sm text-green-600">Perfil actualizado correctamente.</p>
+          <p className="text-sm text-green-600">
+            Perfil actualizado correctamente.
+          </p>
         )}
 
         <Button type="submit" disabled={saving} className="w-full">

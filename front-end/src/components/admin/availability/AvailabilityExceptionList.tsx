@@ -80,7 +80,10 @@ export function AvailabilityExceptionList() {
             onChange={(e) => setDate(e.target.value)}
             className="h-8 w-40"
           />
-          <Select value={kind} onValueChange={(v) => setKind(v as "BLOCK" | "OPEN")}>
+          <Select
+            value={kind}
+            onValueChange={(v) => setKind(v as "BLOCK" | "OPEN")}
+          >
             <SelectTrigger className="h-8 w-32">
               <SelectValue />
             </SelectTrigger>

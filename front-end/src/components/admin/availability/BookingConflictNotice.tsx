@@ -27,8 +27,8 @@ export function BookingConflictNotice({ conflicts }: Props) {
         nueva disponibilidad.
       </p>
       <p className="mt-1 text-xs">
-        Estas clases se mantienen y no se han cancelado. Contacta con tus alumnos
-        si necesitas reprogramarlas:
+        Estas clases se mantienen y no se han cancelado. Contacta con tus
+        alumnos si necesitas reprogramarlas:
       </p>
       <ul className="mt-2 space-y-1">
         {conflicts.map((c) => (

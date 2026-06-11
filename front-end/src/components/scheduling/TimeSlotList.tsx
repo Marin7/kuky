@@ -25,7 +25,11 @@ interface TimeSlotListProps {
   onSelect: (slot: Slot) => void;
 }
 
-export function TimeSlotList({ slots, selectedDay, onSelect }: TimeSlotListProps) {
+export function TimeSlotList({
+  slots,
+  selectedDay,
+  onSelect,
+}: TimeSlotListProps) {
   if (!selectedDay) {
     return (
       <div className="flex items-center justify-center h-full min-h-[140px] text-sm text-muted-foreground text-center px-4">

@@ -60,7 +60,9 @@ function StatusBadge({ status }: { status: string }) {
         ? "bg-blue-100 text-blue-700"
         : "bg-muted text-muted-foreground";
   return (
-    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}
+    >
       {label}
     </span>
   );
@@ -163,16 +165,26 @@ function StudentProfilePage() {
             {/* Quick stats */}
             <div className="mt-6 grid grid-cols-3 gap-4">
               {[
-                { label: "Clases", value: profile.bookings.filter(b => b.status === "CONFIRMED").length },
+                {
+                  label: "Clases",
+                  value: profile.bookings.filter(
+                    (b) => b.status === "CONFIRMED",
+                  ).length,
+                },
                 { label: "Tareas", value: profile.homeworks.length },
-                { label: "Presentaciones", value: profile.presentations.length },
+                {
+                  label: "Presentaciones",
+                  value: profile.presentations.length,
+                },
               ].map((stat) => (
                 <div
                   key={stat.label}
                   className="rounded-lg border bg-card p-4 text-center"
                 >
                   <p className="text-2xl font-semibold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stat.label}
+                  </p>
                 </div>
               ))}
             </div>
@@ -182,7 +194,9 @@ function StudentProfilePage() {
             {/* Upcoming classes */}
             <Section title="Próximas clases" count={upcoming.length}>
               {upcoming.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Ninguna próxima.</p>
+                <p className="text-sm text-muted-foreground">
+                  Ninguna próxima.
+                </p>
               ) : (
                 <div className="divide-y rounded-lg border">
                   {upcoming.map((b) => (

@@ -39,7 +39,9 @@ export function BookingsTab() {
   }, []);
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground animate-pulse">Cargando…</p>;
+    return (
+      <p className="text-sm text-muted-foreground animate-pulse">Cargando…</p>
+    );
   }
 
   if (error) {
@@ -62,7 +64,9 @@ export function BookingsTab() {
       {bookings.map((b) => (
         <Card key={b.id} className="text-sm">
           <CardContent className="pt-4 space-y-1">
-            <p className="font-medium capitalize">{formatSlot(b.slotStart, b.slotEnd)}</p>
+            <p className="font-medium capitalize">
+              {formatSlot(b.slotStart, b.slotEnd)}
+            </p>
             <StudentLink
               student={{
                 id: b.studentId,

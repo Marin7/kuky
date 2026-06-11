@@ -117,7 +117,9 @@ export const resendActivation = (email: string) =>
     body: JSON.stringify({ email }),
   });
 
-export const uploadAvatar = async (file: File): Promise<{ avatarImageId: string }> => {
+export const uploadAvatar = async (
+  file: File,
+): Promise<{ avatarImageId: string }> => {
   const formData = new FormData();
   formData.append("file", file);
   const res = await fetch(`${API_BASE}/avatar`, {

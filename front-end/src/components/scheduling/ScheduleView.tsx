@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { getSchedule, type Slot, type ScheduleResponse } from "@/lib/scheduling";
+import {
+  getSchedule,
+  type Slot,
+  type ScheduleResponse,
+} from "@/lib/scheduling";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarPicker } from "./CalendarPicker";
@@ -40,7 +44,10 @@ interface ScheduleViewProps {
   onBookingSuccess?: () => void;
 }
 
-export function ScheduleView({ onRefreshRef, onBookingSuccess }: ScheduleViewProps) {
+export function ScheduleView({
+  onRefreshRef,
+  onBookingSuccess,
+}: ScheduleViewProps) {
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,15 +82,17 @@ export function ScheduleView({ onRefreshRef, onBookingSuccess }: ScheduleViewPro
       <div>
         <h1 className="font-display text-2xl font-bold">Horario de clases</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Selecciona un día y una hora disponible para reservar tu clase.
-          Los horarios se muestran en tu zona horaria local.
+          Selecciona un día y una hora disponible para reservar tu clase. Los
+          horarios se muestran en tu zona horaria local.
         </p>
       </div>
 
       {loading && <ScheduleSkeleton />}
 
       {error && (
-        <div className="py-16 text-center text-destructive text-sm">{error}</div>
+        <div className="py-16 text-center text-destructive text-sm">
+          {error}
+        </div>
       )}
 
       {!loading && !error && schedule && (

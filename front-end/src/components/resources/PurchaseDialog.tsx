@@ -7,7 +7,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { formatEur, purchase, type ApiError, type ItemType } from "@/lib/resources";
+import {
+  formatEur,
+  purchase,
+  type ApiError,
+  type ItemType,
+} from "@/lib/resources";
 import { useNavigate } from "@tanstack/react-router";
 
 interface PurchaseTarget {
@@ -23,7 +28,11 @@ interface PurchaseDialogProps {
   onSuccess: () => void;
 }
 
-export function PurchaseDialog({ target, onClose, onSuccess }: PurchaseDialogProps) {
+export function PurchaseDialog({
+  target,
+  onClose,
+  onSuccess,
+}: PurchaseDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -48,7 +57,10 @@ export function PurchaseDialog({ target, onClose, onSuccess }: PurchaseDialogPro
         // FR-009: return to purchase after sign in
         navigate({
           to: "/cuenta",
-          search: { returnTo: "/recursos", buy: `${target.itemType}:${target.slug}` } as Record<string, string>,
+          search: {
+            returnTo: "/recursos",
+            buy: `${target.itemType}:${target.slug}`,
+          } as Record<string, string>,
         });
         onClose();
         return;
@@ -78,8 +90,8 @@ export function PurchaseDialog({ target, onClose, onSuccess }: PurchaseDialogPro
         {confirmed ? (
           <div className="py-4 space-y-3">
             <p className="text-sm text-muted-foreground">
-              Ahora tienes acceso a <strong>{target?.title}</strong>. Puedes
-              ver los materiales directamente desde el catálogo.
+              Ahora tienes acceso a <strong>{target?.title}</strong>. Puedes ver
+              los materiales directamente desde el catálogo.
             </p>
             <DialogFooter>
               <Button onClick={onClose}>Cerrar</Button>
@@ -88,14 +100,16 @@ export function PurchaseDialog({ target, onClose, onSuccess }: PurchaseDialogPro
         ) : (
           <div className="py-4 space-y-4">
             <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-              ⚠️ Esta es una versión de demostración — no se realiza ningún pago real.
-              El acceso se concede automáticamente al confirmar.
+              ⚠️ Esta es una versión de demostración — no se realiza ningún pago
+              real. El acceso se concede automáticamente al confirmar.
             </div>
 
             {target && (
               <div className="space-y-1">
                 <p className="font-medium">{target.title}</p>
-                <p className="text-lg font-semibold">{formatEur(target.priceCents)}</p>
+                <p className="text-lg font-semibold">
+                  {formatEur(target.priceCents)}
+                </p>
               </div>
             )}
 

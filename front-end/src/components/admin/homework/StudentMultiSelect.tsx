@@ -47,7 +47,9 @@ export function StudentMultiSelect({ selected, onChange }: Props) {
           <span>
             {studentDisplayName(s)}
             {s.firstName && (
-              <span className="ml-1 text-xs text-muted-foreground">{s.email}</span>
+              <span className="ml-1 text-xs text-muted-foreground">
+                {s.email}
+              </span>
             )}
           </span>
         </label>

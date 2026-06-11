@@ -220,7 +220,11 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
     setError(null);
     try {
       const updated = await uploadPresentationFile(item.id, file);
-      onUpdated({ ...item, hasFile: true, originalFileName: updated.originalFileName });
+      onUpdated({
+        ...item,
+        hasFile: true,
+        originalFileName: updated.originalFileName,
+      });
     } catch (err) {
       setError((err as ApiError).message ?? "Error al subir el archivo.");
     } finally {

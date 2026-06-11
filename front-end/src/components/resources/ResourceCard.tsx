@@ -1,7 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lock, CheckCircle } from "lucide-react";
-import { formatEur, type ResourceCard as ResourceCardType } from "@/lib/resources";
+import {
+  formatEur,
+  type ResourceCard as ResourceCardType,
+} from "@/lib/resources";
 
 interface ResourceCardProps {
   resource: ResourceCardType;
@@ -10,7 +13,16 @@ interface ResourceCardProps {
 }
 
 export function ResourceCard({ resource, onOpen, onBuy }: ResourceCardProps) {
-  const { title, description, level, category, pricing, priceCents, owned, locked } = resource;
+  const {
+    title,
+    description,
+    level,
+    category,
+    pricing,
+    priceCents,
+    owned,
+    locked,
+  } = resource;
 
   return (
     <div className="flex flex-col rounded-lg border border-border bg-card p-5 gap-3 hover:shadow-sm transition-shadow">
@@ -38,15 +50,19 @@ export function ResourceCard({ resource, onOpen, onBuy }: ResourceCardProps) {
 
       <div>
         <h3 className="font-semibold text-foreground">{title}</h3>
-        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{description}</p>
+        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+          {description}
+        </p>
       </div>
 
       <div className="flex items-center justify-between mt-auto pt-2">
         <span className="font-medium text-sm">
           {pricing === "FREE" ? (
             <span className="text-green-700">Gratis</span>
+          ) : priceCents != null ? (
+            formatEur(priceCents)
           ) : (
-            priceCents != null ? formatEur(priceCents) : ""
+            ""
           )}
         </span>
         <div className="flex gap-2">

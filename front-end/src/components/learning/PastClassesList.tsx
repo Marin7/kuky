@@ -23,7 +23,8 @@ export function PastClassesList({ classes }: PastClassesListProps) {
 
       {classes.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          Aún no tienes clases anteriores. Aquí aparecerá un resumen de cada clase que completes.
+          Aún no tienes clases anteriores. Aquí aparecerá un resumen de cada
+          clase que completes.
         </p>
       ) : (
         <div className="space-y-3">

@@ -13,8 +13,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const DAY_ABBREVS = ["", "lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
 const MONTH_ABBREVS = [
-  "ene", "feb", "mar", "abr", "may", "jun",
-  "jul", "ago", "sep", "oct", "nov", "dic",
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
 ];
 
 const HOUR_START = 7;
@@ -25,8 +35,8 @@ const HOURS = Array.from(
 );
 
 interface DateCol {
-  dow: number;      // 1=Mon … 7=Sun
-  dateStr: string;  // "YYYY-MM-DD"
+  dow: number; // 1=Mon … 7=Sun
+  dateStr: string; // "YYYY-MM-DD"
   dayLabel: string;
   dayNum: number;
   monthLabel: string;
@@ -104,7 +114,11 @@ function hoursToRanges(
 ): { kind: "OPEN" | "BLOCK"; startTime: string; endTime: string }[] {
   if (entries.length === 0) return [];
   entries.sort((a, b) => a.hour - b.hour);
-  const ranges: { kind: "OPEN" | "BLOCK"; startTime: string; endTime: string }[] = [];
+  const ranges: {
+    kind: "OPEN" | "BLOCK";
+    startTime: string;
+    endTime: string;
+  }[] = [];
   let start = entries[0].hour;
   let prev = entries[0].hour;
   let kind = entries[0].kind;
@@ -116,7 +130,10 @@ function hoursToRanges(
         startTime: `${String(start).padStart(2, "0")}:00`,
         endTime: `${String(prev + 1).padStart(2, "0")}:00`,
       });
-      if (cur) { start = cur.hour; kind = cur.kind; }
+      if (cur) {
+        start = cur.hour;
+        kind = cur.kind;
+      }
     }
     if (cur) prev = cur.hour;
   }
@@ -129,9 +146,13 @@ interface Props {
 
 export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const [weekly, setWeekly] = useState<WeeklyWindow[]>([]);
-  const [serverExceptions, setServerExceptions] = useState<AvailabilityException[]>([]);
+  const [serverExceptions, setServerExceptions] = useState<
+    AvailabilityException[]
+  >([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [initialSelected, setInitialSelected] = useState<Set<string>>(new Set());
+  const [initialSelected, setInitialSelected] = useState<Set<string>>(
+    new Set(),
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +162,10 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const week1 = dates.slice(0, 7);
   const week2 = dates.slice(7, 14);
 
-  const applyAvailability = (w: WeeklyWindow[], ex: AvailabilityException[]) => {
+  const applyAvailability = (
+    w: WeeklyWindow[],
+    ex: AvailabilityException[],
+  ) => {
     setWeekly(w);
     setServerExceptions(ex);
     const s = computeSelected(w, ex, dates);
@@ -204,7 +228,9 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
         // Merge consecutive same-kind hours into ranges and save
         const ranges = hoursToRanges(exHours);
         await Promise.all(
-          ranges.map((r) => addException(dateStr, r.kind, r.startTime, r.endTime)),
+          ranges.map((r) =>
+            addException(dateStr, r.kind, r.startTime, r.endTime),
+          ),
         );
       }
 
@@ -242,7 +268,10 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
             {/* Header row */}
             <div />
             {week1.map((d, i) => (
-              <div key={i} className={`text-center text-xs pb-2 px-0.5 ${d.dateStr < todayStr ? "opacity-40" : ""}`}>
+              <div
+                key={i}
+                className={`text-center text-xs pb-2 px-0.5 ${d.dateStr < todayStr ? "opacity-40" : ""}`}
+              >
                 <div className="font-medium capitalize">{d.dayLabel}</div>
                 <div className="text-muted-foreground">
                   {d.dayNum} {d.monthLabel}
@@ -251,7 +280,10 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
             ))}
             <div />
             {week2.map((d, i) => (
-              <div key={i + 7} className={`text-center text-xs pb-2 px-0.5 ${d.dateStr < todayStr ? "opacity-40" : ""}`}>
+              <div
+                key={i + 7}
+                className={`text-center text-xs pb-2 px-0.5 ${d.dateStr < todayStr ? "opacity-40" : ""}`}
+              >
                 <div className="font-medium capitalize">{d.dayLabel}</div>
                 <div className="text-muted-foreground">
                   {d.dayNum} {d.monthLabel}
@@ -276,8 +308,8 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
                         d.dateStr < todayStr
                           ? `opacity-30 cursor-default pointer-events-none ${isOn ? "bg-primary/15 border-primary/40" : "border-border/30"}`
                           : isOn
-                          ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
-                          : "border-border/40 hover:bg-muted/50"
+                            ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
+                            : "border-border/40 hover:bg-muted/50"
                       }`}
                     />
                   );
@@ -294,8 +326,8 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
                         d.dateStr < todayStr
                           ? `opacity-30 cursor-default pointer-events-none ${isOn ? "bg-primary/15 border-primary/40" : "border-border/30"}`
                           : isOn
-                          ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
-                          : "border-border/40 hover:bg-muted/50"
+                            ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
+                            : "border-border/40 hover:bg-muted/50"
                       }`}
                     />
                   );

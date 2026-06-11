@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { getLearning, type LearningResponse, type HomeworkItem } from "@/lib/learning";
+import {
+  getLearning,
+  type LearningResponse,
+  type HomeworkItem,
+} from "@/lib/learning";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClassPresentation } from "./ClassPresentation";
 import { PastClassesList } from "./PastClassesList";
@@ -37,7 +41,9 @@ export function LearningView() {
     setError(null);
     getLearning()
       .then(setData)
-      .catch(() => setError("No se pudo cargar tu aprendizaje. Inténtalo de nuevo."))
+      .catch(() =>
+        setError("No se pudo cargar tu aprendizaje. Inténtalo de nuevo."),
+      )
       .finally(() => setLoading(false));
   };
 
@@ -65,7 +71,8 @@ export function LearningView() {
           Mi aprendizaje
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Tu espacio personal: la presentación de las clases, tus clases anteriores y tus tareas.
+          Tu espacio personal: la presentación de las clases, tus clases
+          anteriores y tus tareas.
         </p>
       </div>
 

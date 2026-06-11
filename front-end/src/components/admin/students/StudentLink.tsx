@@ -2,7 +2,10 @@ import { Link } from "@tanstack/react-router";
 import { studentDisplayName, type Student } from "@/lib/admin";
 
 interface StudentLinkProps {
-  student: Pick<Student, "id" | "email" | "firstName" | "lastName" | "username">;
+  student: Pick<
+    Student,
+    "id" | "email" | "firstName" | "lastName" | "username"
+  >;
   showEmail?: boolean;
 }
 

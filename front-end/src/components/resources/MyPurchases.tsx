@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { listPurchases, getReceipt, formatEur, type PurchaseSummary, type ReceiptResponse, type ApiError } from "@/lib/resources";
+import {
+  listPurchases,
+  getReceipt,
+  formatEur,
+  type PurchaseSummary,
+  type ReceiptResponse,
+  type ApiError,
+} from "@/lib/resources";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Printer } from "lucide-react";
@@ -10,7 +17,10 @@ interface MyPurchasesProps {
   onCatalogRefresh?: () => void;
 }
 
-export function MyPurchases({ onRefreshRef, onCatalogRefresh }: MyPurchasesProps) {
+export function MyPurchases({
+  onRefreshRef,
+  onCatalogRefresh,
+}: MyPurchasesProps) {
   const [purchases, setPurchases] = useState<PurchaseSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [receipt, setReceipt] = useState<ReceiptResponse | null>(null);
@@ -68,7 +78,9 @@ export function MyPurchases({ onRefreshRef, onCatalogRefresh }: MyPurchasesProps
 
   return (
     <div className="mx-auto max-w-6xl px-6 pb-10">
-      <h2 className="text-xl font-semibold text-foreground mb-4">Mis recursos</h2>
+      <h2 className="text-xl font-semibold text-foreground mb-4">
+        Mis recursos
+      </h2>
 
       {purchases.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -104,7 +116,9 @@ export function MyPurchases({ onRefreshRef, onCatalogRefresh }: MyPurchasesProps
         </div>
       )}
 
-      {receipt && <ReceiptView receipt={receipt} onClose={() => setReceipt(null)} />}
+      {receipt && (
+        <ReceiptView receipt={receipt} onClose={() => setReceipt(null)} />
+      )}
     </div>
   );
 }
@@ -120,7 +134,12 @@ function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
   // receipt's bespoke print styling: the overlay is hidden and the card flows
   // statically on print. aria-describedby is opted out (no description element).
   return (
-    <DialogPrimitive.Root open onOpenChange={(o) => { if (!o) onClose(); }}>
+    <DialogPrimitive.Root
+      open
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 print:hidden" />
       <DialogPrimitive.Content
         aria-describedby={undefined}
@@ -141,7 +160,11 @@ function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Fecha</span>
-            <span>{new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(new Date(receipt.purchasedAt))}</span>
+            <span>
+              {new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(
+                new Date(receipt.purchasedAt),
+              )}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">Cliente</span>
@@ -152,7 +175,9 @@ function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
         <div className="border-t border-gray-200 pt-4 mb-4">
           <p className="text-sm font-medium mb-2">{receipt.itemTitle}</p>
           {receipt.lineItems.map((item, i) => (
-            <p key={i} className="text-xs text-gray-600 pl-2">· {item.title}</p>
+            <p key={i} className="text-xs text-gray-600 pl-2">
+              · {item.title}
+            </p>
           ))}
         </div>
 

@@ -14,7 +14,9 @@ export function StudentsTab() {
   }, []);
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground animate-pulse">Cargando…</p>;
+    return (
+      <p className="text-sm text-muted-foreground animate-pulse">Cargando…</p>
+    );
   }
 
   if (students.length === 0) {
@@ -37,11 +39,16 @@ export function StudentsTab() {
           const name = studentDisplayName(s);
           const hasRealName = name !== s.email.split("@")[0];
           return (
-            <li key={s.id} className="flex items-center justify-between px-4 py-3">
+            <li
+              key={s.id}
+              className="flex items-center justify-between px-4 py-3"
+            >
               <div className="min-w-0">
                 <StudentLink student={s} />
                 {hasRealName && (
-                  <p className="text-xs text-muted-foreground truncate">{s.email}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {s.email}
+                  </p>
                 )}
               </div>
               {s.username && (

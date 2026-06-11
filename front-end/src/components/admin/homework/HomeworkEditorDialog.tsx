@@ -51,14 +51,14 @@ export function HomeworkEditorDialog({
   onSaved,
 }: Props) {
   const [title, setTitle] = useState(existing?.title ?? "");
-  const [instructions, setInstructions] = useState(existing?.instructions ?? "");
+  const [instructions, setInstructions] = useState(
+    existing?.instructions ?? "",
+  );
   const [dueOn, setDueOn] = useState(existing?.dueOn ?? "");
   const [homeworkType, setHomeworkType] = useState<HomeworkType | "">(
     existing?.homeworkType ?? "",
   );
-  const [level, setLevel] = useState<HomeworkLevel | "">(
-    existing?.level ?? "",
-  );
+  const [level, setLevel] = useState<HomeworkLevel | "">(existing?.level ?? "");
   const [assigneeIds, setAssigneeIds] = useState<string[]>(
     existing?.assignees.map((a) => a.userId) ?? [],
   );

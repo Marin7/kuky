@@ -8,210 +8,210 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SobreMiRouteImport } from './routes/sobre-mi'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ReservasRouteImport } from './routes/reservas'
-import { Route as RecursosRouteImport } from './routes/recursos'
-import { Route as PanelRouteImport } from './routes/panel'
-import { Route as CuentaRouteImport } from './routes/cuenta'
-import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as PanelAlumnosStudentIdRouteImport } from './routes/panel_.alumnos.$studentId'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as SobreMiRouteImport } from "./routes/sobre-mi";
+import { Route as SitemapDotxmlRouteImport } from "./routes/sitemap[.]xml";
+import { Route as ReservasRouteImport } from "./routes/reservas";
+import { Route as RecursosRouteImport } from "./routes/recursos";
+import { Route as PanelRouteImport } from "./routes/panel";
+import { Route as CuentaRouteImport } from "./routes/cuenta";
+import { Route as AprendizajeRouteImport } from "./routes/aprendizaje";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as PanelAlumnosStudentIdRouteImport } from "./routes/panel_.alumnos.$studentId";
 
 const SobreMiRoute = SobreMiRouteImport.update({
-  id: '/sobre-mi',
-  path: '/sobre-mi',
+  id: "/sobre-mi",
+  path: "/sobre-mi",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
+  id: "/sitemap.xml",
+  path: "/sitemap.xml",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ReservasRoute = ReservasRouteImport.update({
-  id: '/reservas',
-  path: '/reservas',
+  id: "/reservas",
+  path: "/reservas",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const RecursosRoute = RecursosRouteImport.update({
-  id: '/recursos',
-  path: '/recursos',
+  id: "/recursos",
+  path: "/recursos",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PanelRoute = PanelRouteImport.update({
-  id: '/panel',
-  path: '/panel',
+  id: "/panel",
+  path: "/panel",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const CuentaRoute = CuentaRouteImport.update({
-  id: '/cuenta',
-  path: '/cuenta',
+  id: "/cuenta",
+  path: "/cuenta",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const AprendizajeRoute = AprendizajeRouteImport.update({
-  id: '/aprendizaje',
-  path: '/aprendizaje',
+  id: "/aprendizaje",
+  path: "/aprendizaje",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PanelAlumnosStudentIdRoute = PanelAlumnosStudentIdRouteImport.update({
-  id: '/panel_/alumnos/$studentId',
-  path: '/panel/alumnos/$studentId',
+  id: "/panel_/alumnos/$studentId",
+  path: "/panel/alumnos/$studentId",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/aprendizaje': typeof AprendizajeRoute
-  '/cuenta': typeof CuentaRoute
-  '/panel': typeof PanelRoute
-  '/recursos': typeof RecursosRoute
-  '/reservas': typeof ReservasRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sobre-mi': typeof SobreMiRoute
-  '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  "/": typeof IndexRoute;
+  "/aprendizaje": typeof AprendizajeRoute;
+  "/cuenta": typeof CuentaRoute;
+  "/panel": typeof PanelRoute;
+  "/recursos": typeof RecursosRoute;
+  "/reservas": typeof ReservasRoute;
+  "/sitemap.xml": typeof SitemapDotxmlRoute;
+  "/sobre-mi": typeof SobreMiRoute;
+  "/panel/alumnos/$studentId": typeof PanelAlumnosStudentIdRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/aprendizaje': typeof AprendizajeRoute
-  '/cuenta': typeof CuentaRoute
-  '/panel': typeof PanelRoute
-  '/recursos': typeof RecursosRoute
-  '/reservas': typeof ReservasRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sobre-mi': typeof SobreMiRoute
-  '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  "/": typeof IndexRoute;
+  "/aprendizaje": typeof AprendizajeRoute;
+  "/cuenta": typeof CuentaRoute;
+  "/panel": typeof PanelRoute;
+  "/recursos": typeof RecursosRoute;
+  "/reservas": typeof ReservasRoute;
+  "/sitemap.xml": typeof SitemapDotxmlRoute;
+  "/sobre-mi": typeof SobreMiRoute;
+  "/panel/alumnos/$studentId": typeof PanelAlumnosStudentIdRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/aprendizaje': typeof AprendizajeRoute
-  '/cuenta': typeof CuentaRoute
-  '/panel': typeof PanelRoute
-  '/recursos': typeof RecursosRoute
-  '/reservas': typeof ReservasRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/sobre-mi': typeof SobreMiRoute
-  '/panel_/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/aprendizaje": typeof AprendizajeRoute;
+  "/cuenta": typeof CuentaRoute;
+  "/panel": typeof PanelRoute;
+  "/recursos": typeof RecursosRoute;
+  "/reservas": typeof ReservasRoute;
+  "/sitemap.xml": typeof SitemapDotxmlRoute;
+  "/sobre-mi": typeof SobreMiRoute;
+  "/panel_/alumnos/$studentId": typeof PanelAlumnosStudentIdRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/aprendizaje'
-    | '/cuenta'
-    | '/panel'
-    | '/recursos'
-    | '/reservas'
-    | '/sitemap.xml'
-    | '/sobre-mi'
-    | '/panel/alumnos/$studentId'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/aprendizaje"
+    | "/cuenta"
+    | "/panel"
+    | "/recursos"
+    | "/reservas"
+    | "/sitemap.xml"
+    | "/sobre-mi"
+    | "/panel/alumnos/$studentId";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/aprendizaje'
-    | '/cuenta'
-    | '/panel'
-    | '/recursos'
-    | '/reservas'
-    | '/sitemap.xml'
-    | '/sobre-mi'
-    | '/panel/alumnos/$studentId'
+    | "/"
+    | "/aprendizaje"
+    | "/cuenta"
+    | "/panel"
+    | "/recursos"
+    | "/reservas"
+    | "/sitemap.xml"
+    | "/sobre-mi"
+    | "/panel/alumnos/$studentId";
   id:
-    | '__root__'
-    | '/'
-    | '/aprendizaje'
-    | '/cuenta'
-    | '/panel'
-    | '/recursos'
-    | '/reservas'
-    | '/sitemap.xml'
-    | '/sobre-mi'
-    | '/panel_/alumnos/$studentId'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/aprendizaje"
+    | "/cuenta"
+    | "/panel"
+    | "/recursos"
+    | "/reservas"
+    | "/sitemap.xml"
+    | "/sobre-mi"
+    | "/panel_/alumnos/$studentId";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AprendizajeRoute: typeof AprendizajeRoute
-  CuentaRoute: typeof CuentaRoute
-  PanelRoute: typeof PanelRoute
-  RecursosRoute: typeof RecursosRoute
-  ReservasRoute: typeof ReservasRoute
-  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
-  SobreMiRoute: typeof SobreMiRoute
-  PanelAlumnosStudentIdRoute: typeof PanelAlumnosStudentIdRoute
+  IndexRoute: typeof IndexRoute;
+  AprendizajeRoute: typeof AprendizajeRoute;
+  CuentaRoute: typeof CuentaRoute;
+  PanelRoute: typeof PanelRoute;
+  RecursosRoute: typeof RecursosRoute;
+  ReservasRoute: typeof ReservasRoute;
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute;
+  SobreMiRoute: typeof SobreMiRoute;
+  PanelAlumnosStudentIdRoute: typeof PanelAlumnosStudentIdRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/sobre-mi': {
-      id: '/sobre-mi'
-      path: '/sobre-mi'
-      fullPath: '/sobre-mi'
-      preLoaderRoute: typeof SobreMiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reservas': {
-      id: '/reservas'
-      path: '/reservas'
-      fullPath: '/reservas'
-      preLoaderRoute: typeof ReservasRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recursos': {
-      id: '/recursos'
-      path: '/recursos'
-      fullPath: '/recursos'
-      preLoaderRoute: typeof RecursosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/panel': {
-      id: '/panel'
-      path: '/panel'
-      fullPath: '/panel'
-      preLoaderRoute: typeof PanelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cuenta': {
-      id: '/cuenta'
-      path: '/cuenta'
-      fullPath: '/cuenta'
-      preLoaderRoute: typeof CuentaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/aprendizaje': {
-      id: '/aprendizaje'
-      path: '/aprendizaje'
-      fullPath: '/aprendizaje'
-      preLoaderRoute: typeof AprendizajeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/panel_/alumnos/$studentId': {
-      id: '/panel_/alumnos/$studentId'
-      path: '/panel/alumnos/$studentId'
-      fullPath: '/panel/alumnos/$studentId'
-      preLoaderRoute: typeof PanelAlumnosStudentIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+    "/sobre-mi": {
+      id: "/sobre-mi";
+      path: "/sobre-mi";
+      fullPath: "/sobre-mi";
+      preLoaderRoute: typeof SobreMiRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/sitemap.xml": {
+      id: "/sitemap.xml";
+      path: "/sitemap.xml";
+      fullPath: "/sitemap.xml";
+      preLoaderRoute: typeof SitemapDotxmlRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/reservas": {
+      id: "/reservas";
+      path: "/reservas";
+      fullPath: "/reservas";
+      preLoaderRoute: typeof ReservasRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/recursos": {
+      id: "/recursos";
+      path: "/recursos";
+      fullPath: "/recursos";
+      preLoaderRoute: typeof RecursosRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/panel": {
+      id: "/panel";
+      path: "/panel";
+      fullPath: "/panel";
+      preLoaderRoute: typeof PanelRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/cuenta": {
+      id: "/cuenta";
+      path: "/cuenta";
+      fullPath: "/cuenta";
+      preLoaderRoute: typeof CuentaRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/aprendizaje": {
+      id: "/aprendizaje";
+      path: "/aprendizaje";
+      fullPath: "/aprendizaje";
+      preLoaderRoute: typeof AprendizajeRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/panel_/alumnos/$studentId": {
+      id: "/panel_/alumnos/$studentId";
+      path: "/panel/alumnos/$studentId";
+      fullPath: "/panel/alumnos/$studentId";
+      preLoaderRoute: typeof PanelAlumnosStudentIdRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -225,17 +225,17 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
   PanelAlumnosStudentIdRoute: PanelAlumnosStudentIdRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
+import type { getRouter } from "./router.tsx";
+import type { startInstance } from "./start.ts";
+declare module "@tanstack/react-start" {
   interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+    ssr: true;
+    router: Awaited<ReturnType<typeof getRouter>>;
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>;
   }
 }

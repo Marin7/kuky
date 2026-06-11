@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { getCatalog, type CatalogResponse, type ResourceCard, type BundleCard } from "@/lib/resources";
+import {
+  getCatalog,
+  type CatalogResponse,
+  type ResourceCard,
+  type BundleCard,
+} from "@/lib/resources";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FreeResourcesSection } from "./FreeResourcesSection";
 import { ResourceCard as ResourceCardComponent } from "./ResourceCard";
@@ -14,7 +19,10 @@ function CatalogSkeleton() {
       <Skeleton className="h-6 w-44" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border p-4 space-y-3">
+          <div
+            key={i}
+            className="rounded-xl border border-border p-4 space-y-3"
+          >
             <Skeleton className="h-32 w-full rounded-lg" />
             <Skeleton className="h-4 w-3/4" />
             <Skeleton className="h-3 w-full" />
@@ -31,13 +39,23 @@ interface ResourcesViewProps {
   onPurchaseSuccess?: () => void;
 }
 
-export function ResourcesView({ onRefreshRef, onPurchaseSuccess }: ResourcesViewProps) {
+export function ResourcesView({
+  onRefreshRef,
+  onPurchaseSuccess,
+}: ResourcesViewProps) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [detailResource, setDetailResource] = useState<ResourceCard | null>(null);
-  const [purchaseTarget, setPurchaseTarget] = useState<{ itemType: "RESOURCE" | "BUNDLE"; slug: string; title: string; priceCents: number } | null>(null);
+  const [detailResource, setDetailResource] = useState<ResourceCard | null>(
+    null,
+  );
+  const [purchaseTarget, setPurchaseTarget] = useState<{
+    itemType: "RESOURCE" | "BUNDLE";
+    slug: string;
+    title: string;
+    priceCents: number;
+  } | null>(null);
 
   const loadCatalog = () => {
     setLoading(true);
@@ -66,17 +84,32 @@ export function ResourcesView({ onRefreshRef, onPurchaseSuccess }: ResourcesView
       const free = catalog?.freeResources.find((r) => r.slug === slug);
       if (free?.relatedResourceSlug) {
         targetSlug = free.relatedResourceSlug;
-        resource = catalog?.paidResources.find((r) => r.slug === targetSlug) ?? null;
+        resource =
+          catalog?.paidResources.find((r) => r.slug === targetSlug) ?? null;
       }
     }
 
-    if (resource && resource.pricing === "PAID" && resource.priceCents != null) {
-      setPurchaseTarget({ itemType: "RESOURCE", slug: targetSlug, title: resource.title, priceCents: resource.priceCents });
+    if (
+      resource &&
+      resource.pricing === "PAID" &&
+      resource.priceCents != null
+    ) {
+      setPurchaseTarget({
+        itemType: "RESOURCE",
+        slug: targetSlug,
+        title: resource.title,
+        priceCents: resource.priceCents,
+      });
     }
   };
 
   const handleBuyBundle = (bundle: BundleCard) => {
-    setPurchaseTarget({ itemType: "BUNDLE", slug: bundle.slug, title: bundle.title, priceCents: bundle.priceCents });
+    setPurchaseTarget({
+      itemType: "BUNDLE",
+      slug: bundle.slug,
+      title: bundle.title,
+      priceCents: bundle.priceCents,
+    });
   };
 
   const handlePurchaseSuccess = () => {
@@ -98,23 +131,22 @@ export function ResourcesView({ onRefreshRef, onPurchaseSuccess }: ResourcesView
           Recursos
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Materiales didácticos para enseñar español. Descarga fichas, guías y ejercicios.
+          Materiales didácticos para enseñar español. Descarga fichas, guías y
+          ejercicios.
         </p>
       </div>
 
       {loading && <CatalogSkeleton />}
 
-      {error && (
-        <p className="text-destructive">{error}</p>
-      )}
+      {error && <p className="text-destructive">{error}</p>}
 
       {!loading && !error && isEmpty && (
         <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
           <p className="text-4xl">📚</p>
           <h2 className="text-xl font-semibold">Próximamente</h2>
           <p className="text-muted-foreground max-w-sm">
-            Paula está preparando materiales exclusivos para profesores de español.
-            Vuelve pronto para descubrir los primeros recursos.
+            Paula está preparando materiales exclusivos para profesores de
+            español. Vuelve pronto para descubrir los primeros recursos.
           </p>
         </div>
       )}

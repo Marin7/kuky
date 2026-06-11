@@ -13,7 +13,8 @@ export function HomeworkList({ items, onOpen }: HomeworkListProps) {
 
       {items.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          No tienes tareas asignadas por ahora. Cuando Paula te asigne una, aparecerá aquí.
+          No tienes tareas asignadas por ahora. Cuando Paula te asigne una,
+          aparecerá aquí.
         </p>
       ) : (
         <div className="space-y-3">

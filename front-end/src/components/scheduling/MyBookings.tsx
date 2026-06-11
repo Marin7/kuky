@@ -73,7 +73,10 @@ interface MyBookingsProps {
   onRefreshRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export function MyBookings({ onScheduleRefresh, onRefreshRef }: MyBookingsProps) {
+export function MyBookings({
+  onScheduleRefresh,
+  onRefreshRef,
+}: MyBookingsProps) {
   const [data, setData] = useState<MyBookingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);

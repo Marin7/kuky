@@ -21,7 +21,9 @@ interface Props {
 
 export function LoginForm({ onSuccess, onForgotPassword }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
-  const [notActivatedEmail, setNotActivatedEmail] = useState<string | null>(null);
+  const [notActivatedEmail, setNotActivatedEmail] = useState<string | null>(
+    null,
+  );
   const [resent, setResent] = useState(false);
   const {
     register,
@@ -92,7 +94,9 @@ export function LoginForm({ onSuccess, onForgotPassword }: Props) {
             Tu cuenta aún no está activada. Revisa tu correo electrónico.
           </p>
           {resent ? (
-            <p className="text-green-700">Correo reenviado. Revisa tu bandeja.</p>
+            <p className="text-green-700">
+              Correo reenviado. Revisa tu bandeja.
+            </p>
           ) : (
             <button
               type="button"

@@ -44,7 +44,9 @@ export function ResourceDetailDialog({
       setContentError(null);
       getResourceContent(resource.slug)
         .then((c) => setAssets(c.assets))
-        .catch((e: ApiError) => setContentError(e.message ?? "Error al cargar los materiales."));
+        .catch((e: ApiError) =>
+          setContentError(e.message ?? "Error al cargar los materiales."),
+        );
     }
   }, [resource?.slug, resource?.locked]);
 
@@ -78,7 +80,9 @@ export function ResourceDetailDialog({
             </DialogHeader>
 
             <div className="space-y-4 py-2">
-              <p className="text-sm text-muted-foreground">{resource.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {resource.description}
+              </p>
 
               {previewText && (
                 <div className="rounded-md bg-muted p-3 text-sm">
@@ -97,7 +101,9 @@ export function ResourceDetailDialog({
                   </p>
                   <div className="flex items-center gap-2">
                     {resource.priceCents != null && (
-                      <span className="font-semibold">{formatEur(resource.priceCents)}</span>
+                      <span className="font-semibold">
+                        {formatEur(resource.priceCents)}
+                      </span>
                     )}
                     <Button onClick={() => onBuy(resource.slug)}>
                       Comprar

@@ -13,7 +13,8 @@ export function ClassPresentation({ blocks }: ClassPresentationProps) {
           Tus clases de español
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Aquí encontrarás tus clases anteriores y las tareas que te asigne. ¡Vamos a aprender juntos!
+          Aquí encontrarás tus clases anteriores y las tareas que te asigne.
+          ¡Vamos a aprender juntos!
         </p>
       </section>
     );

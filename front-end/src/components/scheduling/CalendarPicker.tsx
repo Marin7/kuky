@@ -20,7 +20,13 @@ interface DayCellProps {
   onSelect: (day: string) => void;
 }
 
-function DayCell({ day, available, selected, isToday, onSelect }: DayCellProps) {
+function DayCell({
+  day,
+  available,
+  selected,
+  isToday,
+  onSelect,
+}: DayCellProps) {
   const dayNumber = parseInt(day.split("-")[2], 10);
 
   if (!available) {
@@ -112,7 +118,9 @@ export function CalendarPicker({
 
   return (
     <div className="space-y-3 select-none min-w-[280px]">
-      <p className="text-sm font-semibold capitalize text-center">{monthLabel}</p>
+      <p className="text-sm font-semibold capitalize text-center">
+        {monthLabel}
+      </p>
 
       <div className="grid grid-cols-7 gap-1">
         {DAY_HEADERS.map((d) => (

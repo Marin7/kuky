@@ -40,7 +40,9 @@ export interface Student {
   username: string | null;
 }
 
-export function studentDisplayName(s: Pick<Student, "firstName" | "lastName" | "username" | "email">): string {
+export function studentDisplayName(
+  s: Pick<Student, "firstName" | "lastName" | "username" | "email">,
+): string {
   if (s.firstName && s.lastName) return `${s.firstName} ${s.lastName}`;
   if (s.firstName) return s.firstName;
   if (s.username) return `@${s.username}`;
@@ -61,7 +63,7 @@ export interface AdminBooking {
   studentLastName: string | null;
   studentUsername: string | null;
   slotStart: string; // ISO
-  slotEnd: string;   // ISO
+  slotEnd: string; // ISO
   zoomJoinUrl: string | null;
 }
 
@@ -206,7 +208,14 @@ export const createHomework = (
 ) =>
   apiCall<HomeworkAdminItem>("/homework", {
     method: "POST",
-    body: JSON.stringify({ title, instructions, dueOn, homeworkType, level, assigneeIds }),
+    body: JSON.stringify({
+      title,
+      instructions,
+      dueOn,
+      homeworkType,
+      level,
+      assigneeIds,
+    }),
   });
 
 export const updateHomework = (

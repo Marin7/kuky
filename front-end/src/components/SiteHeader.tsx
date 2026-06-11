@@ -123,7 +123,8 @@ export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-border/60 bg-secondary/40">
       <div className="mx-auto max-w-6xl px-6 py-10 text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Español con Paula — Recursos y clases para profesores de español.
+        © {new Date().getFullYear()} Español con Paula — Recursos y clases para
+        profesores de español.
       </div>
     </footer>
   );
