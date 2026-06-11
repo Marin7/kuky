@@ -1,22 +1,22 @@
 package com.kuky.backend.scheduling;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kuky.backend.scheduling.dto.CreateBookingRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Collections;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -27,9 +27,6 @@ class BookingControllerIntegrationTest {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -57,14 +54,13 @@ class BookingControllerIntegrationTest {
     @Test
     void bookSlot_returns201WithJoinUrl() throws Exception {
         Instant slotStart = validFutureSlot();
-        CreateBookingRequest req = new CreateBookingRequest(slotStart);
 
         ensureTestUser();
 
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(SecurityMockMvcRequestPostProcessors.user("test@kuky.es"))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList())))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                        .content(bookingJson(slotStart)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
                 .andExpect(jsonPath("$.zoomJoinUrl").isNotEmpty());
@@ -73,21 +69,20 @@ class BookingControllerIntegrationTest {
     @Test
     void bookSlot_returns409_whenAlreadyBooked() throws Exception {
         Instant slotStart = validFutureSlot();
-        CreateBookingRequest req = new CreateBookingRequest(slotStart);
         ensureTestUser();
 
         // First booking succeeds
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(SecurityMockMvcRequestPostProcessors.user("test@kuky.es"))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList())))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                        .content(bookingJson(slotStart)))
                 .andExpect(status().isCreated());
 
         // Second booking for same slot fails
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(SecurityMockMvcRequestPostProcessors.user("test2@kuky.es"))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, Collections.emptyList())))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                        .content(bookingJson(slotStart)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("SLOT_UNAVAILABLE"));
     }
@@ -96,13 +91,12 @@ class BookingControllerIntegrationTest {
     void bookSlot_returns422_whenWithinLeadWindow() throws Exception {
         // Slot only 1 hour from now — within the 24h lead window
         Instant tooSoon = Instant.now().plusSeconds(3600);
-        CreateBookingRequest req = new CreateBookingRequest(tooSoon);
         ensureTestUser();
 
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(SecurityMockMvcRequestPostProcessors.user("test@kuky.es"))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList())))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                        .content(bookingJson(tooSoon)))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error").value("BOOKING_TOO_SOON"));
     }
@@ -110,20 +104,23 @@ class BookingControllerIntegrationTest {
     @Test
     void listBookings_returns200WithUpcomingBooking() throws Exception {
         Instant slotStart = validFutureSlot();
-        CreateBookingRequest req = new CreateBookingRequest(slotStart);
         ensureTestUser();
 
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(SecurityMockMvcRequestPostProcessors.user("test@kuky.es"))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList())))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                        .content(bookingJson(slotStart)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/bookings")
-                        .with(SecurityMockMvcRequestPostProcessors.user("test@kuky.es")))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.upcoming[0].status").value("CONFIRMED"))
                 .andExpect(jsonPath("$.upcoming[0].zoomJoinUrl").isNotEmpty());
+    }
+
+    private static String bookingJson(Instant slotStart) {
+        return "{\"slotStart\":\"" + slotStart.toString() + "\"}";
     }
 
     private void ensureTestUser() {

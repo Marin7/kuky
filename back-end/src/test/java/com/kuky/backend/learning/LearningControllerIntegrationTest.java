@@ -53,6 +53,9 @@ class LearningControllerIntegrationTest {
         jdbcTemplate.update(
                 "DELETE FROM homework_submissions WHERE user_id = (SELECT id FROM users WHERE email = ?)",
                 testEmail);
+        jdbcTemplate.update(
+                "DELETE FROM homework_targets WHERE user_id = (SELECT id FROM users WHERE email = ?)",
+                testEmail);
         jdbcTemplate.update("DELETE FROM users WHERE email = ?", testEmail);
     }
 
@@ -62,11 +65,8 @@ class LearningControllerIntegrationTest {
 
     @Test
     void getOverview_notAuthenticated_isRejected() throws Exception {
-        // The app configures no httpBasic/formLogin, so Spring Security's default
-        // entry point rejects unauthenticated requests with 403 (guests are blocked
-        // either way; the frontend route redirects them to /cuenta).
         mockMvc.perform(get("/api/v1/learning"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -83,6 +83,11 @@ class LearningControllerIntegrationTest {
         UUID assignmentId = jdbcTemplate.queryForObject(
                 "SELECT id FROM homework_assignments WHERE published = true ORDER BY sort_order LIMIT 1",
                 UUID.class);
+
+        // Make the assignment visible to this student via homework_targets
+        jdbcTemplate.update(
+                "INSERT INTO homework_targets (assignment_id, user_id) SELECT ?, id FROM users WHERE email = ?",
+                assignmentId, testEmail);
 
         mockMvc.perform(put("/api/v1/learning/homework/" + assignmentId)
                         .with(authentication(principal(testEmail)))
@@ -113,6 +118,6 @@ class LearningControllerIntegrationTest {
         mockMvc.perform(put("/api/v1/learning/homework/" + UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }

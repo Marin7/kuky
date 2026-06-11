@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -98,6 +99,30 @@ public class PresentationService {
         requirePresentation(id);
         return repository.findFile(id)
                 .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
+    }
+
+    // --- slides --------------------------------------------------------------
+
+    public List<SlideDto> reorder(UUID deckId, List<UUID> orderedIds) {
+        requirePresentation(deckId);
+        List<UUID> existing = repository.findSlideIds(deckId);
+        if (orderedIds.size() != existing.size() || !new HashSet<>(existing).containsAll(orderedIds)) {
+            throw new IllegalArgumentException("La lista de diapositivas no es una permutación válida.");
+        }
+        repository.updateSortOrders(deckId, orderedIds);
+        return repository.findSlides(deckId);
+    }
+
+    public List<SlideDto> addSlide(UUID deckId, SlideRequest req) {
+        requirePresentation(deckId);
+        List<UUID> existing = repository.findSlideIds(deckId);
+        if (existing.size() >= 100) {
+            throw new IllegalArgumentException("No se pueden añadir más de 100 diapositivas.");
+        }
+        String body = req.body() != null ? req.body() : "";
+        repository.insertSlide(deckId, req.heading(), body, req.imageId(), existing.size());
+        repository.touch(deckId);
+        return repository.findSlides(deckId);
     }
 
     // --- shares --------------------------------------------------------------

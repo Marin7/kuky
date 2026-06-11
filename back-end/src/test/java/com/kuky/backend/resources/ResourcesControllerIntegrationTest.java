@@ -6,7 +6,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+
+import java.util.Collections;
+
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -83,7 +87,7 @@ class ResourcesControllerIntegrationTest {
         // Purchase
         String purchaseBody = "{\"itemType\":\"RESOURCE\",\"slug\":\"pack-vocabulario-a1\"}";
         mockMvc.perform(post("/api/v1/purchases")
-                        .with(SecurityMockMvcRequestPostProcessors.user(testEmail))
+                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, Collections.emptyList())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(purchaseBody))
                 .andExpect(status().isCreated())
@@ -92,12 +96,12 @@ class ResourcesControllerIntegrationTest {
 
         // Content now accessible
         mockMvc.perform(get("/api/v1/resources/pack-vocabulario-a1/content")
-                        .with(SecurityMockMvcRequestPostProcessors.user(testEmail)))
+                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, Collections.emptyList()))))
                 .andExpect(status().isOk());
 
         // Receipt only accessible to owner
         mockMvc.perform(get("/api/v1/purchases")
-                        .with(SecurityMockMvcRequestPostProcessors.user(testEmail)))
+                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, Collections.emptyList()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.purchases").isArray());
 

@@ -145,6 +145,59 @@ public class PresentationRepository {
         }
     }
 
+    // --- slides --------------------------------------------------------------
+
+    public List<UUID> findSlideIds(UUID presentationId) {
+        return jdbc.query("""
+                SELECT id FROM presentation_slides
+                WHERE presentation_id = :pid
+                ORDER BY sort_order, created_at
+                """, Map.of("pid", presentationId),
+                (rs, n) -> rs.getObject("id", UUID.class));
+    }
+
+    public List<com.kuky.backend.admin.dto.SlideDto> findSlides(UUID presentationId) {
+        return jdbc.query("""
+                SELECT id, heading, body, image_id, sort_order
+                FROM presentation_slides
+                WHERE presentation_id = :pid
+                ORDER BY sort_order, created_at
+                """, Map.of("pid", presentationId),
+                (rs, n) -> new com.kuky.backend.admin.dto.SlideDto(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("heading"),
+                        rs.getString("body"),
+                        rs.getObject("image_id", UUID.class),
+                        rs.getInt("sort_order")));
+    }
+
+    public void updateSortOrders(UUID presentationId, List<UUID> orderedIds) {
+        for (int i = 0; i < orderedIds.size(); i++) {
+            jdbc.update("""
+                    UPDATE presentation_slides SET sort_order = :order
+                    WHERE id = :id AND presentation_id = :pid
+                    """, new MapSqlParameterSource()
+                    .addValue("order", i)
+                    .addValue("id", orderedIds.get(i))
+                    .addValue("pid", presentationId));
+        }
+    }
+
+    public UUID insertSlide(UUID presentationId, String heading, String body, UUID imageId, int sortOrder) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO presentation_slides (id, presentation_id, heading, body, image_id, sort_order)
+                VALUES (:id, :pid, :heading, :body, :imageId, :sortOrder)
+                """, new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("pid", presentationId)
+                .addValue("heading", heading)
+                .addValue("body", body)
+                .addValue("imageId", imageId)
+                .addValue("sortOrder", sortOrder));
+        return id;
+    }
+
     public List<SharedUser> findSharedUsers(UUID presentationId) {
         return jdbc.query("""
                 SELECT u.id AS user_id, u.email AS email
