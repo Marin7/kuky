@@ -13,6 +13,7 @@ import { Route as SobreMiRouteImport } from './routes/sobre-mi'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReservasRouteImport } from './routes/reservas'
 import { Route as RecursosRouteImport } from './routes/recursos'
+import { Route as PanelRouteImport } from './routes/panel'
 import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
 import { Route as IndexRouteImport } from './routes/index'
@@ -37,6 +38,11 @@ const RecursosRoute = RecursosRouteImport.update({
   path: '/recursos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelRoute = PanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CuentaRoute = CuentaRouteImport.update({
   id: '/cuenta',
   path: '/cuenta',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aprendizaje': typeof AprendizajeRoute
   '/cuenta': typeof CuentaRoute
+  '/panel': typeof PanelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aprendizaje': typeof AprendizajeRoute
   '/cuenta': typeof CuentaRoute
+  '/panel': typeof PanelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/aprendizaje': typeof AprendizajeRoute
   '/cuenta': typeof CuentaRoute
+  '/panel': typeof PanelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aprendizaje'
     | '/cuenta'
+    | '/panel'
     | '/recursos'
     | '/reservas'
     | '/sitemap.xml'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aprendizaje'
     | '/cuenta'
+    | '/panel'
     | '/recursos'
     | '/reservas'
     | '/sitemap.xml'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aprendizaje'
     | '/cuenta'
+    | '/panel'
     | '/recursos'
     | '/reservas'
     | '/sitemap.xml'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AprendizajeRoute: typeof AprendizajeRoute
   CuentaRoute: typeof CuentaRoute
+  PanelRoute: typeof PanelRoute
   RecursosRoute: typeof RecursosRoute
   ReservasRoute: typeof ReservasRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -151,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecursosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel': {
+      id: '/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof PanelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cuenta': {
       id: '/cuenta'
       path: '/cuenta'
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AprendizajeRoute: AprendizajeRoute,
   CuentaRoute: CuentaRoute,
+  PanelRoute: PanelRoute,
   RecursosRoute: RecursosRoute,
   ReservasRoute: ReservasRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

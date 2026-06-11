@@ -16,10 +16,8 @@ public class SchedulingProperties {
     public static class Scheduling {
         private String teacherTimezone = "Europe/Madrid";
         private String teacherEmail = "noreply@kuky.es";
-        private String dayStart = "09:00";
-        private String dayEnd = "18:00";
-        private String lunchBreakStart = "12:00";
-        private String lunchBreakEnd = "14:00";
+        // day-start/day-end/lunch-break-* were removed when availability became teacher-managed
+        // (V7): the public schedule is now derived from availability_rules/exceptions, not these.
         private int classDurationMinutes = 60;
         private int minLeadHours = 24;
         private int cancelCutoffHours = 24;
@@ -28,14 +26,6 @@ public class SchedulingProperties {
         public void setTeacherTimezone(String teacherTimezone) { this.teacherTimezone = teacherTimezone; }
         public String getTeacherEmail() { return teacherEmail; }
         public void setTeacherEmail(String teacherEmail) { this.teacherEmail = teacherEmail; }
-        public String getDayStart() { return dayStart; }
-        public void setDayStart(String dayStart) { this.dayStart = dayStart; }
-        public String getDayEnd() { return dayEnd; }
-        public void setDayEnd(String dayEnd) { this.dayEnd = dayEnd; }
-        public String getLunchBreakStart() { return lunchBreakStart; }
-        public void setLunchBreakStart(String lunchBreakStart) { this.lunchBreakStart = lunchBreakStart; }
-        public String getLunchBreakEnd() { return lunchBreakEnd; }
-        public void setLunchBreakEnd(String lunchBreakEnd) { this.lunchBreakEnd = lunchBreakEnd; }
         public int getClassDurationMinutes() { return classDurationMinutes; }
         public void setClassDurationMinutes(int classDurationMinutes) { this.classDurationMinutes = classDurationMinutes; }
         public int getMinLeadHours() { return minLeadHours; }

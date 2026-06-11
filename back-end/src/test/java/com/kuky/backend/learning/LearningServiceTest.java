@@ -12,6 +12,7 @@ import com.kuky.backend.learning.model.PresentationBlock;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.service.LearningService;
+import com.kuky.backend.presentations.repository.PresentationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,8 @@ class LearningServiceTest {
     private HomeworkSubmissionRepository submissionRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private PresentationRepository presentationRepository;
 
     private LearningService service;
 
@@ -45,11 +48,12 @@ class LearningServiceTest {
     @BeforeEach
     void setUp() {
         service = new LearningService(contentRepository, submissionRepository, userRepository,
-                new SchedulingProperties());
+                presentationRepository, new SchedulingProperties());
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);
         when(userRepository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.of(user));
+        when(presentationRepository.findSharedSummariesForUser(userId)).thenReturn(List.of());
     }
 
     @Test
@@ -58,7 +62,7 @@ class LearningServiceTest {
                 presentation("Hola", "Bienvenido")));
         when(contentRepository.findPublishedPastClasses()).thenReturn(List.of(
                 pastClass("El indefinido", LocalDate.of(2026, 6, 3))));
-        when(contentRepository.findPublishedAssignments()).thenReturn(List.of());
+        when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of());
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
 
         LearningResponse overview = service.getOverview(EMAIL);
@@ -75,7 +79,7 @@ class LearningServiceTest {
         HomeworkAssignment a = assignment("Tarea 1", LocalDate.now().plusDays(5));
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
         when(contentRepository.findPublishedPastClasses()).thenReturn(List.of());
-        when(contentRepository.findPublishedAssignments()).thenReturn(List.of(a));
+        when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
 
         LearningResponse overview = service.getOverview(EMAIL);
@@ -91,7 +95,7 @@ class LearningServiceTest {
         HomeworkAssignment a = assignment("Tarea atrasada", LocalDate.now().minusDays(1));
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
         when(contentRepository.findPublishedPastClasses()).thenReturn(List.of());
-        when(contentRepository.findPublishedAssignments()).thenReturn(List.of(a));
+        when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
 
         LearningResponse overview = service.getOverview(EMAIL);
@@ -104,7 +108,7 @@ class LearningServiceTest {
         HomeworkAssignment a = assignment("Lectura libre", null);
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
         when(contentRepository.findPublishedPastClasses()).thenReturn(List.of());
-        when(contentRepository.findPublishedAssignments()).thenReturn(List.of(a));
+        when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
 
         LearningResponse overview = service.getOverview(EMAIL);
@@ -123,7 +127,7 @@ class LearningServiceTest {
         s.setSubmittedAt(Instant.now());
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
         when(contentRepository.findPublishedPastClasses()).thenReturn(List.of());
-        when(contentRepository.findPublishedAssignments()).thenReturn(List.of(a));
+        when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of(s));
 
         LearningResponse overview = service.getOverview(EMAIL);

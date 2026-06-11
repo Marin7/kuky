@@ -4,8 +4,11 @@ import com.kuky.backend.auth.exception.AuthException;
 import com.kuky.backend.auth.exception.DuplicateEmailException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
+import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
+import com.kuky.backend.presentations.exception.InvalidImageException;
+import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.resources.exception.AlreadyOwnedException;
 import com.kuky.backend.resources.exception.NotPurchasableException;
 import com.kuky.backend.resources.exception.ResourceLockedException;
@@ -35,6 +38,13 @@ public class GlobalExceptionHandler {
                 .orElse("Error de validación.");
         return ResponseEntity.badRequest()
                 .body(Map.of("error", "VALIDATION_ERROR", "message", message));
+    }
+
+    /** Semantic validation failures raised by services/controllers (e.g. end before start). */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.unprocessableEntity()
+                .body(Map.of("error", "VALIDATION_ERROR", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(DuplicateEmailException.class)
@@ -139,5 +149,25 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleSubmissionNotAllowed(SubmissionNotAllowedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "SUBMISSION_NOT_ALLOWED", "message", ex.getMessage()));
+    }
+
+    // Admin / backoffice exceptions
+
+    @ExceptionHandler(StudentNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleStudentNotFound(StudentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "STUDENT_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(PresentationNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handlePresentationNotFound(PresentationNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "PRESENTATION_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidImageException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidImage(InvalidImageException ex) {
+        return ResponseEntity.unprocessableEntity()
+                .body(Map.of("error", "INVALID_IMAGE", "message", ex.getMessage()));
     }
 }

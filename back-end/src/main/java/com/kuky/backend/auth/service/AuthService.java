@@ -58,7 +58,7 @@ public class AuthService {
             throw new AuthException("Correo electrónico o contraseña incorrectos.");
         }
 
-        return new UserResponse(user.getId(), user.getEmail());
+        return new UserResponse(user.getId(), user.getEmail(), user.getRole());
     }
 
     public Optional<User> findByEmail(String email) {

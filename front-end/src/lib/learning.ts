@@ -25,10 +25,17 @@ export interface HomeworkItem {
   overdue: boolean;
 }
 
+export interface SharedPresentationSummary {
+  id: string;
+  title: string;
+  hasFile: boolean;
+}
+
 export interface LearningResponse {
   presentation: PresentationBlock[];
   pastClasses: PastClass[];
   homework: HomeworkItem[];
+  sharedPresentations: SharedPresentationSummary[];
 }
 
 export interface ApiError {
@@ -61,3 +68,25 @@ export const submitHomework = (assignmentId: string, response?: string) =>
     method: "PUT",
     body: JSON.stringify({ response: response ?? null }),
   });
+
+export const downloadPresentation = async (
+  id: string,
+  fileName: string,
+): Promise<void> => {
+  const res = await fetch(`${API_BASE}/learning/presentations/${id}/file`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw data as ApiError;
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};

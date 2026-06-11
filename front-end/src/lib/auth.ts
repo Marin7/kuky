@@ -14,6 +14,7 @@ export interface AuthResponse {
 export interface UserResponse {
   id: string;
   email: string;
+  role: "STUDENT" | "ADMIN";
 }
 
 /**

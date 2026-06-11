@@ -50,6 +50,24 @@ public class BookingRepository {
                 (rs, rowNum) -> rs.getTimestamp("slot_start").toInstant());
     }
 
+    /** Lightweight projection of an upcoming confirmed booking (with the student's email). */
+    public record ConfirmedBookingView(UUID id, String email, Instant slotStart) {}
+
+    /** Upcoming confirmed bookings (start at/after {@code from}), joined to the booking student. */
+    public List<ConfirmedBookingView> findUpcomingConfirmedBookings(Instant from) {
+        String sql = """
+                SELECT b.id, u.email, b.slot_start
+                FROM bookings b JOIN users u ON u.id = b.user_id
+                WHERE b.status = 'CONFIRMED' AND b.slot_start >= :from
+                ORDER BY b.slot_start
+                """;
+        return jdbc.query(sql, Map.of("from", Timestamp.from(from)),
+                (rs, rowNum) -> new ConfirmedBookingView(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("email"),
+                        rs.getTimestamp("slot_start").toInstant()));
+    }
+
     public Optional<Booking> findById(UUID id) {
         String sql = "SELECT * FROM bookings WHERE id = :id";
         List<Booking> results = jdbc.query(sql, Map.of("id", id), BOOKING_MAPPER);

@@ -23,10 +23,11 @@ public class JwtConfig {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(UUID userId, String email) {
+    public String generateToken(UUID userId, String email, String role) {
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("email", email)
+                .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirySeconds * 1000))
                 .signWith(getKey())
@@ -45,6 +46,13 @@ public class JwtConfig {
     public String extractEmail(String token) {
         return Jwts.parser().verifyWith(getKey()).build()
                 .parseSignedClaims(token).getPayload().get("email", String.class);
+    }
+
+    /** Reads the role claim; defaults to STUDENT for legacy tokens issued before roles existed. */
+    public String extractRole(String token) {
+        String role = Jwts.parser().verifyWith(getKey()).build()
+                .parseSignedClaims(token).getPayload().get("role", String.class);
+        return role != null ? role : "STUDENT";
     }
 
     public long getExpirySeconds() {
