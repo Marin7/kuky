@@ -2,7 +2,8 @@
 // Mirrors lib/auth.ts: cookie-based auth (credentials: "include"), {error,message} errors.
 // Methods are added per feature area (availability, homework, presentations).
 
-const API_BASE = "http://localhost:8081/api/v1/admin";
+import { API_ORIGIN } from "@/lib/api";
+const API_BASE = `${API_ORIGIN}/api/v1/admin`;
 
 export interface ApiError {
   error: string;

@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:8081/api/v1";
+import { API_ORIGIN } from "@/lib/api";
+const API_BASE = `${API_ORIGIN}/api/v1`;
 
 export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED";
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";

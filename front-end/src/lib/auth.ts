@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:8081/api/v1/auth";
+import { API_ORIGIN } from "@/lib/api";
+const API_BASE = `${API_ORIGIN}/api/v1/auth`;
 
 export interface ApiError {
   error: string;

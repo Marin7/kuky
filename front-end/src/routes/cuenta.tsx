@@ -21,7 +21,8 @@ import {
 } from "@/lib/auth";
 import { seo } from "@/lib/seo";
 
-const IMAGE_BASE = "http://localhost:8081/api/v1/images";
+import { API_ORIGIN } from "@/lib/api";
+const IMAGE_BASE = `${API_ORIGIN}/api/v1/images`;
 
 const searchSchema = z.object({
   token: z.string().optional(),
