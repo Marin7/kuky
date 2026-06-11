@@ -29,6 +29,8 @@ server:
   port: 8081
 
 app:
+  cookie:
+    secure: true
   jwt:
     secret: ${APP_JWT_SECRET}
     expiry-seconds: 604800

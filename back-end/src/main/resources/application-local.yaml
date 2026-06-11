@@ -21,6 +21,8 @@ logging:
       mail.smtp.starttls.enable: false
 
 app:
+  cookie:
+    secure: false
   jwt:
     secret: local-dev-secret-at-least-32-chars-long
     expiry-seconds: 604800

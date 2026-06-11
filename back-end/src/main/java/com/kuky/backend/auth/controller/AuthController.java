@@ -10,6 +10,7 @@ import com.kuky.backend.config.JwtConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
@@ -29,6 +30,9 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
     private final LoginRateLimiter loginRateLimiter;
     private final JwtConfig jwtConfig;
+
+    @Value("${app.cookie.secure:true}")
+    private boolean cookieSecure;
 
     public AuthController(AuthService authService,
                           PasswordResetService passwordResetService,
@@ -67,6 +71,7 @@ public class AuthController {
     public ResponseEntity<Void> logout(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from("auth-token", "")
                 .httpOnly(true)
+                .secure(cookieSecure)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(0)
@@ -145,6 +150,7 @@ public class AuthController {
     private void setAuthCookie(HttpServletResponse response, String token) {
         ResponseCookie cookie = ResponseCookie.from("auth-token", token)
                 .httpOnly(true)
+                .secure(cookieSecure)
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(jwtConfig.getExpirySeconds())

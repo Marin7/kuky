@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,6 +21,9 @@ import java.util.List;
 public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtConfig jwtConfig;
+
+    @Value("${app.cookie.secure:true}")
+    private boolean cookieSecure;
 
     public JwtCookieAuthenticationFilter(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
@@ -42,6 +46,7 @@ public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
             // Rolling session: refresh cookie MaxAge on every authenticated request
             ResponseCookie refreshed = ResponseCookie.from("auth-token", token)
                     .httpOnly(true)
+                    .secure(cookieSecure)
                     .sameSite("Lax")
                     .path("/")
                     .maxAge(jwtConfig.getExpirySeconds())
