@@ -52,7 +52,8 @@ public class LearningService {
                 .map(p -> new PresentationBlockResponse(p.getHeading(), p.getBody()))
                 .toList();
 
-        List<PastClassResponse> pastClasses = contentRepository.findPublishedPastClasses().stream()
+        LocalDate enrolledOn = user.getCreatedAt().atZone(teacherZone()).toLocalDate();
+        List<PastClassResponse> pastClasses = contentRepository.findPublishedPastClassesSince(enrolledOn).stream()
                 .map(c -> new PastClassResponse(c.getId(), c.getTitle(), c.getHeldOn(), c.getTeacherNote()))
                 .toList();
 

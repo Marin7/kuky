@@ -1,6 +1,8 @@
 const API_BASE = "http://localhost:8081/api/v1";
 
 export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED";
+export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
+export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
 export interface PresentationBlock {
   heading: string;
@@ -19,6 +21,8 @@ export interface HomeworkItem {
   title: string;
   instructions: string;
   dueOn: string | null; // ISO date or null
+  homeworkType: HomeworkType | null;
+  level: HomeworkLevel | null;
   status: HomeworkStatus;
   response: string | null;
   submittedAt: string | null; // ISO instant or null

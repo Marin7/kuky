@@ -68,6 +68,36 @@ public class BookingRepository {
                         rs.getTimestamp("slot_start").toInstant()));
     }
 
+    /** Full admin view of an upcoming confirmed booking, including end time and Zoom URL. */
+    public record AdminBookingView(UUID id, UUID studentId, String email,
+                                   String firstName, String lastName, String username,
+                                   Instant slotStart, Instant slotEnd, String zoomJoinUrl) {}
+
+    /** Upcoming confirmed bookings for the admin panel (start at/after {@code from}). */
+    public List<AdminBookingView> findUpcomingBookingsForAdmin(Instant from) {
+        String sql = """
+                SELECT b.id, u.id AS student_id, u.email, u.first_name, u.last_name, u.username,
+                       b.slot_start, b.duration_minutes, b.zoom_join_url
+                FROM bookings b JOIN users u ON u.id = b.user_id
+                WHERE b.status = 'CONFIRMED' AND b.slot_start >= :from
+                ORDER BY b.slot_start
+                """;
+        return jdbc.query(sql, Map.of("from", Timestamp.from(from)), (rs, rowNum) -> {
+            Instant slotStart = rs.getTimestamp("slot_start").toInstant();
+            int minutes = rs.getInt("duration_minutes");
+            return new AdminBookingView(
+                    rs.getObject("id", UUID.class),
+                    rs.getObject("student_id", UUID.class),
+                    rs.getString("email"),
+                    rs.getString("first_name"),
+                    rs.getString("last_name"),
+                    rs.getString("username"),
+                    slotStart,
+                    slotStart.plusSeconds((long) minutes * 60),
+                    rs.getString("zoom_join_url"));
+        });
+    }
+
     public Optional<Booking> findById(UUID id) {
         String sql = "SELECT * FROM bookings WHERE id = :id";
         List<Booking> results = jdbc.query(sql, Map.of("id", id), BOOKING_MAPPER);

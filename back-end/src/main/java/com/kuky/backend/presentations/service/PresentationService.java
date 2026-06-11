@@ -35,12 +35,21 @@ public class PresentationService {
     public List<PresentationSummary> list() {
         return repository.listSummaries().stream()
                 .map(s -> new PresentationSummary(
-                        s.id(), s.title(), s.hasFile(), s.originalFileName(), s.sharedWith(), s.updatedAt()))
+                        s.id(), s.title(), s.level(), s.hasFile(), s.originalFileName(),
+                        s.sharedWithIds().stream().map(UUID::toString).toList(),
+                        s.updatedAt()))
                 .toList();
     }
 
     public PresentationDetail create(String title) {
         UUID id = repository.create(title);
+        return detail(id);
+    }
+
+    public PresentationDetail setLevel(UUID id, String level) {
+        requirePresentation(id);
+        String validated = validateLevel(level);
+        repository.updateLevel(id, validated);
         return detail(id);
     }
 
@@ -155,9 +164,18 @@ public class PresentationService {
         Presentation p = requirePresentation(id);
         String originalFileName = repository.findOriginalFileName(id).orElse(null);
         List<StudentResponse> sharedWith = repository.findSharedUsers(id).stream()
-                .map(u -> new StudentResponse(u.userId(), u.email()))
+                .map(u -> new StudentResponse(u.userId(), u.email(), u.firstName(), u.lastName(), u.username()))
                 .toList();
-        return new PresentationDetail(p.getId(), p.getTitle(),
+        return new PresentationDetail(p.getId(), p.getTitle(), p.getLevel(),
                 originalFileName != null, originalFileName, sharedWith);
+    }
+
+    private static final java.util.Set<String> VALID_LEVELS =
+            java.util.Set.of("A1", "A2", "B1", "B2", "C1", "C2");
+
+    private static String validateLevel(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        String upper = raw.toUpperCase(java.util.Locale.ROOT);
+        return VALID_LEVELS.contains(upper) ? upper : null;
     }
 }

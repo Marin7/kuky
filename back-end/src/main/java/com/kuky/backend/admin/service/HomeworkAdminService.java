@@ -9,6 +9,8 @@ import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkLevel;
+import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import org.springframework.stereotype.Service;
@@ -43,7 +45,9 @@ public class HomeworkAdminService {
     public HomeworkAdminItem create(CreateHomeworkRequest req) {
         List<UUID> assignees = req.assigneeIds() == null ? List.of() : req.assigneeIds();
         validateStudents(assignees);
-        UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn());
+        HomeworkType type = parseType(req.homeworkType());
+        HomeworkLevel level = parseLevel(req.level());
+        UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn(), type, level);
         if (!assignees.isEmpty()) {
             targetRepository.replaceTargets(id, assignees);
         }
@@ -52,7 +56,9 @@ public class HomeworkAdminService {
 
     public HomeworkAdminItem update(UUID id, UpdateHomeworkRequest req) {
         requireAssignment(id);
-        contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn());
+        HomeworkType type = parseType(req.homeworkType());
+        HomeworkLevel level = parseLevel(req.level());
+        contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level);
         return toItem(requireAssignment(id));
     }
 
@@ -88,8 +94,21 @@ public class HomeworkAdminService {
 
     private HomeworkAdminItem toItem(HomeworkAssignment a) {
         List<AssigneeDto> assignees = targetRepository.findAssigneesWithSubmissions(a.getId()).stream()
-                .map(v -> new AssigneeDto(v.userId(), v.email(), v.status(), v.responseText(), v.submittedAt()))
+                .map(v -> new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
+                        v.status(), v.responseText(), v.submittedAt()))
                 .toList();
-        return new HomeworkAdminItem(a.getId(), a.getTitle(), a.getInstructions(), a.getDueOn(), assignees);
+        String type = a.getHomeworkType() == null ? null : a.getHomeworkType().name();
+        String level = a.getLevel() == null ? null : a.getLevel().name();
+        return new HomeworkAdminItem(a.getId(), a.getTitle(), a.getInstructions(), a.getDueOn(), type, level, assignees);
+    }
+
+    private static HomeworkType parseType(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try { return HomeworkType.valueOf(raw.toUpperCase()); } catch (IllegalArgumentException e) { return null; }
+    }
+
+    private static HomeworkLevel parseLevel(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try { return HomeworkLevel.valueOf(raw.toUpperCase()); } catch (IllegalArgumentException e) { return null; }
     }
 }

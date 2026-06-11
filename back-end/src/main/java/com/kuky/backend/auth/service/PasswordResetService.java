@@ -76,7 +76,9 @@ public class PasswordResetService {
         tokenRepository.save(prt);
         invalidateAllTokensForUser(user.getId());
 
-        return new UserResponse(user.getId(), user.getEmail(), user.getRole());
+        return new UserResponse(user.getId(), user.getEmail(), user.getRole(),
+                user.getFirstName(), user.getLastName(), user.getUsername(),
+                user.getAvatarImageId(), user.getStatus());
     }
 
     private void invalidateAllTokensForUser(UUID userId) {

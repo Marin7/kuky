@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,28 +23,38 @@ public class PresentationRepository {
         this.jdbc = jdbc;
     }
 
-    public record Summary(UUID id, String title, boolean hasFile, String originalFileName,
-                          long sharedWith, Instant updatedAt) {}
-    public record SharedUser(UUID userId, String email) {}
+    public record Summary(UUID id, String title, String level, boolean hasFile, String originalFileName,
+                          List<UUID> sharedWithIds, Instant updatedAt) {}
+    public record SharedUser(UUID userId, String email, String firstName, String lastName, String username) {}
 
     // --- presentations -------------------------------------------------------
 
     public List<Summary> listSummaries() {
         String sql = """
-                SELECT p.id, p.title, p.updated_at,
+                SELECT p.id, p.title, p.level, p.updated_at,
                        pf.original_name,
-                       (SELECT COUNT(*) FROM presentation_shares sh WHERE sh.presentation_id = p.id) AS shared_count
+                       COALESCE(ARRAY_AGG(sh.user_id::text) FILTER (WHERE sh.user_id IS NOT NULL), '{}') AS shared_with_ids
                 FROM presentations p
                 LEFT JOIN presentation_files pf ON pf.presentation_id = p.id
+                LEFT JOIN presentation_shares sh ON sh.presentation_id = p.id
+                GROUP BY p.id, p.title, p.level, p.updated_at, pf.original_name
                 ORDER BY p.updated_at DESC
                 """;
-        return jdbc.query(sql, Map.of(), (rs, n) -> new Summary(
-                rs.getObject("id", UUID.class),
-                rs.getString("title"),
-                rs.getString("original_name") != null,
-                rs.getString("original_name"),
-                rs.getLong("shared_count"),
-                rs.getTimestamp("updated_at").toInstant()));
+        return jdbc.query(sql, Map.of(), (rs, n) -> {
+            java.sql.Array arr = rs.getArray("shared_with_ids");
+            List<UUID> ids = arr == null ? List.of()
+                    : Arrays.stream((Object[]) arr.getArray())
+                            .map(o -> UUID.fromString(o.toString()))
+                            .toList();
+            return new Summary(
+                    rs.getObject("id", UUID.class),
+                    rs.getString("title"),
+                    rs.getString("level"),
+                    rs.getString("original_name") != null,
+                    rs.getString("original_name"),
+                    ids,
+                    rs.getTimestamp("updated_at").toInstant());
+        });
     }
 
     public UUID create(String title) {
@@ -58,10 +69,16 @@ public class PresentationRepository {
             Presentation p = new Presentation();
             p.setId(rs.getObject("id", UUID.class));
             p.setTitle(rs.getString("title"));
+            p.setLevel(rs.getString("level"));
             p.setCreatedAt(rs.getTimestamp("created_at").toInstant());
             p.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
             return p;
         }).stream().findFirst();
+    }
+
+    public int updateLevel(UUID id, String level) {
+        return jdbc.update("UPDATE presentations SET level = :level, updated_at = NOW() WHERE id = :id",
+                Map.of("id", id, "level", level));
     }
 
     public int rename(UUID id, String title) {
@@ -200,11 +217,12 @@ public class PresentationRepository {
 
     public List<SharedUser> findSharedUsers(UUID presentationId) {
         return jdbc.query("""
-                SELECT u.id AS user_id, u.email AS email
+                SELECT u.id AS user_id, u.email, u.first_name, u.last_name, u.username
                 FROM presentation_shares sh JOIN users u ON u.id = sh.user_id
                 WHERE sh.presentation_id = :pid ORDER BY u.email
                 """, Map.of("pid", presentationId),
-                (rs, n) -> new SharedUser(rs.getObject("user_id", UUID.class), rs.getString("email")));
+                (rs, n) -> new SharedUser(rs.getObject("user_id", UUID.class), rs.getString("email"),
+                        rs.getString("first_name"), rs.getString("last_name"), rs.getString("username")));
     }
 
     public boolean isSharedWith(UUID presentationId, UUID userId) {
@@ -217,9 +235,8 @@ public class PresentationRepository {
 
     public List<Summary> findSharedSummariesForUser(UUID userId) {
         String sql = """
-                SELECT p.id, p.title, p.updated_at,
-                       pf.original_name,
-                       0 AS shared_count
+                SELECT p.id, p.title, p.level, p.updated_at,
+                       pf.original_name
                 FROM presentations p
                 JOIN presentation_shares sh ON sh.presentation_id = p.id
                 LEFT JOIN presentation_files pf ON pf.presentation_id = p.id
@@ -229,9 +246,10 @@ public class PresentationRepository {
         return jdbc.query(sql, Map.of("uid", userId), (rs, n) -> new Summary(
                 rs.getObject("id", UUID.class),
                 rs.getString("title"),
+                rs.getString("level"),
                 rs.getString("original_name") != null,
                 rs.getString("original_name"),
-                0L,
+                List.of(),
                 rs.getTimestamp("updated_at").toInstant()));
     }
 }

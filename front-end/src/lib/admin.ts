@@ -34,9 +34,37 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
 export interface Student {
   id: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+}
+
+export function studentDisplayName(s: Pick<Student, "firstName" | "lastName" | "username" | "email">): string {
+  if (s.firstName && s.lastName) return `${s.firstName} ${s.lastName}`;
+  if (s.firstName) return s.firstName;
+  if (s.username) return `@${s.username}`;
+  return s.email.split("@")[0];
 }
 
 export const getStudents = () => apiCall<Student[]>("/students");
+
+// ---------------------------------------------------------------------------
+// Bookings (admin upcoming view)
+// ---------------------------------------------------------------------------
+
+export interface AdminBooking {
+  id: string;
+  studentId: string;
+  studentEmail: string;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studentUsername: string | null;
+  slotStart: string; // ISO
+  slotEnd: string;   // ISO
+  zoomJoinUrl: string | null;
+}
+
+export const getAdminBookings = () => apiCall<AdminBooking[]>("/bookings");
 
 // ---------------------------------------------------------------------------
 // Availability (User Story 1)
@@ -103,16 +131,65 @@ export const deleteException = (id: string) =>
 export interface Assignee {
   userId: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
   status: "PENDING" | "SUBMITTED" | "REVIEWED";
   responseText: string | null;
   submittedAt: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// Student profiles
+// ---------------------------------------------------------------------------
+
+export interface StudentProfileBooking {
+  id: string;
+  slotStart: string;
+  slotEnd: string;
+  status: string;
+  zoomJoinUrl: string | null;
+}
+
+export interface StudentProfileHomework {
+  id: string;
+  title: string;
+  status: string;
+  submittedAt: string | null;
+}
+
+export interface StudentProfilePresentation {
+  id: string;
+  title: string;
+  level: HomeworkLevel | null;
+}
+
+export interface StudentProfile {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+  avatarImageId: string | null;
+  createdAt: string;
+  bookings: StudentProfileBooking[];
+  homeworks: StudentProfileHomework[];
+  presentations: StudentProfilePresentation[];
+}
+
+export const getStudentProfile = (id: string) =>
+  apiCall<StudentProfile>(`/students/${id}/profile`);
+
+export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
+export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
 export interface HomeworkAdminItem {
   id: string;
   title: string;
   instructions: string;
   dueOn: string | null;
+  homeworkType: HomeworkType | null;
+  level: HomeworkLevel | null;
   assignees: Assignee[];
 }
 
@@ -122,11 +199,13 @@ export const createHomework = (
   title: string,
   instructions: string,
   dueOn: string | null,
+  homeworkType: HomeworkType | null,
+  level: HomeworkLevel | null,
   assigneeIds: string[],
 ) =>
   apiCall<HomeworkAdminItem>("/homework", {
     method: "POST",
-    body: JSON.stringify({ title, instructions, dueOn, assigneeIds }),
+    body: JSON.stringify({ title, instructions, dueOn, homeworkType, level, assigneeIds }),
   });
 
 export const updateHomework = (
@@ -134,10 +213,12 @@ export const updateHomework = (
   title: string,
   instructions: string,
   dueOn: string | null,
+  homeworkType: HomeworkType | null,
+  level: HomeworkLevel | null,
 ) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}`, {
     method: "PUT",
-    body: JSON.stringify({ title, instructions, dueOn }),
+    body: JSON.stringify({ title, instructions, dueOn, homeworkType, level }),
   });
 
 export const setAssignees = (id: string, assigneeIds: string[]) =>
@@ -156,15 +237,17 @@ export const deleteHomework = (id: string) =>
 export interface PresentationSummary {
   id: string;
   title: string;
+  level: HomeworkLevel | null;
   hasFile: boolean;
   originalFileName: string | null;
-  sharedWith: number;
+  sharedWithIds: string[];
   updatedAt: string;
 }
 
 export interface PresentationDetail {
   id: string;
   title: string;
+  level: HomeworkLevel | null;
   hasFile: boolean;
   originalFileName: string | null;
   sharedWith: Student[];
@@ -190,6 +273,12 @@ export const renamePresentation = (id: string, title: string) =>
 
 export const deletePresentation = (id: string) =>
   apiCall<void>(`/presentations/${id}`, { method: "DELETE" });
+
+export const setPresentationLevel = (id: string, level: HomeworkLevel | null) =>
+  apiCall<PresentationDetail>(`/presentations/${id}/level`, {
+    method: "PUT",
+    body: JSON.stringify({ level }),
+  });
 
 export const setShares = (presentationId: string, studentIds: string[]) =>
   apiCall<PresentationDetail>(`/presentations/${presentationId}/shares`, {

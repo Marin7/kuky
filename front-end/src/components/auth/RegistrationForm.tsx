@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { register as apiRegister, type ApiError } from "@/lib/auth";
+import { register as apiRegister, updateProfile, type ApiError } from "@/lib/auth";
 
 const schema = z
   .object({
@@ -15,6 +15,20 @@ const schema = z
       .string()
       .min(8, "La contraseña debe tener al menos 8 caracteres."),
     confirmPassword: z.string(),
+    firstName: z.string().max(100).optional(),
+    lastName: z.string().max(100).optional(),
+    username: z
+      .string()
+      .max(50)
+      .refine(
+        (v) => !v || v.length >= 3,
+        "El nombre de usuario debe tener al menos 3 caracteres.",
+      )
+      .refine(
+        (v) => !v || /^[a-zA-Z0-9_-]+$/.test(v),
+        "Solo letras, números, guiones y guiones bajos.",
+      )
+      .optional(),
     gdprConsent: z.boolean().refine((v) => v, {
       message: "Debes aceptar la política de privacidad para crear una cuenta.",
     }),
@@ -49,6 +63,14 @@ export function RegistrationForm({ onSuccess }: Props) {
     setServerError(null);
     try {
       await apiRegister(data.email, data.password, data.gdprConsent);
+
+      const firstName = data.firstName?.trim() || null;
+      const lastName = data.lastName?.trim() || null;
+      const username = data.username?.trim() || null;
+      if (firstName || lastName || username) {
+        await updateProfile({ firstName, lastName, username });
+      }
+
       onSuccess();
     } catch (err) {
       const apiErr = err as ApiError;
@@ -60,6 +82,56 @@ export function RegistrationForm({ onSuccess }: Props) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label htmlFor="reg-firstName">
+            Nombre <span className="text-muted-foreground font-normal">(opcional)</span>
+          </Label>
+          <Input
+            id="reg-firstName"
+            placeholder="Tu nombre"
+            {...register("firstName")}
+          />
+          {errors.firstName && (
+            <p className="text-sm text-destructive">{errors.firstName.message}</p>
+          )}
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="reg-lastName">
+            Apellidos <span className="text-muted-foreground font-normal">(opcional)</span>
+          </Label>
+          <Input
+            id="reg-lastName"
+            placeholder="Tus apellidos"
+            {...register("lastName")}
+          />
+          {errors.lastName && (
+            <p className="text-sm text-destructive">{errors.lastName.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label htmlFor="reg-username">
+          Nombre de usuario{" "}
+          <span className="text-muted-foreground font-normal">(opcional)</span>
+        </Label>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+            @
+          </span>
+          <Input
+            id="reg-username"
+            className="pl-7"
+            placeholder="nombre_usuario"
+            {...register("username")}
+          />
+        </div>
+        {errors.username && (
+          <p className="text-sm text-destructive">{errors.username.message}</p>
+        )}
+      </div>
+
       <div className="space-y-1">
         <Label htmlFor="reg-email">Correo electrónico</Label>
         <Input

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getStudents, type Student } from "@/lib/admin";
+import { getStudents, studentDisplayName, type Student } from "@/lib/admin";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface Props {
@@ -44,7 +44,12 @@ export function StudentMultiSelect({ selected, onChange }: Props) {
             checked={selected.includes(s.id)}
             onCheckedChange={() => toggle(s.id)}
           />
-          {s.email}
+          <span>
+            {studentDisplayName(s)}
+            {s.firstName && (
+              <span className="ml-1 text-xs text-muted-foreground">{s.email}</span>
+            )}
+          </span>
         </label>
       ))}
     </div>

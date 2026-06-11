@@ -4,6 +4,8 @@ import {
   updateHomework,
   setAssignees,
   type HomeworkAdminItem,
+  type HomeworkType,
+  type HomeworkLevel,
   type ApiError,
 } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
@@ -17,7 +19,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StudentMultiSelect } from "./StudentMultiSelect";
+
+const TYPE_OPTIONS: { value: HomeworkType; label: string }[] = [
+  { value: "AUDIO", label: "Escucha" },
+  { value: "READ", label: "Lectura" },
+  { value: "WRITE", label: "Escritura" },
+  { value: "GRAMMAR", label: "Gramática" },
+];
+
+const LEVEL_OPTIONS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 interface Props {
   open: boolean;
@@ -35,6 +53,12 @@ export function HomeworkEditorDialog({
   const [title, setTitle] = useState(existing?.title ?? "");
   const [instructions, setInstructions] = useState(existing?.instructions ?? "");
   const [dueOn, setDueOn] = useState(existing?.dueOn ?? "");
+  const [homeworkType, setHomeworkType] = useState<HomeworkType | "">(
+    existing?.homeworkType ?? "",
+  );
+  const [level, setLevel] = useState<HomeworkLevel | "">(
+    existing?.level ?? "",
+  );
   const [assigneeIds, setAssigneeIds] = useState<string[]>(
     existing?.assignees.map((a) => a.userId) ?? [],
   );
@@ -50,11 +74,13 @@ export function HomeworkEditorDialog({
     setError(null);
     try {
       const due = dueOn ? dueOn : null;
+      const type = homeworkType || null;
+      const lvl = level || null;
       if (existing) {
-        await updateHomework(existing.id, title, instructions, due);
+        await updateHomework(existing.id, title, instructions, due, type, lvl);
         await setAssignees(existing.id, assigneeIds);
       } else {
-        await createHomework(title, instructions, due, assigneeIds);
+        await createHomework(title, instructions, due, type, lvl, assigneeIds);
       }
       onSaved();
       onOpenChange(false);
@@ -90,6 +116,44 @@ export function HomeworkEditorDialog({
               rows={4}
               maxLength={5000}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Tipo</Label>
+              <Select
+                value={homeworkType}
+                onValueChange={(v) => setHomeworkType(v as HomeworkType)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Nivel</Label>
+              <Select
+                value={level}
+                onValueChange={(v) => setLevel(v as HomeworkLevel)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin nivel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEVEL_OPTIONS.map((l) => (
+                    <SelectItem key={l} value={l}>
+                      {l}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-1">
             <Label htmlFor="hw-due">Fecha límite (opcional)</Label>

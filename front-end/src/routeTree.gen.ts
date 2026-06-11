@@ -17,6 +17,7 @@ import { Route as PanelRouteImport } from './routes/panel'
 import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PanelAlumnosStudentIdRouteImport } from './routes/panel_.alumnos.$studentId'
 
 const SobreMiRoute = SobreMiRouteImport.update({
   id: '/sobre-mi',
@@ -58,6 +59,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelAlumnosStudentIdRoute = PanelAlumnosStudentIdRouteImport.update({
+  id: '/panel_/alumnos/$studentId',
+  path: '/panel/alumnos/$studentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByTo {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +97,7 @@ export interface FileRoutesById {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/panel_/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +110,7 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/panel/alumnos/$studentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/panel/alumnos/$studentId'
   id:
     | '__root__'
     | '/'
@@ -121,6 +132,7 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/panel_/alumnos/$studentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,6 +144,7 @@ export interface RootRouteChildren {
   ReservasRoute: typeof ReservasRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreMiRoute: typeof SobreMiRoute
+  PanelAlumnosStudentIdRoute: typeof PanelAlumnosStudentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel_/alumnos/$studentId': {
+      id: '/panel_/alumnos/$studentId'
+      path: '/panel/alumnos/$studentId'
+      fullPath: '/panel/alumnos/$studentId'
+      preLoaderRoute: typeof PanelAlumnosStudentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -204,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReservasRoute: ReservasRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
+  PanelAlumnosStudentIdRoute: PanelAlumnosStudentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

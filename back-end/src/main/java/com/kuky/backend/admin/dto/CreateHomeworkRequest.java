@@ -11,5 +11,7 @@ public record CreateHomeworkRequest(
         @NotBlank @Size(max = 200) String title,
         @NotBlank @Size(max = 5000) String instructions,
         LocalDate dueOn,
+        String homeworkType,
+        String level,
         List<UUID> assigneeIds
 ) {}

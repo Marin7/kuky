@@ -26,11 +26,15 @@ final class HomeworkItems {
         boolean overdue = a.getDueOn() != null
                 && a.getDueOn().isBefore(today)
                 && HomeworkStatus.PENDING.name().equals(status);
+        String type = a.getHomeworkType() == null ? null : a.getHomeworkType().name();
+        String level = a.getLevel() == null ? null : a.getLevel().name();
         return new HomeworkItemResponse(
                 a.getId(),
                 a.getTitle(),
                 a.getInstructions(),
                 a.getDueOn(),
+                type,
+                level,
                 status,
                 response,
                 submission != null ? submission.getSubmittedAt() : null,

@@ -1,9 +1,9 @@
 package com.kuky.backend.auth.controller;
 
 import com.kuky.backend.auth.dto.*;
+import com.kuky.backend.auth.exception.AccountNotActivatedException;
 import com.kuky.backend.auth.exception.RateLimitException;
 import com.kuky.backend.auth.service.AuthService;
-import com.kuky.backend.auth.service.EmailService;
 import com.kuky.backend.auth.service.LoginRateLimiter;
 import com.kuky.backend.auth.service.PasswordResetService;
 import com.kuky.backend.config.JwtConfig;
@@ -11,10 +11,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 import java.util.UUID;
@@ -78,9 +80,48 @@ public class AuthController {
         if (email == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return authService.findByEmail(email)
-                .map(u -> ResponseEntity.ok(new UserResponse(u.getId(), u.getEmail(), u.getRole())))
+        return authService.findUserResponse(email)
+                .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<UserResponse> updateProfile(
+            @AuthenticationPrincipal String email,
+            @Valid @RequestBody UpdateProfileRequest request) {
+        if (email == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(authService.updateProfile(email, request));
+    }
+
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, String>> uploadAvatar(
+            @AuthenticationPrincipal String email,
+            @RequestParam("file") MultipartFile file) {
+        if (email == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        UUID avatarImageId = authService.uploadAvatar(email, file);
+        return ResponseEntity.ok(Map.of("avatarImageId", avatarImageId.toString()));
+    }
+
+    @PostMapping("/activate")
+    public ResponseEntity<Map<String, String>> activate(
+            @Valid @RequestBody ActivateRequest request,
+            HttpServletResponse response) {
+        UserResponse user = authService.activate(request.token());
+        String token = jwtConfig.generateToken(user.id(), user.email(), user.role());
+        setAuthCookie(response, token);
+        return ResponseEntity.ok(Map.of("message", "¡Cuenta activada! Ya puedes usar Kuky."));
+    }
+
+    @PostMapping("/resend-activation")
+    public ResponseEntity<Map<String, String>> resendActivation(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        authService.resendActivation(request.email());
+        return ResponseEntity.ok(Map.of(
+                "message", "Si tu cuenta está pendiente de activación, recibirás un nuevo enlace."));
     }
 
     @PostMapping("/forgot-password")

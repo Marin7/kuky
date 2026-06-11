@@ -13,6 +13,8 @@ public class HomeworkAssignment {
     private boolean published;
     private int sortOrder;
     private Instant createdAt;
+    private HomeworkType homeworkType; // nullable
+    private HomeworkLevel level;       // nullable
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -28,4 +30,8 @@ public class HomeworkAssignment {
     public void setSortOrder(int sortOrder) { this.sortOrder = sortOrder; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public HomeworkType getHomeworkType() { return homeworkType; }
+    public void setHomeworkType(HomeworkType homeworkType) { this.homeworkType = homeworkType; }
+    public HomeworkLevel getLevel() { return level; }
+    public void setLevel(HomeworkLevel level) { this.level = level; }
 }

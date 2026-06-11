@@ -1,7 +1,9 @@
 package com.kuky.backend.config;
 
+import com.kuky.backend.auth.exception.AccountNotActivatedException;
 import com.kuky.backend.auth.exception.AuthException;
 import com.kuky.backend.auth.exception.DuplicateEmailException;
+import com.kuky.backend.auth.exception.DuplicateUsernameException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
@@ -51,6 +53,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleDuplicateEmail(DuplicateEmailException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "EMAIL_ALREADY_EXISTS", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateUsernameException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicateUsername(DuplicateUsernameException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "USERNAME_ALREADY_EXISTS", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AccountNotActivatedException.class)
+    public ResponseEntity<Map<String, String>> handleNotActivated(AccountNotActivatedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "ACCOUNT_NOT_ACTIVATED", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(AuthException.class)

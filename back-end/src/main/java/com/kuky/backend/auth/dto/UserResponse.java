@@ -2,4 +2,6 @@ package com.kuky.backend.auth.dto;
 
 import java.util.UUID;
 
-public record UserResponse(UUID id, String email, String role) {}
+public record UserResponse(UUID id, String email, String role,
+                           String firstName, String lastName, String username,
+                           UUID avatarImageId, String status) {}

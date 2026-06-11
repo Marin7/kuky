@@ -15,6 +15,11 @@ export interface UserResponse {
   id: string;
   email: string;
   role: "STUDENT" | "ADMIN";
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  avatarImageId?: string;
+  status: "ACTIVE" | "PENDING";
 }
 
 /**
@@ -85,3 +90,41 @@ export const resetPassword = (token: string, newPassword: string) =>
     method: "POST",
     body: JSON.stringify({ token, newPassword }),
   });
+
+export const updateProfile = (data: {
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+}) =>
+  apiCall<UserResponse>("/profile", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+
+export const activate = (token: string) =>
+  apiCall<{ message: string }>("/activate", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  }).then((res) => {
+    notifyAuthChanged();
+    return res;
+  });
+
+export const resendActivation = (email: string) =>
+  apiCall<{ message: string }>("/resend-activation", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+export const uploadAvatar = async (file: File): Promise<{ avatarImageId: string }> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${API_BASE}/avatar`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  const data = await res.json();
+  if (!res.ok) throw data as ApiError;
+  return data as { avatarImageId: string };
+};

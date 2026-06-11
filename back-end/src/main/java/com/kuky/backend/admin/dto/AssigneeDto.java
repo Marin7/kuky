@@ -6,6 +6,9 @@ import java.util.UUID;
 public record AssigneeDto(
         UUID userId,
         String email,
+        String firstName,
+        String lastName,
+        String username,
         String status,
         String responseText,
         Instant submittedAt

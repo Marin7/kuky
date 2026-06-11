@@ -1,4 +1,4 @@
-import type { HomeworkItem } from "@/lib/learning";
+import type { HomeworkItem, HomeworkType, HomeworkLevel } from "@/lib/learning";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +22,29 @@ const STATUS_CLASS: Record<HomeworkItem["status"], string> = {
   REVIEWED: "bg-blue-100 text-blue-700",
 };
 
+const TYPE_LABEL: Record<HomeworkType, string> = {
+  AUDIO: "Escucha",
+  READ: "Lectura",
+  WRITE: "Escritura",
+  GRAMMAR: "Gramática",
+};
+
+const TYPE_CLASS: Record<HomeworkType, string> = {
+  AUDIO: "bg-purple-100 text-purple-700",
+  READ: "bg-blue-100 text-blue-700",
+  WRITE: "bg-yellow-100 text-yellow-700",
+  GRAMMAR: "bg-orange-100 text-orange-700",
+};
+
+const LEVEL_CLASS: Record<HomeworkLevel, string> = {
+  A1: "bg-green-100 text-green-700",
+  A2: "bg-green-100 text-green-700",
+  B1: "bg-teal-100 text-teal-700",
+  B2: "bg-teal-100 text-teal-700",
+  C1: "bg-indigo-100 text-indigo-700",
+  C2: "bg-indigo-100 text-indigo-700",
+};
+
 interface HomeworkItemCardProps {
   item: HomeworkItem;
   onOpen: (item: HomeworkItem) => void;
@@ -32,7 +55,31 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
     <Card className="text-sm">
       <CardContent className="pt-4 space-y-2">
         <div className="flex items-start justify-between gap-3">
-          <p className="font-medium text-foreground">{item.title}</p>
+          <div className="space-y-1">
+            <p className="font-medium text-foreground">{item.title}</p>
+            <div className="flex flex-wrap items-center gap-1">
+              {item.homeworkType && (
+                <span
+                  className={[
+                    "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
+                    TYPE_CLASS[item.homeworkType],
+                  ].join(" ")}
+                >
+                  {TYPE_LABEL[item.homeworkType]}
+                </span>
+              )}
+              {item.level && (
+                <span
+                  className={[
+                    "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
+                    LEVEL_CLASS[item.level],
+                  ].join(" ")}
+                >
+                  {item.level}
+                </span>
+              )}
+            </div>
+          </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {item.overdue && (
               <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">

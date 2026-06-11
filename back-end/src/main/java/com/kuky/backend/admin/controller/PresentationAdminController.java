@@ -78,6 +78,13 @@ public class PresentationAdminController {
                 .body(f.data());
     }
 
+    // --- level ---------------------------------------------------------------
+
+    @PutMapping("/{id}/level")
+    public PresentationDetail setLevel(@PathVariable UUID id, @RequestBody java.util.Map<String, String> body) {
+        return service.setLevel(id, body.get("level"));
+    }
+
     // --- shares --------------------------------------------------------------
 
     @PutMapping("/{id}/shares")

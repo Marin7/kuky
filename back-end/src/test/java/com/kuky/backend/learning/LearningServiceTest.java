@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +53,7 @@ class LearningServiceTest {
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);
+        user.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
         when(userRepository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.of(user));
         when(presentationRepository.findSharedSummariesForUser(userId)).thenReturn(List.of());
     }
@@ -60,7 +62,7 @@ class LearningServiceTest {
     void getOverview_mapsPresentationAndPastClasses() {
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of(
                 presentation("Hola", "Bienvenido")));
-        when(contentRepository.findPublishedPastClasses()).thenReturn(List.of(
+        when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of(
                 pastClass("El indefinido", LocalDate.of(2026, 6, 3))));
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of());
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
@@ -78,7 +80,7 @@ class LearningServiceTest {
     void getOverview_assignmentWithoutSubmission_isPending() {
         HomeworkAssignment a = assignment("Tarea 1", LocalDate.now().plusDays(5));
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
-        when(contentRepository.findPublishedPastClasses()).thenReturn(List.of());
+        when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
 
@@ -94,7 +96,7 @@ class LearningServiceTest {
     void getOverview_pendingPastDue_isOverdue() {
         HomeworkAssignment a = assignment("Tarea atrasada", LocalDate.now().minusDays(1));
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
-        when(contentRepository.findPublishedPastClasses()).thenReturn(List.of());
+        when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
 
@@ -107,7 +109,7 @@ class LearningServiceTest {
     void getOverview_noDueDate_neverOverdue() {
         HomeworkAssignment a = assignment("Lectura libre", null);
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
-        when(contentRepository.findPublishedPastClasses()).thenReturn(List.of());
+        when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
 
@@ -126,7 +128,7 @@ class LearningServiceTest {
         s.setResponseText("Mi respuesta");
         s.setSubmittedAt(Instant.now());
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
-        when(contentRepository.findPublishedPastClasses()).thenReturn(List.of());
+        when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of(s));
 

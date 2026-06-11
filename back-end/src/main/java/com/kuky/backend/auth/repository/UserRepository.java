@@ -30,6 +30,10 @@ public class UserRepository {
         u.setStatus(rs.getString("status"));
         u.setRole(rs.getString("role"));
         u.setGdprConsent(rs.getBoolean("gdpr_consent"));
+        u.setFirstName(rs.getString("first_name"));
+        u.setLastName(rs.getString("last_name"));
+        u.setUsername(rs.getString("username"));
+        u.setAvatarImageId(rs.getObject("avatar_image_id", UUID.class));
         u.setCreatedAt(rs.getTimestamp("created_at").toInstant());
         u.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
         return u;
@@ -56,6 +60,35 @@ public class UserRepository {
     public List<User> findStudents() {
         String sql = "SELECT * FROM users WHERE role = 'STUDENT' ORDER BY email";
         return jdbc.query(sql, Map.of(), USER_MAPPER);
+    }
+
+    public boolean existsByUsernameIgnoreCase(String username, UUID excludeId) {
+        String sql = "SELECT COUNT(1) FROM users WHERE LOWER(username) = LOWER(:username) AND id <> :excludeId";
+        Integer count = jdbc.queryForObject(sql,
+                Map.of("username", username, "excludeId", excludeId), Integer.class);
+        return count != null && count > 0;
+    }
+
+    public void updateProfile(UUID id, String firstName, String lastName, String username) {
+        String sql = """
+                UPDATE users
+                   SET first_name = :firstName,
+                       last_name  = :lastName,
+                       username   = :username,
+                       updated_at = :updatedAt
+                 WHERE id = :id
+                """;
+        jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("firstName", firstName)
+                .addValue("lastName", lastName)
+                .addValue("username", username)
+                .addValue("updatedAt", Timestamp.from(Instant.now())));
+    }
+
+    public void updateAvatar(UUID id, UUID avatarImageId) {
+        String sql = "UPDATE users SET avatar_image_id = :avatarImageId, updated_at = NOW() WHERE id = :id";
+        jdbc.update(sql, Map.of("id", id, "avatarImageId", avatarImageId));
     }
 
     /** Promote a user to ADMIN by email (idempotent). Returns rows affected. */

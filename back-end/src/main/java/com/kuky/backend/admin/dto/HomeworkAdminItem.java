@@ -9,5 +9,7 @@ public record HomeworkAdminItem(
         String title,
         String instructions,
         LocalDate dueOn,
+        String homeworkType,
+        String level,
         List<AssigneeDto> assignees
 ) {}

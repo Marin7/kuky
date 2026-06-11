@@ -7,26 +7,56 @@ import {
   getPresentation,
   uploadPresentationFile,
   deletePresentationFile,
+  setPresentationLevel,
+  getStudents,
+  studentDisplayName,
   type PresentationSummary,
   type PresentationDetail,
+  type HomeworkLevel,
+  type Student,
   type ApiError,
 } from "@/lib/admin";
+import { StudentLink } from "@/components/admin/students/StudentLink";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { SharePresentationDialog } from "./SharePresentationDialog";
+
+const LEVELS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
+
+const LEVEL_CLASS: Record<HomeworkLevel, string> = {
+  A1: "bg-green-100 text-green-700",
+  A2: "bg-green-100 text-green-700",
+  B1: "bg-teal-100 text-teal-700",
+  B2: "bg-teal-100 text-teal-700",
+  C1: "bg-indigo-100 text-indigo-700",
+  C2: "bg-indigo-100 text-indigo-700",
+};
 
 export function PresentationAdminList() {
   const [items, setItems] = useState<PresentationSummary[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState("");
   const [creating, setCreating] = useState(false);
+  const [filterLevel, setFilterLevel] = useState<HomeworkLevel | "ALL">("ALL");
+  const [filterStudent, setFilterStudent] = useState<string | "ALL">("ALL");
 
   const load = () => {
     setLoading(true);
-    listPresentations()
-      .then(setItems)
-      .catch(() => setItems([]))
+    Promise.all([listPresentations(), getStudents()])
+      .then(([presentations, studentList]) => {
+        setItems(presentations);
+        setStudents(studentList);
+      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   };
 
@@ -39,8 +69,15 @@ export function PresentationAdminList() {
       const deck = await createPresentation(newTitle.trim());
       setNewTitle("");
       setItems((prev) => [
-        { id: deck.id, title: deck.title, hasFile: false, originalFileName: null,
-          sharedWith: 0, updatedAt: new Date().toISOString() },
+        {
+          id: deck.id,
+          title: deck.title,
+          level: null,
+          hasFile: false,
+          originalFileName: null,
+          sharedWithIds: [],
+          updatedAt: new Date().toISOString(),
+        },
         ...prev,
       ]);
     } finally {
@@ -54,32 +91,79 @@ export function PresentationAdminList() {
   const handleUpdated = (updated: PresentationSummary) =>
     setItems((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
 
+  const filtered = items.filter((item) => {
+    if (filterLevel !== "ALL" && item.level !== filterLevel) return false;
+    if (filterStudent !== "ALL" && !item.sharedWithIds.includes(filterStudent))
+      return false;
+    return true;
+  });
+
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-2">
-        <Input
-          placeholder="Título de la nueva presentación"
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && create()}
-          maxLength={200}
-        />
-        <Button onClick={create} disabled={creating || !newTitle.trim()}>
-          {creating ? "Creando…" : "Crear"}
-        </Button>
+      {/* Filters + create row */}
+      <div className="flex flex-wrap items-end gap-2">
+        <Select
+          value={filterLevel}
+          onValueChange={(v) => setFilterLevel(v as HomeworkLevel | "ALL")}
+        >
+          <SelectTrigger className="h-9 w-36 text-xs">
+            <SelectValue placeholder="Nivel" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todos los niveles</SelectItem>
+            {LEVELS.map((l) => (
+              <SelectItem key={l} value={l}>
+                {l}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filterStudent}
+          onValueChange={(v) => setFilterStudent(v)}
+        >
+          <SelectTrigger className="h-9 w-48 text-xs">
+            <SelectValue placeholder="Alumno" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Todos los alumnos</SelectItem>
+            {students.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {studentDisplayName(s)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex flex-1 items-center gap-2 min-w-48">
+          <Input
+            placeholder="Título de la nueva presentación"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && create()}
+            maxLength={200}
+          />
+          <Button onClick={create} disabled={creating || !newTitle.trim()}>
+            {creating ? "Creando…" : "Crear"}
+          </Button>
+        </div>
       </div>
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Cargando…</p>
-      ) : items.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aún no has creado ninguna presentación.
+          {items.length === 0
+            ? "Aún no has creado ninguna presentación."
+            : "No hay presentaciones con esos filtros."}
         </p>
       ) : (
-        items.map((item) => (
+        filtered.map((item) => (
           <PresentationCard
             key={item.id}
             item={item}
+            students={students}
             onDeleted={() => handleDeleted(item.id)}
             onUpdated={handleUpdated}
           />
@@ -93,11 +177,12 @@ export function PresentationAdminList() {
 
 interface CardProps {
   item: PresentationSummary;
+  students: Student[];
   onDeleted: () => void;
   onUpdated: (updated: PresentationSummary) => void;
 }
 
-function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
+function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(item.title);
@@ -117,6 +202,16 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
     }
   };
 
+  const handleLevelChange = async (value: string) => {
+    const level = value === "NONE" ? null : (value as HomeworkLevel);
+    try {
+      await setPresentationLevel(item.id, level);
+      onUpdated({ ...item, level });
+    } catch (err) {
+      setError((err as ApiError).message ?? "No se pudo guardar el nivel.");
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -125,11 +220,7 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
     setError(null);
     try {
       const updated = await uploadPresentationFile(item.id, file);
-      onUpdated({
-        ...item,
-        hasFile: true,
-        originalFileName: updated.originalFileName,
-      });
+      onUpdated({ ...item, hasFile: true, originalFileName: updated.originalFileName });
     } catch (err) {
       setError((err as ApiError).message ?? "Error al subir el archivo.");
     } finally {
@@ -170,7 +261,7 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
   return (
     <Card>
       <CardContent className="pt-4 space-y-3">
-        {/* Title row */}
+        {/* Title + level row */}
         <div className="flex items-center gap-2">
           {editingTitle ? (
             <Input
@@ -189,17 +280,53 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
               maxLength={200}
             />
           ) : (
-            <button
-              className="flex-1 text-left font-medium hover:underline truncate"
-              onClick={() => {
-                setTitleValue(item.title);
-                setEditingTitle(true);
-              }}
-            >
-              {item.title}
-            </button>
+            <div className="flex flex-1 items-center gap-2 min-w-0">
+              <button
+                className="text-left font-medium hover:underline truncate"
+                onClick={() => {
+                  setTitleValue(item.title);
+                  setEditingTitle(true);
+                }}
+              >
+                {item.title}
+              </button>
+              {item.level && (
+                <span
+                  className={[
+                    "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+                    LEVEL_CLASS[item.level],
+                  ].join(" ")}
+                >
+                  {item.level}
+                </span>
+              )}
+            </div>
           )}
-          <Button variant="outline" size="sm" className="h-8 text-xs shrink-0" onClick={handleShare}>
+
+          {/* Level picker */}
+          <Select
+            value={item.level ?? "NONE"}
+            onValueChange={handleLevelChange}
+          >
+            <SelectTrigger className="h-8 w-24 shrink-0 text-xs">
+              <SelectValue placeholder="Nivel" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="NONE">Sin nivel</SelectItem>
+              {LEVELS.map((l) => (
+                <SelectItem key={l} value={l}>
+                  {l}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs shrink-0"
+            onClick={handleShare}
+          >
             Compartir
           </Button>
           <Button
@@ -264,9 +391,24 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
         </div>
 
         {/* Share info */}
-        <p className="text-xs text-muted-foreground">
-          Compartida con {item.sharedWith} alumno(s)
-        </p>
+        {item.sharedWithIds.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Sin compartir.</p>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {item.sharedWithIds.map((id) => {
+              const student = students.find((s) => s.id === id);
+              if (!student) return null;
+              return (
+                <span
+                  key={id}
+                  className="rounded-full bg-muted px-2 py-0.5 text-xs"
+                >
+                  <StudentLink student={student} />
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         {error && <p className="text-xs text-destructive">{error}</p>}
       </CardContent>
@@ -278,7 +420,10 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
           deck={shareDeck}
           onShared={(updated) => {
             setShareDeck(updated);
-            onUpdated({ ...item, sharedWith: updated.sharedWith.length });
+            onUpdated({
+              ...item,
+              sharedWithIds: updated.sharedWith.map((s) => s.id),
+            });
           }}
         />
       )}

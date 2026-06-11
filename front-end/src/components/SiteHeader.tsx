@@ -7,7 +7,6 @@ import { getMe } from "@/lib/auth";
 const baseNav = [
   { to: "/", label: "Inicio" },
   { to: "/sobre-mi", label: "Sobre mí" },
-  { to: "/recursos", label: "Recursos" },
   { to: "/reservas", label: "Reservas" },
 ] as const;
 

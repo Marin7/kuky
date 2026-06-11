@@ -1,6 +1,8 @@
 package com.kuky.backend.learning.repository;
 
 import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkLevel;
+import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.PastClass;
 import com.kuky.backend.learning.model.PresentationBlock;
 import org.springframework.jdbc.core.RowMapper;
@@ -58,6 +60,10 @@ public class ContentRepository {
         a.setPublished(rs.getBoolean("published"));
         a.setSortOrder(rs.getInt("sort_order"));
         a.setCreatedAt(rs.getTimestamp("created_at").toInstant());
+        String type = rs.getString("homework_type");
+        if (type != null) a.setHomeworkType(HomeworkType.valueOf(type));
+        String level = rs.getString("level");
+        if (level != null) a.setLevel(HomeworkLevel.valueOf(level));
         return a;
     };
 
@@ -66,9 +72,9 @@ public class ContentRepository {
         return jdbc.query(sql, Map.of(), PRESENTATION_MAPPER);
     }
 
-    public List<PastClass> findPublishedPastClasses() {
-        String sql = "SELECT * FROM past_classes WHERE published = true ORDER BY held_on DESC";
-        return jdbc.query(sql, Map.of(), PAST_CLASS_MAPPER);
+    public List<PastClass> findPublishedPastClassesSince(LocalDate enrolledOn) {
+        String sql = "SELECT * FROM past_classes WHERE published = true AND held_on >= :enrolledOn ORDER BY held_on DESC";
+        return jdbc.query(sql, Map.of("enrolledOn", enrolledOn), PAST_CLASS_MAPPER);
     }
 
     /** Homework visible to a student: only assignments targeted at them (per-student model). */
@@ -99,28 +105,36 @@ public class ContentRepository {
                 Map.of("id", id), ASSIGNMENT_MAPPER).stream().findFirst();
     }
 
-    public UUID insertAssignment(String title, String instructions, LocalDate dueOn) {
+    public UUID insertAssignment(String title, String instructions, LocalDate dueOn,
+                                  HomeworkType homeworkType, HomeworkLevel level) {
         UUID id = UUID.randomUUID();
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("id", id);
         params.put("title", title);
         params.put("instructions", instructions);
         params.put("dueOn", dueOn == null ? null : java.sql.Date.valueOf(dueOn));
+        params.put("homeworkType", homeworkType == null ? null : homeworkType.name());
+        params.put("level", level == null ? null : level.name());
         jdbc.update("""
-                INSERT INTO homework_assignments (id, title, instructions, due_on, published, sort_order)
-                VALUES (:id, :title, :instructions, :dueOn, true, 0)
+                INSERT INTO homework_assignments (id, title, instructions, due_on, homework_type, level, published, sort_order)
+                VALUES (:id, :title, :instructions, :dueOn, :homeworkType, :level, true, 0)
                 """, params);
         return id;
     }
 
-    public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn) {
+    public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn,
+                                HomeworkType homeworkType, HomeworkLevel level) {
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("id", id);
         params.put("title", title);
         params.put("instructions", instructions);
         params.put("dueOn", dueOn == null ? null : java.sql.Date.valueOf(dueOn));
+        params.put("homeworkType", homeworkType == null ? null : homeworkType.name());
+        params.put("level", level == null ? null : level.name());
         return jdbc.update("""
-                UPDATE homework_assignments SET title = :title, instructions = :instructions, due_on = :dueOn
+                UPDATE homework_assignments
+                SET title = :title, instructions = :instructions, due_on = :dueOn,
+                    homework_type = :homeworkType, level = :level
                 WHERE id = :id
                 """, params);
     }

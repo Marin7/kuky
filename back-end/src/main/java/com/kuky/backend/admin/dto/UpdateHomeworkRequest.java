@@ -8,5 +8,7 @@ import java.time.LocalDate;
 public record UpdateHomeworkRequest(
         @NotBlank @Size(max = 200) String title,
         @NotBlank @Size(max = 5000) String instructions,
-        LocalDate dueOn
+        LocalDate dueOn,
+        String homeworkType,
+        String level
 ) {}

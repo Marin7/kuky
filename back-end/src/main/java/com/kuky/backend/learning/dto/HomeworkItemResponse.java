@@ -9,6 +9,8 @@ public record HomeworkItemResponse(
         String title,
         String instructions,
         LocalDate dueOn,
+        String homeworkType,
+        String level,
         String status,
         String response,
         Instant submittedAt,

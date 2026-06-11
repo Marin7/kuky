@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login as apiLogin, type ApiError } from "@/lib/auth";
+import { login as apiLogin, resendActivation, type ApiError } from "@/lib/auth";
 
 const schema = z.object({
   email: z.string().min(1, "El correo electrónico es obligatorio."),
@@ -21,6 +21,8 @@ interface Props {
 
 export function LoginForm({ onSuccess, onForgotPassword }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [notActivatedEmail, setNotActivatedEmail] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
   const {
     register,
     handleSubmit,
@@ -29,6 +31,8 @@ export function LoginForm({ onSuccess, onForgotPassword }: Props) {
 
   const onSubmit = async (data: FormData) => {
     setServerError(null);
+    setNotActivatedEmail(null);
+    setResent(false);
     try {
       await apiLogin(data.email, data.password);
       onSuccess();
@@ -38,10 +42,18 @@ export function LoginForm({ onSuccess, onForgotPassword }: Props) {
         setServerError(
           "Demasiados intentos. Por favor, espera un momento e inténtalo de nuevo.",
         );
+      } else if (apiErr.error === "ACCOUNT_NOT_ACTIVATED") {
+        setNotActivatedEmail(data.email);
       } else {
         setServerError("Correo electrónico o contraseña incorrectos.");
       }
     }
+  };
+
+  const handleResend = async () => {
+    if (!notActivatedEmail) return;
+    await resendActivation(notActivatedEmail);
+    setResent(true);
   };
 
   return (
@@ -73,6 +85,25 @@ export function LoginForm({ onSuccess, onForgotPassword }: Props) {
       </div>
 
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+
+      {notActivatedEmail && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm space-y-2">
+          <p className="text-amber-800">
+            Tu cuenta aún no está activada. Revisa tu correo electrónico.
+          </p>
+          {resent ? (
+            <p className="text-green-700">Correo reenviado. Revisa tu bandeja.</p>
+          ) : (
+            <button
+              type="button"
+              onClick={handleResend}
+              className="text-amber-700 underline hover:text-amber-900"
+            >
+              Reenviar correo de activación
+            </button>
+          )}
+        </div>
+      )}
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? "Iniciando sesión…" : "Iniciar sesión"}

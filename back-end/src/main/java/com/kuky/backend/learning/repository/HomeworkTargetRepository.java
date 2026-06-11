@@ -21,8 +21,8 @@ public class HomeworkTargetRepository {
     }
 
     /** An assignee of an assignment, with their submission status (PENDING if no row). */
-    public record AssigneeView(UUID userId, String email, String status,
-                               String responseText, Instant submittedAt) {}
+    public record AssigneeView(UUID userId, String email, String firstName, String lastName, String username,
+                               String status, String responseText, Instant submittedAt) {}
 
     @Transactional
     public void replaceTargets(UUID assignmentId, List<UUID> userIds) {
@@ -42,10 +42,10 @@ public class HomeworkTargetRepository {
 
     public List<AssigneeView> findAssigneesWithSubmissions(UUID assignmentId) {
         String sql = """
-                SELECT u.id AS user_id, u.email AS email,
+                SELECT u.id AS user_id, u.email, u.first_name, u.last_name, u.username,
                        COALESCE(s.status, 'PENDING') AS status,
-                       s.response_text AS response_text,
-                       s.submitted_at AS submitted_at
+                       s.response_text,
+                       s.submitted_at
                 FROM homework_targets t
                 JOIN users u ON u.id = t.user_id
                 LEFT JOIN homework_submissions s
@@ -58,8 +58,35 @@ public class HomeworkTargetRepository {
             return new AssigneeView(
                     rs.getObject("user_id", UUID.class),
                     rs.getString("email"),
+                    rs.getString("first_name"),
+                    rs.getString("last_name"),
+                    rs.getString("username"),
                     rs.getString("status"),
                     rs.getString("response_text"),
+                    submittedAt == null ? null : submittedAt.toInstant());
+        });
+    }
+
+    public record StudentAssignmentView(UUID assignmentId, String title, String status, Instant submittedAt) {}
+
+    public List<StudentAssignmentView> findAssignmentsForStudent(UUID userId) {
+        String sql = """
+                SELECT ha.id AS assignment_id, ha.title,
+                       COALESCE(s.status, 'PENDING') AS status,
+                       s.submitted_at
+                FROM homework_targets t
+                JOIN homework_assignments ha ON ha.id = t.assignment_id
+                LEFT JOIN homework_submissions s
+                       ON s.assignment_id = t.assignment_id AND s.user_id = t.user_id
+                WHERE t.user_id = :uid
+                ORDER BY ha.created_at DESC
+                """;
+        return jdbc.query(sql, Map.of("uid", userId), (rs, n) -> {
+            var submittedAt = rs.getTimestamp("submitted_at");
+            return new StudentAssignmentView(
+                    rs.getObject("assignment_id", UUID.class),
+                    rs.getString("title"),
+                    rs.getString("status"),
                     submittedAt == null ? null : submittedAt.toInstant());
         });
     }
