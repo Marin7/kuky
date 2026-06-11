@@ -1,2 +1,12 @@
 ### IntelliJ IDEA ###
 .idea/*
+
+### Secrets — never commit real env files ###
+.env
+.env.local
+.env.production
+.env.staging
+*/.env
+*/.env.local
+*/.env.production
+*/.env.staging

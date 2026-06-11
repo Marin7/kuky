@@ -43,8 +43,6 @@ app:
   scheduling:
     teacher-timezone: Europe/Madrid
     teacher-email: ${TEACHER_EMAIL:noreply@kuky.es}
-    day-start: "09:00"
-    day-end: "18:00"
     class-duration-minutes: 60
     min-lead-hours: 24
     cancel-cutoff-hours: 24
