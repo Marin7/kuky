@@ -8,7 +8,7 @@ Full-stack: React 19 SSR frontend + Java Spring Boot REST API.
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 19, TanStack Start (SSR), TanStack Router, TailwindCSS 4, Shadcn UI |
-| Backend | Java 26, Spring Boot 4, Spring Security, plain JDBC (NamedParameterJdbcTemplate) |
+| Backend | Java 21, Spring Boot 3.5, Spring Security, plain JDBC (NamedParameterJdbcTemplate) |
 | Database | PostgreSQL 17+ |
 | Auth | JWT in `HttpOnly; Secure; SameSite=Lax` cookies, 7-day rolling session |
 | Email | JavaMailSender (Mailpit for local dev) |
@@ -21,7 +21,7 @@ Full-stack: React 19 SSR frontend + Java Spring Boot REST API.
 ### Prerequisites
 
 - **Node.js 22+** (Vite 7 minimum; Node 20 is too old)
-- **Java 26**
+- **Java 21**
 - **PostgreSQL 17+** running locally (pgAdmin works)
 - **Mailpit** for SMTP capture — `mailpit` (SMTP on port 1025, web UI on http://localhost:8025)
 
@@ -131,7 +131,7 @@ kuky/
 │   │   ├── lib/        # API clients (auth, scheduling, resources, learning, admin)
 │   │   └── routes/     # File-based pages (TanStack Router)
 │   └── .env.example
-├── back-end/           # Java 26 + Spring Boot 4 REST API
+├── back-end/           # Java 21 + Spring Boot 3.5 REST API
 │   ├── src/main/
 │   │   ├── java/com/kuky/backend/
 │   │   │   ├── auth/       # Register, login, JWT, password reset, activation
