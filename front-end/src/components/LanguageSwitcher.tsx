@@ -1,6 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { LANGUAGES } from "@/i18n";
+import "flag-icons/css/flag-icons.min.css";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +22,10 @@ export function LanguageSwitcher() {
           size="sm"
           className="h-8 gap-1 px-2 text-sm text-muted-foreground hover:text-foreground"
         >
-          <span aria-hidden="true">{current.flag}</span>
+          <span
+            aria-hidden="true"
+            className={`fi fi-${current.countryCode} text-base`}
+          />
           <span>{current.label}</span>
           <ChevronDown className="h-3 w-3 opacity-60" />
         </Button>
@@ -33,9 +37,10 @@ export function LanguageSwitcher() {
             onClick={() => setLanguage(lang.code)}
             className={language === lang.code ? "font-medium text-primary" : ""}
           >
-            <span className="mr-2" aria-hidden="true">
-              {lang.flag}
-            </span>
+            <span
+              aria-hidden="true"
+              className={`fi fi-${lang.countryCode} mr-2`}
+            />
             {lang.label}
           </DropdownMenuItem>
         ))}
