@@ -100,7 +100,9 @@ Set these in your hosting environment before deploying.
 | `CORS_ALLOWED_ORIGIN` | Frontend origin — `https://kuky.es` |
 | `FRONTEND_BASE_URL` | Used in email links — `https://kuky.es` |
 | `MAIL_HOST` | SMTP host |
-| `MAIL_PORT` | SMTP port |
+| `MAIL_PORT` | SMTP port (typically 587 for STARTTLS) |
+| `MAIL_USERNAME` | SMTP username (e.g. `apikey` for SendGrid) |
+| `MAIL_PASSWORD` | SMTP password / API key |
 | `MAIL_FROM` | From address |
 | `TEACHER_EMAIL` | Paula's email — receives booking notifications and gets promoted to ADMIN on startup |
 | `ZOOM_ACCOUNT_ID` | Zoom Server-to-Server OAuth — leave blank to use the stub provider |
