@@ -1,7 +1,9 @@
 import type { Slot } from "@/lib/scheduling";
 
-function toLocalDateKey(iso: string): string {
-  return new Intl.DateTimeFormat("sv-SE").format(new Date(iso));
+function toLocalDateKey(iso: string, timezone: string): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: timezone }).format(
+    new Date(iso),
+  );
 }
 
 function formatDayHeading(dateKey: string): string {
@@ -12,22 +14,25 @@ function formatDayHeading(dateKey: string): string {
   }).format(new Date(dateKey + "T12:00:00"));
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string, timezone: string): string {
   return new Intl.DateTimeFormat("es", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: timezone,
   }).format(new Date(iso));
 }
 
 interface TimeSlotListProps {
   slots: Slot[];
   selectedDay: string | null;
+  timezone: string;
   onSelect: (slot: Slot) => void;
 }
 
 export function TimeSlotList({
   slots,
   selectedDay,
+  timezone,
   onSelect,
 }: TimeSlotListProps) {
   if (!selectedDay) {
@@ -39,7 +44,7 @@ export function TimeSlotList({
   }
 
   const daySlots = slots.filter(
-    (s) => toLocalDateKey(s.start) === selectedDay && s.status === "OPEN",
+    (s) => toLocalDateKey(s.start, timezone) === selectedDay && s.status === "OPEN",
   );
 
   const heading = formatDayHeading(selectedDay);
@@ -60,7 +65,7 @@ export function TimeSlotList({
               onClick={() => onSelect(slot)}
               className="w-full rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-foreground hover:bg-primary/10 hover:border-primary transition-colors text-left"
             >
-              {formatTime(slot.start)}
+              {formatTime(slot.start, timezone)}
             </button>
           ))}
         </div>

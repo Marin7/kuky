@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import type { Slot } from "@/lib/scheduling";
 
-function toLocalDateKey(iso: string): string {
-  return new Intl.DateTimeFormat("sv-SE").format(new Date(iso));
+function toLocalDateKey(iso: string, timezone: string): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: timezone }).format(
+    new Date(iso),
+  );
 }
 
 function formatMonthYear(dateKey: string): string {
@@ -58,6 +60,7 @@ interface CalendarPickerProps {
   slots: Slot[];
   horizonStart: string;
   horizonEnd: string;
+  timezone: string;
   selectedDay: string | null;
   onSelectDay: (day: string) => void;
 }
@@ -66,31 +69,32 @@ export function CalendarPicker({
   slots,
   horizonStart,
   horizonEnd,
+  timezone,
   selectedDay,
   onSelectDay,
 }: CalendarPickerProps) {
-  const todayKey = toLocalDateKey(new Date().toISOString());
+  const todayKey = toLocalDateKey(new Date().toISOString(), timezone);
 
   const availableDays = useMemo(() => {
     const days = new Set<string>();
     for (const slot of slots) {
       if (slot.status === "OPEN") {
-        days.add(toLocalDateKey(slot.start));
+        days.add(toLocalDateKey(slot.start, timezone));
       }
     }
     return days;
-  }, [slots]);
+  }, [slots, timezone]);
 
   const allDays = useMemo(() => {
     const result: string[] = [];
     const cursor = new Date(horizonStart);
     const end = new Date(horizonEnd);
     while (cursor < end) {
-      result.push(toLocalDateKey(cursor.toISOString()));
+      result.push(toLocalDateKey(cursor.toISOString(), timezone));
       cursor.setUTCDate(cursor.getUTCDate() + 1);
     }
     return result;
-  }, [horizonStart, horizonEnd]);
+  }, [horizonStart, horizonEnd, timezone]);
 
   const week1 = allDays.slice(0, 7);
   const week2 = allDays.slice(7, 14);

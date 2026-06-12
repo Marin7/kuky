@@ -9,27 +9,29 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function formatSlot(iso: string): string {
+function formatSlot(iso: string, timezone: string): string {
   return new Intl.DateTimeFormat("es", {
     weekday: "long",
     day: "numeric",
     month: "long",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: timezone,
   }).format(new Date(iso));
 }
 
 interface BookingCardProps {
   booking: BookingSummary;
+  timezone: string;
   onCancel: (id: string) => void;
   cancelling: string | null;
 }
 
-function BookingCard({ booking, onCancel, cancelling }: BookingCardProps) {
+function BookingCard({ booking, timezone, onCancel, cancelling }: BookingCardProps) {
   return (
     <Card className="text-sm">
       <CardContent className="pt-4 space-y-2">
-        <p className="font-medium">{formatSlot(booking.slotStart)}</p>
+        <p className="font-medium">{formatSlot(booking.slotStart, timezone)}</p>
         {booking.zoomJoinUrl && (
           <a
             href={booking.zoomJoinUrl}
@@ -69,11 +71,13 @@ function BookingCard({ booking, onCancel, cancelling }: BookingCardProps) {
 }
 
 interface MyBookingsProps {
+  timezone: string;
   onScheduleRefresh?: () => void;
   onRefreshRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 export function MyBookings({
+  timezone,
   onScheduleRefresh,
   onRefreshRef,
 }: MyBookingsProps) {
@@ -137,6 +141,7 @@ export function MyBookings({
             <BookingCard
               key={b.id}
               booking={b}
+              timezone={timezone}
               onCancel={handleCancel}
               cancelling={cancelling}
             />
@@ -153,6 +158,7 @@ export function MyBookings({
             <BookingCard
               key={b.id}
               booking={b}
+              timezone={timezone}
               onCancel={handleCancel}
               cancelling={cancelling}
             />

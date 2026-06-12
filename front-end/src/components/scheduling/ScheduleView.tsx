@@ -42,11 +42,13 @@ function ScheduleSkeleton() {
 interface ScheduleViewProps {
   onRefreshRef?: React.MutableRefObject<(() => void) | null>;
   onBookingSuccess?: () => void;
+  onTimezoneResolved?: (tz: string) => void;
 }
 
 export function ScheduleView({
   onRefreshRef,
   onBookingSuccess,
+  onTimezoneResolved,
 }: ScheduleViewProps) {
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,10 @@ export function ScheduleView({
     setLoading(true);
     setError(null);
     getSchedule()
-      .then(setSchedule)
+      .then((s) => {
+        setSchedule(s);
+        onTimezoneResolved?.(s.teacherTimezone);
+      })
       .catch(() =>
         setError("No se pudo cargar el horario. Inténtalo de nuevo más tarde."),
       )
@@ -83,7 +88,7 @@ export function ScheduleView({
         <h1 className="font-display text-2xl font-bold">Horario de clases</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Selecciona un día y una hora disponible para reservar tu clase. Los
-          horarios se muestran en tu zona horaria local.
+          horarios se muestran en horario de Madrid (España).
         </p>
       </div>
 
@@ -102,6 +107,7 @@ export function ScheduleView({
               slots={schedule.slots}
               horizonStart={schedule.horizonStart}
               horizonEnd={schedule.horizonEnd}
+              timezone={schedule.teacherTimezone}
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
             />
@@ -113,6 +119,7 @@ export function ScheduleView({
               <TimeSlotList
                 slots={schedule.slots}
                 selectedDay={selectedDay}
+                timezone={schedule.teacherTimezone}
                 onSelect={setSelectedSlot}
               />
             </div>

@@ -20,6 +20,7 @@ export const Route = createFileRoute("/reservas")({
 function ReservasPage() {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [teacherTimezone, setTeacherTimezone] = useState("Europe/Madrid");
   const scheduleRefreshRef = useRef<(() => void) | null>(null);
   const myBookingsRefreshRef = useRef<(() => void) | null>(null);
 
@@ -35,9 +36,11 @@ function ReservasPage() {
       <ScheduleView
         onRefreshRef={scheduleRefreshRef}
         onBookingSuccess={() => myBookingsRefreshRef.current?.()}
+        onTimezoneResolved={setTeacherTimezone}
       />
       {!authLoading && user && (
         <MyBookings
+          timezone={teacherTimezone}
           onRefreshRef={myBookingsRefreshRef}
           onScheduleRefresh={() => scheduleRefreshRef.current?.()}
         />

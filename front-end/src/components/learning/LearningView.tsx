@@ -5,7 +5,6 @@ import {
   type HomeworkItem,
 } from "@/lib/learning";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ClassPresentation } from "./ClassPresentation";
 import { PastClassesList } from "./PastClassesList";
 import { HomeworkList } from "./HomeworkList";
 import { HomeworkSubmitDialog } from "./HomeworkSubmitDialog";
@@ -66,23 +65,12 @@ export function LearningView() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10 space-y-10">
-      <div>
-        <h1 className="font-display text-3xl font-bold text-foreground">
-          Mi aprendizaje
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Tu espacio personal: la presentación de las clases, tus clases
-          anteriores y tus tareas.
-        </p>
-      </div>
-
       {loading && <LearningSkeleton />}
 
       {error && <p className="text-destructive">{error}</p>}
 
       {!loading && !error && data && (
         <>
-          <ClassPresentation blocks={data.presentation} />
           <SharedPresentationsList presentations={data.sharedPresentations} />
           <PastClassesList classes={data.pastClasses} />
           <HomeworkList items={data.homework} onOpen={setDialogItem} />
