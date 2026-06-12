@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,44 +13,61 @@ import {
   type ApiError,
 } from "@/lib/auth";
 
-const schema = z
-  .object({
-    email: z.string().email("El correo electrónico no es válido."),
-    password: z
-      .string()
-      .min(8, "La contraseña debe tener al menos 8 caracteres."),
-    confirmPassword: z.string(),
-    firstName: z.string().max(100).optional(),
-    lastName: z.string().max(100).optional(),
-    username: z
-      .string()
-      .max(50)
-      .refine(
-        (v) => !v || v.length >= 3,
-        "El nombre de usuario debe tener al menos 3 caracteres.",
-      )
-      .refine(
-        (v) => !v || /^[a-zA-Z0-9_-]+$/.test(v),
-        "Solo letras, números, guiones y guiones bajos.",
-      )
-      .optional(),
-    gdprConsent: z.boolean().refine((v) => v, {
-      message: "Debes aceptar la política de privacidad para crear una cuenta.",
-    }),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    message: "Las contraseñas no coinciden.",
-    path: ["confirmPassword"],
-  });
-
-type FormData = z.infer<typeof schema>;
+type FormData = {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  gdprConsent: boolean;
+};
 
 interface Props {
   onSuccess: () => void;
 }
 
 export function RegistrationForm({ onSuccess }: Props) {
+  const { t } = useTranslation();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const schema = z
+    .object({
+      email: z
+        .string()
+        .min(1, t("account.registrationForm.emailRequired"))
+        .email(t("account.registrationForm.emailInvalid")),
+      password: z
+        .string()
+        .min(1, t("account.registrationForm.passwordRequired"))
+        .min(8, t("account.registrationForm.passwordTooShort")),
+      confirmPassword: z
+        .string()
+        .min(1, t("account.registrationForm.confirmPasswordRequired")),
+      firstName: z.string().max(100).optional(),
+      lastName: z.string().max(100).optional(),
+      username: z
+        .string()
+        .max(50)
+        .refine(
+          (v) => !v || v.length >= 3,
+          "El nombre de usuario debe tener al menos 3 caracteres.",
+        )
+        .refine(
+          (v) => !v || /^[a-zA-Z0-9_-]+$/.test(v),
+          "Solo letras, números, guiones y guiones bajos.",
+        )
+        .optional(),
+      gdprConsent: z.boolean().refine((v) => v, {
+        message:
+          "Debes aceptar la política de privacidad para crear una cuenta.",
+      }),
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+      message: t("account.registrationForm.passwordMismatch"),
+      path: ["confirmPassword"],
+    });
+
   const {
     register,
     handleSubmit,
@@ -78,9 +96,16 @@ export function RegistrationForm({ onSuccess }: Props) {
       onSuccess();
     } catch (err) {
       const apiErr = err as ApiError;
-      setServerError(
-        apiErr.message ?? "Ha ocurrido un error. Inténtalo de nuevo.",
-      );
+      if (
+        apiErr.error === "EMAIL_ALREADY_REGISTERED" ||
+        apiErr.error === "EMAIL_TAKEN"
+      ) {
+        setServerError(t("account.registrationForm.emailTaken"));
+      } else {
+        setServerError(
+          apiErr.message ?? t("account.registrationForm.genericError"),
+        );
+      }
     }
   };
 
@@ -89,10 +114,7 @@ export function RegistrationForm({ onSuccess }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label htmlFor="reg-firstName">
-            Nombre{" "}
-            <span className="text-muted-foreground font-normal">
-              (opcional)
-            </span>
+            {t("account.registrationForm.firstNameLabel")}
           </Label>
           <Input
             id="reg-firstName"
@@ -107,10 +129,7 @@ export function RegistrationForm({ onSuccess }: Props) {
         </div>
         <div className="space-y-1">
           <Label htmlFor="reg-lastName">
-            Apellidos{" "}
-            <span className="text-muted-foreground font-normal">
-              (opcional)
-            </span>
+            {t("account.registrationForm.lastNameLabel")}
           </Label>
           <Input
             id="reg-lastName"
@@ -127,8 +146,7 @@ export function RegistrationForm({ onSuccess }: Props) {
 
       <div className="space-y-1">
         <Label htmlFor="reg-username">
-          Nombre de usuario{" "}
-          <span className="text-muted-foreground font-normal">(opcional)</span>
+          {t("account.registrationForm.usernameLabel")}
         </Label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
@@ -147,7 +165,9 @@ export function RegistrationForm({ onSuccess }: Props) {
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor="reg-email">Correo electrónico</Label>
+        <Label htmlFor="reg-email">
+          {t("account.registrationForm.emailLabel")}
+        </Label>
         <Input
           id="reg-email"
           type="email"
@@ -160,7 +180,9 @@ export function RegistrationForm({ onSuccess }: Props) {
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor="reg-password">Contraseña</Label>
+        <Label htmlFor="reg-password">
+          {t("account.registrationForm.passwordLabel")}
+        </Label>
         <Input
           id="reg-password"
           type="password"
@@ -173,7 +195,9 @@ export function RegistrationForm({ onSuccess }: Props) {
       </div>
 
       <div className="space-y-1">
-        <Label htmlFor="reg-confirm">Confirmar contraseña</Label>
+        <Label htmlFor="reg-confirm">
+          {t("account.registrationForm.confirmPasswordLabel")}
+        </Label>
         <Input
           id="reg-confirm"
           type="password"
@@ -212,7 +236,9 @@ export function RegistrationForm({ onSuccess }: Props) {
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Creando cuenta…" : "Crear cuenta"}
+        {isSubmitting
+          ? t("account.registrationForm.submitting")
+          : t("account.registrationForm.submit")}
       </Button>
     </form>
   );

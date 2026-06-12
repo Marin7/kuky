@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { seo } from "@/lib/seo";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/panel")({
 });
 
 function PanelPage() {
+  const { t } = useTranslation();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
@@ -48,7 +50,9 @@ function PanelPage() {
   if (authLoading) {
     return (
       <div className="mx-auto max-w-5xl px-6 py-16 text-center">
-        <p className="text-muted-foreground text-sm animate-pulse">Cargando…</p>
+        <p className="text-muted-foreground text-sm animate-pulse">
+          {t("common.loading")}
+        </p>
       </div>
     );
   }

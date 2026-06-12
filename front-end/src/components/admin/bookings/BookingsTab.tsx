@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getAdminBookings, type AdminBooking } from "@/lib/admin";
 import { Card, CardContent } from "@/components/ui/card";
 import { StudentLink } from "@/components/admin/students/StudentLink";
@@ -27,6 +28,7 @@ function formatSlot(isoStart: string, isoEnd: string): string {
 }
 
 export function BookingsTab() {
+  const { t } = useTranslation();
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,13 +36,15 @@ export function BookingsTab() {
   useEffect(() => {
     getAdminBookings()
       .then(setBookings)
-      .catch(() => setError("No se pudieron cargar las reservas."))
+      .catch(() => setError(t("admin.bookings.loadError")))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
     return (
-      <p className="text-sm text-muted-foreground animate-pulse">Cargando…</p>
+      <p className="text-sm text-muted-foreground animate-pulse">
+        {t("admin.bookings.loading")}
+      </p>
     );
   }
 
@@ -51,7 +55,7 @@ export function BookingsTab() {
   if (bookings.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No hay clases confirmadas próximas.
+        {t("admin.bookings.empty")}
       </p>
     );
   }
@@ -59,7 +63,7 @@ export function BookingsTab() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Clases confirmadas a partir de ahora, ordenadas por fecha.
+        {t("admin.bookings.description")}
       </p>
       {bookings.map((b) => (
         <Card key={b.id} className="text-sm">

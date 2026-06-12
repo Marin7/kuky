@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import teacherUrl from "@/assets/teacher.jpg";
 import { seo } from "@/lib/seo";
 
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const { t } = useTranslation();
   return (
     <div>
       {/* Hero */}
@@ -23,28 +25,30 @@ function Index() {
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-2 md:items-center md:py-28">
           <div>
             <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-primary">
-              Clases para estudiantes rumanos
+              {t("home.hero.badge")}
             </span>
             <h1 className="mt-5 font-display text-5xl font-semibold leading-tight md:text-6xl">
-              Aprende español{" "}
-              <span className="text-primary italic">con confianza</span>.
+              {t("home.hero.titleBefore")}{" "}
+              <span className="text-primary italic">
+                {t("home.hero.titleItalic")}
+              </span>
+              {t("home.hero.titleAfter")}
             </h1>
             <p className="mt-5 max-w-lg text-lg text-muted-foreground">
-              Clases personalizadas, conversación real y un método pensado para
-              hablantes de rumano. Da el siguiente paso en tu español hoy.
+              {t("home.hero.subtitle")}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/reservas"
                 className="rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
               >
-                Reservar una clase
+                {t("home.hero.ctaBook")}
               </Link>
               <Link
                 to="/sobre-mi"
                 className="rounded-md border border-border bg-background px-5 py-3 text-sm font-medium hover:bg-accent/30"
               >
-                Conóceme
+                {t("home.hero.ctaAbout")}
               </Link>
             </div>
           </div>
@@ -62,26 +66,17 @@ function Index() {
       {/* Features */}
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="grid gap-8 md:grid-cols-3">
-          {[
-            {
-              t: "Método personalizado",
-              d: "Cada clase se adapta a tu nivel, tus objetivos y tu ritmo.",
-            },
-            {
-              t: "Pensado para rumanos",
-              d: "Aprovechamos las similitudes entre el rumano y el español para avanzar más rápido.",
-            },
-            {
-              t: "Materiales incluidos",
-              d: "Recibes ejercicios, audios y lecturas para practicar entre clases.",
-            },
-          ].map((f) => (
+          {(["personalized", "romanian", "materials"] as const).map((key) => (
             <div
-              key={f.t}
+              key={key}
               className="rounded-xl border border-border bg-card p-6"
             >
-              <h3 className="font-display text-xl font-semibold">{f.t}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{f.d}</p>
+              <h3 className="font-display text-xl font-semibold">
+                {t(`home.features.${key}.title`)}
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t(`home.features.${key}.desc`)}
+              </p>
             </div>
           ))}
         </div>
@@ -91,17 +86,16 @@ function Index() {
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="rounded-2xl bg-primary px-8 py-12 text-center text-primary-foreground md:py-16">
           <h2 className="font-display text-3xl font-semibold md:text-4xl">
-            ¿Listo para empezar?
+            {t("home.cta.title")}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-primary-foreground/80">
-            Reserva tu primera clase de prueba y descubre cómo el español puede
-            formar parte de tu día a día.
+            {t("home.cta.subtitle")}
           </p>
           <Link
             to="/reservas"
             className="mt-6 inline-block rounded-md bg-background px-5 py-3 text-sm font-medium text-foreground hover:bg-secondary"
           >
-            Reservar ahora
+            {t("home.cta.button")}
           </Link>
         </div>
       </section>

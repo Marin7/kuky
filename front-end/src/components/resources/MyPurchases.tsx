@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { useTranslation } from "react-i18next";
 import {
   listPurchases,
   getReceipt,
   formatEur,
   type PurchaseSummary,
   type ReceiptResponse,
-  type ApiError,
 } from "@/lib/resources";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +21,7 @@ export function MyPurchases({
   onRefreshRef,
   onCatalogRefresh,
 }: MyPurchasesProps) {
+  const { t } = useTranslation();
   const [purchases, setPurchases] = useState<PurchaseSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [receipt, setReceipt] = useState<ReceiptResponse | null>(null);
@@ -79,12 +80,12 @@ export function MyPurchases({
   return (
     <div className="mx-auto max-w-6xl px-6 pb-10">
       <h2 className="text-xl font-semibold text-foreground mb-4">
-        Mis recursos
+        {t("resources.myPurchases.title")}
       </h2>
 
       {purchases.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aún no has adquirido ningún recurso.
+          {t("resources.myPurchases.empty")}
         </p>
       ) : (
         <div className="space-y-3">
@@ -109,7 +110,7 @@ export function MyPurchases({
                 onClick={() => handleViewReceipt(p.id)}
               >
                 <Printer className="h-3.5 w-3.5 mr-1.5" />
-                Recibo
+                {t("resources.myPurchases.receiptButton")}
               </Button>
             </div>
           ))}
@@ -129,10 +130,7 @@ interface ReceiptViewProps {
 }
 
 function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
-  // Rendered through Radix Dialog primitives (not the styled DialogContent) so
-  // we keep focus trapping, Escape-to-close and aria-modal while preserving the
-  // receipt's bespoke print styling: the overlay is hidden and the card flows
-  // statically on print. aria-describedby is opted out (no description element).
+  const { t } = useTranslation();
   return (
     <DialogPrimitive.Root
       open
@@ -148,18 +146,24 @@ function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
       >
         <div className="text-center mb-6">
           <DialogPrimitive.Title className="text-lg font-bold">
-            Español con Paula
+            {t("resources.myPurchases.brand")}
           </DialogPrimitive.Title>
-          <p className="text-xs text-gray-500">Recibo de compra</p>
+          <p className="text-xs text-gray-500">
+            {t("resources.myPurchases.receiptTitle")}
+          </p>
         </div>
 
         <div className="space-y-2 text-sm mb-6">
           <div className="flex justify-between">
-            <span className="text-gray-500">Referencia</span>
+            <span className="text-gray-500">
+              {t("resources.myPurchases.reference")}
+            </span>
             <span className="font-medium">{receipt.receiptReference}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Fecha</span>
+            <span className="text-gray-500">
+              {t("resources.myPurchases.date")}
+            </span>
             <span>
               {new Intl.DateTimeFormat("es-ES", { dateStyle: "long" }).format(
                 new Date(receipt.purchasedAt),
@@ -167,7 +171,9 @@ function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-500">Cliente</span>
+            <span className="text-gray-500">
+              {t("resources.myPurchases.client")}
+            </span>
             <span>{receipt.buyerEmail}</span>
           </div>
         </div>
@@ -182,17 +188,17 @@ function ReceiptView({ receipt, onClose }: ReceiptViewProps) {
         </div>
 
         <div className="flex justify-between font-semibold border-t border-gray-200 pt-3">
-          <span>Total</span>
+          <span>{t("resources.myPurchases.total")}</span>
           <span>{formatEur(receipt.amountCents)}</span>
         </div>
 
         <div className="flex gap-2 mt-6 print:hidden">
           <Button className="flex-1" onClick={() => window.print()}>
             <Printer className="h-4 w-4 mr-2" />
-            Imprimir / PDF
+            {t("resources.myPurchases.print")}
           </Button>
           <Button variant="outline" onClick={onClose}>
-            Cerrar
+            {t("resources.myPurchases.close")}
           </Button>
         </div>
       </DialogPrimitive.Content>

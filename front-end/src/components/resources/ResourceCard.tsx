@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lock, CheckCircle } from "lucide-react";
@@ -13,6 +14,7 @@ interface ResourceCardProps {
 }
 
 export function ResourceCard({ resource, onOpen, onBuy }: ResourceCardProps) {
+  const { t } = useTranslation();
   const {
     title,
     description,
@@ -58,7 +60,7 @@ export function ResourceCard({ resource, onOpen, onBuy }: ResourceCardProps) {
       <div className="flex items-center justify-between mt-auto pt-2">
         <span className="font-medium text-sm">
           {pricing === "FREE" ? (
-            <span className="text-green-700">Gratis</span>
+            <span className="text-green-700">{t("resources.card.free")}</span>
           ) : priceCents != null ? (
             formatEur(priceCents)
           ) : (
@@ -67,11 +69,13 @@ export function ResourceCard({ resource, onOpen, onBuy }: ResourceCardProps) {
         </span>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onOpen}>
-            {owned || pricing === "FREE" ? "Ver recurso" : "Vista previa"}
+            {owned || pricing === "FREE"
+              ? t("resources.card.view")
+              : t("resources.card.preview")}
           </Button>
           {locked && (
             <Button size="sm" onClick={onBuy}>
-              Comprar
+              {t("resources.card.buy")}
             </Button>
           )}
         </div>

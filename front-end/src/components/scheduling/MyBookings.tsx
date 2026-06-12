@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   listBookings,
   cancelBooking,
@@ -7,7 +8,7 @@ import {
   type ApiError,
 } from "@/lib/scheduling";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 function formatSlot(iso: string, timezone: string): string {
   return new Intl.DateTimeFormat("es", {
@@ -33,6 +34,7 @@ function BookingCard({
   onCancel,
   cancelling,
 }: BookingCardProps) {
+  const { t } = useTranslation();
   return (
     <Card className="text-sm">
       <CardContent className="pt-4 space-y-2">
@@ -56,7 +58,9 @@ function BookingCard({
                 : "bg-muted text-muted-foreground",
             ].join(" ")}
           >
-            {booking.status === "CONFIRMED" ? "Confirmada" : "Cancelada"}
+            {booking.status === "CONFIRMED"
+              ? t("schedule.myBookings.confirmed")
+              : t("schedule.myBookings.cancelled")}
           </span>
           {booking.cancellable && (
             <Button
@@ -66,7 +70,9 @@ function BookingCard({
               onClick={() => onCancel(booking.id)}
               className="h-7 text-xs"
             >
-              {cancelling === booking.id ? "Cancelando…" : "Cancelar clase"}
+              {cancelling === booking.id
+                ? t("schedule.myBookings.cancelling")
+                : t("schedule.myBookings.cancelClass")}
             </Button>
           )}
         </div>
@@ -86,6 +92,7 @@ export function MyBookings({
   onScheduleRefresh,
   onRefreshRef,
 }: MyBookingsProps) {
+  const { t } = useTranslation();
   const [data, setData] = useState<MyBookingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState<string | null>(null);
@@ -114,33 +121,31 @@ export function MyBookings({
     } catch (e) {
       const err = e as ApiError;
       if (err.error === "CANCELLATION_TOO_LATE") {
-        setCancelError(
-          "No puedes cancelar con menos de 24 horas de antelación.",
-        );
+        setCancelError(t("schedule.myBookings.cancellationTooLateError"));
       } else {
-        setCancelError("No se pudo cancelar la clase. Inténtalo de nuevo.");
+        setCancelError(t("schedule.myBookings.cancelError"));
       }
     } finally {
       setCancelling(null);
     }
   };
 
-  // Secondary panel: render nothing while loading and when there are no
-  // bookings, so users without classes never see it appear then vanish.
   if (loading) return null;
   if (!data || (data.upcoming.length === 0 && data.past.length === 0))
     return null;
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-10 space-y-6">
-      <h2 className="font-display text-xl font-bold">Mis clases</h2>
+      <h2 className="font-display text-xl font-bold">
+        {t("schedule.myBookings.title")}
+      </h2>
 
       {cancelError && <p className="text-sm text-destructive">{cancelError}</p>}
 
       {data.upcoming.length > 0 && (
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Próximas
+            {t("schedule.myBookings.upcoming")}
           </h3>
           {data.upcoming.map((b) => (
             <BookingCard
@@ -157,7 +162,7 @@ export function MyBookings({
       {data.past.length > 0 && (
         <section className="space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Pasadas
+            {t("schedule.myBookings.past")}
           </h3>
           {data.past.map((b) => (
             <BookingCard

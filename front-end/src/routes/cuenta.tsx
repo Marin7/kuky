@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { Camera } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ function initials(user: UserResponse): string {
 type View = "tabs" | "forgot-password";
 
 function CuentaPage() {
+  const { t } = useTranslation();
   const { token, activateToken } = Route.useSearch();
   const navigate = useNavigate();
 
@@ -91,12 +93,11 @@ function CuentaPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-muted-foreground text-sm">Cargando…</p>
+        <p className="text-muted-foreground text-sm">{t("common.loading")}</p>
       </div>
     );
   }
 
-  // Activation link — handle before all other states
   if (activateToken) {
     return (
       <ActivateView
@@ -109,10 +110,9 @@ function CuentaPage() {
     );
   }
 
-  // Password reset flow
   if (token) {
     return (
-      <AuthCard title="Nueva contraseña">
+      <AuthCard title={t("account.newPassword")}>
         <PasswordResetForm
           token={token}
           onSuccess={() => {
@@ -124,7 +124,6 @@ function CuentaPage() {
     );
   }
 
-  // Pending activation — account created but not yet confirmed
   if (user && user.status === "PENDING") {
     return (
       <PendingActivationView
@@ -134,7 +133,6 @@ function CuentaPage() {
     );
   }
 
-  // Authenticated profile
   if (user) {
     return (
       <div className="mx-auto max-w-md px-4 py-12">
@@ -149,7 +147,7 @@ function CuentaPage() {
 
   if (view === "forgot-password") {
     return (
-      <AuthCard title="Recuperar contraseña">
+      <AuthCard title={t("account.recoverPassword")}>
         <PasswordResetForm
           onSuccess={() => {
             setView("tabs");
@@ -165,10 +163,10 @@ function CuentaPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full mb-6">
           <TabsTrigger value="register" className="flex-1">
-            Registrarse
+            {t("account.register")}
           </TabsTrigger>
           <TabsTrigger value="login" className="flex-1">
-            Iniciar sesión
+            {t("account.login")}
           </TabsTrigger>
         </TabsList>
 
@@ -187,8 +185,6 @@ function CuentaPage() {
   );
 }
 
-// ---------- Activation views ----------
-
 function ActivateView({
   token,
   onSuccess,
@@ -196,6 +192,7 @@ function ActivateView({
   token: string;
   onSuccess: () => void;
 }) {
+  const { t } = useTranslation();
   const [state, setState] = useState<"activating" | "error">("activating");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -212,13 +209,15 @@ function ActivateView({
   if (state === "activating") {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-muted-foreground text-sm">Activando tu cuenta…</p>
+        <p className="text-muted-foreground text-sm">
+          {t("account.activating")}
+        </p>
       </div>
     );
   }
 
   return (
-    <AuthCard title="Enlace no válido">
+    <AuthCard title={t("account.invalidLink")}>
       <p className="text-center text-sm text-destructive">{errorMsg}</p>
       <ResendForm />
     </AuthCard>
@@ -232,6 +231,7 @@ function PendingActivationView({
   email: string;
   onActivated: () => void;
 }) {
+  const { t } = useTranslation();
   const [resent, setResent] = useState(false);
   const [resending, setResending] = useState(false);
 
@@ -247,36 +247,35 @@ function PendingActivationView({
 
   return (
     <div className="mx-auto max-w-md px-4 py-16 text-center space-y-4">
-      <h1 className="font-display text-2xl font-bold">Revisa tu correo</h1>
+      <h1 className="font-display text-2xl font-bold">
+        {t("account.checkEmail")}
+      </h1>
       <p className="text-muted-foreground text-sm">
-        Hemos enviado un enlace de activación a <strong>{email}</strong>. Haz
-        clic en él para activar tu cuenta.
+        {t("account.activationSent", { email })}
       </p>
       {resent ? (
-        <p className="text-sm text-green-600">
-          Correo reenviado. Revisa tu bandeja de entrada.
-        </p>
+        <p className="text-sm text-green-600">{t("account.resent")}</p>
       ) : (
         <Button variant="outline" onClick={handleResend} disabled={resending}>
-          {resending ? "Reenviando…" : "Reenviar correo de activación"}
+          {resending ? t("account.resending") : t("account.resend")}
         </Button>
       )}
       <p className="text-xs text-muted-foreground pt-2">
-        ¿Ya activaste tu cuenta?{" "}
+        {t("account.alreadyActivated")}{" "}
         <button
           type="button"
           className="underline hover:text-foreground"
           onClick={onActivated}
         >
-          Haz clic aquí para continuar
+          {t("account.alreadyActivatedCta")}
         </button>
       </p>
     </div>
   );
 }
 
-/** Small resend form shown when an activation link has expired. */
 function ResendForm() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -295,7 +294,7 @@ function ResendForm() {
   if (sent) {
     return (
       <p className="text-center text-sm text-green-600">
-        Si tu cuenta está pendiente, recibirás un nuevo enlace.
+        {t("account.resendLinkSent")}
       </p>
     );
   }
@@ -303,7 +302,7 @@ function ResendForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <p className="text-sm text-center text-muted-foreground">
-        Introduce tu correo para recibir un nuevo enlace de activación.
+        {t("account.resendLinkDescription")}
       </p>
       <Input
         type="email"
@@ -313,13 +312,11 @@ function ResendForm() {
         required
       />
       <Button type="submit" className="w-full" disabled={sending}>
-        {sending ? "Enviando…" : "Reenviar enlace"}
+        {sending ? t("account.resending") : t("account.sendLink")}
       </Button>
     </form>
   );
 }
-
-// ---------- Profile view ----------
 
 function ProfileView({
   user,
@@ -330,6 +327,7 @@ function ProfileView({
   onUpdated: () => void;
   onLogout: () => void;
 }) {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState(user.firstName ?? "");
   const [lastName, setLastName] = useState(user.lastName ?? "");
   const [username, setUsername] = useState(user.username ?? "");
@@ -400,7 +398,9 @@ function ProfileView({
           )}
           <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             {uploading ? (
-              <span className="text-white text-xs">Subiendo…</span>
+              <span className="text-white text-xs">
+                {t("account.uploadingAvatar")}
+              </span>
             ) : (
               <Camera className="text-white h-5 w-5" />
             )}
@@ -423,11 +423,11 @@ function ProfileView({
 
       <form onSubmit={handleSave} className="space-y-4">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-          Editar perfil
+          {t("account.editProfile")}
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label htmlFor="firstName">Nombre</Label>
+            <Label htmlFor="firstName">{t("account.nameLabel")}</Label>
             <Input
               id="firstName"
               value={firstName}
@@ -436,7 +436,7 @@ function ProfileView({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="lastName">Apellidos</Label>
+            <Label htmlFor="lastName">{t("account.lastNameLabel")}</Label>
             <Input
               id="lastName"
               value={lastName}
@@ -447,9 +447,9 @@ function ProfileView({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="username">
-            Nombre de usuario{" "}
+            {t("account.usernameLabel")}{" "}
             <span className="font-normal text-muted-foreground">
-              (opcional si tienes nombre y apellidos)
+              {t("account.usernameOptionalNote")}
             </span>
           </Label>
           <div className="relative">
@@ -469,23 +469,21 @@ function ProfileView({
         {saveError && <p className="text-sm text-destructive">{saveError}</p>}
         {saveSuccess && (
           <p className="text-sm text-green-600">
-            Perfil actualizado correctamente.
+            {t("account.profileUpdated")}
           </p>
         )}
 
         <Button type="submit" disabled={saving} className="w-full">
-          {saving ? "Guardando…" : "Guardar cambios"}
+          {saving ? t("common.saving") : t("account.saveChanges")}
         </Button>
       </form>
 
       <Button variant="outline" onClick={onLogout} className="w-full">
-        Cerrar sesión
+        {t("account.logout")}
       </Button>
     </div>
   );
 }
-
-// ---------- Shared ----------
 
 function AuthCard({
   title,

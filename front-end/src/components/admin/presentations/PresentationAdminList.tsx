@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   listPresentations,
   createPresentation,
@@ -41,6 +42,7 @@ const LEVEL_CLASS: Record<HomeworkLevel, string> = {
 };
 
 export function PresentationAdminList() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<PresentationSummary[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,17 +102,18 @@ export function PresentationAdminList() {
 
   return (
     <div className="space-y-4">
-      {/* Filters + create row */}
       <div className="flex flex-wrap items-end gap-2">
         <Select
           value={filterLevel}
           onValueChange={(v) => setFilterLevel(v as HomeworkLevel | "ALL")}
         >
           <SelectTrigger className="h-9 w-36 text-xs">
-            <SelectValue placeholder="Nivel" />
+            <SelectValue placeholder={t("admin.presentations.allLevels")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">Todos los niveles</SelectItem>
+            <SelectItem value="ALL">
+              {t("admin.presentations.allLevels")}
+            </SelectItem>
             {LEVELS.map((l) => (
               <SelectItem key={l} value={l}>
                 {l}
@@ -124,10 +127,12 @@ export function PresentationAdminList() {
           onValueChange={(v) => setFilterStudent(v)}
         >
           <SelectTrigger className="h-9 w-48 text-xs">
-            <SelectValue placeholder="Alumno" />
+            <SelectValue placeholder={t("admin.presentations.allStudents")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">Todos los alumnos</SelectItem>
+            <SelectItem value="ALL">
+              {t("admin.presentations.allStudents")}
+            </SelectItem>
             {students.map((s) => (
               <SelectItem key={s.id} value={s.id}>
                 {studentDisplayName(s)}
@@ -138,25 +143,29 @@ export function PresentationAdminList() {
 
         <div className="flex flex-1 items-center gap-2 min-w-48">
           <Input
-            placeholder="Título de la nueva presentación"
+            placeholder={t("admin.presentations.newTitlePlaceholder")}
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && create()}
             maxLength={200}
           />
           <Button onClick={create} disabled={creating || !newTitle.trim()}>
-            {creating ? "Creando…" : "Crear"}
+            {creating
+              ? t("admin.presentations.creating")
+              : t("admin.presentations.create")}
           </Button>
         </div>
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Cargando…</p>
+        <p className="text-sm text-muted-foreground">
+          {t("admin.presentations.loading")}
+        </p>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {items.length === 0
-            ? "Aún no has creado ninguna presentación."
-            : "No hay presentaciones con esos filtros."}
+            ? t("admin.presentations.empty")
+            : t("admin.presentations.emptyFiltered")}
         </p>
       ) : (
         filtered.map((item) => (
@@ -183,6 +192,7 @@ interface CardProps {
 }
 
 function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(item.title);
@@ -208,7 +218,9 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
       await setPresentationLevel(item.id, level);
       onUpdated({ ...item, level });
     } catch (err) {
-      setError((err as ApiError).message ?? "No se pudo guardar el nivel.");
+      setError(
+        (err as ApiError).message ?? t("admin.presentations.levelError"),
+      );
     }
   };
 
@@ -226,7 +238,9 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
         originalFileName: updated.originalFileName,
       });
     } catch (err) {
-      setError((err as ApiError).message ?? "Error al subir el archivo.");
+      setError(
+        (err as ApiError).message ?? t("admin.presentations.uploadError"),
+      );
     } finally {
       setUploading(false);
     }
@@ -238,7 +252,9 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
       await deletePresentationFile(item.id);
       onUpdated({ ...item, hasFile: false, originalFileName: null });
     } catch (err) {
-      setError((err as ApiError).message ?? "No se pudo eliminar el archivo.");
+      setError(
+        (err as ApiError).message ?? t("admin.presentations.deleteFileError"),
+      );
     }
   };
 
@@ -248,7 +264,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
       setShareDeck(deck);
       setShareOpen(true);
     } catch {
-      setError("No se pudo cargar la presentación.");
+      setError(t("admin.presentations.loadError"));
     }
   };
 
@@ -258,7 +274,9 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
       await deletePresentation(item.id);
       onDeleted();
     } catch (err) {
-      setError((err as ApiError).message ?? "No se pudo eliminar.");
+      setError(
+        (err as ApiError).message ?? t("admin.presentations.deleteError"),
+      );
     }
   };
 
@@ -307,16 +325,17 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
             </div>
           )}
 
-          {/* Level picker */}
           <Select
             value={item.level ?? "NONE"}
             onValueChange={handleLevelChange}
           >
             <SelectTrigger className="h-8 w-24 shrink-0 text-xs">
-              <SelectValue placeholder="Nivel" />
+              <SelectValue placeholder={t("admin.presentations.noLevel")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="NONE">Sin nivel</SelectItem>
+              <SelectItem value="NONE">
+                {t("admin.presentations.noLevel")}
+              </SelectItem>
               {LEVELS.map((l) => (
                 <SelectItem key={l} value={l}>
                   {l}
@@ -331,7 +350,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
             className="h-8 text-xs shrink-0"
             onClick={handleShare}
           >
-            Compartir
+            {t("admin.presentations.share")}
           </Button>
           <Button
             variant="ghost"
@@ -339,7 +358,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
             className="h-8 text-xs text-destructive shrink-0"
             onClick={handleDelete}
           >
-            Eliminar
+            {t("admin.presentations.delete")}
           </Button>
         </div>
 
@@ -364,7 +383,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
               >
-                Reemplazar
+                {t("admin.presentations.replace")}
               </Button>
               <Button
                 variant="ghost"
@@ -373,7 +392,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
                 onClick={handleDeleteFile}
                 disabled={uploading}
               >
-                Quitar
+                {t("admin.presentations.remove")}
               </Button>
             </>
           ) : (
@@ -384,19 +403,23 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
-              {uploading ? "Subiendo…" : "Subir archivo .pptx"}
+              {uploading
+                ? t("admin.presentations.uploading")
+                : t("admin.presentations.upload")}
             </Button>
           )}
           {uploading && (
             <span className="text-xs text-muted-foreground animate-pulse">
-              Subiendo…
+              {t("admin.presentations.uploading")}
             </span>
           )}
         </div>
 
         {/* Share info */}
         {item.sharedWithIds.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Sin compartir.</p>
+          <p className="text-xs text-muted-foreground">
+            {t("admin.presentations.noShares")}
+          </p>
         ) : (
           <div className="flex flex-wrap gap-1">
             {item.sharedWithIds.map((id) => {

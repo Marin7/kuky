@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ export function ResourceDetailDialog({
   onClose,
   onBuy,
 }: ResourceDetailDialogProps) {
+  const { t } = useTranslation();
   const [assets, setAssets] = useState<AssetItem[] | null>(null);
   const [contentError, setContentError] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function ResourceDetailDialog({
       getResourceContent(resource.slug)
         .then((c) => setAssets(c.assets))
         .catch((e: ApiError) =>
-          setContentError(e.message ?? "Error al cargar los materiales."),
+          setContentError(e.message ?? t("resources.loadError")),
         );
     }
   }, [resource?.slug, resource?.locked]);
@@ -72,7 +74,7 @@ export function ResourceDetailDialog({
                 )}
                 {resource.pricing === "FREE" && (
                   <Badge className="text-xs bg-green-100 text-green-800 border-green-200">
-                    Gratis
+                    {t("resources.detail.freeBadge")}
                   </Badge>
                 )}
               </div>
@@ -87,7 +89,7 @@ export function ResourceDetailDialog({
               {previewText && (
                 <div className="rounded-md bg-muted p-3 text-sm">
                   <p className="font-medium text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                    Vista previa
+                    {t("resources.detail.previewLabel")}
                   </p>
                   <p>{previewText}</p>
                 </div>
@@ -97,7 +99,7 @@ export function ResourceDetailDialog({
                 <div className="flex flex-col items-center gap-3 py-4 text-center">
                   <Lock className="h-8 w-8 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Adquiere este recurso para acceder a todos los materiales.
+                    {t("resources.detail.lockedMessage")}
                   </p>
                   <div className="flex items-center gap-2">
                     {resource.priceCents != null && (
@@ -106,13 +108,13 @@ export function ResourceDetailDialog({
                       </span>
                     )}
                     <Button onClick={() => onBuy(resource.slug)}>
-                      Comprar
+                      {t("resources.detail.buy")}
                     </Button>
                   </div>
                 </div>
               ) : assets === null && !contentError ? (
                 <p className="text-sm text-muted-foreground animate-pulse">
-                  Cargando materiales…
+                  {t("resources.detail.loadingMaterials")}
                 </p>
               ) : contentError ? (
                 <p className="text-sm text-destructive">{contentError}</p>
@@ -140,11 +142,10 @@ export function ResourceDetailDialog({
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Los materiales estarán disponibles próximamente.
+                  {t("resources.detail.noMaterials")}
                 </p>
               )}
 
-              {/* Conversion CTAs for free resources */}
               {!resource.locked && resource.pricing === "FREE" && (
                 <div className="border-t border-border pt-4 space-y-2">
                   {resource.relatedResourceSlug && (
@@ -155,11 +156,13 @@ export function ResourceDetailDialog({
                         onBuy(resource.relatedResourceSlug!);
                       }}
                     >
-                      Desbloquear el recurso completo
+                      {t("resources.detail.unlockFull")}
                     </Button>
                   )}
                   <Button variant="outline" className="w-full" asChild>
-                    <Link to="/reservas">Reservar una clase 1-on-1</Link>
+                    <Link to="/reservas">
+                      {t("resources.detail.bookClass")}
+                    </Link>
                   </Button>
                 </div>
               )}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { ExerciseResult, StudentQuestion } from "@/lib/learning";
 
 interface Props {
@@ -13,6 +14,7 @@ function optionLabels(question: StudentQuestion, ids: string[]): string {
 }
 
 export function ExerciseResult({ questions, result }: Props) {
+  const { t } = useTranslation();
   const byId = new Map(questions.map((q) => [q.id, q]));
 
   return (
@@ -24,8 +26,8 @@ export function ExerciseResult({ questions, result }: Props) {
         <p className="text-sm text-muted-foreground">
           {result.fullyCorrectCount} de {result.totalQuestions}{" "}
           {result.totalQuestions === 1
-            ? "pregunta correcta"
-            : "preguntas correctas"}
+            ? t("learning.exerciseResult.correctSingular")
+            : t("learning.exerciseResult.correctPlural")}
         </p>
       </div>
 
@@ -34,13 +36,19 @@ export function ExerciseResult({ questions, result }: Props) {
           const question = byId.get(qr.questionId);
           const partial = qr.score > 0 && qr.score < 1;
           const badge = qr.correct
-            ? { text: "Correcta", cls: "bg-green-100 text-green-700" }
+            ? {
+                text: t("learning.exerciseResult.questionCorrect"),
+                cls: "bg-green-100 text-green-700",
+              }
             : partial
               ? {
-                  text: `Parcial — ${Math.round(qr.score * 100)}%`,
+                  text: `${t("learning.exerciseResult.questionPartial")} — ${Math.round(qr.score * 100)}%`,
                   cls: "bg-amber-100 text-amber-700",
                 }
-              : { text: "Incorrecta", cls: "bg-red-100 text-red-700" };
+              : {
+                  text: t("learning.exerciseResult.questionIncorrect"),
+                  cls: "bg-red-100 text-red-700",
+                };
 
           const correctText =
             qr.acceptedAnswers.length > 0
@@ -64,7 +72,7 @@ export function ExerciseResult({ questions, result }: Props) {
               {!qr.correct && correctText && (
                 <p className="mt-2 text-muted-foreground">
                   <span className="font-medium text-foreground">
-                    Respuesta correcta:{" "}
+                    {t("learning.exerciseResult.correctAnswer")}{" "}
                   </span>
                   {correctText}
                 </p>

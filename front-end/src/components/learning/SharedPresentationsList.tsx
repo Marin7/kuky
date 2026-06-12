@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { SharedPresentationSummary } from "@/lib/learning";
 import { downloadPresentation } from "@/lib/learning";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function SharedPresentationsList({ presentations }: Props) {
+  const { t } = useTranslation();
   const [downloading, setDownloading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +20,7 @@ export function SharedPresentationsList({ presentations }: Props) {
     try {
       await downloadPresentation(p.id, `${p.title}.pptx`);
     } catch {
-      setError("No se pudo descargar la presentación.");
+      setError(t("learning.presentations.loadError"));
     } finally {
       setDownloading(null);
     }
@@ -26,10 +28,12 @@ export function SharedPresentationsList({ presentations }: Props) {
 
   return (
     <section className="space-y-4">
-      <h2 className="font-display text-xl font-bold">Presentaciones</h2>
+      <h2 className="font-display text-xl font-bold">
+        {t("learning.presentations.title")}
+      </h2>
       {presentations.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Tu profesora aún no ha compartido ninguna presentación contigo.
+          {t("learning.presentations.empty")}
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -45,11 +49,13 @@ export function SharedPresentationsList({ presentations }: Props) {
                     disabled={downloading === p.id}
                     onClick={() => handleDownload(p)}
                   >
-                    {downloading === p.id ? "Descargando…" : "Descargar"}
+                    {downloading === p.id
+                      ? t("learning.presentations.downloading")
+                      : t("learning.presentations.download")}
                   </Button>
                 ) : (
                   <span className="text-xs text-muted-foreground shrink-0 ml-3">
-                    Sin archivo
+                    {t("learning.presentations.noFile")}
                   </span>
                 )}
               </CardContent>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityTab } from "@/components/admin/availability/AvailabilityTab";
 import { HomeworkTab } from "@/components/admin/homework/HomeworkTab";
@@ -5,10 +6,6 @@ import { PresentationsTab } from "@/components/admin/presentations/Presentations
 import { BookingsTab } from "@/components/admin/bookings/BookingsTab";
 import { StudentsTab } from "@/components/admin/students/StudentsTab";
 
-/**
- * Teacher control panel. Three areas — availability, homework, presentations —
- * presented as tabs. The route (panel.tsx) guarantees only ADMIN reaches here.
- */
 const VALID_TABS = [
   "bookings",
   "students",
@@ -18,25 +15,27 @@ const VALID_TABS = [
 ];
 
 export function AdminPanel({ initialTab }: { initialTab?: string }) {
+  const { t } = useTranslation();
   const defaultTab =
     initialTab && VALID_TABS.includes(initialTab) ? initialTab : "bookings";
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-display text-3xl font-semibold text-primary">
-        Panel de control
+        {t("admin.panel.title")}
       </h1>
-      <p className="mt-2 text-muted-foreground">
-        Gestiona tu disponibilidad, las tareas de tus alumnos y tus
-        presentaciones.
-      </p>
+      <p className="mt-2 text-muted-foreground">{t("admin.panel.subtitle")}</p>
 
       <Tabs defaultValue={defaultTab} className="mt-8">
         <TabsList>
-          <TabsTrigger value="bookings">Reservas</TabsTrigger>
-          <TabsTrigger value="students">Alumnos</TabsTrigger>
-          <TabsTrigger value="availability">Disponibilidad</TabsTrigger>
-          <TabsTrigger value="homework">Tareas</TabsTrigger>
-          <TabsTrigger value="presentations">Presentaciones</TabsTrigger>
+          <TabsTrigger value="bookings">{t("admin.tabs.bookings")}</TabsTrigger>
+          <TabsTrigger value="students">{t("admin.tabs.students")}</TabsTrigger>
+          <TabsTrigger value="availability">
+            {t("admin.tabs.availability")}
+          </TabsTrigger>
+          <TabsTrigger value="homework">{t("admin.tabs.homework")}</TabsTrigger>
+          <TabsTrigger value="presentations">
+            {t("admin.tabs.presentations")}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings" className="mt-6">

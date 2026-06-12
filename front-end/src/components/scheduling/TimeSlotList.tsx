@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { Slot } from "@/lib/scheduling";
 
 function toLocalDateKey(iso: string, timezone: string): string {
@@ -6,16 +7,16 @@ function toLocalDateKey(iso: string, timezone: string): string {
   );
 }
 
-function formatDayHeading(dateKey: string): string {
-  return new Intl.DateTimeFormat("es", {
+function formatDayHeading(dateKey: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
   }).format(new Date(dateKey + "T12:00:00"));
 }
 
-function formatTime(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat("es", {
+function formatTime(iso: string, timezone: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: timezone,
@@ -35,10 +36,12 @@ export function TimeSlotList({
   timezone,
   onSelect,
 }: TimeSlotListProps) {
+  const { t, i18n } = useTranslation();
+
   if (!selectedDay) {
     return (
       <div className="flex items-center justify-center h-full min-h-[140px] text-sm text-muted-foreground text-center px-4">
-        Selecciona un día para ver los horarios disponibles.
+        {t("schedule.selectDay")}
       </div>
     );
   }
@@ -48,7 +51,7 @@ export function TimeSlotList({
       toLocalDateKey(s.start, timezone) === selectedDay && s.status === "OPEN",
   );
 
-  const heading = formatDayHeading(selectedDay);
+  const heading = formatDayHeading(selectedDay, i18n.language);
 
   return (
     <div className="space-y-3">
@@ -56,7 +59,7 @@ export function TimeSlotList({
 
       {daySlots.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No hay horarios disponibles para este día.
+          {t("schedule.noSlotsDay")}
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -66,7 +69,7 @@ export function TimeSlotList({
               onClick={() => onSelect(slot)}
               className="w-full rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-foreground hover:bg-primary/10 hover:border-primary transition-colors text-left"
             >
-              {formatTime(slot.start, timezone)}
+              {formatTime(slot.start, timezone, i18n.language)}
             </button>
           ))}
         </div>

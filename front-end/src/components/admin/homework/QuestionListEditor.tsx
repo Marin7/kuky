@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { AdminQuestion } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import { QuestionEditorCard } from "./QuestionEditorCard";
@@ -19,6 +20,8 @@ function newQuestion(): AdminQuestion {
 }
 
 export function QuestionListEditor({ questions, onChange }: Props) {
+  const { t } = useTranslation();
+
   const update = (i: number, q: AdminQuestion) =>
     onChange(questions.map((existing, idx) => (idx === i ? q : existing)));
 
@@ -38,16 +41,23 @@ export function QuestionListEditor({ questions, onChange }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Preguntas</h3>
+        <h3 className="text-sm font-semibold">
+          {t("admin.homework.questions.title")}
+        </h3>
         <span className="text-xs text-muted-foreground">
-          {questions.length} {questions.length === 1 ? "pregunta" : "preguntas"}
+          {questions.length === 1
+            ? t("admin.homework.questions.countSingular", {
+                count: questions.length,
+              })
+            : t("admin.homework.questions.countPlural", {
+                count: questions.length,
+              })}
         </span>
       </div>
 
       {questions.length === 0 ? (
         <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          Aún no has añadido preguntas. Un ejercicio autocorregible necesita al
-          menos una.
+          {t("admin.homework.questions.empty")}
         </p>
       ) : (
         questions.map((q, i) => (
@@ -65,7 +75,7 @@ export function QuestionListEditor({ questions, onChange }: Props) {
       )}
 
       <Button type="button" variant="outline" size="sm" onClick={add}>
-        Añadir pregunta
+        {t("admin.homework.questions.addQuestion")}
       </Button>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import {
   getExercise,
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function HomeworkExercisePage({ homeworkId }: Props) {
+  const { t } = useTranslation();
   const [exercise, setExercise] = useState<ExerciseResponse | null>(null);
   const [answers, setAnswers] = useState<Record<string, AnswerState>>({});
   const [result, setResult] = useState<ExerciseResultData | null>(null);
@@ -46,7 +48,7 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
           ),
         );
       })
-      .catch(() => setError("No se pudo cargar el ejercicio."))
+      .catch(() => setError(t("learning.exercisePage.loadError")))
       .finally(() => setLoading(false));
   }, [homeworkId]);
 
@@ -85,7 +87,9 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
       const res = await submitExercise(homeworkId, payload);
       setResult(res);
     } catch (e) {
-      setError((e as ApiError).message ?? "No se pudo entregar el ejercicio.");
+      setError(
+        (e as ApiError).message ?? t("learning.exercisePage.submitError"),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -97,12 +101,12 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
         to="/aprendizaje"
         className="mb-8 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Volver a mi aprendizaje
+        {t("learning.exercisePage.back")}
       </Link>
 
       {loading && (
         <p className="mt-6 animate-pulse text-sm text-muted-foreground">
-          Cargando ejercicio…
+          {t("learning.exercisePage.loading")}
         </p>
       )}
 
@@ -121,7 +125,9 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
 
           {result ? (
             <div className="mt-8 space-y-4">
-              <p className="text-sm font-medium text-foreground">Resultado</p>
+              <p className="text-sm font-medium text-foreground">
+                {t("learning.exercisePage.result")}
+              </p>
               <ExerciseResult questions={exercise.questions} result={result} />
             </div>
           ) : (
@@ -174,7 +180,7 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
                     <Input
                       value={answers[q.id]?.answerText ?? ""}
                       onChange={(e) => setText(q.id, e.target.value)}
-                      placeholder="Tu respuesta"
+                      placeholder={t("learning.exercisePage.yourAnswer")}
                       className="max-w-sm"
                     />
                   )}
@@ -184,7 +190,9 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button onClick={submit} disabled={submitting}>
-                {submitting ? "Entregando…" : "Entregar"}
+                {submitting
+                  ? t("learning.exercisePage.submitting")
+                  : t("learning.exercisePage.submit")}
               </Button>
             </div>
           )}

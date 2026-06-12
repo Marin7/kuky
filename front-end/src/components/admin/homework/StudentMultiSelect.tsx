@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getStudents, studentDisplayName, type Student } from "@/lib/admin";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -7,8 +8,8 @@ interface Props {
   onChange: (ids: string[]) => void;
 }
 
-/** Multi-select student picker (reused for homework assignment and presentation sharing). */
 export function StudentMultiSelect({ selected, onChange }: Props) {
+  const { t } = useTranslation();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,11 +29,15 @@ export function StudentMultiSelect({ selected, onChange }: Props) {
   };
 
   if (loading)
-    return <p className="text-xs text-muted-foreground">Cargando alumnos…</p>;
+    return (
+      <p className="text-xs text-muted-foreground">
+        {t("admin.students.loading")}
+      </p>
+    );
   if (students.length === 0)
     return (
       <p className="text-xs text-muted-foreground">
-        No hay alumnos registrados todavía.
+        {t("admin.students.empty")}
       </p>
     );
 

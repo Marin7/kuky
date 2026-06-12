@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { setShares, type PresentationDetail, type ApiError } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +24,7 @@ export function SharePresentationDialog({
   deck,
   onShared,
 }: Props) {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>(
     deck.sharedWith.map((s) => s.id),
   );
@@ -37,7 +39,9 @@ export function SharePresentationDialog({
       onShared(updated);
       onOpenChange(false);
     } catch (e) {
-      setError((e as ApiError).message ?? "No se pudo compartir.");
+      setError(
+        (e as ApiError).message ?? t("admin.presentations.shareDialog.error"),
+      );
     } finally {
       setSaving(false);
     }
@@ -50,17 +54,18 @@ export function SharePresentationDialog({
           <DialogTitle>Compartir «{deck.title}»</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Elige los alumnos que podrán ver esta presentación en su espacio de
-          aprendizaje.
+          {t("admin.presentations.shareDialog.description")}
         </p>
         <StudentMultiSelect selected={selected} onChange={setSelected} />
         {error && <p className="text-sm text-destructive">{error}</p>}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            {t("admin.presentations.shareDialog.cancel")}
           </Button>
           <Button onClick={save} disabled={saving}>
-            {saving ? "Guardando…" : "Compartir"}
+            {saving
+              ? t("admin.presentations.shareDialog.sharing")
+              : t("admin.presentations.shareDialog.share")}
           </Button>
         </DialogFooter>
       </DialogContent>

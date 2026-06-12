@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -26,11 +27,11 @@ export function HomeworkSubmitDialog({
   onClose,
   onSubmitted,
 }: HomeworkSubmitDialogProps) {
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync the textarea with the selected item each time the dialog opens.
   const [lastItemId, setLastItemId] = useState<string | null>(null);
   if (item && item.id !== lastItemId) {
     setLastItemId(item.id);
@@ -49,11 +50,11 @@ export function HomeworkSubmitDialog({
     } catch (e) {
       const err = e as ApiError;
       if (err.error === "VALIDATION_ERROR") {
-        setError("La respuesta es demasiado larga (máximo 2000 caracteres).");
+        setError(t("learning.submitDialog.validationError"));
       } else if (err.error === "SUBMISSION_NOT_ALLOWED") {
-        setError("Esta tarea ya ha sido revisada y no puede modificarse.");
+        setError(t("learning.submitDialog.submissionNotAllowedError"));
       } else {
-        setError("No se pudo enviar la tarea. Inténtalo de nuevo.");
+        setError(t("learning.submitDialog.genericError"));
       }
     } finally {
       setSubmitting(false);
@@ -70,13 +71,13 @@ export function HomeworkSubmitDialog({
 
         <div className="space-y-2">
           <label htmlFor="homework-response" className="text-sm font-medium">
-            Tu respuesta (opcional)
+            {t("learning.submitDialog.yourAnswer")}
           </label>
           <Textarea
             id="homework-response"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Escribe aquí tu respuesta… o deja el campo vacío y marca la tarea como hecha."
+            placeholder={t("learning.submitDialog.placeholder")}
             rows={6}
             maxLength={2000}
           />
@@ -85,10 +86,12 @@ export function HomeworkSubmitDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={submitting}>
-            Cancelar
+            {t("learning.submitDialog.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Enviando…" : "Entregar tarea"}
+            {submitting
+              ? t("learning.submitDialog.submitting")
+              : t("learning.submitDialog.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>
