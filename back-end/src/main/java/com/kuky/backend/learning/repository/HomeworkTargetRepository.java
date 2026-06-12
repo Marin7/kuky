@@ -22,7 +22,7 @@ public class HomeworkTargetRepository {
 
     /** An assignee of an assignment, with their submission status (PENDING if no row). */
     public record AssigneeView(UUID userId, String email, String firstName, String lastName, String username,
-                               String status, String responseText, Instant submittedAt) {}
+                               String status, String responseText, Instant submittedAt, Integer scorePercent) {}
 
     @Transactional
     public void replaceTargets(UUID assignmentId, List<UUID> userIds) {
@@ -45,7 +45,8 @@ public class HomeworkTargetRepository {
                 SELECT u.id AS user_id, u.email, u.first_name, u.last_name, u.username,
                        COALESCE(s.status, 'PENDING') AS status,
                        s.response_text,
-                       s.submitted_at
+                       s.submitted_at,
+                       s.score_percent
                 FROM homework_targets t
                 JOIN users u ON u.id = t.user_id
                 LEFT JOIN homework_submissions s
@@ -55,6 +56,7 @@ public class HomeworkTargetRepository {
                 """;
         return jdbc.query(sql, Map.of("aid", assignmentId), (rs, n) -> {
             var submittedAt = rs.getTimestamp("submitted_at");
+            Integer scorePercent = rs.getObject("score_percent", Integer.class);
             return new AssigneeView(
                     rs.getObject("user_id", UUID.class),
                     rs.getString("email"),
@@ -63,8 +65,18 @@ public class HomeworkTargetRepository {
                     rs.getString("username"),
                     rs.getString("status"),
                     rs.getString("response_text"),
-                    submittedAt == null ? null : submittedAt.toInstant());
+                    submittedAt == null ? null : submittedAt.toInstant(),
+                    scorePercent);
         });
+    }
+
+    /** Whether an assignment is assigned to a given student. */
+    public boolean isAssignedTo(UUID assignmentId, UUID userId) {
+        Integer count = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM homework_targets
+                WHERE assignment_id = :aid AND user_id = :uid
+                """, Map.of("aid", assignmentId, "uid", userId), Integer.class);
+        return count != null && count > 0;
     }
 
     public record StudentAssignmentView(UUID assignmentId, String title, String status, Instant submittedAt) {}

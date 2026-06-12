@@ -27,7 +27,12 @@ interface BookingCardProps {
   cancelling: string | null;
 }
 
-function BookingCard({ booking, timezone, onCancel, cancelling }: BookingCardProps) {
+function BookingCard({
+  booking,
+  timezone,
+  onCancel,
+  cancelling,
+}: BookingCardProps) {
   return (
     <Card className="text-sm">
       <CardContent className="pt-4 space-y-2">

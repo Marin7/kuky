@@ -2,6 +2,7 @@ package com.kuky.backend.learning.service;
 
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
 import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
 
@@ -28,6 +29,8 @@ final class HomeworkItems {
                 && HomeworkStatus.PENDING.name().equals(status);
         String type = a.getHomeworkType() == null ? null : a.getHomeworkType().name();
         String level = a.getLevel() == null ? null : a.getLevel().name();
+        String format = a.getFormat() == null ? HomeworkFormat.MANUAL.name() : a.getFormat().name();
+        Integer scorePercent = submission != null ? submission.getScorePercent() : null;
         return new HomeworkItemResponse(
                 a.getId(),
                 a.getTitle(),
@@ -35,8 +38,10 @@ final class HomeworkItems {
                 a.getDueOn(),
                 type,
                 level,
+                format,
                 status,
                 response,
+                scorePercent,
                 submission != null ? submission.getSubmittedAt() : null,
                 overdue
         );

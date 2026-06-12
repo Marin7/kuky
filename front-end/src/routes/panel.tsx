@@ -4,7 +4,12 @@ import { getMe, type UserResponse } from "@/lib/auth";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { seo } from "@/lib/seo";
 
+type PanelSearch = { tab?: string };
+
 export const Route = createFileRoute("/panel")({
+  validateSearch: (search: Record<string, unknown>): PanelSearch => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+  }),
   head: () => ({
     meta: seo({
       title: "Panel de control — Español con Paula",
@@ -20,6 +25,7 @@ function PanelPage() {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
+  const { tab } = Route.useSearch();
 
   useEffect(() => {
     getMe()
@@ -49,5 +55,5 @@ function PanelPage() {
 
   if (!user) return null;
 
-  return <AdminPanel />;
+  return <AdminPanel initialTab={tab} />;
 }

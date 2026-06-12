@@ -28,6 +28,11 @@ public class HomeworkAdminController {
         return service.list();
     }
 
+    @GetMapping("/{id}")
+    public HomeworkAdminItem get(@PathVariable UUID id) {
+        return service.findById(id);
+    }
+
     @PostMapping
     public ResponseEntity<HomeworkAdminItem> create(@Valid @RequestBody CreateHomeworkRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request));

@@ -33,6 +33,7 @@ public class HomeworkSubmissionRepository {
         s.setAssignmentId(rs.getObject("assignment_id", UUID.class));
         s.setStatus(rs.getString("status"));
         s.setResponseText(rs.getString("response_text"));
+        s.setScorePercent(rs.getObject("score_percent", Integer.class));
         Timestamp submittedAt = rs.getTimestamp("submitted_at");
         if (submittedAt != null) {
             s.setSubmittedAt(submittedAt.toInstant());
@@ -77,6 +78,35 @@ public class HomeworkSubmissionRepository {
                 .addValue("assignmentId", assignmentId)
                 .addValue("status", status)
                 .addValue("responseText", responseText)
+                .addValue("submittedAt", submittedAt == null ? null : Timestamp.from(submittedAt))
+                .addValue("updatedAt", Timestamp.from(now));
+        return jdbc.query(sql, params, SUBMISSION_MAPPER).stream().findFirst().orElseThrow();
+    }
+
+    /**
+     * Insert or update the student's submission as an auto-graded exercise result
+     * (status GRADED, score recorded, no free-text response). Keyed by the UNIQUE
+     * (user_id, assignment_id) constraint.
+     */
+    public HomeworkSubmission upsertGraded(UUID userId, UUID assignmentId, int scorePercent, Instant submittedAt) {
+        Instant now = Instant.now();
+        String sql = """
+                INSERT INTO homework_submissions
+                    (id, user_id, assignment_id, status, response_text, score_percent, submitted_at, updated_at)
+                VALUES
+                    (gen_random_uuid(), :userId, :assignmentId, 'GRADED', NULL, :scorePercent, :submittedAt, :updatedAt)
+                ON CONFLICT (user_id, assignment_id) DO UPDATE SET
+                    status = EXCLUDED.status,
+                    response_text = EXCLUDED.response_text,
+                    score_percent = EXCLUDED.score_percent,
+                    submitted_at = EXCLUDED.submitted_at,
+                    updated_at = EXCLUDED.updated_at
+                RETURNING *
+                """;
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("userId", userId)
+                .addValue("assignmentId", assignmentId)
+                .addValue("scorePercent", scorePercent)
                 .addValue("submittedAt", submittedAt == null ? null : Timestamp.from(submittedAt))
                 .addValue("updatedAt", Timestamp.from(now));
         return jdbc.query(sql, params, SUBMISSION_MAPPER).stream().findFirst().orElseThrow();

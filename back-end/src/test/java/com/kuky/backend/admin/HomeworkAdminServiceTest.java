@@ -9,6 +9,7 @@ import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.repository.ContentRepository;
+import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ class HomeworkAdminServiceTest {
 
     private ContentRepository contentRepository;
     private HomeworkTargetRepository targetRepository;
+    private HomeworkQuestionRepository questionRepository;
     private UserRepository userRepository;
     private HomeworkAdminService service;
 
@@ -38,8 +40,9 @@ class HomeworkAdminServiceTest {
     void setUp() {
         contentRepository = mock(ContentRepository.class);
         targetRepository = mock(HomeworkTargetRepository.class);
+        questionRepository = mock(HomeworkQuestionRepository.class);
         userRepository = mock(UserRepository.class);
-        service = new HomeworkAdminService(contentRepository, targetRepository, userRepository);
+        service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository, userRepository);
 
         User student = new User();
         student.setId(studentId);
@@ -60,14 +63,14 @@ class HomeworkAdminServiceTest {
     @Test
     void createAssignsTargetsAndReturnsItem() {
         UUID id = UUID.randomUUID();
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any())).thenReturn(id);
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any())).thenReturn(id);
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of(
                 new HomeworkTargetRepository.AssigneeView(studentId, "ana@example.com",
-                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now())));
+                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null)));
 
         HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
-                "Tarea", "Hazla", LocalDate.of(2026, 6, 20), null, null, List.of(studentId)));
+                "Tarea", "Hazla", LocalDate.of(2026, 6, 20), null, null, "MANUAL", List.of(), List.of(studentId)));
 
         verify(targetRepository).replaceTargets(id, List.of(studentId));
         assertThat(item.assignees()).hasSize(1);
@@ -81,9 +84,9 @@ class HomeworkAdminServiceTest {
         when(userRepository.findById(unknown)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(new CreateHomeworkRequest(
-                "Tarea", "Hazla", null, null, null, List.of(unknown))))
+                "Tarea", "Hazla", null, null, null, "MANUAL", List.of(), List.of(unknown))))
                 .isInstanceOf(StudentNotFoundException.class);
-        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any());
+        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -110,8 +113,8 @@ class HomeworkAdminServiceTest {
         UUID id = UUID.randomUUID();
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.update(id,
-                new com.kuky.backend.admin.dto.UpdateHomeworkRequest("T", "I", null, null, null)))
+                new com.kuky.backend.admin.dto.UpdateHomeworkRequest("T", "I", null, null, null, "MANUAL", List.of())))
                 .isInstanceOf(AssignmentNotFoundException.class);
-        verify(contentRepository, never()).updateAssignment(eq(id), any(), any(), any(), any(), any());
+        verify(contentRepository, never()).updateAssignment(eq(id), any(), any(), any(), any(), any(), any());
     }
 }

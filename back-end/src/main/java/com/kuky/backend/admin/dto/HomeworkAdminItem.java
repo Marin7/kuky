@@ -11,5 +11,7 @@ public record HomeworkAdminItem(
         LocalDate dueOn,
         String homeworkType,
         String level,
+        String format,                      // MANUAL | EXERCISE
+        List<HomeworkQuestionDto> questions, // empty for MANUAL; with answer key for EXERCISE
         List<AssigneeDto> assignees
 ) {}

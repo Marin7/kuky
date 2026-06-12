@@ -1,6 +1,7 @@
 package com.kuky.backend.learning.repository;
 
 import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkLevel;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.PastClass;
@@ -64,6 +65,8 @@ public class ContentRepository {
         if (type != null) a.setHomeworkType(HomeworkType.valueOf(type));
         String level = rs.getString("level");
         if (level != null) a.setLevel(HomeworkLevel.valueOf(level));
+        String format = rs.getString("format");
+        if (format != null) a.setFormat(HomeworkFormat.valueOf(format));
         return a;
     };
 
@@ -106,7 +109,7 @@ public class ContentRepository {
     }
 
     public UUID insertAssignment(String title, String instructions, LocalDate dueOn,
-                                  HomeworkType homeworkType, HomeworkLevel level) {
+                                  HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format) {
         UUID id = UUID.randomUUID();
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("id", id);
@@ -115,15 +118,16 @@ public class ContentRepository {
         params.put("dueOn", dueOn == null ? null : java.sql.Date.valueOf(dueOn));
         params.put("homeworkType", homeworkType == null ? null : homeworkType.name());
         params.put("level", level == null ? null : level.name());
+        params.put("format", (format == null ? HomeworkFormat.MANUAL : format).name());
         jdbc.update("""
-                INSERT INTO homework_assignments (id, title, instructions, due_on, homework_type, level, published, sort_order)
-                VALUES (:id, :title, :instructions, :dueOn, :homeworkType, :level, true, 0)
+                INSERT INTO homework_assignments (id, title, instructions, due_on, homework_type, level, format, published, sort_order)
+                VALUES (:id, :title, :instructions, :dueOn, :homeworkType, :level, :format, true, 0)
                 """, params);
         return id;
     }
 
     public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn,
-                                HomeworkType homeworkType, HomeworkLevel level) {
+                                HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format) {
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("id", id);
         params.put("title", title);
@@ -131,10 +135,11 @@ public class ContentRepository {
         params.put("dueOn", dueOn == null ? null : java.sql.Date.valueOf(dueOn));
         params.put("homeworkType", homeworkType == null ? null : homeworkType.name());
         params.put("level", level == null ? null : level.name());
+        params.put("format", (format == null ? HomeworkFormat.MANUAL : format).name());
         return jdbc.update("""
                 UPDATE homework_assignments
                 SET title = :title, instructions = :instructions, due_on = :dueOn,
-                    homework_type = :homeworkType, level = :level
+                    homework_type = :homeworkType, level = :level, format = :format
                 WHERE id = :id
                 """, params);
     }

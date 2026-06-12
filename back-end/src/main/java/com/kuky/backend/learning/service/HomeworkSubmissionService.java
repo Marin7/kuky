@@ -7,8 +7,10 @@ import com.kuky.backend.learning.dto.HomeworkItemResponse;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
 import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
+import org.springframework.http.HttpStatus;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import org.springframework.stereotype.Service;
@@ -49,6 +51,11 @@ public class HomeworkSubmissionService {
 
         HomeworkAssignment assignment = contentRepository.findPublishedAssignmentById(assignmentId)
                 .orElseThrow(() -> new AssignmentNotFoundException("Tarea no encontrada."));
+
+        if (assignment.getFormat() == HomeworkFormat.EXERCISE) {
+            throw new SubmissionNotAllowedException(
+                    "Este ejercicio se entrega desde su propia página.", HttpStatus.BAD_REQUEST);
+        }
 
         Optional<HomeworkSubmission> existing =
                 submissionRepository.findByUserAndAssignment(user.getId(), assignmentId);

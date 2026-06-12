@@ -15,6 +15,7 @@ public class HomeworkAssignment {
     private Instant createdAt;
     private HomeworkType homeworkType; // nullable
     private HomeworkLevel level;       // nullable
+    private HomeworkFormat format = HomeworkFormat.MANUAL;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -34,4 +35,6 @@ public class HomeworkAssignment {
     public void setHomeworkType(HomeworkType homeworkType) { this.homeworkType = homeworkType; }
     public HomeworkLevel getLevel() { return level; }
     public void setLevel(HomeworkLevel level) { this.level = level; }
+    public HomeworkFormat getFormat() { return format; }
+    public void setFormat(HomeworkFormat format) { this.format = format; }
 }

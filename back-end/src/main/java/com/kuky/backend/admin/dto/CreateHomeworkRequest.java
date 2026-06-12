@@ -13,5 +13,7 @@ public record CreateHomeworkRequest(
         LocalDate dueOn,
         String homeworkType,
         String level,
+        String format,                       // MANUAL | EXERCISE (null ⇒ MANUAL)
+        List<HomeworkQuestionDto> questions, // required non-empty when format == EXERCISE
         List<UUID> assigneeIds
 ) {}

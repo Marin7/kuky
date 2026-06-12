@@ -17,7 +17,10 @@ import { Route as PanelRouteImport } from './routes/panel'
 import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PanelTareasNuevaRouteImport } from './routes/panel_.tareas.nueva'
+import { Route as PanelTareasHomeworkIdRouteImport } from './routes/panel_.tareas.$homeworkId'
 import { Route as PanelAlumnosStudentIdRouteImport } from './routes/panel_.alumnos.$studentId'
+import { Route as AprendizajeTareaHomeworkIdRouteImport } from './routes/aprendizaje_.tarea.$homeworkId'
 
 const SobreMiRoute = SobreMiRouteImport.update({
   id: '/sobre-mi',
@@ -59,11 +62,27 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelTareasNuevaRoute = PanelTareasNuevaRouteImport.update({
+  id: '/panel_/tareas/nueva',
+  path: '/panel/tareas/nueva',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelTareasHomeworkIdRoute = PanelTareasHomeworkIdRouteImport.update({
+  id: '/panel_/tareas/$homeworkId',
+  path: '/panel/tareas/$homeworkId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PanelAlumnosStudentIdRoute = PanelAlumnosStudentIdRouteImport.update({
   id: '/panel_/alumnos/$studentId',
   path: '/panel/alumnos/$studentId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AprendizajeTareaHomeworkIdRoute =
+  AprendizajeTareaHomeworkIdRouteImport.update({
+    id: '/aprendizaje_/tarea/$homeworkId',
+    path: '/aprendizaje/tarea/$homeworkId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -74,7 +93,10 @@ export interface FileRoutesByFullPath {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/aprendizaje/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
+  '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -85,7 +107,10 @@ export interface FileRoutesByTo {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/aprendizaje/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
+  '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,7 +122,10 @@ export interface FileRoutesById {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/aprendizaje_/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/panel_/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  '/panel_/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
+  '/panel_/tareas/nueva': typeof PanelTareasNuevaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,7 +138,10 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/aprendizaje/tarea/$homeworkId'
     | '/panel/alumnos/$studentId'
+    | '/panel/tareas/$homeworkId'
+    | '/panel/tareas/nueva'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -121,7 +152,10 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/aprendizaje/tarea/$homeworkId'
     | '/panel/alumnos/$studentId'
+    | '/panel/tareas/$homeworkId'
+    | '/panel/tareas/nueva'
   id:
     | '__root__'
     | '/'
@@ -132,7 +166,10 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/aprendizaje_/tarea/$homeworkId'
     | '/panel_/alumnos/$studentId'
+    | '/panel_/tareas/$homeworkId'
+    | '/panel_/tareas/nueva'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -144,7 +181,10 @@ export interface RootRouteChildren {
   ReservasRoute: typeof ReservasRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreMiRoute: typeof SobreMiRoute
+  AprendizajeTareaHomeworkIdRoute: typeof AprendizajeTareaHomeworkIdRoute
   PanelAlumnosStudentIdRoute: typeof PanelAlumnosStudentIdRoute
+  PanelTareasHomeworkIdRoute: typeof PanelTareasHomeworkIdRoute
+  PanelTareasNuevaRoute: typeof PanelTareasNuevaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -205,11 +245,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel_/tareas/nueva': {
+      id: '/panel_/tareas/nueva'
+      path: '/panel/tareas/nueva'
+      fullPath: '/panel/tareas/nueva'
+      preLoaderRoute: typeof PanelTareasNuevaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel_/tareas/$homeworkId': {
+      id: '/panel_/tareas/$homeworkId'
+      path: '/panel/tareas/$homeworkId'
+      fullPath: '/panel/tareas/$homeworkId'
+      preLoaderRoute: typeof PanelTareasHomeworkIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel_/alumnos/$studentId': {
       id: '/panel_/alumnos/$studentId'
       path: '/panel/alumnos/$studentId'
       fullPath: '/panel/alumnos/$studentId'
       preLoaderRoute: typeof PanelAlumnosStudentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aprendizaje_/tarea/$homeworkId': {
+      id: '/aprendizaje_/tarea/$homeworkId'
+      path: '/aprendizaje/tarea/$homeworkId'
+      fullPath: '/aprendizaje/tarea/$homeworkId'
+      preLoaderRoute: typeof AprendizajeTareaHomeworkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -224,7 +285,10 @@ const rootRouteChildren: RootRouteChildren = {
   ReservasRoute: ReservasRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
+  AprendizajeTareaHomeworkIdRoute: AprendizajeTareaHomeworkIdRoute,
   PanelAlumnosStudentIdRoute: PanelAlumnosStudentIdRoute,
+  PanelTareasHomeworkIdRoute: PanelTareasHomeworkIdRoute,
+  PanelTareasNuevaRoute: PanelTareasNuevaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

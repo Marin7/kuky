@@ -44,7 +44,8 @@ export function TimeSlotList({
   }
 
   const daySlots = slots.filter(
-    (s) => toLocalDateKey(s.start, timezone) === selectedDay && s.status === "OPEN",
+    (s) =>
+      toLocalDateKey(s.start, timezone) === selectedDay && s.status === "OPEN",
   );
 
   const heading = formatDayHeading(selectedDay);
