@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { PastClass } from "@/lib/learning";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -15,16 +16,16 @@ interface PastClassesListProps {
 }
 
 export function PastClassesList({ classes }: PastClassesListProps) {
+  const { t } = useTranslation();
   return (
     <section className="space-y-4">
       <h2 className="font-display text-xl font-bold text-foreground">
-        Clases anteriores
+        {t("learning.pastClasses.title")}
       </h2>
 
       {classes.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          Aún no tienes clases anteriores. Aquí aparecerá un resumen de cada
-          clase que completes.
+          {t("learning.pastClasses.empty")}
         </p>
       ) : (
         <div className="space-y-3">

@@ -8,27 +8,33 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
+import "@/i18n";
+import i18n, { getStoredLang } from "@/i18n";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader, SiteFooter } from "../components/SiteHeader";
 import { seo } from "../lib/seo";
 
 function NotFoundComponent() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold">Página no encontrada</h2>
+        <h2 className="mt-4 text-xl font-semibold">
+          {t("common.notFound.title")}
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          La página que buscas no existe o ha sido movida.
+          {t("common.notFound.body")}
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Volver al inicio
+            {t("common.notFound.back")}
           </Link>
         </div>
       </div>
@@ -37,6 +43,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+  const { t } = useTranslation();
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -46,9 +53,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold">Algo salió mal</h1>
+        <h1 className="text-xl font-semibold">
+          {t("common.errorBoundary.title")}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Intenta de nuevo o vuelve al inicio.
+          {t("common.errorBoundary.body")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -58,13 +67,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Reintentar
+            {t("common.errorBoundary.retry")}
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
           >
-            Inicio
+            {t("common.errorBoundary.home")}
           </a>
         </div>
       </div>
@@ -124,6 +133,18 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const lang = getStoredLang();
+    document.documentElement.lang = lang;
+    if (lang !== "es") {
+      // SSR always serves the Spanish title; update after the language loads.
+      i18n.changeLanguage(lang).then(() => {
+        document.title = i18n.t("seo.rootTitle");
+      });
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex min-h-screen flex-col">

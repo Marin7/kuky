@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getCatalog,
   type CatalogResponse,
@@ -12,7 +13,6 @@ import { BundleCard as BundleCardComponent } from "./BundleCard";
 import { ResourceDetailDialog } from "./ResourceDetailDialog";
 import { PurchaseDialog } from "./PurchaseDialog";
 
-// Section heading + a grid of card placeholders matching the loaded catalog.
 function CatalogSkeleton() {
   return (
     <div className="space-y-4">
@@ -43,6 +43,7 @@ export function ResourcesView({
   onRefreshRef,
   onPurchaseSuccess,
 }: ResourcesViewProps) {
+  const { t } = useTranslation();
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export function ResourcesView({
     setError(null);
     getCatalog()
       .then(setCatalog)
-      .catch(() => setError("No se pudo cargar el catálogo."))
+      .catch(() => setError(t("resources.loadError")))
       .finally(() => setLoading(false));
   };
 
@@ -75,12 +76,10 @@ export function ResourcesView({
   }
 
   const handleBuyResource = (slug: string) => {
-    // Slug may be a paid resource slug or a free resource slug with a related paid resource
     let targetSlug = slug;
     let resource = catalog?.paidResources.find((r) => r.slug === slug) ?? null;
 
     if (!resource) {
-      // Could be a free resource — redirect to its related paid resource
       const free = catalog?.freeResources.find((r) => r.slug === slug);
       if (free?.relatedResourceSlug) {
         targetSlug = free.relatedResourceSlug;
@@ -128,12 +127,9 @@ export function ResourcesView({
     <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold text-foreground">
-          Recursos
+          {t("resources.title")}
         </h1>
-        <p className="mt-2 text-muted-foreground">
-          Materiales didácticos para enseñar español. Descarga fichas, guías y
-          ejercicios.
-        </p>
+        <p className="mt-2 text-muted-foreground">{t("resources.subtitle")}</p>
       </div>
 
       {loading && <CatalogSkeleton />}
@@ -143,10 +139,9 @@ export function ResourcesView({
       {!loading && !error && isEmpty && (
         <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
           <p className="text-4xl">📚</p>
-          <h2 className="text-xl font-semibold">Próximamente</h2>
+          <h2 className="text-xl font-semibold">{t("resources.comingSoon")}</h2>
           <p className="text-muted-foreground max-w-sm">
-            Paula está preparando materiales exclusivos para profesores de
-            español. Vuelve pronto para descubrir los primeros recursos.
+            {t("resources.comingSoonDesc")}
           </p>
         </div>
       )}
@@ -162,7 +157,7 @@ export function ResourcesView({
           {catalog.paidResources.length > 0 && (
             <section className="mb-10">
               <h2 className="text-xl font-semibold text-foreground mb-4">
-                Recursos de pago
+                {t("resources.paidResources")}
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {catalog.paidResources.map((r) => (
@@ -180,7 +175,7 @@ export function ResourcesView({
           {catalog.bundles.length > 0 && (
             <section className="mb-10">
               <h2 className="text-xl font-semibold text-foreground mb-4">
-                Packs
+                {t("resources.packs")}
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {catalog.bundles.map((b) => (

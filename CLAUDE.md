@@ -84,5 +84,5 @@ npm run lint && npm run format
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/007-homework-exercises/plan.md`
+`specs/008-language-support/plan.md`
 <!-- SPECKIT END -->

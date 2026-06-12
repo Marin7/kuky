@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getAvailability,
   addException,
@@ -35,8 +36,8 @@ const HOURS = Array.from(
 );
 
 interface DateCol {
-  dow: number; // 1=Mon … 7=Sun
-  dateStr: string; // "YYYY-MM-DD"
+  dow: number;
+  dateStr: string;
   dayLabel: string;
   dayNum: number;
   monthLabel: string;
@@ -145,6 +146,7 @@ interface Props {
 }
 
 export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
+  const { t } = useTranslation();
   const [weekly, setWeekly] = useState<WeeklyWindow[]>([]);
   const [serverExceptions, setServerExceptions] = useState<
     AvailabilityException[]
@@ -176,7 +178,7 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   useEffect(() => {
     getAvailability()
       .then(({ weekly: w, exceptions: ex }) => applyAvailability(w, ex))
-      .catch(() => setError("No se pudo cargar la disponibilidad."))
+      .catch(() => setError(t("admin.availability.loadError")))
       .finally(() => setLoading(false));
   }, []);
 
@@ -196,7 +198,6 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
     setError(null);
     setSaved(false);
     try {
-      // Collect dates with at least one changed cell
       const changedDates = new Set<string>();
       for (const col of dates) {
         for (const hour of HOURS) {
@@ -210,12 +211,9 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
 
       for (const dateStr of changedDates) {
         const col = dates.find((d) => d.dateStr === dateStr)!;
-
-        // Remove all existing exceptions for this date
         const toDelete = serverExceptions.filter((e) => e.date === dateStr);
         await Promise.all(toDelete.map((e) => deleteException(e.id)));
 
-        // Hours where desired != weekly base → need an exception
         const exHours: HourEntry[] = [];
         for (const hour of HOURS) {
           const desired = selected.has(`${dateStr}:${hour}`);
@@ -225,7 +223,6 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
           }
         }
 
-        // Merge consecutive same-kind hours into ranges and save
         const ranges = hoursToRanges(exHours);
         await Promise.all(
           ranges.map((r) =>
@@ -239,23 +236,28 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
       onConflicts([]);
       setSaved(true);
     } catch (e) {
-      // Reload to show actual server state after partial failure
       getAvailability()
         .then(({ weekly: w, exceptions: ex }) => applyAvailability(w, ex))
         .catch(() => {});
-      setError((e as ApiError).message ?? "No se pudo guardar.");
+      setError((e as ApiError).message ?? t("admin.availability.saveError"));
     } finally {
       setSaving(false);
     }
   };
 
   if (loading)
-    return <p className="text-sm text-muted-foreground">Cargando…</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        {t("admin.availability.loading")}
+      </p>
+    );
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Horario semanal</CardTitle>
+        <CardTitle className="text-lg">
+          {t("admin.availability.weeklyTitle")}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="overflow-x-auto">
@@ -338,10 +340,16 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {saved && <p className="text-sm text-green-600">Horario guardado.</p>}
+        {saved && (
+          <p className="text-sm text-green-600">
+            {t("admin.availability.saved")}
+          </p>
+        )}
 
         <Button onClick={save} disabled={saving}>
-          {saving ? "Guardando…" : "Guardar horario"}
+          {saving
+            ? t("admin.availability.saving")
+            : t("admin.availability.save")}
         </Button>
       </CardContent>
     </Card>

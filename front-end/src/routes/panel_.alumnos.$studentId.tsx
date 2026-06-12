@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getMe } from "@/lib/auth";
 import {
   getStudentProfile,
@@ -11,14 +12,6 @@ import { Button } from "@/components/ui/button";
 export const Route = createFileRoute("/panel_/alumnos/$studentId")({
   component: StudentProfilePage,
 });
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Pendiente",
-  SUBMITTED: "Entregada",
-  REVIEWED: "Revisada",
-  CONFIRMED: "Confirmada",
-  CANCELLED: "Cancelada",
-};
 
 function formatSlot(isoStart: string, isoEnd: string): string {
   const start = new Date(isoStart);
@@ -52,7 +45,9 @@ function formatDate(iso: string): string {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const label = STATUS_LABEL[status] ?? status;
+  const { t } = useTranslation();
+  const label =
+    (t(`admin.studentProfile.status.${status}` as never) as string) || status;
   const cls =
     status === "SUBMITTED" || status === "REVIEWED"
       ? "bg-green-100 text-green-700"
@@ -91,6 +86,7 @@ function Section({
 }
 
 function StudentProfilePage() {
+  const { t } = useTranslation();
   const { studentId } = Route.useParams();
   const navigate = useNavigate();
 
@@ -111,7 +107,7 @@ function StudentProfilePage() {
   useEffect(() => {
     getStudentProfile(studentId)
       .then(setProfile)
-      .catch(() => setError("No se pudo cargar el perfil del alumno."))
+      .catch(() => setError(t("admin.studentProfile.loadError")))
       .finally(() => setLoading(false));
   }, [studentId]);
 
@@ -128,18 +124,17 @@ function StudentProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
-      {/* Back link */}
       <Link
         to="/panel"
         search={{ tab: "students" } as never}
         className="mb-8 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Volver al panel
+        {t("admin.studentProfile.back")}
       </Link>
 
       {loading && (
         <p className="mt-6 text-sm text-muted-foreground animate-pulse">
-          Cargando perfil…
+          {t("admin.studentProfile.loading")}
         </p>
       )}
 
@@ -147,7 +142,6 @@ function StudentProfilePage() {
 
       {profile && (
         <>
-          {/* Header */}
           <div className="mt-6 mb-10">
             <h1 className="font-display text-3xl font-semibold text-primary">
               {name}
@@ -159,21 +153,24 @@ function StudentProfilePage() {
               )}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Alumno desde {formatDate(profile.createdAt)}
+              {t("admin.studentProfile.studentSince")}{" "}
+              {formatDate(profile.createdAt)}
             </p>
 
-            {/* Quick stats */}
             <div className="mt-6 grid grid-cols-3 gap-4">
               {[
                 {
-                  label: "Clases",
+                  label: t("admin.studentProfile.stats.classes"),
                   value: profile.bookings.filter(
                     (b) => b.status === "CONFIRMED",
                   ).length,
                 },
-                { label: "Tareas", value: profile.homeworks.length },
                 {
-                  label: "Presentaciones",
+                  label: t("admin.studentProfile.stats.homework"),
+                  value: profile.homeworks.length,
+                },
+                {
+                  label: t("admin.studentProfile.stats.presentations"),
                   value: profile.presentations.length,
                 },
               ].map((stat) => (
@@ -191,11 +188,13 @@ function StudentProfilePage() {
           </div>
 
           <div className="space-y-10">
-            {/* Upcoming classes */}
-            <Section title="Próximas clases" count={upcoming.length}>
+            <Section
+              title={t("admin.studentProfile.upcomingClasses")}
+              count={upcoming.length}
+            >
               {upcoming.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Ninguna próxima.
+                  {t("admin.studentProfile.emptyUpcoming")}
                 </p>
               ) : (
                 <div className="divide-y rounded-lg border">
@@ -223,11 +222,13 @@ function StudentProfilePage() {
               )}
             </Section>
 
-            {/* Past classes */}
-            <Section title="Clases pasadas" count={past.length}>
+            <Section
+              title={t("admin.studentProfile.pastClasses")}
+              count={past.length}
+            >
               {past.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Ninguna registrada.
+                  {t("admin.studentProfile.emptyPast")}
                 </p>
               ) : (
                 <div className="divide-y rounded-lg border">
@@ -243,11 +244,13 @@ function StudentProfilePage() {
               )}
             </Section>
 
-            {/* Homeworks */}
-            <Section title="Tareas" count={profile.homeworks.length}>
+            <Section
+              title={t("admin.studentProfile.homework")}
+              count={profile.homeworks.length}
+            >
               {profile.homeworks.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Sin tareas asignadas.
+                  {t("admin.studentProfile.emptyHomework")}
                 </p>
               ) : (
                 <div className="divide-y rounded-lg border">
@@ -271,14 +274,13 @@ function StudentProfilePage() {
               )}
             </Section>
 
-            {/* Presentations */}
             <Section
-              title="Presentaciones compartidas"
+              title={t("admin.studentProfile.sharedPresentations")}
               count={profile.presentations.length}
             >
               {profile.presentations.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Sin presentaciones compartidas.
+                  {t("admin.studentProfile.emptyPresentations")}
                 </p>
               ) : (
                 <div className="divide-y rounded-lg border">

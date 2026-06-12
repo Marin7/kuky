@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
   getHomework,
@@ -26,20 +27,6 @@ function formatDate(iso: string): string {
   }).format(new Date(`${iso}T00:00:00`));
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Pendiente",
-  SUBMITTED: "Entregada",
-  REVIEWED: "Revisada",
-  GRADED: "Calificada",
-};
-
-const TYPE_LABEL: Record<HomeworkType, string> = {
-  AUDIO: "Escucha",
-  READ: "Lectura",
-  WRITE: "Escritura",
-  GRAMMAR: "Gramática",
-};
-
 const TYPE_CLASS: Record<HomeworkType, string> = {
   AUDIO: "bg-purple-100 text-purple-700",
   READ: "bg-blue-100 text-blue-700",
@@ -57,6 +44,7 @@ const LEVEL_CLASS: Record<HomeworkLevel, string> = {
 };
 
 export function HomeworkAdminList() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [items, setItems] = useState<HomeworkAdminItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -102,14 +90,24 @@ export function HomeworkAdminList() {
             onValueChange={(v) => setFilterType(v as HomeworkType | "ALL")}
           >
             <SelectTrigger className="h-8 w-36 text-xs">
-              <SelectValue placeholder="Tipo" />
+              <SelectValue placeholder={t("admin.homework.allTypes")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Todos los tipos</SelectItem>
-              <SelectItem value="AUDIO">Escucha</SelectItem>
-              <SelectItem value="READ">Lectura</SelectItem>
-              <SelectItem value="WRITE">Escritura</SelectItem>
-              <SelectItem value="GRAMMAR">Gramática</SelectItem>
+              <SelectItem value="ALL">
+                {t("admin.homework.allTypes")}
+              </SelectItem>
+              <SelectItem value="AUDIO">
+                {t("admin.homework.type.AUDIO")}
+              </SelectItem>
+              <SelectItem value="READ">
+                {t("admin.homework.type.READ")}
+              </SelectItem>
+              <SelectItem value="WRITE">
+                {t("admin.homework.type.WRITE")}
+              </SelectItem>
+              <SelectItem value="GRAMMAR">
+                {t("admin.homework.type.GRAMMAR")}
+              </SelectItem>
             </SelectContent>
           </Select>
           <Select
@@ -117,10 +115,12 @@ export function HomeworkAdminList() {
             onValueChange={(v) => setFilterLevel(v as HomeworkLevel | "ALL")}
           >
             <SelectTrigger className="h-8 w-28 text-xs">
-              <SelectValue placeholder="Nivel" />
+              <SelectValue placeholder={t("admin.homework.allLevels")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Todos los niveles</SelectItem>
+              <SelectItem value="ALL">
+                {t("admin.homework.allLevels")}
+              </SelectItem>
               {(["A1", "A2", "B1", "B2", "C1", "C2"] as HomeworkLevel[]).map(
                 (l) => (
                   <SelectItem key={l} value={l}>
@@ -132,17 +132,19 @@ export function HomeworkAdminList() {
           </Select>
         </div>
         <Button size="sm" onClick={openCreate}>
-          Nueva tarea
+          {t("admin.homework.newTask")}
         </Button>
       </div>
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Cargando…</p>
+        <p className="text-sm text-muted-foreground">
+          {t("admin.homework.loading")}
+        </p>
       ) : filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {items.length === 0
-            ? "Aún no has creado ninguna tarea."
-            : "No hay tareas con esos filtros."}
+            ? t("admin.homework.noTasks")
+            : t("admin.homework.noTasksFiltered")}
         </p>
       ) : (
         filtered.map((item) => (
@@ -158,7 +160,7 @@ export function HomeworkAdminList() {
                         TYPE_CLASS[item.homeworkType],
                       ].join(" ")}
                     >
-                      {TYPE_LABEL[item.homeworkType]}
+                      {t(`admin.homework.type.${item.homeworkType}`)}
                     </span>
                   )}
                   {item.level && (
@@ -173,7 +175,7 @@ export function HomeworkAdminList() {
                   )}
                   {item.format === "EXERCISE" && (
                     <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
-                      Ejercicio
+                      {t("admin.homework.exercise")}
                     </span>
                   )}
                 </div>
@@ -184,7 +186,7 @@ export function HomeworkAdminList() {
                     className="h-7 text-xs"
                     onClick={() => openEdit(item)}
                   >
-                    Editar
+                    {t("admin.homework.edit")}
                   </Button>
                   <Button
                     variant="ghost"
@@ -192,7 +194,7 @@ export function HomeworkAdminList() {
                     className="h-7 text-xs text-destructive"
                     onClick={() => remove(item)}
                   >
-                    Eliminar
+                    {t("admin.homework.delete")}
                   </Button>
                 </div>
               </div>
@@ -203,16 +205,16 @@ export function HomeworkAdminList() {
               </p>
               {item.dueOn && (
                 <p className="text-xs text-muted-foreground">
-                  Fecha límite: {formatDate(item.dueOn)}
+                  {t("admin.homework.dueOn")} {formatDate(item.dueOn)}
                 </p>
               )}
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Asignada a
+                  {t("admin.homework.assignedTo")}
                 </p>
                 {item.assignees.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Sin asignar (borrador).
+                    {t("admin.homework.unassigned")}
                   </p>
                 ) : (
                   <ul className="mt-1 space-y-1">
@@ -241,7 +243,7 @@ export function HomeworkAdminList() {
                               : "bg-muted text-muted-foreground",
                           ].join(" ")}
                         >
-                          {STATUS_LABEL[a.status] ?? a.status}
+                          {t(`admin.homework.status.${a.status}`) ?? a.status}
                           {a.status === "GRADED" &&
                             a.scorePercent !== null &&
                             ` — ${a.scorePercent}%`}
@@ -254,7 +256,7 @@ export function HomeworkAdminList() {
               {item.assignees.some((a) => a.responseText) && (
                 <div className="space-y-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Respuestas
+                    {t("admin.homework.responses")}
                   </p>
                   {item.assignees
                     .filter((a) => a.responseText)

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getSchedule,
   type Slot,
@@ -50,6 +51,7 @@ export function ScheduleView({
   onBookingSuccess,
   onTimezoneResolved,
 }: ScheduleViewProps) {
+  const { t } = useTranslation();
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,9 +67,7 @@ export function ScheduleView({
         setSchedule(s);
         onTimezoneResolved?.(s.teacherTimezone);
       })
-      .catch(() =>
-        setError("No se pudo cargar el horario. Inténtalo de nuevo más tarde."),
-      )
+      .catch(() => setError(t("schedule.loadError")))
       .finally(() => setLoading(false));
   };
 
@@ -85,10 +85,11 @@ export function ScheduleView({
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold">Horario de clases</h1>
+        <h1 className="font-display text-2xl font-bold">
+          {t("schedule.title")}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Selecciona un día y una hora disponible para reservar tu clase. Los
-          horarios se muestran en horario de Madrid (España).
+          {t("schedule.subtitle")}
         </p>
       </div>
 

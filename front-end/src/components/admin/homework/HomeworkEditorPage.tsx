@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
   createHomework,
@@ -27,20 +28,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StudentMultiSelect } from "./StudentMultiSelect";
 import { QuestionListEditor } from "./QuestionListEditor";
 
-const TYPE_OPTIONS: { value: HomeworkType; label: string }[] = [
-  { value: "AUDIO", label: "Escucha" },
-  { value: "READ", label: "Lectura" },
-  { value: "WRITE", label: "Escritura" },
-  { value: "GRAMMAR", label: "Gramática" },
-];
-
 const LEVEL_OPTIONS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
 interface Props {
-  homeworkId?: string; // undefined ⇒ create
+  homeworkId?: string;
 }
 
 export function HomeworkEditorPage({ homeworkId }: Props) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isEdit = Boolean(homeworkId);
 
@@ -59,7 +54,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Admin gate.
   useEffect(() => {
     getMe()
       .then((me) => {
@@ -69,7 +63,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       .catch(() => navigate({ to: "/cuenta" }));
   }, []);
 
-  // Load existing homework when editing.
   useEffect(() => {
     if (!homeworkId) return;
     getHomeworkById(homeworkId)
@@ -83,7 +76,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
         setQuestions(hw.questions ?? []);
         setAssigneeIds(hw.assignees.map((a) => a.userId));
       })
-      .catch(() => setError("No se pudo cargar la tarea."))
+      .catch(() => setError(t("admin.homework.editor.loadError")))
       .finally(() => setLoading(false));
   }, [homeworkId]);
 
@@ -92,7 +85,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
 
   const save = async () => {
     if (!title.trim() || !instructions.trim()) {
-      setError("El título y las instrucciones son obligatorios.");
+      setError(t("admin.homework.editor.requiredError"));
       return;
     }
     setSaving(true);
@@ -128,7 +121,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       }
       backToList();
     } catch (e) {
-      setError((e as ApiError).message ?? "No se pudo guardar la tarea.");
+      setError((e as ApiError).message ?? t("admin.homework.editor.saveError"));
     } finally {
       setSaving(false);
     }
@@ -137,7 +130,9 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
   if (!authChecked) {
     return (
       <div className="mx-auto max-w-3xl px-6 py-16 text-center">
-        <p className="animate-pulse text-sm text-muted-foreground">Cargando…</p>
+        <p className="animate-pulse text-sm text-muted-foreground">
+          {t("admin.homework.loading")}
+        </p>
       </div>
     );
   }
@@ -149,21 +144,25 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
         onClick={backToList}
         className="mb-8 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        ← Volver al panel
+        {t("admin.homework.editor.backToPanel")}
       </button>
 
       <h1 className="font-display text-3xl font-semibold text-primary">
-        {isEdit ? "Editar tarea" : "Nueva tarea"}
+        {isEdit
+          ? t("admin.homework.editor.editTitle")
+          : t("admin.homework.editor.newTitle")}
       </h1>
 
       {loading ? (
         <p className="mt-8 animate-pulse text-sm text-muted-foreground">
-          Cargando tarea…
+          {t("admin.homework.editor.loading")}
         </p>
       ) : (
         <div className="mt-8 space-y-6">
           <div className="space-y-1">
-            <Label htmlFor="hw-title">Título</Label>
+            <Label htmlFor="hw-title">
+              {t("admin.homework.editor.titleLabel")}
+            </Label>
             <Input
               id="hw-title"
               value={title}
@@ -173,7 +172,9 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="hw-instructions">Instrucciones</Label>
+            <Label htmlFor="hw-instructions">
+              {t("admin.homework.editor.instructionsLabel")}
+            </Label>
             <Textarea
               id="hw-instructions"
               value={instructions}
@@ -185,31 +186,37 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1">
-              <Label>Tipo</Label>
+              <Label>{t("admin.homework.editor.typeLabel")}</Label>
               <Select
                 value={homeworkType}
                 onValueChange={(v) => setHomeworkType(v as HomeworkType)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sin tipo" />
+                  <SelectValue
+                    placeholder={t("admin.homework.editor.typePlaceholder")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {TYPE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
+                  {(
+                    ["AUDIO", "READ", "WRITE", "GRAMMAR"] as HomeworkType[]
+                  ).map((v) => (
+                    <SelectItem key={v} value={v}>
+                      {t(`admin.homework.type.${v}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
-              <Label>Nivel</Label>
+              <Label>{t("admin.homework.editor.levelLabel")}</Label>
               <Select
                 value={level}
                 onValueChange={(v) => setLevel(v as HomeworkLevel)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sin nivel" />
+                  <SelectValue
+                    placeholder={t("admin.homework.editor.levelPlaceholder")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {LEVEL_OPTIONS.map((l) => (
@@ -221,7 +228,9 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="hw-due">Fecha límite (opcional)</Label>
+              <Label htmlFor="hw-due">
+                {t("admin.homework.editor.dueDateLabel")}
+              </Label>
               <Input
                 id="hw-due"
                 type="date"
@@ -232,7 +241,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label>Formato</Label>
+            <Label>{t("admin.homework.editor.formatLabel")}</Label>
             <RadioGroup
               value={format}
               onValueChange={(v) => setFormat(v as HomeworkFormat)}
@@ -240,11 +249,11 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
             >
               <label className="flex items-center gap-2 text-sm">
                 <RadioGroupItem value="MANUAL" id="fmt-manual" />
-                Manual — el alumno escribe una respuesta libre que tú revisas.
+                {t("admin.homework.editor.formatManual")}
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <RadioGroupItem value="EXERCISE" id="fmt-exercise" />
-                Ejercicio autocorregible — preguntas con corrección automática.
+                {t("admin.homework.editor.formatExercise")}
               </label>
             </RadioGroup>
           </div>
@@ -259,7 +268,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           )}
 
           <div className="space-y-1">
-            <Label>Asignar a</Label>
+            <Label>{t("admin.homework.editor.assignLabel")}</Label>
             <StudentMultiSelect
               selected={assigneeIds}
               onChange={setAssigneeIds}
@@ -270,10 +279,12 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={backToList} disabled={saving}>
-              Cancelar
+              {t("admin.homework.editor.cancel")}
             </Button>
             <Button onClick={save} disabled={saving}>
-              {saving ? "Guardando…" : "Guardar"}
+              {saving
+                ? t("admin.homework.editor.saving")
+                : t("admin.homework.editor.save")}
             </Button>
           </div>
         </div>

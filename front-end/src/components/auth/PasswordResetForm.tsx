@@ -2,29 +2,14 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { forgotPassword, resetPassword, type ApiError } from "@/lib/auth";
 
-const emailSchema = z.object({
-  email: z.string().email("El correo electrónico no es válido."),
-});
-
-const newPasswordSchema = z
-  .object({
-    newPassword: z
-      .string()
-      .min(8, "La contraseña debe tener al menos 8 caracteres."),
-    confirmPassword: z.string(),
-  })
-  .refine((d) => d.newPassword === d.confirmPassword, {
-    message: "Las contraseñas no coinciden.",
-    path: ["confirmPassword"],
-  });
-
-type EmailData = z.infer<typeof emailSchema>;
-type NewPasswordData = z.infer<typeof newPasswordSchema>;
+type EmailData = { email: string };
+type NewPasswordData = { newPassword: string; confirmPassword: string };
 
 interface Props {
   token?: string;
@@ -42,7 +27,16 @@ export function PasswordResetForm({ token, onSuccess }: Props) {
 }
 
 function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
+  const { t } = useTranslation();
   const [submitted, setSubmitted] = useState(false);
+
+  const emailSchema = z.object({
+    email: z
+      .string()
+      .min(1, t("account.passwordResetForm.emailRequired"))
+      .email(t("account.passwordResetForm.emailRequired")),
+  });
+
   const {
     register,
     handleSubmit,
@@ -58,11 +52,10 @@ function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
     return (
       <div className="space-y-4 text-center">
         <p className="text-sm text-muted-foreground">
-          Si existe una cuenta con ese correo, recibirás un enlace para
-          restablecer tu contraseña. Revisa tu bandeja de entrada.
+          {t("account.passwordResetForm.linkSent")}
         </p>
         <Button variant="outline" onClick={onSuccess} className="w-full">
-          Volver
+          {t("account.passwordResetForm.back")}
         </Button>
       </div>
     );
@@ -71,11 +64,12 @@ function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Introduce tu correo y te enviaremos un enlace para restablecer tu
-        contraseña.
+        {t("account.passwordResetForm.forgotDescription")}
       </p>
       <div className="space-y-1">
-        <Label htmlFor="forgot-email">Correo electrónico</Label>
+        <Label htmlFor="forgot-email">
+          {t("account.loginForm.emailLabel")}
+        </Label>
         <Input
           id="forgot-email"
           type="email"
@@ -87,7 +81,9 @@ function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
         )}
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Enviando…" : "Enviar enlace"}
+        {isSubmitting
+          ? t("account.passwordResetForm.sending")
+          : t("account.passwordResetForm.sendLink")}
       </Button>
       <Button
         type="button"
@@ -95,7 +91,7 @@ function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
         onClick={onSuccess}
         className="w-full"
       >
-        Cancelar
+        {t("account.passwordResetForm.cancel")}
       </Button>
     </form>
   );
@@ -108,12 +104,29 @@ function NewPasswordForm({
   token: string;
   onSuccess: () => void;
 }) {
+  const { t } = useTranslation();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const newPasswordSchema = z
+    .object({
+      newPassword: z
+        .string()
+        .min(1, t("account.passwordResetForm.passwordRequired"))
+        .min(8, t("account.passwordResetForm.passwordTooShort")),
+      confirmPassword: z.string(),
+    })
+    .refine((d) => d.newPassword === d.confirmPassword, {
+      message: t("account.registrationForm.passwordMismatch"),
+      path: ["confirmPassword"],
+    });
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<NewPasswordData>({ resolver: zodResolver(newPasswordSchema) });
+  } = useForm<NewPasswordData>({
+    resolver: zodResolver(newPasswordSchema),
+  });
 
   const onSubmit = async (data: NewPasswordData) => {
     setServerError(null);
@@ -123,11 +136,9 @@ function NewPasswordForm({
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr.error === "INVALID_OR_EXPIRED_TOKEN") {
-        setServerError(
-          "El enlace de recuperación no es válido o ha expirado. Solicita uno nuevo.",
-        );
+        setServerError(t("account.passwordResetForm.linkExpiredError"));
       } else {
-        setServerError("Ha ocurrido un error. Inténtalo de nuevo.");
+        setServerError(t("account.passwordResetForm.genericError"));
       }
     }
   };
@@ -135,10 +146,12 @@ function NewPasswordForm({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Introduce tu nueva contraseña.
+        {t("account.passwordResetForm.resetDescription")}
       </p>
       <div className="space-y-1">
-        <Label htmlFor="new-password">Nueva contraseña</Label>
+        <Label htmlFor="new-password">
+          {t("account.passwordResetForm.newPasswordLabel")}
+        </Label>
         <Input
           id="new-password"
           type="password"
@@ -152,7 +165,9 @@ function NewPasswordForm({
         )}
       </div>
       <div className="space-y-1">
-        <Label htmlFor="confirm-new-password">Confirmar contraseña</Label>
+        <Label htmlFor="confirm-new-password">
+          {t("account.registrationForm.confirmPasswordLabel")}
+        </Label>
         <Input
           id="confirm-new-password"
           type="password"
@@ -167,7 +182,9 @@ function NewPasswordForm({
       </div>
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Guardando…" : "Cambiar contraseña"}
+        {isSubmitting
+          ? t("account.passwordResetForm.saving")
+          : t("account.passwordResetForm.changePassword")}
       </Button>
     </form>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getAvailability,
   addException,
@@ -26,6 +27,7 @@ function formatDate(iso: string): string {
 }
 
 export function AvailabilityExceptionList() {
+  const { t } = useTranslation();
   const [exceptions, setExceptions] = useState<AvailabilityException[]>([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState("");
@@ -38,7 +40,7 @@ export function AvailabilityExceptionList() {
   const load = () => {
     getAvailability()
       .then((a) => setExceptions(a.exceptions))
-      .catch(() => setError("No se pudieron cargar las excepciones."))
+      .catch(() => setError(t("admin.availability.exceptions.loadError")))
       .finally(() => setLoading(false));
   };
 
@@ -46,7 +48,7 @@ export function AvailabilityExceptionList() {
 
   const add = async () => {
     if (!date) {
-      setError("Elige una fecha.");
+      setError(t("admin.availability.exceptions.noDate"));
       return;
     }
     setSaving(true);
@@ -56,7 +58,9 @@ export function AvailabilityExceptionList() {
       setDate("");
       load();
     } catch (e) {
-      setError((e as ApiError).message ?? "No se pudo añadir la excepción.");
+      setError(
+        (e as ApiError).message ?? t("admin.availability.exceptions.addError"),
+      );
     } finally {
       setSaving(false);
     }
@@ -70,7 +74,9 @@ export function AvailabilityExceptionList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Excepciones por fecha</CardTitle>
+        <CardTitle className="text-lg">
+          {t("admin.availability.exceptions.title")}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-end gap-2">
@@ -88,8 +94,12 @@ export function AvailabilityExceptionList() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="BLOCK">Bloquear</SelectItem>
-              <SelectItem value="OPEN">Abrir</SelectItem>
+              <SelectItem value="BLOCK">
+                {t("admin.availability.exceptions.block")}
+              </SelectItem>
+              <SelectItem value="OPEN">
+                {t("admin.availability.exceptions.open")}
+              </SelectItem>
             </SelectContent>
           </Select>
           <Input
@@ -106,17 +116,21 @@ export function AvailabilityExceptionList() {
             className="h-8 w-28"
           />
           <Button size="sm" onClick={add} disabled={saving} className="h-8">
-            {saving ? "Añadiendo…" : "Añadir"}
+            {saving
+              ? t("admin.availability.exceptions.adding")
+              : t("admin.availability.exceptions.add")}
           </Button>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Cargando…</p>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.availability.exceptions.loading")}
+          </p>
         ) : exceptions.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No hay excepciones próximas.
+            {t("admin.availability.exceptions.noExceptions")}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -134,7 +148,9 @@ export function AvailabilityExceptionList() {
                         : "bg-green-100 text-green-700",
                     ].join(" ")}
                   >
-                    {e.kind === "BLOCK" ? "Bloqueado" : "Abierto"}
+                    {e.kind === "BLOCK"
+                      ? t("admin.availability.exceptions.blocked")
+                      : t("admin.availability.exceptions.opened")}
                   </span>
                   {formatDate(e.date)} · {e.startTime}–{e.endTime}
                 </span>
@@ -144,7 +160,7 @@ export function AvailabilityExceptionList() {
                   className="h-7 text-xs text-destructive"
                   onClick={() => remove(e.id)}
                 >
-                  Eliminar
+                  {t("admin.availability.exceptions.remove")}
                 </Button>
               </li>
             ))}

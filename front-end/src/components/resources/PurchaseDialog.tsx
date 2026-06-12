@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ export function PurchaseDialog({
   onClose,
   onSuccess,
 }: PurchaseDialogProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
@@ -49,12 +51,10 @@ export function PurchaseDialog({
     } catch (e) {
       const apiErr = e as ApiError;
       if (apiErr.error === "ALREADY_OWNED") {
-        setError("Ya tienes acceso a este recurso.");
+        setError(t("resources.purchase.alreadyOwnedError"));
       } else if (apiErr.error === "NOT_PURCHASABLE") {
-        setError("Este recurso es gratuito.");
+        setError(t("resources.purchase.notPurchasableError"));
       } else {
-        // 401 — redirect to sign in with return intent encoded in search params
-        // FR-009: return to purchase after sign in
         navigate({
           to: "/cuenta",
           search: {
@@ -83,25 +83,26 @@ export function PurchaseDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {confirmed ? "¡Recurso desbloqueado!" : "Confirmar compra"}
+            {confirmed
+              ? t("resources.purchase.confirmedTitle")
+              : t("resources.purchase.confirmTitle")}
           </DialogTitle>
         </DialogHeader>
 
         {confirmed ? (
           <div className="py-4 space-y-3">
             <p className="text-sm text-muted-foreground">
-              Ahora tienes acceso a <strong>{target?.title}</strong>. Puedes ver
-              los materiales directamente desde el catálogo.
+              {t("resources.purchase.confirmedTitle")}{" "}
+              <strong>{target?.title}</strong>.
             </p>
             <DialogFooter>
-              <Button onClick={onClose}>Cerrar</Button>
+              <Button onClick={onClose}>{t("resources.purchase.close")}</Button>
             </DialogFooter>
           </div>
         ) : (
           <div className="py-4 space-y-4">
             <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-              ⚠️ Esta es una versión de demostración — no se realiza ningún pago
-              real. El acceso se concede automáticamente al confirmar.
+              ⚠️ {t("resources.purchase.demoWarning")}
             </div>
 
             {target && (
@@ -117,10 +118,12 @@ export function PurchaseDialog({
 
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={onClose} disabled={loading}>
-                Cancelar
+                {t("resources.purchase.cancel")}
               </Button>
               <Button onClick={handleConfirm} disabled={loading}>
-                {loading ? "Procesando…" : "Confirmar y desbloquear"}
+                {loading
+                  ? t("resources.purchase.processing")
+                  : t("resources.purchase.confirmButton")}
               </Button>
             </DialogFooter>
           </div>

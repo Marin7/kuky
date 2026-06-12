@@ -1,11 +1,10 @@
+import { useTranslation } from "react-i18next";
 import type { Slot } from "@/lib/scheduling";
 
 interface SlotGridProps {
   slots: Slot[];
   onSelect: (slot: Slot) => void;
 }
-
-const DAY_NAMES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 function formatTime(iso: string): string {
   return new Intl.DateTimeFormat(undefined, {
@@ -33,12 +32,13 @@ function groupByDay(slots: Slot[]): Map<string, Slot[]> {
 }
 
 export function SlotGrid({ slots, onSelect }: SlotGridProps) {
+  const { t } = useTranslation();
   const byDay = groupByDay(slots);
 
   if (slots.length === 0) {
     return (
       <p className="text-center text-muted-foreground py-8">
-        No hay horas disponibles para esta semana.
+        {t("schedule.noSlotsWeek")}
       </p>
     );
   }
@@ -69,7 +69,7 @@ export function SlotGrid({ slots, onSelect }: SlotGridProps) {
                 {formatTime(slot.start)}
                 {slot.status === "BOOKED" && (
                   <span className="block text-[10px] opacity-70">
-                    reservado
+                    {t("schedule.booked")}
                   </span>
                 )}
               </button>

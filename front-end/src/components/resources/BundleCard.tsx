@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Package } from "lucide-react";
@@ -9,6 +10,7 @@ interface BundleCardProps {
 }
 
 export function BundleCard({ bundle, onBuy }: BundleCardProps) {
+  const { t } = useTranslation();
   const { title, description, priceCents, resourceSlugs, owned } = bundle;
 
   return (
@@ -17,7 +19,7 @@ export function BundleCard({ bundle, onBuy }: BundleCardProps) {
         <div className="flex items-center gap-2">
           <Package className="h-4 w-4 text-primary" />
           <Badge variant="default" className="text-xs">
-            Pack
+            {t("resources.bundle.badge")}
           </Badge>
         </div>
         {owned && <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />}
@@ -39,10 +41,12 @@ export function BundleCard({ bundle, onBuy }: BundleCardProps) {
       <div className="flex items-center justify-between mt-auto pt-2">
         <span className="font-semibold">{formatEur(priceCents)}</span>
         {owned ? (
-          <span className="text-sm text-green-700 font-medium">Adquirido</span>
+          <span className="text-sm text-green-700 font-medium">
+            {t("resources.bundle.acquired")}
+          </span>
         ) : (
           <Button size="sm" onClick={onBuy}>
-            Comprar pack
+            {t("resources.bundle.buy")}
           </Button>
         )}
       </div>

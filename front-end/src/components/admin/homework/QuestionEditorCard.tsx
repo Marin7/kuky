@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { AdminQuestion, AdminOption, QuestionKind } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const KIND_OPTIONS: { value: QuestionKind; label: string }[] = [
-  { value: "SINGLE_CHOICE", label: "Opción única" },
-  { value: "MULTI_CHOICE", label: "Opción múltiple" },
-  { value: "FILL_BLANK", label: "Rellenar el hueco" },
-];
 
 function defaultOptions(kind: QuestionKind): AdminOption[] {
   if (kind === "FILL_BLANK") return [{ label: "", correct: true }];
@@ -46,6 +41,8 @@ export function QuestionEditorCard({
   onMoveUp,
   onMoveDown,
 }: Props) {
+  const { t } = useTranslation();
+
   const setKind = (kind: QuestionKind) => {
     onChange({ ...question, kind, options: defaultOptions(kind) });
   };
@@ -59,7 +56,6 @@ export function QuestionEditorCard({
     onChange({ ...question, options });
   };
 
-  // Single-correct: selecting one option clears the others.
   const setSingleCorrect = (i: number) => {
     const options = question.options.map((o, idx) => ({
       ...o,
@@ -86,7 +82,9 @@ export function QuestionEditorCard({
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold">Pregunta {index + 1}</span>
+        <span className="text-sm font-semibold">
+          {t("admin.homework.questions.questionLabel", { index: index + 1 })}
+        </span>
         <div className="flex items-center gap-1">
           <Button
             type="button"
@@ -115,14 +113,14 @@ export function QuestionEditorCard({
             className="h-7 px-2 text-xs text-destructive"
             onClick={onRemove}
           >
-            Eliminar
+            {t("admin.homework.questions.remove")}
           </Button>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
         <div className="space-y-1">
-          <Label>Tipo</Label>
+          <Label>{t("admin.homework.questions.kindLabel")}</Label>
           <Select
             value={question.kind}
             onValueChange={(v) => setKind(v as QuestionKind)}
@@ -131,31 +129,36 @@ export function QuestionEditorCard({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {KIND_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
+              {(
+                [
+                  "SINGLE_CHOICE",
+                  "MULTI_CHOICE",
+                  "FILL_BLANK",
+                ] as QuestionKind[]
+              ).map((v) => (
+                <SelectItem key={v} value={v}>
+                  {t(`admin.homework.questions.kind.${v}`)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1">
-          <Label>Enunciado</Label>
+          <Label>{t("admin.homework.questions.promptLabel")}</Label>
           <Textarea
             value={question.prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={2}
-            placeholder="Ej. El plural de «el lápiz»"
+            placeholder={t("admin.homework.questions.promptPlaceholder")}
           />
         </div>
       </div>
 
       {isFillBlank ? (
         <div className="space-y-2">
-          <Label>Respuestas aceptadas</Label>
+          <Label>{t("admin.homework.questions.acceptedAnswers")}</Label>
           <p className="text-xs text-muted-foreground">
-            El alumno acierta si su respuesta coincide con alguna (sin
-            distinguir mayúsculas, pero respetando los acentos).
+            {t("admin.homework.questions.acceptedAnswersHint")}
           </p>
           {question.options.map((o, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -164,7 +167,9 @@ export function QuestionEditorCard({
                 onChange={(e) =>
                   setOption(i, { label: e.target.value, correct: true })
                 }
-                placeholder="Respuesta aceptada"
+                placeholder={t(
+                  "admin.homework.questions.acceptedAnswerPlaceholder",
+                )}
               />
               <Button
                 type="button"
@@ -185,16 +190,16 @@ export function QuestionEditorCard({
             className="h-8 text-xs"
             onClick={addOption}
           >
-            Añadir respuesta
+            {t("admin.homework.questions.addAnswer")}
           </Button>
         </div>
       ) : (
         <div className="space-y-2">
-          <Label>Opciones</Label>
+          <Label>{t("admin.homework.questions.optionsLabel")}</Label>
           <p className="text-xs text-muted-foreground">
             {question.kind === "SINGLE_CHOICE"
-              ? "Marca la única opción correcta."
-              : "Marca todas las opciones correctas."}
+              ? t("admin.homework.questions.singleHint")
+              : t("admin.homework.questions.multiHint")}
           </p>
           {question.kind === "SINGLE_CHOICE" ? (
             <RadioGroup
@@ -254,7 +259,7 @@ export function QuestionEditorCard({
             className="h-8 text-xs"
             onClick={addOption}
           >
-            Añadir opción
+            {t("admin.homework.questions.addOption")}
           </Button>
         </div>
       )}

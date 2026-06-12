@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   getLearning,
   type LearningResponse,
@@ -10,7 +11,6 @@ import { HomeworkList } from "./HomeworkList";
 import { HomeworkSubmitDialog } from "./HomeworkSubmitDialog";
 import { SharedPresentationsList } from "./SharedPresentationsList";
 
-// A few stacked section placeholders mirroring the loaded learning sections.
 function LearningSkeleton() {
   return (
     <div className="space-y-10">
@@ -30,6 +30,7 @@ function LearningSkeleton() {
 }
 
 export function LearningView() {
+  const { t } = useTranslation();
   const [data, setData] = useState<LearningResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,9 +41,7 @@ export function LearningView() {
     setError(null);
     getLearning()
       .then(setData)
-      .catch(() =>
-        setError("No se pudo cargar tu aprendizaje. Inténtalo de nuevo."),
-      )
+      .catch(() => setError(t("learning.loadError")))
       .finally(() => setLoading(false));
   };
 

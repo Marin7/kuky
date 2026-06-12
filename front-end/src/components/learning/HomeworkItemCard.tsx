@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { HomeworkItem, HomeworkType, HomeworkLevel } from "@/lib/learning";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,25 +12,11 @@ function formatDate(iso: string): string {
   }).format(new Date(iso));
 }
 
-const STATUS_LABEL: Record<HomeworkItem["status"], string> = {
-  PENDING: "Pendiente",
-  SUBMITTED: "Entregada",
-  REVIEWED: "Revisada",
-  GRADED: "Calificada",
-};
-
 const STATUS_CLASS: Record<HomeworkItem["status"], string> = {
   PENDING: "bg-muted text-muted-foreground",
   SUBMITTED: "bg-green-100 text-green-700",
   REVIEWED: "bg-blue-100 text-blue-700",
   GRADED: "bg-green-100 text-green-700",
-};
-
-const TYPE_LABEL: Record<HomeworkType, string> = {
-  AUDIO: "Escucha",
-  READ: "Lectura",
-  WRITE: "Escritura",
-  GRAMMAR: "Gramática",
 };
 
 const TYPE_CLASS: Record<HomeworkType, string> = {
@@ -54,6 +41,7 @@ interface HomeworkItemCardProps {
 }
 
 export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
+  const { t } = useTranslation();
   return (
     <Card className="text-sm">
       <CardContent className="pt-4 space-y-2">
@@ -68,7 +56,7 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
                     TYPE_CLASS[item.homeworkType],
                   ].join(" ")}
                 >
-                  {TYPE_LABEL[item.homeworkType]}
+                  {t(`learning.homework.type.${item.homeworkType}`)}
                 </span>
               )}
               {item.level && (
@@ -86,7 +74,7 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
           <div className="flex shrink-0 items-center gap-1.5">
             {item.overdue && (
               <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                Atrasada
+                {t("learning.homework.overdue")}
               </span>
             )}
             <span
@@ -95,7 +83,7 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
                 STATUS_CLASS[item.status],
               ].join(" ")}
             >
-              {STATUS_LABEL[item.status]}
+              {t(`learning.homework.status.${item.status}`)}
               {item.status === "GRADED" &&
                 item.scorePercent !== null &&
                 ` — ${item.scorePercent}%`}
@@ -107,14 +95,16 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
 
         {item.dueOn && (
           <p className="text-xs text-muted-foreground">
-            Fecha límite:{" "}
+            {t("learning.homework.dueOn")}{" "}
             <span className="capitalize">{formatDate(item.dueOn)}</span>
           </p>
         )}
 
         {item.response && (
           <p className="rounded-md bg-secondary/40 p-2 text-muted-foreground">
-            <span className="font-medium text-foreground">Tu respuesta: </span>
+            <span className="font-medium text-foreground">
+              {t("learning.homework.yourResponse")}{" "}
+            </span>
             {item.response}
           </p>
         )}
@@ -130,7 +120,9 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
               to="/aprendizaje/tarea/$homeworkId"
               params={{ homeworkId: item.id }}
             >
-              {item.status === "GRADED" ? "Ver resultado" : "Empezar ejercicio"}
+              {item.status === "GRADED"
+                ? t("learning.homework.viewResult")
+                : t("learning.homework.startExercise")}
             </Link>
           </Button>
         ) : (
@@ -142,8 +134,8 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
               className="h-8 text-xs"
             >
               {item.status === "PENDING"
-                ? "Entregar tarea"
-                : "Editar respuesta"}
+                ? t("learning.homework.submitHomework")
+                : t("learning.homework.editResponse")}
             </Button>
           )
         )}

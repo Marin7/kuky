@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getStudents, studentDisplayName, type Student } from "@/lib/admin";
 import { StudentLink } from "./StudentLink";
 
 export function StudentsTab() {
+  const { t } = useTranslation();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,14 +17,16 @@ export function StudentsTab() {
 
   if (loading) {
     return (
-      <p className="text-sm text-muted-foreground animate-pulse">Cargando…</p>
+      <p className="text-sm text-muted-foreground animate-pulse">
+        {t("admin.students.loading")}
+      </p>
     );
   }
 
   if (students.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Aún no hay alumnos registrados.
+        {t("admin.students.empty")}
       </p>
     );
   }
@@ -30,9 +34,10 @@ export function StudentsTab() {
   return (
     <>
       <p className="text-sm text-muted-foreground mb-4">
-        {students.length}{" "}
-        {students.length === 1 ? "alumno registrado" : "alumnos registrados"}.
-        Haz clic en un nombre para ver su perfil.
+        {students.length === 1
+          ? t("admin.students.countSingular", { count: students.length })
+          : t("admin.students.countPlural", { count: students.length })}{" "}
+        {t("admin.students.hint")}
       </p>
       <ul className="divide-y rounded-lg border">
         {students.map((s) => {

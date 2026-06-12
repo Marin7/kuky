@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Slot } from "@/lib/scheduling";
 
 function toLocalDateKey(iso: string, timezone: string): string {
@@ -7,8 +8,8 @@ function toLocalDateKey(iso: string, timezone: string): string {
   );
 }
 
-function formatMonthYear(dateKey: string): string {
-  return new Intl.DateTimeFormat("es", {
+function formatMonthYear(dateKey: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     month: "long",
     year: "numeric",
   }).format(new Date(dateKey + "T12:00:00"));
@@ -73,6 +74,7 @@ export function CalendarPicker({
   selectedDay,
   onSelectDay,
 }: CalendarPickerProps) {
+  const { t, i18n } = useTranslation();
   const todayKey = toLocalDateKey(new Date().toISOString(), timezone);
 
   const availableDays = useMemo(() => {
@@ -99,11 +101,13 @@ export function CalendarPicker({
   const week1 = allDays.slice(0, 7);
   const week2 = allDays.slice(7, 14);
 
-  const month1 = allDays[0] ? formatMonthYear(allDays[0]) : "";
-  const month2 = allDays[13] ? formatMonthYear(allDays[13]) : "";
+  const month1 = allDays[0] ? formatMonthYear(allDays[0], i18n.language) : "";
+  const month2 = allDays[13] ? formatMonthYear(allDays[13], i18n.language) : "";
   const monthLabel = month1 === month2 ? month1 : `${month1} – ${month2}`;
 
-  const DAY_HEADERS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
+  const dayHeaders = t("schedule.calendarDays", {
+    returnObjects: true,
+  }) as unknown as string[];
 
   const renderWeek = (days: string[]) => (
     <div className="grid grid-cols-7 gap-1">
@@ -127,7 +131,7 @@ export function CalendarPicker({
       </p>
 
       <div className="grid grid-cols-7 gap-1">
-        {DAY_HEADERS.map((d) => (
+        {dayHeaders.map((d) => (
           <div
             key={d}
             className="flex items-center justify-center h-8 text-xs font-medium text-muted-foreground"

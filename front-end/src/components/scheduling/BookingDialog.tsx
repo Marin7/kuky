@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -27,26 +28,17 @@ function formatSlotDateTime(iso: string): string {
   }).format(new Date(iso));
 }
 
-const ERROR_MESSAGES: Record<string, string> = {
-  SLOT_UNAVAILABLE: "Esta hora ya no está disponible. Por favor, elige otra.",
-  BOOKING_TOO_SOON:
-    "Esta hora está demasiado próxima. Reserva con al menos 24 horas de antelación.",
-  SLOT_OUT_OF_RANGE: "Esta hora no está disponible para reservar.",
-  MEETING_PROVISIONING_FAILED:
-    "No se pudo crear la videollamada. Por favor, inténtalo de nuevo.",
-};
-
 export function BookingDialog({
   slot,
   isAuthenticated,
   onClose,
   onSuccess,
 }: BookingDialogProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
 
-  // Reset dialog state each time a different slot is selected
   useEffect(() => {
     if (slot) {
       setJoinUrl(null);
@@ -54,6 +46,16 @@ export function BookingDialog({
       setLoading(false);
     }
   }, [slot?.start]);
+
+  const getErrorMessage = (errorCode: string): string => {
+    const map: Record<string, string> = {
+      SLOT_UNAVAILABLE: t("schedule.booking.slotUnavailableError"),
+      BOOKING_TOO_SOON: t("schedule.booking.bookingTooSoonError"),
+      SLOT_OUT_OF_RANGE: t("schedule.booking.slotOutOfRangeError"),
+      MEETING_PROVISIONING_FAILED: t("schedule.booking.meetingError"),
+    };
+    return map[errorCode] ?? t("schedule.booking.genericError");
+  };
 
   const handleConfirm = async () => {
     if (!slot) return;
@@ -65,10 +67,7 @@ export function BookingDialog({
       onSuccess();
     } catch (e) {
       const apiErr = e as ApiError;
-      setError(
-        ERROR_MESSAGES[apiErr.error] ??
-          "Ha ocurrido un error. Por favor, inténtalo de nuevo.",
-      );
+      setError(getErrorMessage(apiErr.error));
     } finally {
       setLoading(false);
     }
@@ -87,28 +86,30 @@ export function BookingDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {joinUrl ? "¡Reserva confirmada!" : "Confirmar reserva"}
+            {joinUrl
+              ? t("schedule.booking.confirmedTitle")
+              : t("schedule.booking.confirmTitle")}
           </DialogTitle>
         </DialogHeader>
 
         {!isAuthenticated ? (
           <div className="py-4 space-y-3 text-center">
             <p className="text-sm text-muted-foreground">
-              Debes iniciar sesión para reservar una clase.
+              {t("schedule.booking.loginRequired")}
             </p>
             <Button asChild onClick={onClose}>
-              <Link to="/cuenta">Iniciar sesión</Link>
+              <Link to="/cuenta">{t("schedule.booking.loginButton")}</Link>
             </Button>
           </div>
         ) : joinUrl ? (
           <div className="py-4 space-y-4">
             <p className="text-sm text-muted-foreground">
-              Tu clase ha sido reservada para el{" "}
+              {t("schedule.booking.confirmedTitle")}{" "}
               <strong>{slot ? formatSlotDateTime(slot.start) : ""}</strong>.
             </p>
             <div className="rounded-md bg-muted p-3">
               <p className="text-xs text-muted-foreground mb-1">
-                Enlace de Zoom
+                {t("schedule.booking.zoomLink")}
               </p>
               <a
                 href={joinUrl}
@@ -120,27 +121,29 @@ export function BookingDialog({
               </a>
             </div>
             <p className="text-xs text-muted-foreground">
-              Recibirás este enlace también por correo electrónico.
+              {t("schedule.booking.zoomEmailNote")}
             </p>
             <DialogFooter>
-              <Button onClick={onClose}>Cerrar</Button>
+              <Button onClick={onClose}>{t("schedule.booking.close")}</Button>
             </DialogFooter>
           </div>
         ) : (
           <div className="py-4 space-y-4">
             {slot && (
               <p className="text-sm text-muted-foreground">
-                Reservar clase para el{" "}
+                {t("schedule.booking.confirmTitle")}{" "}
                 <strong>{formatSlotDateTime(slot.start)}</strong>.
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={onClose} disabled={loading}>
-                Cancelar
+                {t("schedule.booking.cancel")}
               </Button>
               <Button onClick={handleConfirm} disabled={loading}>
-                {loading ? "Reservando…" : "Confirmar reserva"}
+                {loading
+                  ? t("schedule.booking.confirming")
+                  : t("schedule.booking.confirm")}
               </Button>
             </DialogFooter>
           </div>
