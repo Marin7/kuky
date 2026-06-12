@@ -35,6 +35,7 @@ class LearningControllerIntegrationTest {
 
     private MockMvc mockMvc;
     private String testEmail;
+    private UUID testAssignmentId;
 
     @BeforeEach
     void setUp() {
@@ -46,16 +47,21 @@ class LearningControllerIntegrationTest {
         jdbcTemplate.update(
                 "INSERT INTO users (id, email, password_hash, status, gdpr_consent) VALUES (gen_random_uuid(), ?, 'hash', 'ACTIVE', true)",
                 testEmail);
+        testAssignmentId = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO homework_assignments (id, title, instructions, published, format, sort_order) VALUES (?, 'Test assignment', 'Do the thing', true, 'MANUAL', 0)",
+                testAssignmentId);
     }
 
     @AfterEach
     void tearDown() {
         jdbcTemplate.update(
-                "DELETE FROM homework_submissions WHERE user_id = (SELECT id FROM users WHERE email = ?)",
-                testEmail);
+                "DELETE FROM homework_submissions WHERE assignment_id = ?",
+                testAssignmentId);
         jdbcTemplate.update(
-                "DELETE FROM homework_targets WHERE user_id = (SELECT id FROM users WHERE email = ?)",
-                testEmail);
+                "DELETE FROM homework_targets WHERE assignment_id = ?",
+                testAssignmentId);
+        jdbcTemplate.update("DELETE FROM homework_assignments WHERE id = ?", testAssignmentId);
         jdbcTemplate.update("DELETE FROM users WHERE email = ?", testEmail);
     }
 
@@ -80,16 +86,12 @@ class LearningControllerIntegrationTest {
 
     @Test
     void submitHomework_authenticated_flipsStatusToSubmitted() throws Exception {
-        UUID assignmentId = jdbcTemplate.queryForObject(
-                "SELECT id FROM homework_assignments WHERE published = true ORDER BY sort_order LIMIT 1",
-                UUID.class);
-
         // Make the assignment visible to this student via homework_targets
         jdbcTemplate.update(
                 "INSERT INTO homework_targets (assignment_id, user_id) SELECT ?, id FROM users WHERE email = ?",
-                assignmentId, testEmail);
+                testAssignmentId, testEmail);
 
-        mockMvc.perform(put("/api/v1/learning/homework/" + assignmentId)
+        mockMvc.perform(put("/api/v1/learning/homework/" + testAssignmentId)
                         .with(authentication(principal(testEmail)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"response\":\"Mi respuesta de prueba.\"}"))
@@ -100,7 +102,7 @@ class LearningControllerIntegrationTest {
         // Persisted: a second GET shows the submitted status
         mockMvc.perform(get("/api/v1/learning").with(authentication(principal(testEmail))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.homework[?(@.id=='" + assignmentId + "')].status").value("SUBMITTED"));
+                .andExpect(jsonPath("$.homework[?(@.id=='" + testAssignmentId + "')].status").value("SUBMITTED"));
     }
 
     @Test

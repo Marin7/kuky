@@ -9,7 +9,17 @@ import { StudentsTab } from "@/components/admin/students/StudentsTab";
  * Teacher control panel. Three areas — availability, homework, presentations —
  * presented as tabs. The route (panel.tsx) guarantees only ADMIN reaches here.
  */
-export function AdminPanel() {
+const VALID_TABS = [
+  "bookings",
+  "students",
+  "availability",
+  "homework",
+  "presentations",
+];
+
+export function AdminPanel({ initialTab }: { initialTab?: string }) {
+  const defaultTab =
+    initialTab && VALID_TABS.includes(initialTab) ? initialTab : "bookings";
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-display text-3xl font-semibold text-primary">
@@ -20,7 +30,7 @@ export function AdminPanel() {
         presentaciones.
       </p>
 
-      <Tabs defaultValue="bookings" className="mt-8">
+      <Tabs defaultValue={defaultTab} className="mt-8">
         <TabsList>
           <TabsTrigger value="bookings">Reservas</TabsTrigger>
           <TabsTrigger value="students">Alumnos</TabsTrigger>

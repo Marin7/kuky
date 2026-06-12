@@ -1,9 +1,11 @@
 import { API_ORIGIN } from "@/lib/api";
 const API_BASE = `${API_ORIGIN}/api/v1`;
 
-export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED";
+export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+export type HomeworkFormat = "MANUAL" | "EXERCISE";
+export type QuestionKind = "SINGLE_CHOICE" | "MULTI_CHOICE" | "FILL_BLANK";
 
 export interface PresentationBlock {
   heading: string;
@@ -24,10 +26,57 @@ export interface HomeworkItem {
   dueOn: string | null; // ISO date or null
   homeworkType: HomeworkType | null;
   level: HomeworkLevel | null;
+  format: HomeworkFormat;
   status: HomeworkStatus;
   response: string | null;
+  scorePercent: number | null; // present when status === "GRADED"
   submittedAt: string | null; // ISO instant or null
   overdue: boolean;
+}
+
+// --- Self-correcting exercises ---------------------------------------------
+
+export interface StudentOption {
+  id: string;
+  label: string;
+}
+
+export interface StudentQuestion {
+  id: string;
+  kind: QuestionKind;
+  prompt: string;
+  options: StudentOption[]; // empty for FILL_BLANK
+}
+
+export interface QuestionResult {
+  questionId: string;
+  score: number; // 0..1
+  correct: boolean;
+  correctOptionIds: string[];
+  acceptedAnswers: string[];
+}
+
+export interface ExerciseResult {
+  scorePercent: number;
+  fullyCorrectCount: number;
+  totalQuestions: number;
+  questions: QuestionResult[];
+}
+
+export interface ExerciseResponse {
+  id: string;
+  title: string;
+  instructions: string;
+  format: "EXERCISE";
+  status: HomeworkStatus; // PENDING or GRADED
+  questions: StudentQuestion[];
+  result: ExerciseResult | null;
+}
+
+export interface AnswerPayload {
+  questionId: string;
+  selectedOptionIds: string[];
+  answerText: string | null;
 }
 
 export interface SharedPresentationSummary {
@@ -72,6 +121,18 @@ export const submitHomework = (assignmentId: string, response?: string) =>
   apiCall<HomeworkItem>(`/learning/homework/${assignmentId}`, {
     method: "PUT",
     body: JSON.stringify({ response: response ?? null }),
+  });
+
+export const getExercise = (assignmentId: string) =>
+  apiCall<ExerciseResponse>(`/learning/homework/${assignmentId}`);
+
+export const submitExercise = (
+  assignmentId: string,
+  answers: AnswerPayload[],
+) =>
+  apiCall<ExerciseResult>(`/learning/homework/${assignmentId}/answers`, {
+    method: "PUT",
+    body: JSON.stringify({ answers }),
   });
 
 export const downloadPresentation = async (

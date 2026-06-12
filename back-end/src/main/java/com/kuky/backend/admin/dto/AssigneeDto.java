@@ -11,5 +11,6 @@ public record AssigneeDto(
         String username,
         String status,
         String responseText,
-        Instant submittedAt
+        Instant submittedAt,
+        Integer scorePercent   // set for GRADED exercise submissions; null otherwise
 ) {}

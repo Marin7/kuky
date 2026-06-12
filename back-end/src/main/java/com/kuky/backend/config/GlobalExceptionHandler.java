@@ -161,7 +161,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SubmissionNotAllowedException.class)
     public ResponseEntity<Map<String, String>> handleSubmissionNotAllowed(SubmissionNotAllowedException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
+        return ResponseEntity.status(ex.getStatus())
                 .body(Map.of("error", "SUBMISSION_NOT_ALLOWED", "message", ex.getMessage()));
     }
 

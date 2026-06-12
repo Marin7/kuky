@@ -11,8 +11,10 @@ public record HomeworkItemResponse(
         LocalDate dueOn,
         String homeworkType,
         String level,
+        String format,            // MANUAL | EXERCISE
         String status,
         String response,
+        Integer scorePercent,     // present when status == GRADED
         Instant submittedAt,
         boolean overdue
 ) {}

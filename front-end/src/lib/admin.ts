@@ -137,9 +137,10 @@ export interface Assignee {
   firstName: string | null;
   lastName: string | null;
   username: string | null;
-  status: "PENDING" | "SUBMITTED" | "REVIEWED";
+  status: "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
   responseText: string | null;
   submittedAt: string | null;
+  scorePercent: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -185,6 +186,21 @@ export const getStudentProfile = (id: string) =>
 
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+export type HomeworkFormat = "MANUAL" | "EXERCISE";
+export type QuestionKind = "SINGLE_CHOICE" | "MULTI_CHOICE" | "FILL_BLANK";
+
+export interface AdminOption {
+  id?: string;
+  label: string;
+  correct: boolean;
+}
+
+export interface AdminQuestion {
+  id?: string;
+  kind: QuestionKind;
+  prompt: string;
+  options: AdminOption[];
+}
 
 export interface HomeworkAdminItem {
   id: string;
@@ -193,10 +209,15 @@ export interface HomeworkAdminItem {
   dueOn: string | null;
   homeworkType: HomeworkType | null;
   level: HomeworkLevel | null;
+  format: HomeworkFormat;
+  questions: AdminQuestion[];
   assignees: Assignee[];
 }
 
 export const getHomework = () => apiCall<HomeworkAdminItem[]>("/homework");
+
+export const getHomeworkById = (id: string) =>
+  apiCall<HomeworkAdminItem>(`/homework/${id}`);
 
 export const createHomework = (
   title: string,
@@ -204,6 +225,8 @@ export const createHomework = (
   dueOn: string | null,
   homeworkType: HomeworkType | null,
   level: HomeworkLevel | null,
+  format: HomeworkFormat,
+  questions: AdminQuestion[],
   assigneeIds: string[],
 ) =>
   apiCall<HomeworkAdminItem>("/homework", {
@@ -214,6 +237,8 @@ export const createHomework = (
       dueOn,
       homeworkType,
       level,
+      format,
+      questions,
       assigneeIds,
     }),
   });
@@ -225,10 +250,20 @@ export const updateHomework = (
   dueOn: string | null,
   homeworkType: HomeworkType | null,
   level: HomeworkLevel | null,
+  format: HomeworkFormat,
+  questions: AdminQuestion[],
 ) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}`, {
     method: "PUT",
-    body: JSON.stringify({ title, instructions, dueOn, homeworkType, level }),
+    body: JSON.stringify({
+      title,
+      instructions,
+      dueOn,
+      homeworkType,
+      level,
+      format,
+      questions,
+    }),
   });
 
 export const setAssignees = (id: string, assigneeIds: string[]) =>

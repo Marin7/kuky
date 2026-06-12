@@ -265,6 +265,19 @@ The following scheduling defaults can be overridden via `app.scheduling.*` in YA
 - **Homework is per-student**: a `homework_targets` join table (migration `V8`) replaces the old
   shared-to-all model — a student sees a homework item only if assigned to them. The `V5` seeded
   assignments have no targets, so they are now unshared drafts.
+- **Homework has a `format`: `MANUAL` or `EXERCISE`** (migration `V15`, feature 007). `MANUAL` is the
+  existing free-text-response homework (unchanged; all pre-existing rows default to `MANUAL`). An
+  `EXERCISE` is self-correcting: ordered `homework_questions` of kind `SINGLE_CHOICE` (radio, 0/1),
+  `MULTI_CHOICE` (checkboxes, partial credit) or `FILL_BLANK` (one blank, accent-exact text match).
+  The answer key lives in `homework_question_options` (a unified table serving both choice options and
+  fill-blank accepted answers). Authoring moved off the old dialog onto dedicated full pages
+  `/panel/tareas/nueva` and `/panel/tareas/:id` (`HomeworkEditorPage`). Students take an exercise on
+  `/aprendizaje/tarea/:id`; on submit, `ExerciseGradingService` auto-grades, persists per-question
+  `homework_answers` (+ `homework_answer_options`) and a `score_percent`, and the submission moves to
+  the new terminal `GRADED` status (single submission, then read-only). The answer key is hidden from
+  students pre-submit via separate student/teacher DTOs (`ExerciseQuestionDto` omits `correct`),
+  revealed only in the post-submit result. Manual homework keeps its `PENDING → SUBMITTED → REVIEWED`
+  flow untouched.
 - **Presentations**: teacher-authored decks (`presentations` / `presentation_slides` / `presentation_shares`,
   migration `V9`) with uploaded images stored in an `images` BYTEA table and served via
   `GET /api/v1/images/{id}`. A deck is visible to a student only if shared (else 404). Image uploads are
@@ -279,5 +292,5 @@ The following scheduling defaults can be overridden via `app.scheduling.*` in YA
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/006-teacher-backoffice/plan.md`
+`specs/007-homework-exercises/plan.md`
 <!-- SPECKIT END -->

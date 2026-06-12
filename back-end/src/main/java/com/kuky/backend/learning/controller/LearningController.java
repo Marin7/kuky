@@ -1,8 +1,12 @@
 package com.kuky.backend.learning.controller;
 
+import com.kuky.backend.learning.dto.ExerciseResponse;
+import com.kuky.backend.learning.dto.ExerciseResultResponse;
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
 import com.kuky.backend.learning.dto.LearningResponse;
+import com.kuky.backend.learning.dto.SubmitExerciseRequest;
 import com.kuky.backend.learning.dto.SubmitHomeworkRequest;
+import com.kuky.backend.learning.service.ExerciseGradingService;
 import com.kuky.backend.learning.service.HomeworkSubmissionService;
 import com.kuky.backend.learning.service.LearningService;
 import com.kuky.backend.presentations.model.PresentationFile;
@@ -23,11 +27,14 @@ public class LearningController {
 
     private final LearningService learningService;
     private final HomeworkSubmissionService submissionService;
+    private final ExerciseGradingService gradingService;
 
     public LearningController(LearningService learningService,
-                             HomeworkSubmissionService submissionService) {
+                             HomeworkSubmissionService submissionService,
+                             ExerciseGradingService gradingService) {
         this.learningService = learningService;
         this.submissionService = submissionService;
+        this.gradingService = gradingService;
     }
 
     @GetMapping
@@ -56,5 +63,20 @@ public class LearningController {
             @Valid @RequestBody(required = false) SubmitHomeworkRequest request) {
         String response = request == null ? null : request.response();
         return ResponseEntity.ok(submissionService.submit(email, assignmentId, response));
+    }
+
+    @GetMapping("/homework/{assignmentId}")
+    public ResponseEntity<ExerciseResponse> getExercise(
+            @AuthenticationPrincipal String email,
+            @PathVariable UUID assignmentId) {
+        return ResponseEntity.ok(gradingService.getExercise(email, assignmentId));
+    }
+
+    @PutMapping("/homework/{assignmentId}/answers")
+    public ResponseEntity<ExerciseResultResponse> submitExercise(
+            @AuthenticationPrincipal String email,
+            @PathVariable UUID assignmentId,
+            @RequestBody(required = false) SubmitExerciseRequest request) {
+        return ResponseEntity.ok(gradingService.submit(email, assignmentId, request));
     }
 }

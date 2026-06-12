@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   getHomework,
   deleteHomework,
@@ -16,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HomeworkEditorDialog } from "./HomeworkEditorDialog";
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("es", {
@@ -30,6 +30,7 @@ const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pendiente",
   SUBMITTED: "Entregada",
   REVIEWED: "Revisada",
+  GRADED: "Calificada",
 };
 
 const TYPE_LABEL: Record<HomeworkType, string> = {
@@ -56,10 +57,9 @@ const LEVEL_CLASS: Record<HomeworkLevel, string> = {
 };
 
 export function HomeworkAdminList() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<HomeworkAdminItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<HomeworkAdminItem | null>(null);
   const [filterType, setFilterType] = useState<HomeworkType | "ALL">("ALL");
   const [filterLevel, setFilterLevel] = useState<HomeworkLevel | "ALL">("ALL");
 
@@ -73,15 +73,13 @@ export function HomeworkAdminList() {
 
   useEffect(load, []);
 
-  const openCreate = () => {
-    setEditing(null);
-    setDialogOpen(true);
-  };
+  const openCreate = () => navigate({ to: "/panel/tareas/nueva" });
 
-  const openEdit = (item: HomeworkAdminItem) => {
-    setEditing(item);
-    setDialogOpen(true);
-  };
+  const openEdit = (item: HomeworkAdminItem) =>
+    navigate({
+      to: "/panel/tareas/$homeworkId",
+      params: { homeworkId: item.id },
+    });
 
   const remove = async (item: HomeworkAdminItem) => {
     if (!window.confirm(`¿Eliminar la tarea "${item.title}"?`)) return;
@@ -173,6 +171,11 @@ export function HomeworkAdminList() {
                       {item.level}
                     </span>
                   )}
+                  {item.format === "EXERCISE" && (
+                    <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
+                      Ejercicio
+                    </span>
+                  )}
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <Button
@@ -231,12 +234,17 @@ export function HomeworkAdminList() {
                         <span
                           className={[
                             "rounded-full px-2 py-0.5 text-xs font-medium",
-                            a.status === "SUBMITTED" || a.status === "REVIEWED"
+                            a.status === "SUBMITTED" ||
+                            a.status === "REVIEWED" ||
+                            a.status === "GRADED"
                               ? "bg-green-100 text-green-700"
                               : "bg-muted text-muted-foreground",
                           ].join(" ")}
                         >
                           {STATUS_LABEL[a.status] ?? a.status}
+                          {a.status === "GRADED" &&
+                            a.scorePercent !== null &&
+                            ` — ${a.scorePercent}%`}
                         </span>
                       </li>
                     ))}
@@ -275,15 +283,6 @@ export function HomeworkAdminList() {
             </CardContent>
           </Card>
         ))
-      )}
-
-      {dialogOpen && (
-        <HomeworkEditorDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-          existing={editing}
-          onSaved={load}
-        />
       )}
     </div>
   );

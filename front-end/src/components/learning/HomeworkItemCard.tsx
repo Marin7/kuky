@@ -1,4 +1,5 @@
 import type { HomeworkItem, HomeworkType, HomeworkLevel } from "@/lib/learning";
+import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -14,12 +15,14 @@ const STATUS_LABEL: Record<HomeworkItem["status"], string> = {
   PENDING: "Pendiente",
   SUBMITTED: "Entregada",
   REVIEWED: "Revisada",
+  GRADED: "Calificada",
 };
 
 const STATUS_CLASS: Record<HomeworkItem["status"], string> = {
   PENDING: "bg-muted text-muted-foreground",
   SUBMITTED: "bg-green-100 text-green-700",
   REVIEWED: "bg-blue-100 text-blue-700",
+  GRADED: "bg-green-100 text-green-700",
 };
 
 const TYPE_LABEL: Record<HomeworkType, string> = {
@@ -93,6 +96,9 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
               ].join(" ")}
             >
               {STATUS_LABEL[item.status]}
+              {item.status === "GRADED" &&
+                item.scorePercent !== null &&
+                ` — ${item.scorePercent}%`}
             </span>
           </div>
         </div>
@@ -113,15 +119,33 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
           </p>
         )}
 
-        {item.status !== "REVIEWED" && (
+        {item.format === "EXERCISE" ? (
           <Button
-            variant={item.status === "PENDING" ? "default" : "outline"}
+            asChild
+            variant={item.status === "GRADED" ? "outline" : "default"}
             size="sm"
-            onClick={() => onOpen(item)}
             className="h-8 text-xs"
           >
-            {item.status === "PENDING" ? "Entregar tarea" : "Editar respuesta"}
+            <Link
+              to="/aprendizaje/tarea/$homeworkId"
+              params={{ homeworkId: item.id }}
+            >
+              {item.status === "GRADED" ? "Ver resultado" : "Empezar ejercicio"}
+            </Link>
           </Button>
+        ) : (
+          item.status !== "REVIEWED" && (
+            <Button
+              variant={item.status === "PENDING" ? "default" : "outline"}
+              size="sm"
+              onClick={() => onOpen(item)}
+              className="h-8 text-xs"
+            >
+              {item.status === "PENDING"
+                ? "Entregar tarea"
+                : "Editar respuesta"}
+            </Button>
+          )
         )}
       </CardContent>
     </Card>
