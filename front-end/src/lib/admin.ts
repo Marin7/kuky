@@ -69,6 +69,9 @@ export interface AdminBooking {
 
 export const getAdminBookings = () => apiCall<AdminBooking[]>("/bookings");
 
+export const cancelAdminBooking = (id: string) =>
+  apiCall<void>(`/bookings/${id}`, { method: "DELETE" });
+
 // ---------------------------------------------------------------------------
 // Availability (User Story 1)
 // ---------------------------------------------------------------------------

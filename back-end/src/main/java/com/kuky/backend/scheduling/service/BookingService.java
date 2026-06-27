@@ -139,6 +139,32 @@ public class BookingService {
                 booking.getSlotStart());
     }
 
+    /**
+     * Teacher-initiated cancellation. Unlike {@link #cancelBooking}, this bypasses the
+     * owner check and the 24h cancellation cutoff — the teacher may cancel any confirmed
+     * class at any time. Secured by the /api/v1/admin/** matcher in SecurityConfig.
+     */
+    public void cancelBookingAsAdmin(UUID bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Reserva no encontrada."));
+
+        if ("CANCELLED".equals(booking.getStatus())) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.STATE);
+        }
+
+        bookingRepository.markCancelled(bookingId, Instant.now());
+
+        if (booking.getZoomMeetingId() != null) {
+            meetingProvider.cancel(booking.getZoomMeetingId());
+        }
+
+        userRepository.findById(booking.getUserId()).ifPresent(student ->
+                emailService.sendCancellationByTeacher(
+                        student.getEmail(),
+                        props.getScheduling().getTeacherEmail(),
+                        booking.getSlotStart()));
+    }
+
     private BookingResponse toResponse(Booking b) {
         return new BookingResponse(
                 b.getId(),

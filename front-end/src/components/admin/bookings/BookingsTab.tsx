@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getAdminBookings, type AdminBooking } from "@/lib/admin";
+import {
+  getAdminBookings,
+  cancelAdminBooking,
+  type AdminBooking,
+} from "@/lib/admin";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StudentLink } from "@/components/admin/students/StudentLink";
 
@@ -32,6 +37,8 @@ export function BookingsTab() {
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   useEffect(() => {
     getAdminBookings()
@@ -39,6 +46,20 @@ export function BookingsTab() {
       .catch(() => setError(t("admin.bookings.loadError")))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleCancel = async (b: AdminBooking) => {
+    if (!window.confirm(t("admin.bookings.cancelConfirm"))) return;
+    setCancelling(b.id);
+    setCancelError(null);
+    try {
+      await cancelAdminBooking(b.id);
+      setBookings((prev) => prev.filter((x) => x.id !== b.id));
+    } catch {
+      setCancelError(t("admin.bookings.cancelError"));
+    } finally {
+      setCancelling(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -65,6 +86,7 @@ export function BookingsTab() {
       <p className="text-sm text-muted-foreground">
         {t("admin.bookings.description")}
       </p>
+      {cancelError && <p className="text-sm text-destructive">{cancelError}</p>}
       {bookings.map((b) => (
         <Card key={b.id} className="text-sm">
           <CardContent className="pt-4 space-y-1">
@@ -91,6 +113,19 @@ export function BookingsTab() {
                 {b.zoomJoinUrl}
               </a>
             )}
+            <div className="pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={cancelling === b.id}
+                onClick={() => handleCancel(b)}
+                className="h-7 text-xs"
+              >
+                {cancelling === b.id
+                  ? t("admin.bookings.cancelling")
+                  : t("admin.bookings.cancelClass")}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ))}

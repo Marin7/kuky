@@ -428,6 +428,10 @@ export const roDict = {
       loadError: "Nu s-au putut încărca rezervările.",
       empty: "Nu există cursuri confirmate viitoare.",
       loading: "Se încarcă…",
+      cancelClass: "Anulează cursul",
+      cancelling: "Se anulează…",
+      cancelConfirm: "Anulezi acest curs? Studentul va fi anunțat prin e-mail.",
+      cancelError: "Cursul nu a putut fi anulat. Încearcă din nou.",
     },
     homework: {
       loading: "Se încarcă…",
@@ -475,6 +479,8 @@ export const roDict = {
           "Manual — elevul scrie un răspuns liber pe care tu îl revizuiești.",
         formatExercise:
           "Exercițiu autocorectabil — întrebări cu corectare automată.",
+        formatWriteHint:
+          "Temele de scriere sunt întotdeauna revizuite manual — nu pot fi un exercițiu autocorectabil.",
         audioLabel: "Audio (ascultare)",
         audioHint:
           "Adaugă audio-ul pe care elevul îl va asculta: un link sau un fișier încărcat.",
@@ -575,6 +581,7 @@ export const roDict = {
         PENDING: "În așteptare",
         SUBMITTED: "Predată",
         REVIEWED: "Revizuită",
+        GRADED: "Notată",
         CONFIRMED: "Confirmată",
         CANCELLED: "Anulată",
       },

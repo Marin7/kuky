@@ -66,6 +66,7 @@ public class HomeworkAdminService {
         HomeworkType type = parseType(req.homeworkType());
         HomeworkLevel level = parseLevel(req.level());
         HomeworkFormat format = parseFormat(req.format());
+        validateTypeFormat(type, format);
         List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions());
         Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
 
@@ -83,6 +84,7 @@ public class HomeworkAdminService {
         HomeworkType type = parseType(req.homeworkType());
         HomeworkLevel level = parseLevel(req.level());
         HomeworkFormat format = parseFormat(req.format());
+        validateTypeFormat(type, format);
         List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions());
         Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
 
@@ -107,6 +109,17 @@ public class HomeworkAdminService {
     }
 
     // --- exercise validation + mapping --------------------------------------
+
+    /**
+     * Writing homework is always reviewed by the teacher; it can never be an
+     * auto-graded exercise. Throws {@link IllegalArgumentException}
+     * (→ VALIDATION_ERROR) on violation.
+     */
+    private static void validateTypeFormat(HomeworkType type, HomeworkFormat format) {
+        if (type == HomeworkType.WRITE && format == HomeworkFormat.EXERCISE) {
+            throw new IllegalArgumentException("Las tareas de escritura no pueden ser autocorregibles.");
+        }
+    }
 
     /**
      * Validates the authored questions against the format rules and maps the

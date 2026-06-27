@@ -430,6 +430,11 @@ export const esDict = {
       loadError: "No se pudieron cargar las reservas.",
       empty: "No hay clases confirmadas próximas.",
       loading: "Cargando…",
+      cancelClass: "Cancelar clase",
+      cancelling: "Cancelando…",
+      cancelConfirm:
+        "¿Cancelar esta clase? Se avisará al estudiante por correo.",
+      cancelError: "No se pudo cancelar la clase. Inténtalo de nuevo.",
     },
     homework: {
       loading: "Cargando…",
@@ -477,6 +482,8 @@ export const esDict = {
           "Manual — el alumno escribe una respuesta libre que tú revisas.",
         formatExercise:
           "Ejercicio autocorregible — preguntas con corrección automática.",
+        formatWriteHint:
+          "Las tareas de escritura siempre se revisan manualmente; no pueden ser un ejercicio autocorregible.",
         audioLabel: "Audio (comprensión auditiva)",
         audioHint:
           "Añade el audio que el alumno escuchará: un enlace o un archivo subido.",
@@ -577,6 +584,7 @@ export const esDict = {
         PENDING: "Pendiente",
         SUBMITTED: "Entregada",
         REVIEWED: "Revisada",
+        GRADED: "Calificada",
         CONFIRMED: "Confirmada",
         CANCELLED: "Cancelada",
       },

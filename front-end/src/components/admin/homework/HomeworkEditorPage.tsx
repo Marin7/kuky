@@ -91,6 +91,13 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       .finally(() => setLoading(false));
   }, [homeworkId]);
 
+  // Writing homework is always reviewed by the teacher — never auto-graded.
+  // Force MANUAL when WRITE is selected (also fixes any legacy EXERCISE record).
+  const autoGradeDisabled = homeworkType === "WRITE";
+  useEffect(() => {
+    if (autoGradeDisabled && format === "EXERCISE") setFormat("MANUAL");
+  }, [autoGradeDisabled, format]);
+
   const backToList = () =>
     navigate({ to: "/panel", search: { tab: "homework" } as never });
 
@@ -272,11 +279,27 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
                 <RadioGroupItem value="MANUAL" id="fmt-manual" />
                 {t("admin.homework.editor.formatManual")}
               </label>
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="EXERCISE" id="fmt-exercise" />
+              <label
+                className={[
+                  "flex items-center gap-2 text-sm",
+                  autoGradeDisabled && "opacity-50",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <RadioGroupItem
+                  value="EXERCISE"
+                  id="fmt-exercise"
+                  disabled={autoGradeDisabled}
+                />
                 {t("admin.homework.editor.formatExercise")}
               </label>
             </RadioGroup>
+            {autoGradeDisabled && (
+              <p className="text-xs text-muted-foreground">
+                {t("admin.homework.editor.formatWriteHint")}
+              </p>
+            )}
           </div>
 
           {homeworkType === "AUDIO" && (

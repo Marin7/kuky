@@ -54,6 +54,22 @@ public class BookingEmailService {
         sendQuietly(teacherEmail, subject, body);
     }
 
+    /** Teacher-initiated cancellation: notify the student their class was cancelled. */
+    public void sendCancellationByTeacher(String studentEmail, String teacherEmail, Instant slotStart) {
+        String when = FMT.format(slotStart);
+        String subject = "Clase cancelada — Español con Paula";
+        String body = """
+                Tu clase del %s ha sido cancelada por la profesora.
+
+                Si lo deseas, puedes reservar otra hora desde la web.
+
+                Disculpa las molestias.
+                """.formatted(when);
+        sendQuietly(studentEmail, subject, body);
+        sendQuietly(teacherEmail, "Clase cancelada: " + studentEmail + " — " + when,
+                "Has cancelado la clase de " + studentEmail + " del " + when + ".");
+    }
+
     private void sendQuietly(String to, String subject, String text) {
         try {
             SimpleMailMessage msg = new SimpleMailMessage();

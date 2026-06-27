@@ -423,6 +423,11 @@ export const enDict = {
       loadError: "Could not load bookings.",
       empty: "No upcoming confirmed classes.",
       loading: "Loading…",
+      cancelClass: "Cancel class",
+      cancelling: "Cancelling…",
+      cancelConfirm:
+        "Cancel this class? The student will be notified by email.",
+      cancelError: "Could not cancel the class. Please try again.",
     },
     homework: {
       loading: "Loading…",
@@ -470,6 +475,8 @@ export const enDict = {
           "Manual — the student writes a free-form answer that you review.",
         formatExercise:
           "Self-grading exercise — questions with automatic correction.",
+        formatWriteHint:
+          "Writing homework is always reviewed manually — it can't be a self-grading exercise.",
         audioLabel: "Audio (listening)",
         audioHint:
           "Add the audio the student will listen to: a link or an uploaded file.",
@@ -570,6 +577,7 @@ export const enDict = {
         PENDING: "Pending",
         SUBMITTED: "Submitted",
         REVIEWED: "Reviewed",
+        GRADED: "Graded",
         CONFIRMED: "Confirmed",
         CANCELLED: "Cancelled",
       },
