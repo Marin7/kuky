@@ -12,6 +12,16 @@ function formatDate(iso: string): string {
   }).format(new Date(iso));
 }
 
+function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("es", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
+}
+
 const STATUS_CLASS: Record<HomeworkItem["status"], string> = {
   PENDING: "bg-muted text-muted-foreground",
   SUBMITTED: "bg-green-100 text-green-700",
@@ -100,6 +110,15 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
           </p>
         )}
 
+        {item.submittedAt && (
+          <p className="text-xs text-muted-foreground">
+            {t("learning.homework.submittedAt")}{" "}
+            <span className="capitalize">
+              {formatDateTime(item.submittedAt)}
+            </span>
+          </p>
+        )}
+
         {item.response && (
           <p className="rounded-md bg-secondary/40 p-2 text-muted-foreground">
             <span className="font-medium text-foreground">
@@ -125,6 +144,24 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
                 : t("learning.homework.startExercise")}
             </Link>
           </Button>
+        ) : item.homeworkType === "WRITE" ? (
+          item.status !== "REVIEWED" && (
+            <Button
+              asChild
+              variant={item.status === "PENDING" ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs"
+            >
+              <Link
+                to="/aprendizaje/redaccion/$homeworkId"
+                params={{ homeworkId: item.id }}
+              >
+                {item.status === "PENDING"
+                  ? t("learning.homework.submitHomework")
+                  : t("learning.homework.editResponse")}
+              </Link>
+            </Button>
+          )
         ) : (
           item.status !== "REVIEWED" && (
             <Button
