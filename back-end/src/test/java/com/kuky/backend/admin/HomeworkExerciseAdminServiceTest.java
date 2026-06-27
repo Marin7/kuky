@@ -7,6 +7,7 @@ import com.kuky.backend.admin.service.HomeworkAdminService;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
+import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
@@ -32,6 +33,7 @@ class HomeworkExerciseAdminServiceTest {
     private ContentRepository contentRepository;
     private HomeworkTargetRepository targetRepository;
     private HomeworkQuestionRepository questionRepository;
+    private AudioFileRepository audioFileRepository;
     private UserRepository userRepository;
     private HomeworkAdminService service;
 
@@ -42,11 +44,13 @@ class HomeworkExerciseAdminServiceTest {
         contentRepository = mock(ContentRepository.class);
         targetRepository = mock(HomeworkTargetRepository.class);
         questionRepository = mock(HomeworkQuestionRepository.class);
+        audioFileRepository = mock(AudioFileRepository.class);
         userRepository = mock(UserRepository.class);
-        service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository, userRepository);
+        service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                audioFileRepository, userRepository);
 
         // For the happy path: insert returns an id and the re-fetch returns an assignment.
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any()))
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(ASSIGNMENT_ID);
         HomeworkAssignment assignment = new HomeworkAssignment();
         assignment.setId(ASSIGNMENT_ID);
@@ -60,7 +64,7 @@ class HomeworkExerciseAdminServiceTest {
 
     private CreateHomeworkRequest exercise(List<HomeworkQuestionDto> questions) {
         return new CreateHomeworkRequest("Título", "Instrucciones", null, null, null,
-                "EXERCISE", questions, List.of());
+                "EXERCISE", questions, null, null, List.of());
     }
 
     private static HomeworkQuestionDto q(String kind, OptionDto... options) {
@@ -104,7 +108,7 @@ class HomeworkExerciseAdminServiceTest {
     @Test
     void manualWithQuestionsIsRejected() {
         var req = new CreateHomeworkRequest("Título", "Instrucciones", null, null, null,
-                "MANUAL", List.of(q("FILL_BLANK", new OptionDto(null, "fui", true))), List.of());
+                "MANUAL", List.of(q("FILL_BLANK", new OptionDto(null, "fui", true))), null, null, List.of());
         assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
     }
 

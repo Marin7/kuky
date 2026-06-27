@@ -16,5 +16,7 @@ public record HomeworkItemResponse(
         String response,
         Integer scorePercent,     // present when status == GRADED
         Instant submittedAt,
-        boolean overdue
+        boolean overdue,
+        String audioUrl,          // listening homework external source (nullable)
+        UUID audioFileId          // listening homework uploaded file (nullable)
 ) {}

@@ -8,6 +8,7 @@ import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
+import com.kuky.backend.learning.exception.InvalidAudioException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
 import com.kuky.backend.presentations.exception.InvalidImageException;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
@@ -183,5 +184,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInvalidImage(InvalidImageException ex) {
         return ResponseEntity.unprocessableEntity()
                 .body(Map.of("error", "INVALID_IMAGE", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidAudioException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidAudio(InvalidAudioException ex) {
+        return ResponseEntity.unprocessableEntity()
+                .body(Map.of("error", "INVALID_AUDIO", "message", ex.getMessage()));
     }
 }

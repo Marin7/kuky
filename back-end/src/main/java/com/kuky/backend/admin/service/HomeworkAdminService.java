@@ -16,6 +16,7 @@ import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.model.QuestionOption;
+import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
@@ -34,15 +35,18 @@ public class HomeworkAdminService {
     private final ContentRepository contentRepository;
     private final HomeworkTargetRepository targetRepository;
     private final HomeworkQuestionRepository questionRepository;
+    private final AudioFileRepository audioFileRepository;
     private final UserRepository userRepository;
 
     public HomeworkAdminService(ContentRepository contentRepository,
                                 HomeworkTargetRepository targetRepository,
                                 HomeworkQuestionRepository questionRepository,
+                                AudioFileRepository audioFileRepository,
                                 UserRepository userRepository) {
         this.contentRepository = contentRepository;
         this.targetRepository = targetRepository;
         this.questionRepository = questionRepository;
+        this.audioFileRepository = audioFileRepository;
         this.userRepository = userRepository;
     }
 
@@ -63,8 +67,10 @@ public class HomeworkAdminService {
         HomeworkLevel level = parseLevel(req.level());
         HomeworkFormat format = parseFormat(req.format());
         List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions());
+        Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
 
-        UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn(), type, level, format);
+        UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn(), type, level, format,
+                audio.url(), audio.fileId());
         questionRepository.replaceQuestions(id, questions);
         if (!assignees.isEmpty()) {
             targetRepository.replaceTargets(id, assignees);
@@ -78,8 +84,10 @@ public class HomeworkAdminService {
         HomeworkLevel level = parseLevel(req.level());
         HomeworkFormat format = parseFormat(req.format());
         List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions());
+        Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
 
-        contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format);
+        contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format,
+                audio.url(), audio.fileId());
         // Full replace of questions (preserves existing GRADED submissions — they are not re-graded).
         questionRepository.replaceQuestions(id, questions);
         return toItem(requireAssignment(id));
@@ -176,6 +184,27 @@ public class HomeworkAdminService {
         }
     }
 
+    // --- audio source -------------------------------------------------------
+
+    private record Audio(String url, UUID fileId) {}
+
+    /**
+     * Resolves the listening-audio source. Audio is only kept for {@code AUDIO}
+     * homework; for any other type both fields are cleared so a type change does
+     * not leave a dangling source. A blank URL becomes null, and an uploaded file
+     * id is verified to exist (→ VALIDATION_ERROR otherwise).
+     */
+    private Audio resolveAudio(HomeworkType type, String rawUrl, UUID fileId) {
+        if (type != HomeworkType.AUDIO) {
+            return new Audio(null, null);
+        }
+        String url = rawUrl == null || rawUrl.isBlank() ? null : rawUrl.strip();
+        if (fileId != null && audioFileRepository.findOriginalName(fileId).isEmpty()) {
+            throw new IllegalArgumentException("El audio subido no existe.");
+        }
+        return new Audio(url, fileId);
+    }
+
     // --- helpers -------------------------------------------------------------
 
     private HomeworkAssignment requireAssignment(UUID id) {
@@ -206,8 +235,12 @@ public class HomeworkAdminService {
                 ? questionRepository.findByAssignment(a.getId()).stream().map(this::toQuestionDto).toList()
                 : List.of();
 
+        String audioFileName = a.getAudioFileId() == null
+                ? null
+                : audioFileRepository.findOriginalName(a.getAudioFileId()).orElse(null);
+
         return new HomeworkAdminItem(a.getId(), a.getTitle(), a.getInstructions(), a.getDueOn(),
-                type, level, format, questions, assignees);
+                type, level, format, questions, a.getAudioUrl(), a.getAudioFileId(), audioFileName, assignees);
     }
 
     private HomeworkQuestionDto toQuestionDto(HomeworkQuestion q) {

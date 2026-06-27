@@ -13,6 +13,9 @@ public record ExerciseResponse(
         String instructions,
         String format,                       // always EXERCISE
         String status,                       // PENDING (not taken) or GRADED (locked)
+        String homeworkType,                 // AUDIO | READ | … (nullable)
+        String audioUrl,                     // listening homework external source (nullable)
+        UUID audioFileId,                    // listening homework uploaded file (nullable)
         List<ExerciseQuestionDto> questions,
         ExerciseResultResponse result        // null unless GRADED
 ) {}

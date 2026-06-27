@@ -95,6 +95,9 @@ public class ExerciseGradingService {
                 assignment.getInstructions(),
                 HomeworkFormat.EXERCISE.name(),
                 status,
+                assignment.getHomeworkType() == null ? null : assignment.getHomeworkType().name(),
+                assignment.getAudioUrl(),
+                assignment.getAudioFileId(),
                 buildStudentQuestions(questions),
                 result);
     }

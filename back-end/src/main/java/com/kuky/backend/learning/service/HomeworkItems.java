@@ -43,7 +43,9 @@ final class HomeworkItems {
                 response,
                 scorePercent,
                 submission != null ? submission.getSubmittedAt() : null,
-                overdue
+                overdue,
+                a.getAudioUrl(),
+                a.getAudioFileId()
         );
     }
 }

@@ -27,6 +27,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StudentMultiSelect } from "./StudentMultiSelect";
 import { QuestionListEditor } from "./QuestionListEditor";
+import { AudioSourceEditor, type AudioSourceValue } from "./AudioSourceEditor";
 
 const LEVEL_OPTIONS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
@@ -49,6 +50,11 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
   const [level, setLevel] = useState<HomeworkLevel | "">("");
   const [format, setFormat] = useState<HomeworkFormat>("MANUAL");
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
+  const [audio, setAudio] = useState<AudioSourceValue>({
+    audioUrl: null,
+    audioFileId: null,
+    audioFileName: null,
+  });
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
 
   const [saving, setSaving] = useState(false);
@@ -74,6 +80,11 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
         setLevel(hw.level ?? "");
         setFormat(hw.format);
         setQuestions(hw.questions ?? []);
+        setAudio({
+          audioUrl: hw.audioUrl,
+          audioFileId: hw.audioFileId,
+          audioFileName: hw.audioFileName,
+        });
         setAssigneeIds(hw.assignees.map((a) => a.userId));
       })
       .catch(() => setError(t("admin.homework.editor.loadError")))
@@ -95,6 +106,14 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       const type = homeworkType || null;
       const lvl = level || null;
       const qs = format === "EXERCISE" ? questions : [];
+      // Audio is only meaningful for listening homework; clear it otherwise.
+      const audioPayload =
+        type === "AUDIO"
+          ? {
+              audioUrl: audio.audioUrl?.trim() ? audio.audioUrl.trim() : null,
+              audioFileId: audio.audioFileId,
+            }
+          : { audioUrl: null, audioFileId: null };
       if (homeworkId) {
         await updateHomework(
           homeworkId,
@@ -105,6 +124,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           lvl,
           format,
           qs,
+          audioPayload,
         );
         await setAssignees(homeworkId, assigneeIds);
       } else {
@@ -116,6 +136,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           lvl,
           format,
           qs,
+          audioPayload,
           assigneeIds,
         );
       }
@@ -257,6 +278,10 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
               </label>
             </RadioGroup>
           </div>
+
+          {homeworkType === "AUDIO" && (
+            <AudioSourceEditor value={audio} onChange={setAudio} />
+          )}
 
           {format === "EXERCISE" && (
             <div className="rounded-lg border bg-muted/30 p-4">

@@ -32,6 +32,8 @@ export interface HomeworkItem {
   scorePercent: number | null; // present when status === "GRADED"
   submittedAt: string | null; // ISO instant or null
   overdue: boolean;
+  audioUrl: string | null; // listening homework external source
+  audioFileId: string | null; // listening homework uploaded file
 }
 
 // --- Self-correcting exercises ---------------------------------------------
@@ -69,6 +71,9 @@ export interface ExerciseResponse {
   instructions: string;
   format: "EXERCISE";
   status: HomeworkStatus; // PENDING or GRADED
+  homeworkType: HomeworkType | null;
+  audioUrl: string | null; // listening homework external source
+  audioFileId: string | null; // listening homework uploaded file
   questions: StudentQuestion[];
   result: ExerciseResult | null;
 }
@@ -114,6 +119,10 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
   return data as T;
 }
+
+/** Absolute URL of an uploaded audio file, served by the back-end. */
+export const audioFileUrl = (audioFileId: string) =>
+  `${API_BASE}/audio/${audioFileId}`;
 
 export const getLearning = () => apiCall<LearningResponse>("/learning");
 

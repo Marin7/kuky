@@ -211,13 +211,28 @@ export interface HomeworkAdminItem {
   level: HomeworkLevel | null;
   format: HomeworkFormat;
   questions: AdminQuestion[];
+  audioUrl: string | null; // listening homework external source
+  audioFileId: string | null; // listening homework uploaded file
+  audioFileName: string | null; // original filename of the uploaded audio
   assignees: Assignee[];
+}
+
+export interface AudioUpload {
+  id: string;
+  originalName: string;
+  contentType: string;
+  byteSize: number;
 }
 
 export const getHomework = () => apiCall<HomeworkAdminItem[]>("/homework");
 
 export const getHomeworkById = (id: string) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}`);
+
+export interface HomeworkAudio {
+  audioUrl: string | null;
+  audioFileId: string | null;
+}
 
 export const createHomework = (
   title: string,
@@ -227,6 +242,7 @@ export const createHomework = (
   level: HomeworkLevel | null,
   format: HomeworkFormat,
   questions: AdminQuestion[],
+  audio: HomeworkAudio,
   assigneeIds: string[],
 ) =>
   apiCall<HomeworkAdminItem>("/homework", {
@@ -239,6 +255,8 @@ export const createHomework = (
       level,
       format,
       questions,
+      audioUrl: audio.audioUrl,
+      audioFileId: audio.audioFileId,
       assigneeIds,
     }),
   });
@@ -252,6 +270,7 @@ export const updateHomework = (
   level: HomeworkLevel | null,
   format: HomeworkFormat,
   questions: AdminQuestion[],
+  audio: HomeworkAudio,
 ) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}`, {
     method: "PUT",
@@ -263,8 +282,24 @@ export const updateHomework = (
       level,
       format,
       questions,
+      audioUrl: audio.audioUrl,
+      audioFileId: audio.audioFileId,
     }),
   });
+
+// Audio upload is multipart — does not use the JSON apiCall helper.
+export const uploadHomeworkAudio = async (file: File): Promise<AudioUpload> => {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_BASE}/audio`, {
+    method: "POST",
+    credentials: "include",
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw data as ApiError;
+  return data as AudioUpload;
+};
 
 export const setAssignees = (id: string, assigneeIds: string[]) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}/assignees`, {

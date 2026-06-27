@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public record UpdateHomeworkRequest(
         @NotBlank @Size(max = 200) String title,
@@ -13,5 +14,7 @@ public record UpdateHomeworkRequest(
         String homeworkType,
         String level,
         String format,                       // MANUAL | EXERCISE (null ⇒ MANUAL)
-        List<HomeworkQuestionDto> questions  // required non-empty when format == EXERCISE
+        List<HomeworkQuestionDto> questions, // required non-empty when format == EXERCISE
+        @Size(max = 2000) String audioUrl,   // listening homework external source (nullable)
+        UUID audioFileId                     // listening homework uploaded file (nullable)
 ) {}

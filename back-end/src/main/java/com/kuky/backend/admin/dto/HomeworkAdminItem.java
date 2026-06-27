@@ -13,5 +13,8 @@ public record HomeworkAdminItem(
         String level,
         String format,                      // MANUAL | EXERCISE
         List<HomeworkQuestionDto> questions, // empty for MANUAL; with answer key for EXERCISE
+        String audioUrl,                    // listening homework external source (nullable)
+        UUID audioFileId,                   // listening homework uploaded file (nullable)
+        String audioFileName,               // original filename of the uploaded audio (nullable)
         List<AssigneeDto> assignees
 ) {}

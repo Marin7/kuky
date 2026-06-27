@@ -6,12 +6,11 @@ import { enDict } from "./locales/en";
 
 export type Lang = "es" | "ro" | "en";
 
-export const LANGUAGES: { code: Lang; countryCode: string; label: string }[] =
-  [
-    { code: "es", countryCode: "es", label: "ES" },
-    { code: "ro", countryCode: "ro", label: "RO" },
-    { code: "en", countryCode: "gb", label: "EN" },
-  ];
+export const LANGUAGES: { code: Lang; countryCode: string; label: string }[] = [
+  { code: "es", countryCode: "es", label: "ES" },
+  { code: "ro", countryCode: "ro", label: "RO" },
+  { code: "en", countryCode: "gb", label: "EN" },
+];
 
 const STORAGE_KEY = "kuky-lang";
 const VALID_LANGS: Lang[] = ["es", "ro", "en"];
