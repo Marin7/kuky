@@ -394,28 +394,22 @@ export const roDict = {
     },
     availability: {
       description:
-        "Definește când ești disponibilă. Elevii tăi vor vedea aceste ore pe pagina de rezervări.",
-      weeklyTitle: "Program săptămânal",
+        "Definește disponibilitatea ta. Disponibilitatea generală este săptămâna ta implicită; fiecare săptămână concretă pornește de la ea și o poți ajusta. Elevii rezervă în funcție de fiecare săptămână.",
       loadError: "Nu s-a putut încărca disponibilitatea.",
       saveError: "Nu s-a putut salva.",
       saved: "Program salvat.",
       save: "Salvează programul",
       saving: "Se salvează…",
       loading: "Se încarcă…",
-      exceptions: {
-        title: "Excepții pe dată",
-        block: "Blochează",
-        open: "Deschide",
-        blocked: "Blocat",
-        opened: "Deschis",
-        add: "Adaugă",
-        adding: "Se adaugă…",
-        remove: "Șterge",
-        noDate: "Alege o dată.",
-        loadError: "Nu s-au putut încărca excepțiile.",
-        addError: "Nu s-a putut adăuga excepția.",
-        noExceptions: "Nu există excepții viitoare.",
-        loading: "Se încarcă…",
+      general: {
+        title: "Disponibilitate generală",
+        description:
+          "Săptămâna ta implicită. Săptămânile noi pornesc cu aceste ore; săptămânile deja create nu se schimbă.",
+      },
+      perWeek: {
+        title: "Disponibilitate pe săptămână",
+        description:
+          "Ajustează o anumită săptămână. Aceste modificări au prioritate față de disponibilitatea generală pentru acele date.",
       },
       conflict: {
         title:

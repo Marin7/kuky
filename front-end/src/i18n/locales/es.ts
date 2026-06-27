@@ -396,28 +396,22 @@ export const esDict = {
     },
     availability: {
       description:
-        "Define cuándo estás disponible. Tus alumnos verán estas horas en la página de reservas.",
-      weeklyTitle: "Horario semanal",
+        "Define tu disponibilidad. La disponibilidad general es tu semana por defecto; cada semana concreta parte de ella y puedes ajustarla. Tus alumnos reservan según cada semana.",
       loadError: "No se pudo cargar la disponibilidad.",
       saveError: "No se pudo guardar.",
       saved: "Horario guardado.",
       save: "Guardar horario",
       saving: "Guardando…",
       loading: "Cargando…",
-      exceptions: {
-        title: "Excepciones por fecha",
-        block: "Bloquear",
-        open: "Abrir",
-        blocked: "Bloqueado",
-        opened: "Abierto",
-        add: "Añadir",
-        adding: "Añadiendo…",
-        remove: "Eliminar",
-        noDate: "Elige una fecha.",
-        loadError: "No se pudieron cargar las excepciones.",
-        addError: "No se pudo añadir la excepción.",
-        noExceptions: "No hay excepciones próximas.",
-        loading: "Cargando…",
+      general: {
+        title: "Disponibilidad general",
+        description:
+          "Tu semana por defecto. Las semanas nuevas empiezan con estas horas; las semanas ya creadas no cambian.",
+      },
+      perWeek: {
+        title: "Disponibilidad por semana",
+        description:
+          "Ajusta una semana concreta. Estos cambios mandan sobre la disponibilidad general para esas fechas.",
       },
       conflict: {
         title:

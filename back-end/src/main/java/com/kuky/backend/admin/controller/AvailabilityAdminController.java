@@ -2,25 +2,26 @@ package com.kuky.backend.admin.controller;
 
 import com.kuky.backend.admin.dto.*;
 import com.kuky.backend.config.SchedulingProperties;
-import com.kuky.backend.scheduling.model.AvailabilityException;
 import com.kuky.backend.scheduling.model.AvailabilityRule;
+import com.kuky.backend.scheduling.model.DayWindow;
 import com.kuky.backend.scheduling.repository.AvailabilityRepository;
 import com.kuky.backend.scheduling.service.AvailabilityService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Teacher-only availability management. Admin-gated by the /api/v1/admin/** matcher.
- * Times are "HH:mm" (teacher local), dates "YYYY-MM-DD".
+ * Manages the general weekly template ({@code weekly}) and the materialized per-day source of
+ * truth ({@code days}). Times are "HH:mm" (teacher local), dates "YYYY-MM-DD".
  */
 @RestController
 @RequestMapping("/api/v1/admin/availability")
@@ -43,14 +44,25 @@ public class AvailabilityAdminController {
 
     @GetMapping
     public AvailabilityResponse getAvailability() {
+        availabilityService.ensureCurrentHorizonMaterialized();
+
         List<WeeklyWindowDto> weekly = repository.findAllRules().stream()
                 .map(r -> new WeeklyWindowDto(r.getId(), r.getDayOfWeek(),
                         r.getStartTime().toString(), r.getEndTime().toString()))
                 .toList();
-        List<ExceptionResponse> exceptions = repository.findUpcomingExceptions(today()).stream()
-                .map(this::toExceptionResponse)
-                .toList();
-        return new AvailabilityResponse(weekly, exceptions);
+
+        LocalDate start = availabilityService.getHorizonStartDate();
+        LocalDate end = start.plusWeeks(2);
+        Map<LocalDate, List<DayWindowDto>> byDate = repository.findDayWindowsBetween(start, end).stream()
+                .collect(Collectors.groupingBy(DayWindow::date,
+                        Collectors.mapping(w -> new DayWindowDto(w.startTime().toString(), w.endTime().toString()),
+                                Collectors.toList())));
+
+        List<DayAvailabilityDto> days = new ArrayList<>();
+        for (LocalDate d = start; d.isBefore(end); d = d.plusDays(1)) {
+            days.add(new DayAvailabilityDto(d.toString(), byDate.getOrDefault(d, List.of())));
+        }
+        return new AvailabilityResponse(weekly, days);
     }
 
     @PutMapping("/weekly")
@@ -70,42 +82,46 @@ public class AvailabilityAdminController {
                 .map(r -> new WeeklyWindowDto(r.getId(), r.getDayOfWeek(),
                         r.getStartTime().toString(), r.getEndTime().toString()))
                 .toList();
-        List<BookingConflictDto> conflicts = availabilityService
-                .findConfirmedBookingsOutsideAvailability().stream()
-                .map(b -> new BookingConflictDto(b.id(), b.email(), b.slotStart()))
-                .toList();
-        return new UpdateWeeklyResponse(saved, conflicts);
+        return new UpdateWeeklyResponse(saved, conflicts());
     }
 
-    @PostMapping("/exceptions")
-    public ResponseEntity<ExceptionResponse> addException(@Valid @RequestBody ExceptionRequest request) {
-        LocalDate date = LocalDate.parse(request.date());
-        if (date.isBefore(today())) {
+    @PutMapping("/days/{date}")
+    public UpdateDayResponse updateDay(@PathVariable String date,
+                                       @Valid @RequestBody UpdateDayRequest request) {
+        LocalDate day = LocalDate.parse(date);
+        if (day.isBefore(today())) {
             throw new IllegalArgumentException("La fecha no puede estar en el pasado.");
         }
-        LocalTime start = parseTime(request.startTime());
-        LocalTime end = parseTime(request.endTime());
-        if (!end.isAfter(start)) {
-            throw new IllegalArgumentException("La hora de fin debe ser posterior a la de inicio.");
+        LocalDate horizonStart = availabilityService.getHorizonStartDate();
+        if (day.isBefore(horizonStart) || !day.isBefore(horizonStart.plusWeeks(2))) {
+            throw new IllegalArgumentException("La fecha está fuera del rango editable.");
         }
-        AvailabilityException e = new AvailabilityException();
-        e.setDate(date);
-        e.setKind(AvailabilityException.Kind.valueOf(request.kind()));
-        e.setStartTime(start);
-        e.setEndTime(end);
-        e = repository.insertException(e);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toExceptionResponse(e));
+
+        // Ensure the week is materialized (marker present) before overriding one of its dates,
+        // otherwise a later materialization pass would re-seed it on top of the edit.
+        availabilityService.ensureCurrentHorizonMaterialized();
+
+        List<DayWindow> windows = request.windows().stream().map(w -> {
+            LocalTime start = parseTime(w.startTime());
+            LocalTime end = parseTime(w.endTime());
+            if (!end.isAfter(start)) {
+                throw new IllegalArgumentException("La hora de fin debe ser posterior a la de inicio.");
+            }
+            return new DayWindow(day, start, end);
+        }).toList();
+
+        repository.replaceDayWindows(day, windows);
+
+        List<DayWindowDto> saved = repository.findDayWindows(day).stream()
+                .map(w -> new DayWindowDto(w.startTime().toString(), w.endTime().toString()))
+                .toList();
+        return new UpdateDayResponse(day.toString(), saved, conflicts());
     }
 
-    @DeleteMapping("/exceptions/{id}")
-    public ResponseEntity<Void> deleteException(@PathVariable UUID id) {
-        int deleted = repository.deleteException(id);
-        return deleted > 0 ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
-    }
-
-    private ExceptionResponse toExceptionResponse(AvailabilityException e) {
-        return new ExceptionResponse(e.getId(), e.getDate().toString(), e.getKind().name(),
-                e.getStartTime().toString(), e.getEndTime().toString());
+    private List<BookingConflictDto> conflicts() {
+        return availabilityService.findConfirmedBookingsOutsideAvailability().stream()
+                .map(b -> new BookingConflictDto(b.id(), b.email(), b.slotStart()))
+                .toList();
     }
 
     private LocalTime parseTime(String hhmm) {

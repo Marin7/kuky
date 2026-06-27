@@ -2,10 +2,9 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getAvailability,
-  addException,
-  deleteException,
-  type WeeklyWindow,
-  type AvailabilityException,
+  setDayAvailability,
+  type DayAvailability,
+  type DayWindow,
   type BookingConflict,
   type ApiError,
 } from "@/lib/admin";
@@ -69,76 +68,45 @@ function getTwoWeekDates(): DateCol[] {
   });
 }
 
-function isHourEnabledByRule(
-  weekly: WeeklyWindow[],
-  dow: number,
-  hour: number,
-): boolean {
-  return weekly.some((w) => {
-    if (w.dayOfWeek !== dow) return false;
-    const s = parseInt(w.startTime.split(":")[0]);
-    const e = parseInt(w.endTime.split(":")[0]);
-    return hour >= s && hour < e;
-  });
-}
-
 function computeSelected(
-  weekly: WeeklyWindow[],
-  exceptions: AvailabilityException[],
+  days: DayAvailability[],
   dates: DateCol[],
 ): Set<string> {
+  const byDate = new Map(days.map((d) => [d.date, d.windows]));
   const selected = new Set<string>();
   for (const col of dates) {
+    const windows = byDate.get(col.dateStr) ?? [];
     for (const hour of HOURS) {
-      const ex = exceptions.find((e) => {
-        if (e.date !== col.dateStr) return false;
-        const s = parseInt(e.startTime.split(":")[0]);
-        const en = parseInt(e.endTime.split(":")[0]);
-        return hour >= s && hour < en;
+      const on = windows.some((w) => {
+        const s = parseInt(w.startTime.split(":")[0]);
+        const e = parseInt(w.endTime.split(":")[0]);
+        return hour >= s && hour < e;
       });
-      const on = ex
-        ? ex.kind === "OPEN"
-        : isHourEnabledByRule(weekly, col.dow, hour);
       if (on) selected.add(`${col.dateStr}:${hour}`);
     }
   }
   return selected;
 }
 
-interface HourEntry {
-  hour: number;
-  kind: "OPEN" | "BLOCK";
-}
-
-function hoursToRanges(
-  entries: HourEntry[],
-): { kind: "OPEN" | "BLOCK"; startTime: string; endTime: string }[] {
-  if (entries.length === 0) return [];
-  entries.sort((a, b) => a.hour - b.hour);
-  const ranges: {
-    kind: "OPEN" | "BLOCK";
-    startTime: string;
-    endTime: string;
-  }[] = [];
-  let start = entries[0].hour;
-  let prev = entries[0].hour;
-  let kind = entries[0].kind;
-  for (let i = 1; i <= entries.length; i++) {
-    const cur = entries[i];
-    if (!cur || cur.hour !== prev + 1 || cur.kind !== kind) {
-      ranges.push({
-        kind,
+/** Contiguous selected hours for a date → absolute windows. */
+function hoursToWindows(hours: number[]): DayWindow[] {
+  if (hours.length === 0) return [];
+  const sorted = [...hours].sort((a, b) => a - b);
+  const windows: DayWindow[] = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+  for (let i = 1; i <= sorted.length; i++) {
+    const cur = sorted[i];
+    if (cur !== prev + 1) {
+      windows.push({
         startTime: `${String(start).padStart(2, "0")}:00`,
         endTime: `${String(prev + 1).padStart(2, "0")}:00`,
       });
-      if (cur) {
-        start = cur.hour;
-        kind = cur.kind;
-      }
+      if (cur !== undefined) start = cur;
     }
-    if (cur) prev = cur.hour;
+    if (cur !== undefined) prev = cur;
   }
-  return ranges;
+  return windows;
 }
 
 interface Props {
@@ -147,10 +115,6 @@ interface Props {
 
 export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const { t } = useTranslation();
-  const [weekly, setWeekly] = useState<WeeklyWindow[]>([]);
-  const [serverExceptions, setServerExceptions] = useState<
-    AvailabilityException[]
-  >([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [initialSelected, setInitialSelected] = useState<Set<string>>(
     new Set(),
@@ -164,20 +128,15 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const week1 = dates.slice(0, 7);
   const week2 = dates.slice(7, 14);
 
-  const applyAvailability = (
-    w: WeeklyWindow[],
-    ex: AvailabilityException[],
-  ) => {
-    setWeekly(w);
-    setServerExceptions(ex);
-    const s = computeSelected(w, ex, dates);
+  const applyAvailability = (days: DayAvailability[]) => {
+    const s = computeSelected(days, dates);
     setSelected(s);
     setInitialSelected(s);
   };
 
   useEffect(() => {
     getAvailability()
-      .then(({ weekly: w, exceptions: ex }) => applyAvailability(w, ex))
+      .then(({ days }) => applyAvailability(days))
       .catch(() => setError(t("admin.availability.loadError")))
       .finally(() => setLoading(false));
   }, []);
@@ -209,35 +168,20 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
         }
       }
 
+      let conflicts: BookingConflict[] = [];
       for (const dateStr of changedDates) {
-        const col = dates.find((d) => d.dateStr === dateStr)!;
-        const toDelete = serverExceptions.filter((e) => e.date === dateStr);
-        await Promise.all(toDelete.map((e) => deleteException(e.id)));
-
-        const exHours: HourEntry[] = [];
-        for (const hour of HOURS) {
-          const desired = selected.has(`${dateStr}:${hour}`);
-          const rule = isHourEnabledByRule(weekly, col.dow, hour);
-          if (desired !== rule) {
-            exHours.push({ hour, kind: desired ? "OPEN" : "BLOCK" });
-          }
-        }
-
-        const ranges = hoursToRanges(exHours);
-        await Promise.all(
-          ranges.map((r) =>
-            addException(dateStr, r.kind, r.startTime, r.endTime),
-          ),
-        );
+        const hours = HOURS.filter((h) => selected.has(`${dateStr}:${h}`));
+        const res = await setDayAvailability(dateStr, hoursToWindows(hours));
+        conflicts = res.bookingConflicts;
       }
 
       const fresh = await getAvailability();
-      applyAvailability(fresh.weekly, fresh.exceptions);
-      onConflicts([]);
+      applyAvailability(fresh.days);
+      onConflicts(conflicts);
       setSaved(true);
     } catch (e) {
       getAvailability()
-        .then(({ weekly: w, exceptions: ex }) => applyAvailability(w, ex))
+        .then(({ days }) => applyAvailability(days))
         .catch(() => {});
       setError((e as ApiError).message ?? t("admin.availability.saveError"));
     } finally {
@@ -256,8 +200,11 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">
-          {t("admin.availability.weeklyTitle")}
+          {t("admin.availability.perWeek.title")}
         </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {t("admin.availability.perWeek.description")}
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="overflow-x-auto">

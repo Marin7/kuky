@@ -51,7 +51,7 @@ npm run lint && npm run format
 - **Flyway**: `FlywayConfig.java` creates a manual `Flyway` bean; Boot 3.5 `FlywayAutoConfiguration` backs off via `@ConditionalOnMissingBean`. Keep the manual bean for explicit dependency ordering.
 - **CORS**: `CorsConfig` exposes a `CorsConfigurationSource` bean (not `WebMvcConfigurer`). `SecurityConfig` uses `.cors(Customizer.withDefaults())` so CORS is evaluated before auth — required for authenticated endpoint preflights.
 - **MeetingProvider**: `MeetingProviderConfig` checks `app.zoom.client-id` at runtime and selects `StubMeetingProvider` (blank) or `ZoomMeetingProvider`. Do **not** use `@ConditionalOnProperty` — Boot treats an empty-string property as present and registers both beans.
-- **Availability**: slots generated virtually by `AvailabilityService` from `availability_rules` (weekly pattern) + `availability_exceptions` (date BLOCK/OPEN). No `availability_slots` table.
+- **Availability**: two layers. `availability_rules` is the general weekly TEMPLATE (the default week). Each bookable week is snapshotted into `week_availability` (absolute per-date windows — the booking source of truth) the first time it enters the 2-week horizon via `AvailabilityService.ensureWeeksMaterialized`, tracked by `materialized_weeks`. Template edits only seed weeks not yet materialized; already-materialized weeks keep their snapshot. `WeekAvailabilityBootstrap` (one-time `CommandLineRunner`) migrates the launch horizon from the legacy `availability_rules ∪ OPEN − BLOCK`; `availability_exceptions` is now legacy/read-only (bootstrap-only). Slots still generated virtually; no `availability_slots` table.
 - **Admin role**: `users.role` is `STUDENT` or `ADMIN`. `AdminBootstrap` (`CommandLineRunner`) promotes the account matching `app.scheduling.teacher-email` to `ADMIN` on startup; takes effect on next login.
 - **Homework formats**: `MANUAL` (free-text, `PENDING→SUBMITTED→REVIEWED`) and `EXERCISE` (auto-graded, `SINGLE_CHOICE`/`MULTI_CHOICE`/`FILL_BLANK`, terminal `GRADED` status). Answer key hidden from students pre-submit via separate DTOs.
 - **Error responses**: `{"error":"ERROR_CODE","message":"..."}` — codes in `contracts/api.md`, mapped in `GlobalExceptionHandler`.
@@ -84,5 +84,5 @@ npm run lint && npm run format
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/008-language-support/plan.md`
+`specs/009-general-availability/plan.md`
 <!-- SPECKIT END -->

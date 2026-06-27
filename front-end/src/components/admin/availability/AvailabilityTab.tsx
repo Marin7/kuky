@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { BookingConflict } from "@/lib/admin";
+import { GeneralAvailabilityEditor } from "./GeneralAvailabilityEditor";
 import { WeeklyAvailabilityEditor } from "./WeeklyAvailabilityEditor";
 import { BookingConflictNotice } from "./BookingConflictNotice";
 
@@ -14,6 +15,7 @@ export function AvailabilityTab() {
         {t("admin.availability.description")}
       </p>
       <BookingConflictNotice conflicts={conflicts} />
+      <GeneralAvailabilityEditor onConflicts={setConflicts} />
       <WeeklyAvailabilityEditor onConflicts={setConflicts} />
     </div>
   );

@@ -76,6 +76,7 @@ export const cancelAdminBooking = (id: string) =>
 // Availability (User Story 1)
 // ---------------------------------------------------------------------------
 
+// The general weekly template (the default week new weeks are seeded from).
 export interface WeeklyWindow {
   id?: string;
   dayOfWeek: number; // 1=Mon … 7=Sun
@@ -83,12 +84,16 @@ export interface WeeklyWindow {
   endTime: string;
 }
 
-export interface AvailabilityException {
-  id: string;
-  date: string; // "YYYY-MM-DD"
-  kind: "BLOCK" | "OPEN";
-  startTime: string;
+// One absolute available window on a concrete date.
+export interface DayWindow {
+  startTime: string; // "HH:mm"
   endTime: string;
+}
+
+// The materialized source-of-truth availability for one date.
+export interface DayAvailability {
+  date: string; // "YYYY-MM-DD"
+  windows: DayWindow[];
 }
 
 export interface BookingConflict {
@@ -99,11 +104,17 @@ export interface BookingConflict {
 
 export interface AvailabilityResponse {
   weekly: WeeklyWindow[];
-  exceptions: AvailabilityException[];
+  days: DayAvailability[];
 }
 
 export interface UpdateWeeklyResponse {
   weekly: WeeklyWindow[];
+  bookingConflicts: BookingConflict[];
+}
+
+export interface UpdateDayResponse {
+  date: string;
+  windows: DayWindow[];
   bookingConflicts: BookingConflict[];
 }
 
@@ -116,19 +127,12 @@ export const updateWeekly = (windows: WeeklyWindow[]) =>
     body: JSON.stringify({ windows }),
   });
 
-export const addException = (
-  date: string,
-  kind: "BLOCK" | "OPEN",
-  startTime: string,
-  endTime: string,
-) =>
-  apiCall<AvailabilityException>("/availability/exceptions", {
-    method: "POST",
-    body: JSON.stringify({ date, kind, startTime, endTime }),
+// Replace all windows for a single date (per-week customization).
+export const setDayAvailability = (date: string, windows: DayWindow[]) =>
+  apiCall<UpdateDayResponse>(`/availability/days/${date}`, {
+    method: "PUT",
+    body: JSON.stringify({ windows }),
   });
-
-export const deleteException = (id: string) =>
-  apiCall<void>(`/availability/exceptions/${id}`, { method: "DELETE" });
 
 // ---------------------------------------------------------------------------
 // Homework (User Story 2)

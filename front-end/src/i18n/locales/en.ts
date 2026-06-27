@@ -389,28 +389,22 @@ export const enDict = {
     },
     availability: {
       description:
-        "Define when you're available. Your students will see these times on the booking page.",
-      weeklyTitle: "Weekly schedule",
+        "Define your availability. The general availability is your default week; each concrete week starts from it and you can fine-tune it. Students book against each week.",
       loadError: "Could not load availability.",
       saveError: "Could not save.",
       saved: "Schedule saved.",
       save: "Save schedule",
       saving: "Saving…",
       loading: "Loading…",
-      exceptions: {
-        title: "Date exceptions",
-        block: "Block",
-        open: "Open",
-        blocked: "Blocked",
-        opened: "Open",
-        add: "Add",
-        adding: "Adding…",
-        remove: "Remove",
-        noDate: "Choose a date.",
-        loadError: "Could not load exceptions.",
-        addError: "Could not add exception.",
-        noExceptions: "No upcoming exceptions.",
-        loading: "Loading…",
+      general: {
+        title: "General availability",
+        description:
+          "Your default week. New weeks start with these hours; weeks already created don't change.",
+      },
+      perWeek: {
+        title: "Per-week availability",
+        description:
+          "Fine-tune a specific week. These changes override the general availability for those dates.",
       },
       conflict: {
         title:
