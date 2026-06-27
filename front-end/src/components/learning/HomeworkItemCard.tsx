@@ -128,7 +128,45 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
           </p>
         )}
 
-        {item.format === "EXERCISE" ? (
+        {item.homeworkType === "READ" ? (
+          item.format === "EXERCISE" ? (
+            <Button
+              asChild
+              variant={item.status === "GRADED" ? "outline" : "default"}
+              size="sm"
+              className="h-8 text-xs"
+            >
+              <Link
+                to="/aprendizaje/lectura/$homeworkId"
+                params={{ homeworkId: item.id }}
+                search={{ format: item.format }}
+              >
+                {item.status === "GRADED"
+                  ? t("learning.homework.viewResult")
+                  : t("learning.homework.startExercise")}
+              </Link>
+            </Button>
+          ) : (
+            item.status !== "REVIEWED" && (
+              <Button
+                asChild
+                variant={item.status === "PENDING" ? "default" : "outline"}
+                size="sm"
+                className="h-8 text-xs"
+              >
+                <Link
+                  to="/aprendizaje/lectura/$homeworkId"
+                  params={{ homeworkId: item.id }}
+                  search={{ format: item.format }}
+                >
+                  {item.status === "PENDING"
+                    ? t("learning.homework.submitHomework")
+                    : t("learning.homework.editResponse")}
+                </Link>
+              </Button>
+            )
+          )
+        ) : item.format === "EXERCISE" ? (
           <Button
             asChild
             variant={item.status === "GRADED" ? "outline" : "default"}

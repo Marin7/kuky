@@ -324,6 +324,16 @@ export const enDict = {
       notFound: "This writing assignment could not be found.",
       loadError: "Could not load the assignment.",
     },
+    readPage: {
+      back: "← Back to my learning",
+      loading: "Loading reading…",
+      yourAnswer: "Your answer",
+      placeholder: "Write your answer here…",
+      submit: "Submit homework",
+      submitting: "Submitting…",
+      notFound: "This reading assignment could not be found.",
+      loadError: "Could not load the reading.",
+    },
     exerciseResult: {
       correctSingular: "question correct",
       correctPlural: "questions correct",

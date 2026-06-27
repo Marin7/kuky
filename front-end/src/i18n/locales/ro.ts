@@ -328,6 +328,16 @@ export const roDict = {
       notFound: "Această temă de redactare nu a putut fi găsită.",
       loadError: "Nu s-a putut încărca tema.",
     },
+    readPage: {
+      back: "← Înapoi la învățarea mea",
+      loading: "Se încarcă lectura…",
+      yourAnswer: "Răspunsul tău",
+      placeholder: "Scrie răspunsul tău aici…",
+      submit: "Predă tema",
+      submitting: "Se predă…",
+      notFound: "Această temă de lectură nu a putut fi găsită.",
+      loadError: "Nu s-a putut încărca lectura.",
+    },
     exerciseResult: {
       correctSingular: "întrebare corectă",
       correctPlural: "întrebări corecte",

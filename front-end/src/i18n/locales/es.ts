@@ -325,9 +325,20 @@ export const esDict = {
       placeholder: "Escribe tu texto aquí…",
       submit: "Entregar tarea",
       submitting: "Entregando…",
-      autosaveHint: "Tu progreso se guarda automáticamente en este dispositivo.",
+      autosaveHint:
+        "Tu progreso se guarda automáticamente en este dispositivo.",
       notFound: "No se ha encontrado esta tarea de redacción.",
       loadError: "No se pudo cargar la tarea.",
+    },
+    readPage: {
+      back: "← Volver a mi aprendizaje",
+      loading: "Cargando lectura…",
+      yourAnswer: "Tu respuesta",
+      placeholder: "Escribe tu respuesta aquí…",
+      submit: "Entregar tarea",
+      submitting: "Entregando…",
+      notFound: "No se ha encontrado esta tarea de lectura.",
+      loadError: "No se pudo cargar la lectura.",
     },
     exerciseResult: {
       correctSingular: "pregunta correcta",

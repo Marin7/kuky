@@ -22,6 +22,7 @@ import { Route as PanelTareasHomeworkIdRouteImport } from './routes/panel_.tarea
 import { Route as PanelAlumnosStudentIdRouteImport } from './routes/panel_.alumnos.$studentId'
 import { Route as AprendizajeTareaHomeworkIdRouteImport } from './routes/aprendizaje_.tarea.$homeworkId'
 import { Route as AprendizajeRedaccionHomeworkIdRouteImport } from './routes/aprendizaje_.redaccion.$homeworkId'
+import { Route as AprendizajeLecturaHomeworkIdRouteImport } from './routes/aprendizaje_.lectura.$homeworkId'
 
 const SobreMiRoute = SobreMiRouteImport.update({
   id: '/sobre-mi',
@@ -90,6 +91,12 @@ const AprendizajeRedaccionHomeworkIdRoute =
     path: '/aprendizaje/redaccion/$homeworkId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AprendizajeLecturaHomeworkIdRoute =
+  AprendizajeLecturaHomeworkIdRouteImport.update({
+    id: '/aprendizaje_/lectura/$homeworkId',
+    path: '/aprendizaje/lectura/$homeworkId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/aprendizaje/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
   '/aprendizaje/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
@@ -115,6 +123,7 @@ export interface FileRoutesByTo {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/aprendizaje/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
   '/aprendizaje/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
@@ -131,6 +140,7 @@ export interface FileRoutesById {
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
+  '/aprendizaje_/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje_/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
   '/aprendizaje_/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/panel_/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/aprendizaje/lectura/$homeworkId'
     | '/aprendizaje/redaccion/$homeworkId'
     | '/aprendizaje/tarea/$homeworkId'
     | '/panel/alumnos/$studentId'
@@ -163,6 +174,7 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/aprendizaje/lectura/$homeworkId'
     | '/aprendizaje/redaccion/$homeworkId'
     | '/aprendizaje/tarea/$homeworkId'
     | '/panel/alumnos/$studentId'
@@ -178,6 +190,7 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/sitemap.xml'
     | '/sobre-mi'
+    | '/aprendizaje_/lectura/$homeworkId'
     | '/aprendizaje_/redaccion/$homeworkId'
     | '/aprendizaje_/tarea/$homeworkId'
     | '/panel_/alumnos/$studentId'
@@ -194,6 +207,7 @@ export interface RootRouteChildren {
   ReservasRoute: typeof ReservasRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreMiRoute: typeof SobreMiRoute
+  AprendizajeLecturaHomeworkIdRoute: typeof AprendizajeLecturaHomeworkIdRoute
   AprendizajeRedaccionHomeworkIdRoute: typeof AprendizajeRedaccionHomeworkIdRoute
   AprendizajeTareaHomeworkIdRoute: typeof AprendizajeTareaHomeworkIdRoute
   PanelAlumnosStudentIdRoute: typeof PanelAlumnosStudentIdRoute
@@ -294,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AprendizajeRedaccionHomeworkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aprendizaje_/lectura/$homeworkId': {
+      id: '/aprendizaje_/lectura/$homeworkId'
+      path: '/aprendizaje/lectura/$homeworkId'
+      fullPath: '/aprendizaje/lectura/$homeworkId'
+      preLoaderRoute: typeof AprendizajeLecturaHomeworkIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -306,6 +327,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReservasRoute: ReservasRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
+  AprendizajeLecturaHomeworkIdRoute: AprendizajeLecturaHomeworkIdRoute,
   AprendizajeRedaccionHomeworkIdRoute: AprendizajeRedaccionHomeworkIdRoute,
   AprendizajeTareaHomeworkIdRoute: AprendizajeTareaHomeworkIdRoute,
   PanelAlumnosStudentIdRoute: PanelAlumnosStudentIdRoute,
