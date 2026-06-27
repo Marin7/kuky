@@ -28,6 +28,8 @@ class AvailabilityServiceTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-06-15T06:00:00Z"), MADRID);
     private static final LocalDate WEEK_1 = LocalDate.of(2026, 6, 15);
     private static final LocalDate WEEK_2 = LocalDate.of(2026, 6, 22);
+    private static final LocalDate WEEK_3 = LocalDate.of(2026, 6, 29);
+    private static final LocalDate WEEK_4 = LocalDate.of(2026, 7, 6);
 
     private AvailabilityRepository availabilityRepo;
     private BookingRepository bookingRepo;
@@ -38,8 +40,9 @@ class AvailabilityServiceTest {
         availabilityRepo = mock(AvailabilityRepository.class);
         bookingRepo = mock(BookingRepository.class);
         when(bookingRepo.findConfirmedSlotStartsBetween(any(), any())).thenReturn(List.of());
-        // Default: both horizon weeks already materialized, so ensureWeeksMaterialized is a no-op.
-        when(availabilityRepo.findMaterializedWeekStarts(any(), any())).thenReturn(List.of(WEEK_1, WEEK_2));
+        // Default: all horizon weeks already materialized, so ensureWeeksMaterialized is a no-op.
+        when(availabilityRepo.findMaterializedWeekStarts(any(), any()))
+                .thenReturn(List.of(WEEK_1, WEEK_2, WEEK_3, WEEK_4));
         when(availabilityRepo.findDayWindowsBetween(any(), any())).thenReturn(List.of());
         when(availabilityRepo.findDayWindows(any())).thenReturn(List.of());
         SchedulingProperties props = new SchedulingProperties(); // defaults: Madrid, 60min, 24h lead

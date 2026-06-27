@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Slot } from "@/lib/scheduling";
 
@@ -98,11 +98,18 @@ export function CalendarPicker({
     return result;
   }, [horizonStart, horizonEnd, timezone]);
 
-  const week1 = allDays.slice(0, 7);
-  const week2 = allDays.slice(7, 14);
+  const weeks = useMemo(() => {
+    const chunks: string[][] = [];
+    for (let i = 0; i < allDays.length; i += 7) {
+      chunks.push(allDays.slice(i, i + 7));
+    }
+    return chunks;
+  }, [allDays]);
 
   const month1 = allDays[0] ? formatMonthYear(allDays[0], i18n.language) : "";
-  const month2 = allDays[13] ? formatMonthYear(allDays[13], i18n.language) : "";
+  const month2 = allDays.length
+    ? formatMonthYear(allDays[allDays.length - 1], i18n.language)
+    : "";
   const monthLabel = month1 === month2 ? month1 : `${month1} – ${month2}`;
 
   const dayHeaders = t("schedule.calendarDays", {
@@ -141,8 +148,9 @@ export function CalendarPicker({
         ))}
       </div>
 
-      {renderWeek(week1)}
-      {renderWeek(week2)}
+      {weeks.map((week, i) => (
+        <Fragment key={i}>{renderWeek(week)}</Fragment>
+      ))}
     </div>
   );
 }

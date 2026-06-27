@@ -402,11 +402,13 @@ export const roDict = {
       saving: "Se salvează…",
       loading: "Se încarcă…",
       general: {
+        tab: "Generală",
         title: "Disponibilitate generală",
         description:
           "Săptămâna ta implicită. Săptămânile noi pornesc cu aceste ore; săptămânile deja create nu se schimbă.",
       },
       perWeek: {
+        tab: "Pe săptămână",
         title: "Disponibilitate pe săptămână",
         description:
           "Ajustează o anumită săptămână. Aceste modificări au prioritate față de disponibilitatea generală pentru acele date.",

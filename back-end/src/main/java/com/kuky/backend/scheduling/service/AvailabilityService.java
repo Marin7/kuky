@@ -28,6 +28,9 @@ import java.util.stream.Collectors;
 @Service
 public class AvailabilityService {
 
+    /** Rolling horizon length (weeks) for materialization, the public schedule, and bookings. */
+    public static final int HORIZON_WEEKS = 4;
+
     private final SchedulingProperties props;
     private final BookingRepository bookingRepository;
     private final AvailabilityRepository availabilityRepository;
@@ -49,7 +52,7 @@ public class AvailabilityService {
         int minLeadHours = props.getScheduling().getMinLeadHours();
 
         LocalDate horizonStart = horizonStartDate();
-        LocalDate horizonEnd = horizonStart.plusWeeks(2);
+        LocalDate horizonEnd = horizonStart.plusWeeks(HORIZON_WEEKS);
         ensureWeeksMaterialized(horizonStart, horizonEnd);
 
         Instant horizonStartInstant = horizonStart.atStartOfDay(zone).toInstant();
@@ -99,7 +102,7 @@ public class AvailabilityService {
         int minLeadHours = props.getScheduling().getMinLeadHours();
 
         LocalDate horizonStart = horizonStartDate();
-        LocalDate horizonEnd = horizonStart.plusWeeks(2);
+        LocalDate horizonEnd = horizonStart.plusWeeks(HORIZON_WEEKS);
         ensureWeeksMaterialized(horizonStart, horizonEnd);
 
         // Must be at least minLeadHours in the future.
@@ -130,7 +133,7 @@ public class AvailabilityService {
     public List<BookingRepository.ConfirmedBookingView> findConfirmedBookingsOutsideAvailability() {
         int durationMinutes = props.getScheduling().getClassDurationMinutes();
         LocalDate horizonStart = horizonStartDate();
-        LocalDate horizonEnd = horizonStart.plusWeeks(2);
+        LocalDate horizonEnd = horizonStart.plusWeeks(HORIZON_WEEKS);
         ensureWeeksMaterialized(horizonStart, horizonEnd);
 
         List<BookingRepository.ConfirmedBookingView> upcoming =
@@ -151,7 +154,7 @@ public class AvailabilityService {
     }
 
     public Instant getHorizonEnd() {
-        return horizonStartDate().plusWeeks(2).atStartOfDay(zone()).toInstant();
+        return horizonStartDate().plusWeeks(HORIZON_WEEKS).atStartOfDay(zone()).toInstant();
     }
 
     /** First day (Monday) of the current bookable horizon, in the teacher's timezone. */
@@ -159,10 +162,15 @@ public class AvailabilityService {
         return horizonStartDate();
     }
 
+    /** Exclusive end date of the current bookable horizon. */
+    public LocalDate getHorizonEndDate() {
+        return horizonStartDate().plusWeeks(HORIZON_WEEKS);
+    }
+
     /** Snapshot any not-yet-materialized week in the current horizon from the template. */
     public void ensureCurrentHorizonMaterialized() {
         LocalDate start = horizonStartDate();
-        ensureWeeksMaterialized(start, start.plusWeeks(2));
+        ensureWeeksMaterialized(start, start.plusWeeks(HORIZON_WEEKS));
     }
 
     // --- materialization ------------------------------------------------------

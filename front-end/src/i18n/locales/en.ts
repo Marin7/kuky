@@ -397,11 +397,13 @@ export const enDict = {
       saving: "Saving…",
       loading: "Loading…",
       general: {
+        tab: "General",
         title: "General availability",
         description:
           "Your default week. New weeks start with these hours; weeks already created don't change.",
       },
       perWeek: {
+        tab: "Per week",
         title: "Per-week availability",
         description:
           "Fine-tune a specific week. These changes override the general availability for those dates.",

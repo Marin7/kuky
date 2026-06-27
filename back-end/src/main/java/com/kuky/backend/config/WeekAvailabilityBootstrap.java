@@ -4,6 +4,7 @@ import com.kuky.backend.scheduling.model.AvailabilityException;
 import com.kuky.backend.scheduling.model.AvailabilityRule;
 import com.kuky.backend.scheduling.model.DayWindow;
 import com.kuky.backend.scheduling.repository.AvailabilityRepository;
+import com.kuky.backend.scheduling.service.AvailabilityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -53,7 +54,7 @@ public class WeekAvailabilityBootstrap implements CommandLineRunner {
         ZoneId zone = ZoneId.of(props.getScheduling().getTeacherTimezone());
         LocalDate horizonStart = LocalDate.now(clock.withZone(zone))
                 .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-        LocalDate horizonEnd = horizonStart.plusWeeks(2);
+        LocalDate horizonEnd = horizonStart.plusWeeks(AvailabilityService.HORIZON_WEEKS);
 
         List<AvailabilityRule> rules = repository.findAllRules();
         List<AvailabilityException> exceptions = repository.findExceptionsBetween(horizonStart, horizonEnd);

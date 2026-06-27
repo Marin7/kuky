@@ -127,45 +127,43 @@ export function GeneralAvailabilityEditor({ onConflicts }: Props) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="overflow-x-auto">
-          <div
-            className="inline-grid gap-y-1"
-            style={{
-              gridTemplateColumns: `3rem repeat(7, minmax(44px, 1fr))`,
-            }}
-          >
-            <div />
-            {DOWS.map((dow) => (
-              <div
-                key={dow}
-                className="text-center text-xs pb-2 px-0.5 font-medium capitalize"
-              >
-                {DAY_ABBREVS[dow]}
-              </div>
-            ))}
+        <div
+          className="grid w-full gap-x-1.5 gap-y-1"
+          style={{
+            gridTemplateColumns: `3.5rem repeat(7, minmax(0, 1fr))`,
+          }}
+        >
+          <div />
+          {DOWS.map((dow) => (
+            <div
+              key={dow}
+              className="text-center text-sm pb-2 font-medium capitalize"
+            >
+              {DAY_ABBREVS[dow]}
+            </div>
+          ))}
 
-            {HOURS.map((hour) => (
-              <Fragment key={hour}>
-                <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground h-11">
-                  {String(hour).padStart(2, "0")}:00
-                </div>
-                {DOWS.map((dow) => {
-                  const isOn = selected.has(`${dow}:${hour}`);
-                  return (
-                    <button
-                      key={dow}
-                      onClick={() => toggle(dow, hour)}
-                      className={`h-11 mx-0.5 rounded border transition-colors ${
-                        isOn
-                          ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
-                          : "border-border/40 hover:bg-muted/50"
-                      }`}
-                    />
-                  );
-                })}
-              </Fragment>
-            ))}
-          </div>
+          {HOURS.map((hour) => (
+            <Fragment key={hour}>
+              <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground h-12">
+                {String(hour).padStart(2, "0")}:00
+              </div>
+              {DOWS.map((dow) => {
+                const isOn = selected.has(`${dow}:${hour}`);
+                return (
+                  <button
+                    key={dow}
+                    onClick={() => toggle(dow, hour)}
+                    className={`h-12 rounded border transition-colors ${
+                      isOn
+                        ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
+                        : "border-border/40 hover:bg-muted/50"
+                    }`}
+                  />
+                );
+              })}
+            </Fragment>
+          ))}
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}

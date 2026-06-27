@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { BookingConflict } from "@/lib/admin";
 import { GeneralAvailabilityEditor } from "./GeneralAvailabilityEditor";
 import { WeeklyAvailabilityEditor } from "./WeeklyAvailabilityEditor";
@@ -15,8 +16,24 @@ export function AvailabilityTab() {
         {t("admin.availability.description")}
       </p>
       <BookingConflictNotice conflicts={conflicts} />
-      <GeneralAvailabilityEditor onConflicts={setConflicts} />
-      <WeeklyAvailabilityEditor onConflicts={setConflicts} />
+
+      <Tabs defaultValue="perWeek">
+        <TabsList>
+          <TabsTrigger value="perWeek">
+            {t("admin.availability.perWeek.tab")}
+          </TabsTrigger>
+          <TabsTrigger value="general">
+            {t("admin.availability.general.tab")}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="perWeek" className="mt-6">
+          <WeeklyAvailabilityEditor onConflicts={setConflicts} />
+        </TabsContent>
+        <TabsContent value="general" className="mt-6">
+          <GeneralAvailabilityEditor onConflicts={setConflicts} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

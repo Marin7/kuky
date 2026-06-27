@@ -404,11 +404,13 @@ export const esDict = {
       saving: "Guardando…",
       loading: "Cargando…",
       general: {
+        tab: "General",
         title: "Disponibilidad general",
         description:
           "Tu semana por defecto. Las semanas nuevas empiezan con estas horas; las semanas ya creadas no cambian.",
       },
       perWeek: {
+        tab: "Por semana",
         title: "Disponibilidad por semana",
         description:
           "Ajusta una semana concreta. Estos cambios mandan sobre la disponibilidad general para esas fechas.",

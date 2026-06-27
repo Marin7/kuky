@@ -52,7 +52,7 @@ public class AvailabilityAdminController {
                 .toList();
 
         LocalDate start = availabilityService.getHorizonStartDate();
-        LocalDate end = start.plusWeeks(2);
+        LocalDate end = availabilityService.getHorizonEndDate();
         Map<LocalDate, List<DayWindowDto>> byDate = repository.findDayWindowsBetween(start, end).stream()
                 .collect(Collectors.groupingBy(DayWindow::date,
                         Collectors.mapping(w -> new DayWindowDto(w.startTime().toString(), w.endTime().toString()),
@@ -93,7 +93,7 @@ public class AvailabilityAdminController {
             throw new IllegalArgumentException("La fecha no puede estar en el pasado.");
         }
         LocalDate horizonStart = availabilityService.getHorizonStartDate();
-        if (day.isBefore(horizonStart) || !day.isBefore(horizonStart.plusWeeks(2))) {
+        if (day.isBefore(horizonStart) || !day.isBefore(availabilityService.getHorizonEndDate())) {
             throw new IllegalArgumentException("La fecha está fuera del rango editable.");
         }
 

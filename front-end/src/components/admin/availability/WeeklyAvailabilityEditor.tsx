@@ -27,6 +27,9 @@ const MONTH_ABBREVS = [
   "dic",
 ];
 
+const WEEKS = 4;
+const DAYS = WEEKS * 7;
+
 const HOUR_START = 7;
 const HOUR_END = 21;
 const HOURS = Array.from(
@@ -46,7 +49,7 @@ function formatDateStr(date: Date): string {
   return new Intl.DateTimeFormat("sv-SE").format(date);
 }
 
-function getTwoWeekDates(): DateCol[] {
+function getHorizonDates(): DateCol[] {
   const today = new Date();
   const dayJs = today.getDay();
   const daysToMonday = dayJs === 0 ? 6 : dayJs - 1;
@@ -54,7 +57,7 @@ function getTwoWeekDates(): DateCol[] {
   monday.setDate(today.getDate() - daysToMonday);
   monday.setHours(12, 0, 0, 0);
 
-  return Array.from({ length: 14 }, (_, i) => {
+  return Array.from({ length: DAYS }, (_, i) => {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
     const dow = d.getDay() === 0 ? 7 : d.getDay();
@@ -123,10 +126,24 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const dates = useMemo(() => getTwoWeekDates(), []);
+  const dates = useMemo(() => getHorizonDates(), []);
   const todayStr = useMemo(() => formatDateStr(new Date()), []);
-  const week1 = dates.slice(0, 7);
-  const week2 = dates.slice(7, 14);
+  const weeks = useMemo(
+    () =>
+      Array.from({ length: WEEKS }, (_, w) => dates.slice(w * 7, w * 7 + 7)),
+    [dates],
+  );
+  const gridTemplateColumns = useMemo(
+    () =>
+      `3rem ` +
+      weeks
+        .map(
+          (_, w) =>
+            `repeat(7, minmax(44px, 1fr))${w < WEEKS - 1 ? " 14px" : ""}`,
+        )
+        .join(" "),
+    [weeks],
+  );
 
   const applyAvailability = (days: DayAvailability[]) => {
     const s = computeSelected(days, dates);
@@ -208,36 +225,24 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="overflow-x-auto">
-          <div
-            className="inline-grid gap-y-1"
-            style={{
-              gridTemplateColumns: `3rem repeat(7, minmax(44px, 1fr)) 14px repeat(7, minmax(44px, 1fr))`,
-            }}
-          >
+          <div className="inline-grid gap-y-1" style={{ gridTemplateColumns }}>
             {/* Header row */}
             <div />
-            {week1.map((d, i) => (
-              <div
-                key={i}
-                className={`text-center text-xs pb-2 px-0.5 ${d.dateStr < todayStr ? "opacity-40" : ""}`}
-              >
-                <div className="font-medium capitalize">{d.dayLabel}</div>
-                <div className="text-muted-foreground">
-                  {d.dayNum} {d.monthLabel}
-                </div>
-              </div>
-            ))}
-            <div />
-            {week2.map((d, i) => (
-              <div
-                key={i + 7}
-                className={`text-center text-xs pb-2 px-0.5 ${d.dateStr < todayStr ? "opacity-40" : ""}`}
-              >
-                <div className="font-medium capitalize">{d.dayLabel}</div>
-                <div className="text-muted-foreground">
-                  {d.dayNum} {d.monthLabel}
-                </div>
-              </div>
+            {weeks.map((week, w) => (
+              <Fragment key={`h-${w}`}>
+                {week.map((d) => (
+                  <div
+                    key={d.dateStr}
+                    className={`text-center text-xs pb-2 px-0.5 ${d.dateStr < todayStr ? "opacity-40" : ""}`}
+                  >
+                    <div className="font-medium capitalize">{d.dayLabel}</div>
+                    <div className="text-muted-foreground">
+                      {d.dayNum} {d.monthLabel}
+                    </div>
+                  </div>
+                ))}
+                {w < WEEKS - 1 && <div />}
+              </Fragment>
             ))}
 
             {/* Hour rows */}
@@ -246,41 +251,30 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
                 <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground h-11">
                   {String(hour).padStart(2, "0")}:00
                 </div>
-                {week1.map((d, i) => {
-                  const key = `${d.dateStr}:${hour}`;
-                  const isOn = selected.has(key);
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => toggle(d.dateStr, hour)}
-                      className={`h-11 mx-0.5 rounded border transition-colors ${
-                        d.dateStr < todayStr
-                          ? `opacity-30 cursor-default pointer-events-none ${isOn ? "bg-primary/15 border-primary/40" : "border-border/30"}`
-                          : isOn
-                            ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
-                            : "border-border/40 hover:bg-muted/50"
-                      }`}
-                    />
-                  );
-                })}
-                <div className="border-l border-border/30 mx-1" />
-                {week2.map((d, i) => {
-                  const key = `${d.dateStr}:${hour}`;
-                  const isOn = selected.has(key);
-                  return (
-                    <button
-                      key={i + 7}
-                      onClick={() => toggle(d.dateStr, hour)}
-                      className={`h-11 mx-0.5 rounded border transition-colors ${
-                        d.dateStr < todayStr
-                          ? `opacity-30 cursor-default pointer-events-none ${isOn ? "bg-primary/15 border-primary/40" : "border-border/30"}`
-                          : isOn
-                            ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
-                            : "border-border/40 hover:bg-muted/50"
-                      }`}
-                    />
-                  );
-                })}
+                {weeks.map((week, w) => (
+                  <Fragment key={`${hour}-${w}`}>
+                    {week.map((d) => {
+                      const key = `${d.dateStr}:${hour}`;
+                      const isOn = selected.has(key);
+                      return (
+                        <button
+                          key={d.dateStr}
+                          onClick={() => toggle(d.dateStr, hour)}
+                          className={`h-11 mx-0.5 rounded border transition-colors ${
+                            d.dateStr < todayStr
+                              ? `opacity-30 cursor-default pointer-events-none ${isOn ? "bg-primary/15 border-primary/40" : "border-border/30"}`
+                              : isOn
+                                ? "bg-primary/15 border-primary/60 hover:bg-primary/25"
+                                : "border-border/40 hover:bg-muted/50"
+                          }`}
+                        />
+                      );
+                    })}
+                    {w < WEEKS - 1 && (
+                      <div className="border-l border-border/30 mx-1" />
+                    )}
+                  </Fragment>
+                ))}
               </Fragment>
             ))}
           </div>
