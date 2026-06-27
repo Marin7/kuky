@@ -42,9 +42,15 @@ export function SiteHeader() {
 
   const nav = [
     { to: "/", label: t("nav.home") },
-    { to: "/sobre-mi", label: t("nav.about") },
-    { to: "/reservas", label: t("nav.schedule") },
-    ...(authed ? [{ to: "/aprendizaje", label: t("nav.learning") }] : []),
+    ...(isAdmin
+      ? []
+      : [
+          { to: "/sobre-mi", label: t("nav.about") },
+          { to: "/reservas", label: t("nav.schedule") },
+        ]),
+    ...(authed && !isAdmin
+      ? [{ to: "/aprendizaje", label: t("nav.learning") }]
+      : []),
     ...(isAdmin ? [{ to: "/panel", label: t("nav.panel") }] : []),
     { to: "/cuenta", label: t("nav.account") },
   ] as const;
