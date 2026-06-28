@@ -1,15 +1,17 @@
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityTab } from "@/components/admin/availability/AvailabilityTab";
-import { HomeworkTab } from "@/components/admin/homework/HomeworkTab";
-import { PresentationsTab } from "@/components/admin/presentations/PresentationsTab";
 import { BookingsTab } from "@/components/admin/bookings/BookingsTab";
 import { StudentsTab } from "@/components/admin/students/StudentsTab";
+import { UnitsTab } from "@/components/admin/units/UnitsTab";
+import { HomeworkTab } from "@/components/admin/homework/HomeworkTab";
+import { PresentationsTab } from "@/components/admin/presentations/PresentationsTab";
 
 const VALID_TABS = [
   "bookings",
   "students",
   "availability",
+  "units",
   "homework",
   "presentations",
 ];
@@ -32,6 +34,7 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
           <TabsTrigger value="availability">
             {t("admin.tabs.availability")}
           </TabsTrigger>
+          <TabsTrigger value="units">{t("admin.tabs.units")}</TabsTrigger>
           <TabsTrigger value="homework">{t("admin.tabs.homework")}</TabsTrigger>
           <TabsTrigger value="presentations">
             {t("admin.tabs.presentations")}
@@ -46,6 +49,9 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
         </TabsContent>
         <TabsContent value="availability" className="mt-6">
           <AvailabilityTab />
+        </TabsContent>
+        <TabsContent value="units" className="mt-6">
+          <UnitsTab />
         </TabsContent>
         <TabsContent value="homework" className="mt-6">
           <HomeworkTab />

@@ -79,10 +79,10 @@ npm run lint && npm run format
 | `/reservas` | Public schedule, book 1-on-1 with Zoom, manage bookings |
 | `/recursos` | Free & paid resources, purchase + unlock, history |
 | `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise) |
-| `/panel` | Admin: availability editor, homework authoring, presentation builder |
+| `/panel` | Admin: availability editor, Units tab (create/reorder units, attach presentations & homeworks, assign students), Homework tab (author homeworks), Presentations tab (author presentations) |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/009-general-availability/plan.md`
+`specs/010-class-units/plan.md`
 <!-- SPECKIT END -->

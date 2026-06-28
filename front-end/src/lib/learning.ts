@@ -34,6 +34,7 @@ export interface HomeworkItem {
   overdue: boolean;
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
+  unit: UnitRef | null; // owning unit for grouping (null for legacy/unattached)
 }
 
 // --- Self-correcting exercises ---------------------------------------------
@@ -84,10 +85,17 @@ export interface AnswerPayload {
   answerText: string | null;
 }
 
+export interface UnitRef {
+  level: string;
+  subject: string;
+  position: number;
+}
+
 export interface SharedPresentationSummary {
   id: string;
   title: string;
   hasFile: boolean;
+  unit: UnitRef | null;
 }
 
 export interface LearningResponse {

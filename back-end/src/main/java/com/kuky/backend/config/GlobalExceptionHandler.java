@@ -12,6 +12,7 @@ import com.kuky.backend.learning.exception.InvalidAudioException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
 import com.kuky.backend.presentations.exception.InvalidImageException;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
+import com.kuky.backend.units.exception.UnitNotFoundException;
 import com.kuky.backend.resources.exception.AlreadyOwnedException;
 import com.kuky.backend.resources.exception.NotPurchasableException;
 import com.kuky.backend.resources.exception.ResourceLockedException;
@@ -178,6 +179,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handlePresentationNotFound(PresentationNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "PRESENTATION_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(UnitNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUnitNotFound(UnitNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "UNIT_NOT_FOUND", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidImageException.class)

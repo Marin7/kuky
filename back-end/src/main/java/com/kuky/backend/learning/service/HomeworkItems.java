@@ -1,6 +1,7 @@
 package com.kuky.backend.learning.service;
 
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
+import com.kuky.backend.learning.dto.UnitRef;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkStatus;
@@ -22,6 +23,12 @@ final class HomeworkItems {
      * @param today      the current date in the teacher's timezone, for overdue derivation
      */
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission, LocalDate today) {
+        return toResponse(a, submission, today, null);
+    }
+
+    /** Variant that attaches the owning unit, for the student's unit-grouped learning view. */
+    static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
+                                           LocalDate today, UnitRef unit) {
         String status = submission != null ? submission.getStatus() : HomeworkStatus.PENDING.name();
         String response = submission != null ? submission.getResponseText() : null;
         boolean overdue = a.getDueOn() != null
@@ -45,7 +52,8 @@ final class HomeworkItems {
                 submission != null ? submission.getSubmittedAt() : null,
                 overdue,
                 a.getAudioUrl(),
-                a.getAudioFileId()
+                a.getAudioFileId(),
+                unit
         );
     }
 }

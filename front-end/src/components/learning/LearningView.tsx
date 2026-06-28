@@ -7,9 +7,8 @@ import {
 } from "@/lib/learning";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PastClassesList } from "./PastClassesList";
-import { HomeworkList } from "./HomeworkList";
 import { HomeworkSubmitDialog } from "./HomeworkSubmitDialog";
-import { SharedPresentationsList } from "./SharedPresentationsList";
+import { LearningContent } from "./LearningContent";
 
 function LearningSkeleton() {
   return (
@@ -70,9 +69,12 @@ export function LearningView() {
 
       {!loading && !error && data && (
         <>
-          <SharedPresentationsList presentations={data.sharedPresentations} />
+          <LearningContent
+            presentations={data.sharedPresentations}
+            homework={data.homework}
+            onOpenHomework={setDialogItem}
+          />
           <PastClassesList classes={data.pastClasses} />
-          <HomeworkList items={data.homework} onOpen={setDialogItem} />
         </>
       )}
 

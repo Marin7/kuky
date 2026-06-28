@@ -392,3 +392,70 @@ export const uploadPresentationFile = async (
 
 export const deletePresentationFile = (id: string) =>
   apiCall<void>(`/presentations/${id}/file`, { method: "DELETE" });
+
+// ---------------------------------------------------------------------------
+// Units (Class Packages)
+// ---------------------------------------------------------------------------
+
+export interface UnitSummary {
+  id: string;
+  level: HomeworkLevel;
+  subject: string;
+  position: number;
+  presentationCount: number;
+  homeworkCount: number;
+  assignedStudentIds: string[];
+}
+
+export interface UnitDetail {
+  id: string;
+  level: HomeworkLevel;
+  subject: string;
+  position: number;
+  presentations: PresentationSummary[];
+  homeworks: HomeworkAdminItem[];
+  assignedStudents: Student[];
+}
+
+export const listUnits = () => apiCall<UnitSummary[]>("/units");
+
+export const createUnit = (level: HomeworkLevel, subject: string) =>
+  apiCall<UnitDetail>("/units", {
+    method: "POST",
+    body: JSON.stringify({ level, subject }),
+  });
+
+export const getUnit = (id: string) => apiCall<UnitDetail>(`/units/${id}`);
+
+export const updateUnit = (id: string, level: HomeworkLevel, subject: string) =>
+  apiCall<UnitDetail>(`/units/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ level, subject }),
+  });
+
+export const deleteUnit = (id: string) =>
+  apiCall<void>(`/units/${id}`, { method: "DELETE" });
+
+export const reorderUnits = (level: HomeworkLevel, orderedIds: string[]) =>
+  apiCall<UnitSummary[]>("/units/reorder", {
+    method: "PUT",
+    body: JSON.stringify({ level, orderedIds }),
+  });
+
+export const setUnitPresentations = (id: string, presentationIds: string[]) =>
+  apiCall<UnitDetail>(`/units/${id}/presentations`, {
+    method: "PUT",
+    body: JSON.stringify({ presentationIds }),
+  });
+
+export const setUnitHomeworks = (id: string, homeworkIds: string[]) =>
+  apiCall<UnitDetail>(`/units/${id}/homeworks`, {
+    method: "PUT",
+    body: JSON.stringify({ homeworkIds }),
+  });
+
+export const setUnitAssignees = (id: string, studentIds: string[]) =>
+  apiCall<UnitDetail>(`/units/${id}/assignees`, {
+    method: "PUT",
+    body: JSON.stringify({ studentIds }),
+  });

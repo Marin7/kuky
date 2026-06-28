@@ -225,31 +225,50 @@ public class PresentationRepository {
                         rs.getString("first_name"), rs.getString("last_name"), rs.getString("username")));
     }
 
+    // --- access UNION: direct share OR unit assignment -----------------------
+
     public boolean isSharedWith(UUID presentationId, UUID userId) {
         Integer count = jdbc.queryForObject("""
-                SELECT COUNT(1) FROM presentation_shares
-                WHERE presentation_id = :pid AND user_id = :uid
+                SELECT COUNT(1) FROM presentations p
+                WHERE p.id = :pid
+                  AND (
+                    EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = p.id AND s.user_id = :uid)
+                    OR
+                    EXISTS (SELECT 1 FROM unit_assignments ua WHERE ua.unit_id = p.unit_id AND ua.user_id = :uid)
+                  )
                 """, Map.of("pid", presentationId, "uid", userId), Integer.class);
         return count != null && count > 0;
     }
 
-    public List<Summary> findSharedSummariesForUser(UUID userId) {
+    public record UnitRef(String level, String subject, int position) {}
+    public record SharedSummaryWithUnit(UUID id, String title, String level, boolean hasFile,
+                                        String originalFileName, UnitRef unit) {}
+
+    public List<SharedSummaryWithUnit> findSharedSummariesForUser(UUID userId) {
         String sql = """
                 SELECT p.id, p.title, p.level, p.updated_at,
-                       pf.original_name
+                       pf.original_name,
+                       u.level AS unit_level, u.subject AS unit_subject, u.position AS unit_position
                 FROM presentations p
-                JOIN presentation_shares sh ON sh.presentation_id = p.id
                 LEFT JOIN presentation_files pf ON pf.presentation_id = p.id
-                WHERE sh.user_id = :uid
-                ORDER BY p.updated_at DESC
+                LEFT JOIN units u ON u.id = p.unit_id
+                WHERE
+                    EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = p.id AND s.user_id = :uid)
+                    OR
+                    EXISTS (SELECT 1 FROM unit_assignments ua WHERE ua.unit_id = p.unit_id AND ua.user_id = :uid)
+                ORDER BY COALESCE(u.level, 'ZZ'), COALESCE(u.position, 999), p.updated_at DESC
                 """;
-        return jdbc.query(sql, Map.of("uid", userId), (rs, n) -> new Summary(
-                rs.getObject("id", UUID.class),
-                rs.getString("title"),
-                rs.getString("level"),
-                rs.getString("original_name") != null,
-                rs.getString("original_name"),
-                List.of(),
-                rs.getTimestamp("updated_at").toInstant()));
+        return jdbc.query(sql, Map.of("uid", userId), (rs, n) -> {
+            String unitLevel = rs.getString("unit_level");
+            UnitRef unitRef = unitLevel == null ? null
+                    : new UnitRef(unitLevel, rs.getString("unit_subject"), rs.getInt("unit_position"));
+            return new SharedSummaryWithUnit(
+                    rs.getObject("id", UUID.class),
+                    rs.getString("title"),
+                    rs.getString("level"),
+                    rs.getString("original_name") != null,
+                    rs.getString("original_name"),
+                    unitRef);
+        });
     }
 }

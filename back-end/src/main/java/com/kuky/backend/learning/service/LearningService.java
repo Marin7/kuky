@@ -8,6 +8,7 @@ import com.kuky.backend.learning.dto.LearningResponse;
 import com.kuky.backend.learning.dto.PastClassResponse;
 import com.kuky.backend.learning.dto.PresentationBlockResponse;
 import com.kuky.backend.learning.dto.SharedPresentationSummary;
+import com.kuky.backend.learning.dto.UnitRef;
 import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
@@ -64,13 +65,26 @@ public class LearningService {
 
         LocalDate today = LocalDate.now(teacherZone());
 
+        Map<UUID, UnitRef> unitByAssignment = contentRepository.findAssignmentUnitsForUser(user.getId())
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ContentRepository.AssignmentUnit::assignmentId,
+                        au -> new UnitRef(au.level(), au.subject(), au.position())));
+
         List<HomeworkItemResponse> homework = contentRepository.findAssignmentsForUser(user.getId()).stream()
-                .map(a -> HomeworkItems.toResponse(a, submissionsByAssignment.get(a.getId()), today))
+                .map(a -> HomeworkItems.toResponse(a, submissionsByAssignment.get(a.getId()), today,
+                        unitByAssignment.get(a.getId())))
                 .toList();
 
         List<SharedPresentationSummary> sharedPresentations =
                 presentationRepository.findSharedSummariesForUser(user.getId()).stream()
-                        .map(s -> new SharedPresentationSummary(s.id(), s.title(), s.hasFile()))
+                        .map(s -> new SharedPresentationSummary(
+                                s.id(),
+                                s.title(),
+                                s.hasFile(),
+                                s.unit() == null ? null
+                                        : new UnitRef(
+                                                s.unit().level(), s.unit().subject(), s.unit().position())))
                         .toList();
 
         return new LearningResponse(presentation, pastClasses, homework, sharedPresentations);

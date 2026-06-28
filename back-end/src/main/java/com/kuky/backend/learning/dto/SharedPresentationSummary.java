@@ -5,5 +5,6 @@ import java.util.UUID;
 public record SharedPresentationSummary(
         UUID id,
         String title,
-        boolean hasFile
+        boolean hasFile,
+        UnitRef unit
 ) {}
