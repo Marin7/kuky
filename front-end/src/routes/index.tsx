@@ -45,6 +45,12 @@ function Index() {
                 {t("home.hero.ctaBook")}
               </Link>
               <Link
+                to="/prueba-de-nivel"
+                className="rounded-md border border-primary/40 bg-background px-5 py-3 text-sm font-medium text-primary hover:bg-primary/5"
+              >
+                {t("home.hero.ctaTest")}
+              </Link>
+              <Link
                 to="/sobre-mi"
                 className="rounded-md border border-border bg-background px-5 py-3 text-sm font-medium hover:bg-accent/30"
               >

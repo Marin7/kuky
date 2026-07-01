@@ -459,3 +459,132 @@ export const setUnitAssignees = (id: string, studentIds: string[]) =>
     method: "PUT",
     body: JSON.stringify({ studentIds }),
   });
+
+// ---------------------------------------------------------------------------
+// Placement test authoring (User Story 3) — /api/v1/admin/placement/**
+// ---------------------------------------------------------------------------
+
+export type PlacementSkill = "READING" | "LISTENING" | "GRAMMAR";
+export type PlacementQuestionKind =
+  | "SINGLE_CHOICE"
+  | "MULTI_CHOICE"
+  | "FILL_BLANK";
+
+export interface PlacementConfig {
+  readingTimeSeconds: number;
+  listeningTimeSeconds: number;
+  grammarTimeSeconds: number;
+  writingTimeSeconds: number;
+  writingPrompt: string;
+}
+
+export type CefrLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+
+export interface PlacementLevelThreshold {
+  level: CefrLevel;
+  minScorePercent: number;
+}
+
+export interface AdminPlacementOption {
+  id?: string;
+  label: string;
+  isCorrect: boolean;
+}
+
+export interface AdminPlacementQuestion {
+  id: string;
+  skill: PlacementSkill;
+  position: number;
+  kind: PlacementQuestionKind;
+  prompt: string;
+  audioUrl: string | null;
+  audioFileId: string | null;
+  active: boolean;
+  options: AdminPlacementOption[];
+}
+
+export interface UpsertPlacementQuestion {
+  skill: PlacementSkill;
+  kind: PlacementQuestionKind;
+  prompt: string;
+  audioUrl: string | null;
+  audioFileId: string | null;
+  active: boolean;
+  options: { label: string; isCorrect: boolean }[];
+}
+
+export interface PlacementSkillResult {
+  skill: PlacementSkill;
+  scorePercent: number;
+  cefrLevel: string;
+}
+
+export interface PlacementWritingSubmission {
+  id: string;
+  body: string;
+  submittedAt: string;
+}
+
+export interface StudentPlacementEvaluation {
+  result: {
+    overallCefr: string | null;
+    completedAt: string | null;
+    skills: PlacementSkillResult[];
+  } | null;
+  writing: PlacementWritingSubmission[];
+}
+
+export const getPlacementConfig = () =>
+  apiCall<PlacementConfig>("/placement/config");
+
+export const updatePlacementConfig = (config: PlacementConfig) =>
+  apiCall<PlacementConfig>("/placement/config", {
+    method: "PUT",
+    body: JSON.stringify(config),
+  });
+
+export const getPlacementQuestions = (skill: PlacementSkill) =>
+  apiCall<AdminPlacementQuestion[]>(`/placement/questions?skill=${skill}`);
+
+export const createPlacementQuestion = (question: UpsertPlacementQuestion) =>
+  apiCall<AdminPlacementQuestion>("/placement/questions", {
+    method: "POST",
+    body: JSON.stringify(question),
+  });
+
+export const updatePlacementQuestion = (
+  id: string,
+  question: UpsertPlacementQuestion,
+) =>
+  apiCall<AdminPlacementQuestion>(`/placement/questions/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(question),
+  });
+
+export const deletePlacementQuestion = (id: string) =>
+  apiCall<void>(`/placement/questions/${id}`, { method: "DELETE" });
+
+export const reorderPlacementQuestions = (
+  skill: PlacementSkill,
+  orderedIds: string[],
+) =>
+  apiCall<void>(`/placement/questions/reorder?skill=${skill}`, {
+    method: "PUT",
+    body: JSON.stringify({ orderedIds }),
+  });
+
+export const getStudentPlacementEvaluation = (studentId: string) =>
+  apiCall<StudentPlacementEvaluation>(
+    `/placement/students/${studentId}/evaluation`,
+  );
+
+export const getPlacementLevelThresholds = () =>
+  apiCall<PlacementLevelThreshold[]>("/placement/levels");
+
+export const updatePlacementLevelThresholds = (
+  thresholds: PlacementLevelThreshold[],
+) =>
+  apiCall<PlacementLevelThreshold[]>("/placement/levels", {
+    method: "PUT",
+    body: JSON.stringify(thresholds),
+  });

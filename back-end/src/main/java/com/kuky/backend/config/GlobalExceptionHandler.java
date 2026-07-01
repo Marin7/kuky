@@ -10,6 +10,9 @@ import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.InvalidAudioException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
+import com.kuky.backend.placement.exception.PlacementNotFoundException;
+import com.kuky.backend.placement.exception.SectionAlreadySubmittedException;
+import com.kuky.backend.placement.exception.SectionNotStartedException;
 import com.kuky.backend.presentations.exception.InvalidImageException;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.units.exception.UnitNotFoundException;
@@ -197,5 +200,25 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInvalidAudio(InvalidAudioException ex) {
         return ResponseEntity.unprocessableEntity()
                 .body(Map.of("error", "INVALID_AUDIO", "message", ex.getMessage()));
+    }
+
+    // Placement test exceptions
+
+    @ExceptionHandler(PlacementNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handlePlacementNotFound(PlacementNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "PLACEMENT_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SectionAlreadySubmittedException.class)
+    public ResponseEntity<Map<String, String>> handleSectionAlreadySubmitted(SectionAlreadySubmittedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "SECTION_ALREADY_SUBMITTED", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SectionNotStartedException.class)
+    public ResponseEntity<Map<String, String>> handleSectionNotStarted(SectionNotStartedException ex) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", "SECTION_NOT_STARTED", "message", ex.getMessage()));
     }
 }

@@ -13,6 +13,7 @@ import { Route as SobreMiRouteImport } from './routes/sobre-mi'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ReservasRouteImport } from './routes/reservas'
 import { Route as RecursosRouteImport } from './routes/recursos'
+import { Route as PruebaDeNivelRouteImport } from './routes/prueba-de-nivel'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
@@ -43,6 +44,11 @@ const ReservasRoute = ReservasRouteImport.update({
 const RecursosRoute = RecursosRouteImport.update({
   id: '/recursos',
   path: '/recursos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PruebaDeNivelRoute = PruebaDeNivelRouteImport.update({
+  id: '/prueba-de-nivel',
+  path: '/prueba-de-nivel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PanelRoute = PanelRouteImport.update({
@@ -110,6 +116,7 @@ export interface FileRoutesByFullPath {
   '/aprendizaje': typeof AprendizajeRoute
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
+  '/prueba-de-nivel': typeof PruebaDeNivelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/aprendizaje': typeof AprendizajeRoute
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
+  '/prueba-de-nivel': typeof PruebaDeNivelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/aprendizaje': typeof AprendizajeRoute
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
+  '/prueba-de-nivel': typeof PruebaDeNivelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/aprendizaje'
     | '/cuenta'
     | '/panel'
+    | '/prueba-de-nivel'
     | '/recursos'
     | '/reservas'
     | '/sitemap.xml'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/aprendizaje'
     | '/cuenta'
     | '/panel'
+    | '/prueba-de-nivel'
     | '/recursos'
     | '/reservas'
     | '/sitemap.xml'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/aprendizaje'
     | '/cuenta'
     | '/panel'
+    | '/prueba-de-nivel'
     | '/recursos'
     | '/reservas'
     | '/sitemap.xml'
@@ -216,6 +228,7 @@ export interface RootRouteChildren {
   AprendizajeRoute: typeof AprendizajeRoute
   CuentaRoute: typeof CuentaRoute
   PanelRoute: typeof PanelRoute
+  PruebaDeNivelRoute: typeof PruebaDeNivelRoute
   RecursosRoute: typeof RecursosRoute
   ReservasRoute: typeof ReservasRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -257,6 +270,13 @@ declare module '@tanstack/react-router' {
       path: '/recursos'
       fullPath: '/recursos'
       preLoaderRoute: typeof RecursosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prueba-de-nivel': {
+      id: '/prueba-de-nivel'
+      path: '/prueba-de-nivel'
+      fullPath: '/prueba-de-nivel'
+      preLoaderRoute: typeof PruebaDeNivelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/panel': {
@@ -344,6 +364,7 @@ const rootRouteChildren: RootRouteChildren = {
   AprendizajeRoute: AprendizajeRoute,
   CuentaRoute: CuentaRoute,
   PanelRoute: PanelRoute,
+  PruebaDeNivelRoute: PruebaDeNivelRoute,
   RecursosRoute: RecursosRoute,
   ReservasRoute: ReservasRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

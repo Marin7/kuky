@@ -3,6 +3,7 @@ export const roDict = {
     home: "Acasă",
     about: "Despre mine",
     schedule: "Rezervări",
+    test: "Test de nivel",
     learning: "Învățarea mea",
     panel: "Panou",
     account: "Contul meu",
@@ -42,6 +43,7 @@ export const roDict = {
       subtitle:
         "Cursuri personalizate, conversație reală și o metodă gândită pentru vorbitorii de română. Fă următorul pas în spaniola ta azi.",
       ctaBook: "Rezervă un curs",
+      ctaTest: "Testează-ți nivelul",
       ctaAbout: "Cunoaște-mă",
     },
     features: {
@@ -652,6 +654,105 @@ export const roDict = {
       emptyPast: "Niciunul înregistrat.",
       emptyHomework: "Fără teme asignate.",
       emptyPresentations: "Fără prezentări distribuite.",
+    },
+  },
+  placement: {
+    intro: {
+      title: "Test de nivel",
+      subtitle:
+        "Parcurge cele trei secțiuni cronometrate (Citire, Audio și Gramatică și vocabular) și află-ți nivelul de spaniolă instant.",
+      loginRequired: "Conectează-te pentru a începe testul de nivel.",
+      goToLogin: "Conectare",
+      start: "Începe testul",
+      sections: {
+        READING: "Citire",
+        LISTENING: "Audio",
+        GRAMMAR: "Gramatică și vocabular",
+      },
+      minutes: "{{count}} min",
+    },
+    section: {
+      loading: "Se încarcă secțiunea…",
+      timeRemaining: "Timp rămas",
+      submit: "Trimite secțiunea",
+      submitting: "Se trimite…",
+      yourAnswer: "Răspunsul tău",
+      warnTitle: "Ai întrebări fără răspuns",
+      warnBody:
+        "Ai lăsat {{count}} întrebare(întrebări) fără răspuns. Dacă trimiți acum, vor fi considerate greșite.",
+      warnConfirm: "Trimite oricum",
+      warnCancel: "Continuă să răspunzi",
+      autoSubmitted: "Timpul a expirat: secțiunea a fost trimisă automat.",
+      submitError: "Nu s-a putut trimite secțiunea.",
+      startError:
+        "Nu s-a putut începe secțiunea. Reîncarcă pagina și încearcă din nou.",
+    },
+    result: {
+      title: "Rezultatul tău",
+      overall: "Nivel estimat",
+      perSkill: "Rezultat pe abilitate",
+      scoreLabel: "{{score}}% răspunsuri corecte",
+      below: "Sub A1",
+      cta: "Vreau evaluarea completă (redactare + vorbire)",
+    },
+    fullEvaluation: {
+      title: "Evaluare completă",
+      intro:
+        "Cu evaluarea completă, Paula îți verifică redactarea și organizează o scurtă probă orală live în care îți explică rezultatele.",
+      writingTitle: "Redactare",
+      writingPlaceholder: "Scrie răspunsul tău aici…",
+      writingSubmit: "Trimite redactarea",
+      writingSubmitting: "Se trimite…",
+      writingSubmitted: "Redactare trimisă. Mulțumim.",
+      writingSubmitError: "Nu s-a putut trimite redactarea.",
+      writingStartError:
+        "Nu s-a putut începe redactarea. Reîncarcă pagina și încearcă din nou.",
+      writingExpired:
+        "Timpul a expirat și nu s-a scris nimic, așa că nu s-a trimis nicio redactare.",
+      yourSubmission: "Ultima ta trimitere",
+      bookingTitle: "Rezervă o programare",
+      bookingBody:
+        "Rezervă o programare la fel ca pentru o lecție normală. În cadrul programării, Paula va susține proba orală și îți va prezenta rezultatele.",
+      bookingCta: "Mergi la rezervări",
+      loadError: "Nu s-a putut încărca evaluarea completă.",
+    },
+    admin: {
+      tab: "Test de nivel",
+      configTitle: "Configurare",
+      timeLimitSeconds: "Limită de timp (secunde)",
+      writingPrompt: "Cerința pentru redactare",
+      save: "Salvează",
+      saving: "Se salvează…",
+      saved: "Salvat.",
+      saveError: "Nu s-a putut salva.",
+      questionsTitle: "Întrebări",
+      addQuestion: "Adaugă întrebare",
+      kind: "Tip",
+      kindOptions: {
+        SINGLE_CHOICE: "Alegere unică",
+        MULTI_CHOICE: "Alegere multiplă",
+        FILL_BLANK: "Completează spațiul",
+      },
+      prompt: "Enunț",
+      options: "Opțiuni",
+      addOption: "Adaugă opțiune",
+      correct: "Corectă",
+      audioUrl: "URL audio (opțional)",
+      audioFile: "Fișier audio (opțional)",
+      delete: "Șterge",
+      moveUp: "Mută în sus",
+      moveDown: "Mută în jos",
+      validationError:
+        "Verifică întrebarea: lipsesc date sau răspunsuri corecte.",
+      levelsTab: "Niveluri",
+      levelThresholdsHint:
+        "Nivelul se calculează la final pe baza rezultatului secțiunii. Stabilește aici scorul minim (%) necesar pentru fiecare nivel.",
+      studentEvaluation: {
+        title: "Test de nivel",
+        noResult: "Nu a finalizat încă testul de nivel.",
+        noWriting: "Nicio redactare trimisă.",
+        overall: "Nivel general",
+      },
     },
   },
   seo: {

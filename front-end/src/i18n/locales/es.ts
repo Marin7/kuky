@@ -3,6 +3,7 @@ export const esDict = {
     home: "Inicio",
     about: "Sobre mí",
     schedule: "Reservas",
+    test: "Prueba de nivel",
     learning: "Mi aprendizaje",
     panel: "Panel",
     account: "Mi cuenta",
@@ -42,6 +43,7 @@ export const esDict = {
       subtitle:
         "Clases personalizadas, conversación real y un método pensado para hablantes de rumano. Da el siguiente paso en tu español hoy.",
       ctaBook: "Reservar una clase",
+      ctaTest: "Prueba tu nivel",
       ctaAbout: "Conóceme",
     },
     features: {
@@ -655,6 +657,106 @@ export const esDict = {
       emptyPast: "Ninguna registrada.",
       emptyHomework: "Sin tareas asignadas.",
       emptyPresentations: "Sin presentaciones compartidas.",
+    },
+  },
+  placement: {
+    intro: {
+      title: "Prueba de nivel",
+      subtitle:
+        "Haz las tres secciones cronometradas (Lectura, Audio y Gramática y vocabulario) y descubre tu nivel de español al instante.",
+      loginRequired: "Inicia sesión para empezar la prueba de nivel.",
+      goToLogin: "Iniciar sesión",
+      start: "Empezar la prueba",
+      sections: {
+        READING: "Lectura",
+        LISTENING: "Audio",
+        GRAMMAR: "Gramática y vocabulario",
+      },
+      minutes: "{{count}} min",
+    },
+    section: {
+      loading: "Cargando sección…",
+      timeRemaining: "Tiempo restante",
+      submit: "Entregar sección",
+      submitting: "Entregando…",
+      yourAnswer: "Tu respuesta",
+      warnTitle: "Tienes preguntas sin responder",
+      warnBody:
+        "Has dejado {{count}} pregunta(s) sin responder. Si entregas ahora, contarán como incorrectas.",
+      warnConfirm: "Entregar de todas formas",
+      warnCancel: "Seguir respondiendo",
+      autoSubmitted:
+        "Se acabó el tiempo: la sección se ha entregado automáticamente.",
+      submitError: "No se pudo entregar la sección.",
+      startError:
+        "No se pudo iniciar la sección. Recarga la página e inténtalo de nuevo.",
+    },
+    result: {
+      title: "Tu resultado",
+      overall: "Nivel estimado",
+      perSkill: "Resultado por destreza",
+      scoreLabel: "{{score}}% de aciertos",
+      below: "Por debajo de A1",
+      cta: "Quiero la evaluación completa (redacción + audición)",
+    },
+    fullEvaluation: {
+      title: "Evaluación completa",
+      intro:
+        "Con la evaluación completa, Paula revisa tu redacción y realiza una breve audición en directo donde te explica tus resultados.",
+      writingTitle: "Redacción",
+      writingPlaceholder: "Escribe tu redacción aquí…",
+      writingSubmit: "Entregar redacción",
+      writingSubmitting: "Entregando…",
+      writingSubmitted: "Redacción entregada. Gracias.",
+      writingSubmitError: "No se pudo entregar la redacción.",
+      writingStartError:
+        "No se pudo iniciar la redacción. Recarga la página e inténtalo de nuevo.",
+      writingExpired:
+        "Se acabó el tiempo y no se había escrito nada, así que no se ha entregado ninguna redacción.",
+      yourSubmission: "Tu última entrega",
+      bookingTitle: "Reserva tu cita",
+      bookingBody:
+        "Reserva una cita como una clase normal. En la cita, Paula realizará la audición y te presentará tus resultados.",
+      bookingCta: "Ir a reservas",
+      loadError: "No se pudo cargar la evaluación completa.",
+    },
+    admin: {
+      tab: "Prueba de nivel",
+      configTitle: "Configuración",
+      timeLimitSeconds: "Límite de tiempo (segundos)",
+      writingPrompt: "Enunciado de la redacción",
+      save: "Guardar",
+      saving: "Guardando…",
+      saved: "Guardado.",
+      saveError: "No se pudo guardar.",
+      questionsTitle: "Preguntas",
+      addQuestion: "Añadir pregunta",
+      kind: "Tipo",
+      kindOptions: {
+        SINGLE_CHOICE: "Opción única",
+        MULTI_CHOICE: "Opción múltiple",
+        FILL_BLANK: "Rellenar el hueco",
+      },
+      prompt: "Enunciado",
+      options: "Opciones",
+      addOption: "Añadir opción",
+      correct: "Correcta",
+      audioUrl: "URL de audio (opcional)",
+      audioFile: "Archivo de audio (opcional)",
+      delete: "Eliminar",
+      moveUp: "Subir",
+      moveDown: "Bajar",
+      validationError:
+        "Revisa la pregunta: faltan datos o respuestas correctas.",
+      levelsTab: "Niveles",
+      levelThresholdsHint:
+        "El nivel se calcula al final según el resultado de la sección. Define aquí la puntuación mínima (%) necesaria para alcanzar cada nivel.",
+      studentEvaluation: {
+        title: "Prueba de nivel",
+        noResult: "Aún no ha completado la prueba de nivel.",
+        noWriting: "Sin redacción entregada.",
+        overall: "Nivel general",
+      },
     },
   },
   seo: {

@@ -7,6 +7,14 @@
       "runtimeArgs": ["--prefix", "front-end", "run", "dev"],
       "port": 8080,
       "autoPort": false
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": ".\\gradlew.bat",
+      "runtimeArgs": ["bootRun", "--args=--spring.profiles.active=local"],
+      "cwd": "back-end",
+      "port": 8081,
+      "autoPort": false
     }
   ]
 }

@@ -4,8 +4,10 @@ import { useTranslation } from "react-i18next";
 import { getMe } from "@/lib/auth";
 import {
   getStudentProfile,
+  getStudentPlacementEvaluation,
   studentDisplayName,
   type StudentProfile,
+  type StudentPlacementEvaluation,
 } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 
@@ -93,6 +95,9 @@ function StudentProfilePage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [placement, setPlacement] = useState<StudentPlacementEvaluation | null>(
+    null,
+  );
 
   useEffect(() => {
     getMe()
@@ -109,6 +114,9 @@ function StudentProfilePage() {
       .then(setProfile)
       .catch(() => setError(t("admin.studentProfile.loadError")))
       .finally(() => setLoading(false));
+    getStudentPlacementEvaluation(studentId)
+      .then(setPlacement)
+      .catch(() => setPlacement(null));
   }, [studentId]);
 
   const upcoming =
@@ -300,6 +308,56 @@ function StudentProfilePage() {
                 </div>
               )}
             </Section>
+
+            {placement && (
+              <Section
+                title={t("placement.admin.studentEvaluation.title")}
+                count={placement.writing.length}
+              >
+                {placement.result ? (
+                  <div className="mb-4 rounded-lg border bg-card p-4">
+                    <p className="text-sm font-medium">
+                      {t("placement.admin.studentEvaluation.overall")}:{" "}
+                      {placement.result.overallCefr ?? "—"}
+                    </p>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
+                      {placement.result.skills.map((s) => (
+                        <div key={s.skill} className="rounded border p-2">
+                          <p className="font-medium">{s.skill}</p>
+                          <p>
+                            {s.cefrLevel} ({s.scorePercent}%)
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    {t("placement.admin.studentEvaluation.noResult")}
+                  </p>
+                )}
+
+                {placement.writing.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("placement.admin.studentEvaluation.noWriting")}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {placement.writing.map((w) => (
+                      <div
+                        key={w.id}
+                        className="rounded-lg border bg-muted/40 p-3 text-sm"
+                      >
+                        <p className="mb-1 text-xs text-muted-foreground">
+                          {formatDate(w.submittedAt)}
+                        </p>
+                        <p className="whitespace-pre-line">{w.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Section>
+            )}
           </div>
         </>
       )}

@@ -1,0 +1,6 @@
+package com.kuky.backend.placement.dto;
+
+import java.util.List;
+import java.util.UUID;
+
+public record ReorderQuestionsRequest(List<UUID> orderedIds) {}

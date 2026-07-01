@@ -79,10 +79,11 @@ npm run lint && npm run format
 | `/reservas` | Public schedule, book 1-on-1 with Zoom, manage bookings |
 | `/recursos` | Free & paid resources, purchase + unlock, history |
 | `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise) |
-| `/panel` | Admin: availability editor, Units tab (create/reorder units, attach presentations & homeworks, assign students), Homework tab (author homeworks), Presentations tab (author presentations) |
+| `/prueba-de-nivel` | Login-gated placement test: 3 timed auto-graded sections (Reading/Audio/Grammar, per-skill CEFR) + full evaluation (offline bank transfer, Writing submission, book appointment via `/reservas`) |
+| `/panel` | Admin: availability editor, Units tab (create/reorder units, attach presentations & homeworks, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Prueba de nivel tab (author placement questions/config, view student results) |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/010-class-units/plan.md`
+`specs/011-placement-test/plan.md`
 <!-- SPECKIT END -->

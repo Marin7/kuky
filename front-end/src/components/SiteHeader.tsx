@@ -47,6 +47,7 @@ export function SiteHeader() {
       : [
           { to: "/sobre-mi", label: t("nav.about") },
           { to: "/reservas", label: t("nav.schedule") },
+          { to: "/prueba-de-nivel", label: t("nav.test") },
         ]),
     ...(authed && !isAdmin
       ? [{ to: "/aprendizaje", label: t("nav.learning") }]
