@@ -9,7 +9,7 @@ public class User {
     private String email;
     private String passwordHash;
     private String status = "ACTIVE";
-    private String role = "STUDENT";
+    private String role = "USER";
     private boolean gdprConsent;
     private String firstName;
     private String lastName;

@@ -7,6 +7,7 @@ import com.kuky.backend.auth.exception.DuplicateUsernameException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
+import com.kuky.backend.admin.exception.UserNotFoundException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.InvalidAudioException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
@@ -176,6 +177,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleStudentNotFound(StudentNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "STUDENT_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUserNotFound(UserNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "USER_NOT_FOUND", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(PresentationNotFoundException.class)

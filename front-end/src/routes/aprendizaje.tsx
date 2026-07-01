@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { LearningView } from "@/components/learning/LearningView";
+import { StudentOnlyNotice } from "@/components/StudentOnlyNotice";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/aprendizaje")({
@@ -45,6 +46,14 @@ function AprendizajePage() {
   }
 
   if (!user) return null;
+
+  if (user.role !== "STUDENT" && user.role !== "ADMIN") {
+    return (
+      <div className="mx-auto max-w-5xl px-6 py-16">
+        <StudentOnlyNotice />
+      </div>
+    );
+  }
 
   return <LearningView />;
 }

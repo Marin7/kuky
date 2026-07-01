@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityTab } from "@/components/admin/availability/AvailabilityTab";
 import { BookingsTab } from "@/components/admin/bookings/BookingsTab";
 import { StudentsTab } from "@/components/admin/students/StudentsTab";
+import { UsersTab } from "@/components/admin/students/UsersTab";
 import { UnitsTab } from "@/components/admin/units/UnitsTab";
 import { HomeworkTab } from "@/components/admin/homework/HomeworkTab";
 import { PresentationsTab } from "@/components/admin/presentations/PresentationsTab";
@@ -11,6 +12,7 @@ import { PlacementAuthoring } from "@/components/placement/admin/PlacementAuthor
 const VALID_TABS = [
   "bookings",
   "students",
+  "users",
   "availability",
   "units",
   "homework",
@@ -33,6 +35,7 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
         <TabsList>
           <TabsTrigger value="bookings">{t("admin.tabs.bookings")}</TabsTrigger>
           <TabsTrigger value="students">{t("admin.tabs.students")}</TabsTrigger>
+          <TabsTrigger value="users">{t("admin.tabs.users")}</TabsTrigger>
           <TabsTrigger value="availability">
             {t("admin.tabs.availability")}
           </TabsTrigger>
@@ -51,6 +54,9 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
         </TabsContent>
         <TabsContent value="students" className="mt-6">
           <StudentsTab />
+        </TabsContent>
+        <TabsContent value="users" className="mt-6">
+          <UsersTab />
         </TabsContent>
         <TabsContent value="availability" className="mt-6">
           <AvailabilityTab />

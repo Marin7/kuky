@@ -399,6 +399,7 @@ export const esDict = {
     tabs: {
       bookings: "Reservas",
       students: "Alumnos",
+      users: "Usuarios",
       availability: "Disponibilidad",
       units: "Unidades",
       homework: "Tareas",
@@ -630,6 +631,21 @@ export const esDict = {
       countSingular: "{{count}} alumno registrado.",
       countPlural: "{{count}} alumnos registrados.",
       hint: "Haz clic en un nombre para ver su perfil.",
+      revoke: "Quitar acceso de alumno/a",
+      revoking: "Guardando…",
+      revokeConfirm:
+        "¿Quitar el acceso de alumno/a a esta persona? Podrás volver a concedérselo cuando quieras.",
+      revokeError: "No se pudo quitar el acceso de alumno/a.",
+    },
+    users: {
+      loading: "Cargando…",
+      empty: "No hay usuarios registrados sin acceso de alumno/a.",
+      countSingular: "{{count}} usuario registrado.",
+      countPlural: "{{count}} usuarios registrados.",
+      hint: "Concede acceso de alumno/a a quien quieras aceptar.",
+      makeStudent: "Hacer alumno/a",
+      promoting: "Guardando…",
+      promoteError: "No se pudo conceder el acceso de alumno/a.",
     },
     studentProfile: {
       back: "← Volver al panel",
@@ -658,6 +674,11 @@ export const esDict = {
       emptyHomework: "Sin tareas asignadas.",
       emptyPresentations: "Sin presentaciones compartidas.",
     },
+  },
+  studentOnly: {
+    title: "Acceso de alumno/a requerido",
+    message:
+      "El acceso de alumno/a lo concede la profesora. Ponte en contacto con Paula si crees que deberías tener acceso.",
   },
   placement: {
     intro: {

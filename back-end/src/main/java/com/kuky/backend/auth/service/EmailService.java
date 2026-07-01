@@ -55,4 +55,34 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    public void sendStudentGrantedEmail(String toEmail) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(toEmail);
+        message.setSubject("Ya eres alumno/a — Kuky");
+        message.setText(
+                "¡Hola!\n\n" +
+                "Paula te ha dado acceso de alumno/a. Ya puedes reservar clases, " +
+                "comprar y desbloquear recursos, y acceder a tus tareas y presentaciones.\n\n" +
+                "Saludos,\nEl equipo de Kuky"
+        );
+
+        mailSender.send(message);
+    }
+
+    public void sendStudentRevokedEmail(String toEmail) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(toEmail);
+        message.setSubject("Tu acceso de alumno/a ha cambiado — Kuky");
+        message.setText(
+                "Hola,\n\n" +
+                "Tu acceso de alumno/a ha sido retirado por Paula. Ya no podrás reservar nuevas clases, " +
+                "comprar nuevos recursos ni acceder a nuevas tareas, pero tu historial sigue disponible.\n\n" +
+                "Saludos,\nEl equipo de Kuky"
+        );
+
+        mailSender.send(message);
+    }
 }

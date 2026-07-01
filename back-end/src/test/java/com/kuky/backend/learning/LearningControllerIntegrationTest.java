@@ -8,12 +8,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -45,7 +46,7 @@ class LearningControllerIntegrationTest {
                 .build();
         testEmail = "test-learning-" + UUID.randomUUID() + "@example.com";
         jdbcTemplate.update(
-                "INSERT INTO users (id, email, password_hash, status, gdpr_consent) VALUES (gen_random_uuid(), ?, 'hash', 'ACTIVE', true)",
+                "INSERT INTO users (id, email, password_hash, status, role, gdpr_consent) VALUES (gen_random_uuid(), ?, 'hash', 'ACTIVE', 'STUDENT', true)",
                 testEmail);
         testAssignmentId = UUID.randomUUID();
         jdbcTemplate.update(
@@ -66,7 +67,7 @@ class LearningControllerIntegrationTest {
     }
 
     private static UsernamePasswordAuthenticationToken principal(String email) {
-        return new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+        return new UsernamePasswordAuthenticationToken(email, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")));
     }
 
     @Test

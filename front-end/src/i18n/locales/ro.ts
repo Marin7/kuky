@@ -397,6 +397,7 @@ export const roDict = {
     tabs: {
       bookings: "Rezervări",
       students: "Elevi",
+      users: "Utilizatori",
       availability: "Disponibilitate",
       units: "Unități",
       homework: "Teme",
@@ -627,6 +628,21 @@ export const roDict = {
       countSingular: "{{count}} elev înregistrat.",
       countPlural: "{{count}} elevi înregistrați.",
       hint: "Fă clic pe un nume pentru a vedea profilul.",
+      revoke: "Elimină accesul de elev",
+      revoking: "Se salvează…",
+      revokeConfirm:
+        "Elimini accesul de elev pentru această persoană? Îl poți acorda din nou oricând.",
+      revokeError: "Nu s-a putut elimina accesul de elev.",
+    },
+    users: {
+      loading: "Se încarcă…",
+      empty: "Nu există utilizatori înregistrați fără acces de elev.",
+      countSingular: "{{count}} utilizator înregistrat.",
+      countPlural: "{{count}} utilizatori înregistrați.",
+      hint: "Acordă acces de elev celor pe care vrei să îi accepți.",
+      makeStudent: "Fă-l elev",
+      promoting: "Se salvează…",
+      promoteError: "Nu s-a putut acorda accesul de elev.",
     },
     studentProfile: {
       back: "← Înapoi la panou",
@@ -655,6 +671,11 @@ export const roDict = {
       emptyHomework: "Fără teme asignate.",
       emptyPresentations: "Fără prezentări distribuite.",
     },
+  },
+  studentOnly: {
+    title: "Este necesar accesul de elev",
+    message:
+      "Accesul de elev este acordat de profesoară. Contacteaz-o pe Paula dacă crezi că ar trebui să ai acces.",
   },
   placement: {
     intro: {

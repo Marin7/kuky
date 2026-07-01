@@ -10,10 +10,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { createBooking, type Slot, type ApiError } from "@/lib/scheduling";
 import { Link } from "@tanstack/react-router";
+import { StudentOnlyNotice } from "@/components/StudentOnlyNotice";
 
 interface BookingDialogProps {
   slot: Slot | null;
   isAuthenticated: boolean;
+  canBook: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -31,6 +33,7 @@ function formatSlotDateTime(iso: string): string {
 export function BookingDialog({
   slot,
   isAuthenticated,
+  canBook,
   onClose,
   onSuccess,
 }: BookingDialogProps) {
@@ -53,6 +56,7 @@ export function BookingDialog({
       BOOKING_TOO_SOON: t("schedule.booking.bookingTooSoonError"),
       SLOT_OUT_OF_RANGE: t("schedule.booking.slotOutOfRangeError"),
       MEETING_PROVISIONING_FAILED: t("schedule.booking.meetingError"),
+      ACCESS_DENIED: t("studentOnly.message"),
     };
     return map[errorCode] ?? t("schedule.booking.genericError");
   };
@@ -100,6 +104,10 @@ export function BookingDialog({
             <Button asChild onClick={onClose}>
               <Link to="/cuenta">{t("schedule.booking.loginButton")}</Link>
             </Button>
+          </div>
+        ) : !canBook ? (
+          <div className="py-4">
+            <StudentOnlyNotice />
           </div>
         ) : joinUrl ? (
           <div className="py-4 space-y-4">

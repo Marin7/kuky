@@ -15,6 +15,7 @@ import {
   type ItemType,
 } from "@/lib/resources";
 import { useNavigate } from "@tanstack/react-router";
+import { StudentOnlyNotice } from "@/components/StudentOnlyNotice";
 
 interface PurchaseTarget {
   itemType: ItemType;
@@ -38,6 +39,7 @@ export function PurchaseDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [studentOnly, setStudentOnly] = useState(false);
   const navigate = useNavigate();
 
   const handleConfirm = async () => {
@@ -54,6 +56,8 @@ export function PurchaseDialog({
         setError(t("resources.purchase.alreadyOwnedError"));
       } else if (apiErr.error === "NOT_PURCHASABLE") {
         setError(t("resources.purchase.notPurchasableError"));
+      } else if (apiErr.error === "ACCESS_DENIED") {
+        setStudentOnly(true);
       } else {
         navigate({
           to: "/cuenta",
@@ -74,6 +78,7 @@ export function PurchaseDialog({
     if (!open) {
       setError(null);
       setConfirmed(false);
+      setStudentOnly(false);
       onClose();
     }
   };
@@ -89,7 +94,11 @@ export function PurchaseDialog({
           </DialogTitle>
         </DialogHeader>
 
-        {confirmed ? (
+        {studentOnly ? (
+          <div className="py-4">
+            <StudentOnlyNotice />
+          </div>
+        ) : confirmed ? (
           <div className="py-4 space-y-3">
             <p className="text-sm text-muted-foreground">
               {t("resources.purchase.confirmedTitle")}{" "}

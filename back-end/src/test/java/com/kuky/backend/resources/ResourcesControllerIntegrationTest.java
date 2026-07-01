@@ -7,8 +7,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.Collections;
+import java.util.List;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import org.springframework.test.context.ActiveProfiles;
@@ -80,14 +81,14 @@ class ResourcesControllerIntegrationTest {
         // Register a test user
         String testEmail = "test-resources-" + UUID.randomUUID() + "@example.com";
         jdbcTemplate.update(
-                "INSERT INTO users (id, email, password_hash, status, gdpr_consent) VALUES (gen_random_uuid(), ?, 'hash', 'ACTIVE', true)",
+                "INSERT INTO users (id, email, password_hash, status, role, gdpr_consent) VALUES (gen_random_uuid(), ?, 'hash', 'ACTIVE', 'STUDENT', true)",
                 testEmail
         );
 
         // Purchase
         String purchaseBody = "{\"itemType\":\"RESOURCE\",\"slug\":\"pack-vocabulario-a1\"}";
         mockMvc.perform(post("/api/v1/purchases")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, Collections.emptyList())))
+                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(purchaseBody))
                 .andExpect(status().isCreated())
@@ -96,12 +97,12 @@ class ResourcesControllerIntegrationTest {
 
         // Content now accessible
         mockMvc.perform(get("/api/v1/resources/pack-vocabulario-a1/content")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, Collections.emptyList()))))
+                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, List.of()))))
                 .andExpect(status().isOk());
 
         // Receipt only accessible to owner
         mockMvc.perform(get("/api/v1/purchases")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, Collections.emptyList()))))
+                        .with(authentication(new UsernamePasswordAuthenticationToken(testEmail, null, List.of()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.purchases").isArray());
 

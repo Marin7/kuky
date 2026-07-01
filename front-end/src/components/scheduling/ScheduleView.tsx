@@ -131,6 +131,7 @@ export function ScheduleView({
       <BookingDialog
         slot={selectedSlot}
         isAuthenticated={!!user}
+        canBook={user?.role === "STUDENT" || user?.role === "ADMIN"}
         onClose={() => setSelectedSlot(null)}
         onSuccess={() => {
           fetchSchedule();

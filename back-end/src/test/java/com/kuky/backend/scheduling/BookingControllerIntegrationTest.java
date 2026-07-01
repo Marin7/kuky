@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -14,7 +15,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
-import java.util.Collections;
+import java.util.List;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -58,7 +59,7 @@ class BookingControllerIntegrationTest {
         ensureTestUser();
 
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList())))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bookingJson(slotStart)))
                 .andExpect(status().isCreated())
@@ -73,14 +74,14 @@ class BookingControllerIntegrationTest {
 
         // First booking succeeds
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList())))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bookingJson(slotStart)))
                 .andExpect(status().isCreated());
 
         // Second booking for same slot fails
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, Collections.emptyList())))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bookingJson(slotStart)))
                 .andExpect(status().isConflict())
@@ -94,7 +95,7 @@ class BookingControllerIntegrationTest {
         ensureTestUser();
 
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList())))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bookingJson(tooSoon)))
                 .andExpect(status().isUnprocessableEntity())
@@ -107,13 +108,13 @@ class BookingControllerIntegrationTest {
         ensureTestUser();
 
         mockMvc.perform(post("/api/v1/bookings")
-                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList())))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(bookingJson(slotStart)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/bookings")
-                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, Collections.emptyList()))))
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.upcoming[0].status").value("CONFIRMED"))
                 .andExpect(jsonPath("$.upcoming[0].zoomJoinUrl").isNotEmpty());
@@ -125,13 +126,13 @@ class BookingControllerIntegrationTest {
 
     private void ensureTestUser() {
         jdbcTemplate.execute("""
-                INSERT INTO users (id, email, password_hash, status, gdpr_consent)
-                VALUES (gen_random_uuid(), 'test@kuky.es', '$2a$12$placeholder', 'ACTIVE', true)
+                INSERT INTO users (id, email, password_hash, status, role, gdpr_consent)
+                VALUES (gen_random_uuid(), 'test@kuky.es', '$2a$12$placeholder', 'ACTIVE', 'STUDENT', true)
                 ON CONFLICT (email) DO NOTHING
                 """);
         jdbcTemplate.execute("""
-                INSERT INTO users (id, email, password_hash, status, gdpr_consent)
-                VALUES (gen_random_uuid(), 'test2@kuky.es', '$2a$12$placeholder', 'ACTIVE', true)
+                INSERT INTO users (id, email, password_hash, status, role, gdpr_consent)
+                VALUES (gen_random_uuid(), 'test2@kuky.es', '$2a$12$placeholder', 'ACTIVE', 'STUDENT', true)
                 ON CONFLICT (email) DO NOTHING
                 """);
     }

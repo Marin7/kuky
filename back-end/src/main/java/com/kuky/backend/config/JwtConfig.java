@@ -48,11 +48,11 @@ public class JwtConfig {
                 .parseSignedClaims(token).getPayload().get("email", String.class);
     }
 
-    /** Reads the role claim; defaults to STUDENT for legacy tokens issued before roles existed. */
+    /** Reads the role claim; defaults to USER (no special access) for legacy tokens issued before roles existed. */
     public String extractRole(String token) {
         String role = Jwts.parser().verifyWith(getKey()).build()
                 .parseSignedClaims(token).getPayload().get("role", String.class);
-        return role != null ? role : "STUDENT";
+        return role != null ? role : "USER";
     }
 
     public long getExpirySeconds() {

@@ -62,6 +62,25 @@ public class UserRepository {
         return jdbc.query(sql, Map.of(), USER_MAPPER);
     }
 
+    public List<User> findRegisteredUsers() {
+        String sql = "SELECT * FROM users WHERE role = 'USER' ORDER BY email";
+        return jdbc.query(sql, Map.of(), USER_MAPPER);
+    }
+
+    /** Grant student status by id (idempotent: no-op if already STUDENT). Returns rows affected. */
+    public int promoteToStudentById(UUID id) {
+        String sql = "UPDATE users SET role = 'STUDENT', updated_at = NOW() "
+                + "WHERE id = :id AND role = 'USER'";
+        return jdbc.update(sql, Map.of("id", id));
+    }
+
+    /** Revoke student status by id (idempotent: no-op if already USER). Returns rows affected. */
+    public int revokeStudentById(UUID id) {
+        String sql = "UPDATE users SET role = 'USER', updated_at = NOW() "
+                + "WHERE id = :id AND role = 'STUDENT'";
+        return jdbc.update(sql, Map.of("id", id));
+    }
+
     public boolean existsByUsernameIgnoreCase(String username, UUID excludeId) {
         String sql = "SELECT COUNT(1) FROM users WHERE LOWER(username) = LOWER(:username) AND id <> :excludeId";
         Integer count = jdbc.queryForObject(sql,

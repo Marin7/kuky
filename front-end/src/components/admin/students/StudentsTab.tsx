@@ -1,12 +1,20 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { getStudents, studentDisplayName, type Student } from "@/lib/admin";
+import {
+  getStudents,
+  revokeStudent,
+  studentDisplayName,
+  type Student,
+} from "@/lib/admin";
+import { Button } from "@/components/ui/button";
 import { StudentLink } from "./StudentLink";
 
 export function StudentsTab() {
   const { t } = useTranslation();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getStudents()
@@ -14,6 +22,20 @@ export function StudentsTab() {
       .catch(() => setStudents([]))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleRevoke = async (id: string) => {
+    if (!window.confirm(t("admin.students.revokeConfirm"))) return;
+    setRevoking(id);
+    setError(null);
+    try {
+      await revokeStudent(id);
+      setStudents((prev) => prev.filter((s) => s.id !== id));
+    } catch {
+      setError(t("admin.students.revokeError"));
+    } finally {
+      setRevoking(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -39,6 +61,7 @@ export function StudentsTab() {
           : t("admin.students.countPlural", { count: students.length })}{" "}
         {t("admin.students.hint")}
       </p>
+      {error && <p className="text-sm text-destructive mb-2">{error}</p>}
       <ul className="divide-y rounded-lg border">
         {students.map((s) => {
           const name = studentDisplayName(s);
@@ -46,7 +69,7 @@ export function StudentsTab() {
           return (
             <li
               key={s.id}
-              className="flex items-center justify-between px-4 py-3"
+              className="flex items-center justify-between gap-3 px-4 py-3"
             >
               <div className="min-w-0">
                 <StudentLink student={s} />
@@ -56,11 +79,24 @@ export function StudentsTab() {
                   </p>
                 )}
               </div>
-              {s.username && (
-                <span className="text-xs text-muted-foreground ml-2 shrink-0">
-                  @{s.username}
-                </span>
-              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {s.username && (
+                  <span className="text-xs text-muted-foreground">
+                    @{s.username}
+                  </span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={revoking === s.id}
+                  onClick={() => handleRevoke(s.id)}
+                  className="h-7 text-xs"
+                >
+                  {revoking === s.id
+                    ? t("admin.students.revoking")
+                    : t("admin.students.revoke")}
+                </Button>
+              </div>
             </li>
           );
         })}

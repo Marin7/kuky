@@ -52,6 +52,31 @@ export function studentDisplayName(
 export const getStudents = () => apiCall<Student[]>("/students");
 
 // ---------------------------------------------------------------------------
+// Registered users (grant/revoke student status)
+// ---------------------------------------------------------------------------
+
+export interface RegisteredUser {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+}
+
+export interface UserRole {
+  id: string;
+  role: "USER" | "STUDENT" | "ADMIN";
+}
+
+export const getRegisteredUsers = () => apiCall<RegisteredUser[]>("/users");
+
+export const promoteToStudent = (id: string) =>
+  apiCall<UserRole>(`/users/${id}/student`, { method: "POST" });
+
+export const revokeStudent = (id: string) =>
+  apiCall<UserRole>(`/users/${id}/student`, { method: "DELETE" });
+
+// ---------------------------------------------------------------------------
 // Bookings (admin upcoming view)
 // ---------------------------------------------------------------------------
 

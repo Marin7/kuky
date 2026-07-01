@@ -48,7 +48,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
                                                   HttpServletResponse response) {
         AuthResponse body = authService.register(request);
-        String token = jwtConfig.generateToken(body.id(), body.email(), "STUDENT");
+        String token = jwtConfig.generateToken(body.id(), body.email(), "USER");
         setAuthCookie(response, token);
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }

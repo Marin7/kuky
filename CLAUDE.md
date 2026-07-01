@@ -52,7 +52,8 @@ npm run lint && npm run format
 - **CORS**: `CorsConfig` exposes a `CorsConfigurationSource` bean (not `WebMvcConfigurer`). `SecurityConfig` uses `.cors(Customizer.withDefaults())` so CORS is evaluated before auth — required for authenticated endpoint preflights.
 - **MeetingProvider**: `MeetingProviderConfig` checks `app.zoom.client-id` at runtime and selects `StubMeetingProvider` (blank) or `ZoomMeetingProvider`. Do **not** use `@ConditionalOnProperty` — Boot treats an empty-string property as present and registers both beans.
 - **Availability**: two layers. `availability_rules` is the general weekly TEMPLATE (the default week). Each bookable week is snapshotted into `week_availability` (absolute per-date windows — the booking source of truth) the first time it enters the 2-week horizon via `AvailabilityService.ensureWeeksMaterialized`, tracked by `materialized_weeks`. Template edits only seed weeks not yet materialized; already-materialized weeks keep their snapshot. `WeekAvailabilityBootstrap` (one-time `CommandLineRunner`) migrates the launch horizon from the legacy `availability_rules ∪ OPEN − BLOCK`; `availability_exceptions` is now legacy/read-only (bootstrap-only). Slots still generated virtually; no `availability_slots` table.
-- **Admin role**: `users.role` is `STUDENT` or `ADMIN`. `AdminBootstrap` (`CommandLineRunner`) promotes the account matching `app.scheduling.teacher-email` to `ADMIN` on startup; takes effect on next login.
+- **Admin role**: `users.role` is `USER`, `STUDENT`, or `ADMIN`. `AdminBootstrap` (`CommandLineRunner`) promotes the account matching `app.scheduling.teacher-email` to `ADMIN` on startup; takes effect on next login.
+- **User vs. student**: registering an account only creates a `USER` (default role, since V23) — it does **not** grant student access. The teacher promotes/revokes `STUDENT` status from the admin panel's Users/Students tabs (`POST`/`DELETE /api/v1/admin/users/{id}/student`). Booking a class (`POST /bookings`), purchasing/unlocking a resource (`POST /purchases`), and all of `/api/v1/learning/**` require `hasAnyRole("STUDENT", "ADMIN")` (`SecurityConfig`) — browsing the schedule/resource listings and the placement test stay open to any authenticated user. Revoking student status never touches existing bookings/purchases/homework history.
 - **Homework formats**: `MANUAL` (free-text, `PENDING→SUBMITTED→REVIEWED`) and `EXERCISE` (auto-graded, `SINGLE_CHOICE`/`MULTI_CHOICE`/`FILL_BLANK`, terminal `GRADED` status). Answer key hidden from students pre-submit via separate DTOs.
 - **Error responses**: `{"error":"ERROR_CODE","message":"..."}` — codes in `contracts/api.md`, mapped in `GlobalExceptionHandler`.
 
@@ -85,5 +86,5 @@ npm run lint && npm run format
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/011-placement-test/plan.md`
+`specs/012-user-student-roles/plan.md`
 <!-- SPECKIT END -->
