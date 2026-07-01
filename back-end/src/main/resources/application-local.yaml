@@ -9,10 +9,6 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
-logging:
-  level:
-    org.flywaydb: DEBUG
-
   mail:
     host: localhost
     port: 1025
@@ -21,6 +17,10 @@ logging:
     properties:
       mail.smtp.auth: false
       mail.smtp.starttls.enable: false
+
+logging:
+  level:
+    org.flywaydb: DEBUG
 
 app:
   cookie:

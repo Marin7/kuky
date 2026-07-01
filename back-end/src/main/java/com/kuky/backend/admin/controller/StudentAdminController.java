@@ -9,6 +9,8 @@ import com.kuky.backend.admin.service.StudentProfileAdminService;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.auth.service.EmailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +29,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin")
 public class StudentAdminController {
+
+    private static final Logger log = LoggerFactory.getLogger(StudentAdminController.class);
 
     private final UserRepository userRepository;
     private final StudentProfileAdminService profileService;
@@ -66,7 +70,12 @@ public class StudentAdminController {
         User user = requireGrantableOrRevocableUser(id);
         if (!"STUDENT".equals(user.getRole())) {
             userRepository.promoteToStudentById(id);
-            emailService.sendStudentGrantedEmail(user.getEmail());
+            try {
+                emailService.sendStudentGrantedEmail(user.getEmail());
+            } catch (Exception e) {
+                log.warn("EmailService — failed to send student-granted email to {}: {}",
+                        user.getEmail(), e.getMessage());
+            }
         }
         return new UserRoleResponse(id, "STUDENT");
     }
@@ -76,7 +85,12 @@ public class StudentAdminController {
         User user = requireGrantableOrRevocableUser(id);
         if ("STUDENT".equals(user.getRole())) {
             userRepository.revokeStudentById(id);
-            emailService.sendStudentRevokedEmail(user.getEmail());
+            try {
+                emailService.sendStudentRevokedEmail(user.getEmail());
+            } catch (Exception e) {
+                log.warn("EmailService — failed to send student-revoked email to {}: {}",
+                        user.getEmail(), e.getMessage());
+            }
         }
         return new UserRoleResponse(id, "USER");
     }
