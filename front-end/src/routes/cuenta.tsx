@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { RegistrationForm } from "@/components/auth/RegistrationForm";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { PasswordResetForm } from "@/components/auth/PasswordResetForm";
+import { TimezoneSetting } from "@/components/account/TimezoneSetting";
 import {
   activate,
   getMe,
@@ -477,6 +478,8 @@ function ProfileView({
           {saving ? t("common.saving") : t("account.saveChanges")}
         </Button>
       </form>
+
+      <TimezoneSetting />
 
       <Button variant="outline" onClick={onLogout} className="w-full">
         {t("account.logout")}

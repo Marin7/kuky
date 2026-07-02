@@ -100,6 +100,13 @@ export const esDict = {
     usernameLabel: "Nombre de usuario",
     usernameOptionalNote: "(opcional si tienes nombre y apellidos)",
     saveChanges: "Guardar cambios",
+    timezoneLabel: "Zona horaria",
+    timezoneAutoNote: "Detectada automáticamente desde tu dispositivo.",
+    timezoneManualNote:
+      "Elegida manualmente. No se actualizará automáticamente.",
+    timezoneFallbackNote:
+      "No se pudo detectar tu zona horaria; se muestra una estimación.",
+    timezoneUseDevice: "Usar la zona horaria de mi dispositivo",
     logout: "Cerrar sesión",
     checkEmail: "Revisa tu correo",
     activationSent:
@@ -171,7 +178,7 @@ export const esDict = {
   },
   schedule: {
     title: "Horario de clases",
-    subtitle: "Horario en hora de Madrid (CET/CEST).",
+    subtitle: "Horario mostrado en tu zona horaria: {{zone}}.",
     loadError: "No se pudo cargar el horario. Inténtalo de nuevo.",
     noSlotsWeek: "No hay horas disponibles para esta semana.",
     booked: "reservado",

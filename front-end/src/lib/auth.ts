@@ -21,6 +21,8 @@ export interface UserResponse {
   username?: string;
   avatarImageId?: string;
   status: "ACTIVE" | "PENDING";
+  timezone?: string;
+  timezoneIsManual: boolean;
 }
 
 /**
@@ -100,6 +102,12 @@ export const updateProfile = (data: {
   apiCall<UserResponse>("/profile", {
     method: "PUT",
     body: JSON.stringify(data),
+  });
+
+export const updateTimezone = (zone: string, manual: boolean) =>
+  apiCall<UserResponse>("/timezone", {
+    method: "PUT",
+    body: JSON.stringify({ zone, manual }),
   });
 
 export const activate = (token: string) =>

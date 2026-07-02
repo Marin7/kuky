@@ -14,24 +14,27 @@ import { StudentOnlyNotice } from "@/components/StudentOnlyNotice";
 
 interface BookingDialogProps {
   slot: Slot | null;
+  timezone: string;
   isAuthenticated: boolean;
   canBook: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function formatSlotDateTime(iso: string): string {
+function formatSlotDateTime(iso: string, timezone: string): string {
   return new Intl.DateTimeFormat("es", {
     weekday: "long",
     day: "numeric",
     month: "long",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: timezone,
   }).format(new Date(iso));
 }
 
 export function BookingDialog({
   slot,
+  timezone,
   isAuthenticated,
   canBook,
   onClose,
@@ -113,7 +116,10 @@ export function BookingDialog({
           <div className="py-4 space-y-4">
             <p className="text-sm text-muted-foreground">
               {t("schedule.booking.confirmedTitle")}{" "}
-              <strong>{slot ? formatSlotDateTime(slot.start) : ""}</strong>.
+              <strong>
+                {slot ? formatSlotDateTime(slot.start, timezone) : ""}
+              </strong>
+              .
             </p>
             <div className="rounded-md bg-muted p-3">
               <p className="text-xs text-muted-foreground mb-1">
@@ -140,7 +146,7 @@ export function BookingDialog({
             {slot && (
               <p className="text-sm text-muted-foreground">
                 {t("schedule.booking.confirmTitle")}{" "}
-                <strong>{formatSlotDateTime(slot.start)}</strong>.
+                <strong>{formatSlotDateTime(slot.start, timezone)}</strong>.
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}

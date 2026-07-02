@@ -179,6 +179,38 @@ class AvailabilityServiceTest {
         verify(availabilityRepo).materializeWeek(eq(WEEK_2), any());
     }
 
+    @Test
+    void slotInstantsShiftCorrectlyAcrossTheOctoberDstTransition() {
+        // Spain's clocks go back one hour at 03:00 CEST on the last Sunday of October
+        // (2026-10-25). A 09:00 local Madrid slot must be 07:00 UTC (CEST, UTC+2) the week
+        // before the transition, and 08:00 UTC (CET, UTC+1) the week after — verifying the
+        // existing ZoneId-based conversion (not new logic) handles the fold correctly, per FR-006.
+        LocalDate weekBefore = LocalDate.of(2026, 10, 19); // Monday, still CEST
+        LocalDate weekAfter = LocalDate.of(2026, 10, 26);  // Monday, already CET
+        Clock dstClock = Clock.fixed(weekBefore.atStartOfDay(MADRID).toInstant(), MADRID);
+
+        AvailabilityRepository repo = mock(AvailabilityRepository.class);
+        BookingRepository bookings = mock(BookingRepository.class);
+        when(bookings.findConfirmedSlotStartsBetween(any(), any())).thenReturn(List.of());
+        when(repo.findMaterializedWeekStarts(any(), any())).thenReturn(List.of(weekBefore, weekAfter));
+        when(repo.findDayWindowsBetween(any(), any())).thenReturn(List.of(
+                dw(weekBefore, "09:00", "10:00"),
+                dw(weekAfter, "09:00", "10:00")));
+        when(repo.findDayWindows(any())).thenReturn(List.of());
+
+        AvailabilityService dstService = new AvailabilityService(new SchedulingProperties(), bookings, repo, dstClock);
+
+        Instant beforeTransition = dstService.generateSchedule().stream()
+                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(weekBefore))
+                .findFirst().orElseThrow().getStart();
+        Instant afterTransition = dstService.generateSchedule().stream()
+                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(weekAfter))
+                .findFirst().orElseThrow().getStart();
+
+        assertThat(beforeTransition).isEqualTo(Instant.parse("2026-10-19T07:00:00Z")); // CEST, UTC+2
+        assertThat(afterTransition).isEqualTo(Instant.parse("2026-10-26T08:00:00Z"));  // CET, UTC+1
+    }
+
     private static DayWindow dw(LocalDate date, String start, String end) {
         return new DayWindow(date, LocalTime.parse(start), LocalTime.parse(end));
     }

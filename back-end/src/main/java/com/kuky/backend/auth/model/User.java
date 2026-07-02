@@ -15,6 +15,8 @@ public class User {
     private String lastName;
     private String username;
     private UUID avatarImageId;
+    private String timezone;
+    private boolean timezoneIsManual;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -38,6 +40,10 @@ public class User {
     public void setUsername(String username) { this.username = username; }
     public UUID getAvatarImageId() { return avatarImageId; }
     public void setAvatarImageId(UUID avatarImageId) { this.avatarImageId = avatarImageId; }
+    public String getTimezone() { return timezone; }
+    public void setTimezone(String timezone) { this.timezone = timezone; }
+    public boolean isTimezoneManual() { return timezoneIsManual; }
+    public void setTimezoneManual(boolean timezoneIsManual) { this.timezoneIsManual = timezoneIsManual; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

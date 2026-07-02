@@ -100,6 +100,12 @@ export const roDict = {
     usernameLabel: "Nume de utilizator",
     usernameOptionalNote: "(opțional dacă ai prenume și nume)",
     saveChanges: "Salvează modificările",
+    timezoneLabel: "Fus orar",
+    timezoneAutoNote: "Detectat automat de pe dispozitivul tău.",
+    timezoneManualNote: "Ales manual. Nu se va actualiza automat.",
+    timezoneFallbackNote:
+      "Nu am putut detecta fusul tău orar; se afișează o estimare.",
+    timezoneUseDevice: "Folosește fusul orar al dispozitivului meu",
     logout: "Deconectare",
     checkEmail: "Verifică-ți email-ul",
     activationSent:
@@ -171,7 +177,7 @@ export const roDict = {
   },
   schedule: {
     title: "Orar de cursuri",
-    subtitle: "Orar în ora Madridului (CET/CEST).",
+    subtitle: "Ore afișate în fusul tău orar: {{zone}}.",
     loadError: "Nu s-a putut încărca orarul. Încearcă din nou.",
     noSlotsWeek: "Nu există ore disponibile pentru această săptămână.",
     booked: "rezervat",

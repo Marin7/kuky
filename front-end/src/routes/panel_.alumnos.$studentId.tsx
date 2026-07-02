@@ -10,6 +10,7 @@ import {
   type StudentProfile,
   type StudentPlacementEvaluation,
 } from "@/lib/admin";
+import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
 import { Button } from "@/components/ui/button";
 import { StudentHomeworkBreakdown } from "@/components/admin/students/StudentHomeworkBreakdown";
 
@@ -17,7 +18,11 @@ export const Route = createFileRoute("/panel_/alumnos/$studentId")({
   component: StudentProfilePage,
 });
 
-function formatSlot(isoStart: string, isoEnd: string): string {
+function formatSlot(
+  isoStart: string,
+  isoEnd: string,
+  timezone: string,
+): string {
   const start = new Date(isoStart);
   const end = new Date(isoEnd);
   const datePart = new Intl.DateTimeFormat("es", {
@@ -25,17 +30,17 @@ function formatSlot(isoStart: string, isoEnd: string): string {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Europe/Madrid",
+    timeZone: timezone,
   }).format(start);
   const timePart = new Intl.DateTimeFormat("es", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Europe/Madrid",
+    timeZone: timezone,
   }).format(start);
   const endTime = new Intl.DateTimeFormat("es", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Europe/Madrid",
+    timeZone: timezone,
   }).format(end);
   return `${datePart}, ${timePart}–${endTime}`;
 }
@@ -93,6 +98,7 @@ function StudentProfilePage() {
   const { t } = useTranslation();
   const { studentId } = Route.useParams();
   const navigate = useNavigate();
+  const teacherTimezone = useTeacherTimezone();
 
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -307,7 +313,7 @@ function StudentProfilePage() {
                       className="flex items-center justify-between px-4 py-3 text-sm"
                     >
                       <span className="capitalize">
-                        {formatSlot(b.slotStart, b.slotEnd)}
+                        {formatSlot(b.slotStart, b.slotEnd, teacherTimezone)}
                       </span>
                       {b.zoomJoinUrl && (
                         <a
@@ -341,7 +347,7 @@ function StudentProfilePage() {
                       className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground"
                     >
                       <span className="capitalize">
-                        {formatSlot(b.slotStart, b.slotEnd)}
+                        {formatSlot(b.slotStart, b.slotEnd, teacherTimezone)}
                       </span>
                       <button
                         type="button"

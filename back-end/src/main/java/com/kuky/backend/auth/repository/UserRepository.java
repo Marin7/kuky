@@ -34,6 +34,8 @@ public class UserRepository {
         u.setLastName(rs.getString("last_name"));
         u.setUsername(rs.getString("username"));
         u.setAvatarImageId(rs.getObject("avatar_image_id", UUID.class));
+        u.setTimezone(rs.getString("timezone"));
+        u.setTimezoneManual(rs.getBoolean("timezone_is_manual"));
         u.setCreatedAt(rs.getTimestamp("created_at").toInstant());
         u.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
         return u;
@@ -103,6 +105,12 @@ public class UserRepository {
                 .addValue("lastName", lastName)
                 .addValue("username", username)
                 .addValue("updatedAt", Timestamp.from(Instant.now())));
+    }
+
+    public void updateTimezone(UUID id, String zone, boolean manual) {
+        String sql = "UPDATE users SET timezone = :zone, timezone_is_manual = :manual, updated_at = NOW() "
+                + "WHERE id = :id";
+        jdbc.update(sql, Map.of("id", id, "zone", zone, "manual", manual));
     }
 
     public void updateAvatar(UUID id, UUID avatarImageId) {

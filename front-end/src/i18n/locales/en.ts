@@ -100,6 +100,12 @@ export const enDict = {
     usernameLabel: "Username",
     usernameOptionalNote: "(optional if you have first and last name)",
     saveChanges: "Save changes",
+    timezoneLabel: "Time zone",
+    timezoneAutoNote: "Auto-detected from your device.",
+    timezoneManualNote: "Manually set. It won't update automatically.",
+    timezoneFallbackNote:
+      "Couldn't detect your time zone; showing an estimate.",
+    timezoneUseDevice: "Use my device's time zone",
     logout: "Log out",
     checkEmail: "Check your email",
     activationSent:
@@ -170,7 +176,7 @@ export const enDict = {
   },
   schedule: {
     title: "Class schedule",
-    subtitle: "Times shown in Madrid time (CET/CEST).",
+    subtitle: "Times shown in your time zone: {{zone}}.",
     loadError: "Could not load the schedule. Please try again.",
     noSlotsWeek: "No available slots this week.",
     booked: "booked",

@@ -4,4 +4,5 @@ import java.util.UUID;
 
 public record UserResponse(UUID id, String email, String role,
                            String firstName, String lastName, String username,
-                           UUID avatarImageId, String status) {}
+                           UUID avatarImageId, String status,
+                           String timezone, boolean timezoneIsManual) {}

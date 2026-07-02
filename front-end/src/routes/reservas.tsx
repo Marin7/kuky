@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { getMe, type UserResponse } from "@/lib/auth";
+import { useTimezone } from "@/hooks/useTimezone";
 import { ScheduleView } from "@/components/scheduling/ScheduleView";
 import { MyBookings } from "@/components/scheduling/MyBookings";
 import { seo } from "@/lib/seo";
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/reservas")({
 function ReservasPage() {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [teacherTimezone, setTeacherTimezone] = useState("Europe/Madrid");
+  const { zone } = useTimezone();
   const scheduleRefreshRef = useRef<(() => void) | null>(null);
   const myBookingsRefreshRef = useRef<(() => void) | null>(null);
 
@@ -34,13 +35,13 @@ function ReservasPage() {
   return (
     <div>
       <ScheduleView
+        timezone={zone}
         onRefreshRef={scheduleRefreshRef}
         onBookingSuccess={() => myBookingsRefreshRef.current?.()}
-        onTimezoneResolved={setTeacherTimezone}
       />
       {!authLoading && user && (
         <MyBookings
-          timezone={teacherTimezone}
+          timezone={zone}
           onRefreshRef={myBookingsRefreshRef}
           onScheduleRefresh={() => scheduleRefreshRef.current?.()}
         />

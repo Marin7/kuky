@@ -1,5 +1,8 @@
 package com.kuky.backend.scheduling;
 
+import com.kuky.backend.auth.model.User;
+import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.scheduling.service.BookingEmailService;
 import jakarta.mail.BodyPart;
 import jakarta.mail.Multipart;
@@ -12,6 +15,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.UUID;
 
@@ -23,6 +27,7 @@ class BookingEmailServiceTest {
     private static final Session SESSION = Session.getInstance(new Properties());
 
     private JavaMailSender mailSender;
+    private UserRepository userRepository;
     private BookingEmailService emailService;
 
     private final UUID bookingId = UUID.randomUUID();
@@ -32,7 +37,17 @@ class BookingEmailServiceTest {
     void setUp() {
         mailSender = mock(JavaMailSender.class);
         when(mailSender.createMimeMessage()).thenAnswer(inv -> new MimeMessage(SESSION));
-        emailService = new BookingEmailService(mailSender, "noreply@kuky.es");
+        userRepository = mock(UserRepository.class);
+        when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.empty());
+        SchedulingProperties props = new SchedulingProperties(); // default teacherTimezone = Europe/Madrid
+        emailService = new BookingEmailService(mailSender, "noreply@kuky.es", userRepository, props);
+    }
+
+    private void studentHasTimezone(String email, String timezone) {
+        User student = new User();
+        student.setEmail(email);
+        student.setTimezone(timezone);
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(student));
     }
 
     private MimeMessage[] captureSentMessages(int expectedCount) {
@@ -54,6 +69,16 @@ class BookingEmailServiceTest {
             }
         }
         return null;
+    }
+
+    private String textBodyOf(MimeMessage message) throws Exception {
+        message.saveChanges();
+        Object content = message.getContent();
+        if (content instanceof String s) {
+            return s;
+        }
+        Multipart mp = (Multipart) content;
+        return (String) mp.getBodyPart(0).getContent();
     }
 
     @Test
@@ -135,6 +160,40 @@ class BookingEmailServiceTest {
         MimeMessage[] sent = captureSentMessages(1);
         Object content = sent[0].getContent();
         assertThat(content).isInstanceOf(String.class);
+    }
+
+    @Test
+    void sendReminderToStudent_usesStudentZone_whenStudentHasSyncedPreference() throws Exception {
+        studentHasTimezone("student@example.com", "America/New_York");
+
+        emailService.sendReminderToStudent("student@example.com", slotStart, "https://zoom.us/j/123");
+
+        MimeMessage[] sent = captureSentMessages(1);
+        String body = textBodyOf(sent[0]);
+        // 2026-08-15T10:00:00Z is 06:00 in America/New_York (EDT, UTC-4).
+        assertThat(body).contains("06:00 (America/New_York)");
+    }
+
+    @Test
+    void sendReminderToStudent_fallsBackToTeacherZone_whenStudentHasNoSyncedPreference() throws Exception {
+        emailService.sendReminderToStudent("student@example.com", slotStart, "https://zoom.us/j/123");
+
+        MimeMessage[] sent = captureSentMessages(1);
+        String body = textBodyOf(sent[0]);
+        // 2026-08-15T10:00:00Z is 12:00 in Europe/Madrid (CEST, UTC+2) — the teacher-zone fallback.
+        assertThat(body).contains("12:00 (Europe/Madrid)");
+    }
+
+    @Test
+    void sendReminderToTeacher_alwaysUsesTeacherZone_regardlessOfStudentPreference() throws Exception {
+        studentHasTimezone("student@example.com", "America/New_York");
+
+        emailService.sendReminderToTeacher("paula@kuky.es", "student@example.com", slotStart, "https://zoom.us/j/123");
+
+        MimeMessage[] sent = captureSentMessages(1);
+        String body = textBodyOf(sent[0]);
+        assertThat(body).contains("12:00 (Europe/Madrid)");
+        assertThat(body).doesNotContain("America/New_York");
     }
 
     @Test

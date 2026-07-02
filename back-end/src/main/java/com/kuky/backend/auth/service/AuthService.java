@@ -4,11 +4,13 @@ import com.kuky.backend.auth.dto.AuthResponse;
 import com.kuky.backend.auth.dto.LoginRequest;
 import com.kuky.backend.auth.dto.RegisterRequest;
 import com.kuky.backend.auth.dto.UpdateProfileRequest;
+import com.kuky.backend.auth.dto.UpdateTimezoneRequest;
 import com.kuky.backend.auth.dto.UserResponse;
 import com.kuky.backend.auth.exception.AccountNotActivatedException;
 import com.kuky.backend.auth.exception.AuthException;
 import com.kuky.backend.auth.exception.DuplicateEmailException;
 import com.kuky.backend.auth.exception.DuplicateUsernameException;
+import com.kuky.backend.auth.exception.InvalidTimezoneException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.model.EmailActivationToken;
 import com.kuky.backend.auth.model.User;
@@ -23,7 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.DateTimeException;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import java.util.Optional;
@@ -162,6 +166,23 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException("Usuario no encontrado."));
     }
 
+    public UserResponse updateTimezone(String email, UpdateTimezoneRequest request) {
+        User user = userRepository.findByEmailIgnoreCase(email.toLowerCase(Locale.ROOT))
+                .orElseThrow(() -> new AuthException("Usuario no encontrado."));
+
+        try {
+            ZoneId.of(request.zone());
+        } catch (DateTimeException e) {
+            throw new InvalidTimezoneException("La zona horaria indicada no es válida.");
+        }
+
+        userRepository.updateTimezone(user.getId(), request.zone(), request.manual());
+
+        return userRepository.findById(user.getId())
+                .map(this::toResponse)
+                .orElseThrow(() -> new AuthException("Usuario no encontrado."));
+    }
+
     public UUID uploadAvatar(String email, MultipartFile file) {
         User user = userRepository.findByEmailIgnoreCase(email.toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new AuthException("Usuario no encontrado."));
@@ -174,7 +195,8 @@ public class AuthService {
     UserResponse toResponse(User u) {
         return new UserResponse(u.getId(), u.getEmail(), u.getRole(),
                 u.getFirstName(), u.getLastName(), u.getUsername(),
-                u.getAvatarImageId(), u.getStatus());
+                u.getAvatarImageId(), u.getStatus(),
+                u.getTimezone(), u.isTimezoneManual());
     }
 
     private void issueActivationEmail(User user) {

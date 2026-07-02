@@ -41,15 +41,15 @@ function ScheduleSkeleton() {
 }
 
 interface ScheduleViewProps {
+  timezone: string;
   onRefreshRef?: React.MutableRefObject<(() => void) | null>;
   onBookingSuccess?: () => void;
-  onTimezoneResolved?: (tz: string) => void;
 }
 
 export function ScheduleView({
+  timezone,
   onRefreshRef,
   onBookingSuccess,
-  onTimezoneResolved,
 }: ScheduleViewProps) {
   const { t } = useTranslation();
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
@@ -63,10 +63,7 @@ export function ScheduleView({
     setLoading(true);
     setError(null);
     getSchedule()
-      .then((s) => {
-        setSchedule(s);
-        onTimezoneResolved?.(s.teacherTimezone);
-      })
+      .then(setSchedule)
       .catch(() => setError(t("schedule.loadError")))
       .finally(() => setLoading(false));
   };
@@ -89,7 +86,7 @@ export function ScheduleView({
           {t("schedule.title")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {t("schedule.subtitle")}
+          {t("schedule.subtitle", { zone: timezone })}
         </p>
       </div>
 
@@ -108,7 +105,7 @@ export function ScheduleView({
               slots={schedule.slots}
               horizonStart={schedule.horizonStart}
               horizonEnd={schedule.horizonEnd}
-              timezone={schedule.teacherTimezone}
+              timezone={timezone}
               selectedDay={selectedDay}
               onSelectDay={setSelectedDay}
             />
@@ -120,7 +117,7 @@ export function ScheduleView({
               <TimeSlotList
                 slots={schedule.slots}
                 selectedDay={selectedDay}
-                timezone={schedule.teacherTimezone}
+                timezone={timezone}
                 onSelect={setSelectedSlot}
               />
             </div>
@@ -130,6 +127,7 @@ export function ScheduleView({
 
       <BookingDialog
         slot={selectedSlot}
+        timezone={timezone}
         isAuthenticated={!!user}
         canBook={user?.role === "STUDENT" || user?.role === "ADMIN"}
         onClose={() => setSelectedSlot(null)}

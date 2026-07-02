@@ -8,6 +8,7 @@ import {
   type BookingConflict,
   type ApiError,
 } from "@/lib/admin";
+import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -45,28 +46,36 @@ interface DateCol {
   monthLabel: string;
 }
 
-function formatDateStr(date: Date): string {
-  return new Intl.DateTimeFormat("sv-SE").format(date);
+// Dates are anchored to the teacher's working time zone (not the admin's device zone,
+// per FR-007), then iterated with UTC-based Date methods to avoid the browser's own
+// local zone shifting the calendar day — the same pattern CalendarPicker.tsx uses.
+function todayKeyInZone(zone: string): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: zone }).format(
+    new Date(),
+  );
 }
 
-function getHorizonDates(): DateCol[] {
-  const today = new Date();
-  const dayJs = today.getDay();
+function formatDateStr(date: Date): string {
+  return new Intl.DateTimeFormat("sv-SE", { timeZone: "UTC" }).format(date);
+}
+
+function getHorizonDates(zone: string): DateCol[] {
+  const anchor = new Date(todayKeyInZone(zone) + "T00:00:00Z");
+  const dayJs = anchor.getUTCDay();
   const daysToMonday = dayJs === 0 ? 6 : dayJs - 1;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - daysToMonday);
-  monday.setHours(12, 0, 0, 0);
+  const monday = new Date(anchor);
+  monday.setUTCDate(anchor.getUTCDate() - daysToMonday);
 
   return Array.from({ length: DAYS }, (_, i) => {
     const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const dow = d.getDay() === 0 ? 7 : d.getDay();
+    d.setUTCDate(monday.getUTCDate() + i);
+    const dow = d.getUTCDay() === 0 ? 7 : d.getUTCDay();
     return {
       dow,
       dateStr: formatDateStr(d),
       dayLabel: DAY_ABBREVS[dow],
-      dayNum: d.getDate(),
-      monthLabel: MONTH_ABBREVS[d.getMonth()],
+      dayNum: d.getUTCDate(),
+      monthLabel: MONTH_ABBREVS[d.getUTCMonth()],
     };
   });
 }
@@ -118,6 +127,7 @@ interface Props {
 
 export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const { t } = useTranslation();
+  const teacherTimezone = useTeacherTimezone();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [initialSelected, setInitialSelected] = useState<Set<string>>(
     new Set(),
@@ -126,8 +136,14 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const dates = useMemo(() => getHorizonDates(), []);
-  const todayStr = useMemo(() => formatDateStr(new Date()), []);
+  const dates = useMemo(
+    () => getHorizonDates(teacherTimezone),
+    [teacherTimezone],
+  );
+  const todayStr = useMemo(
+    () => todayKeyInZone(teacherTimezone),
+    [teacherTimezone],
+  );
   const weeks = useMemo(
     () =>
       Array.from({ length: WEEKS }, (_, w) => dates.slice(w * 7, w * 7 + 7)),

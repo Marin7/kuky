@@ -5,11 +5,16 @@ import {
   cancelAdminBooking,
   type AdminBooking,
 } from "@/lib/admin";
+import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StudentLink } from "@/components/admin/students/StudentLink";
 
-function formatSlot(isoStart: string, isoEnd: string): string {
+function formatSlot(
+  isoStart: string,
+  isoEnd: string,
+  timezone: string,
+): string {
   const start = new Date(isoStart);
   const end = new Date(isoEnd);
   const datePart = new Intl.DateTimeFormat("es", {
@@ -17,23 +22,24 @@ function formatSlot(isoStart: string, isoEnd: string): string {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Europe/Madrid",
+    timeZone: timezone,
   }).format(start);
   const timePart = new Intl.DateTimeFormat("es", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Europe/Madrid",
+    timeZone: timezone,
   }).format(start);
   const endTime = new Intl.DateTimeFormat("es", {
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "Europe/Madrid",
+    timeZone: timezone,
   }).format(end);
   return `${datePart}, ${timePart}–${endTime}`;
 }
 
 export function BookingsTab() {
   const { t } = useTranslation();
+  const teacherTimezone = useTeacherTimezone();
   const [bookings, setBookings] = useState<AdminBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +97,7 @@ export function BookingsTab() {
         <Card key={b.id} className="text-sm">
           <CardContent className="pt-4 space-y-1">
             <p className="font-medium capitalize">
-              {formatSlot(b.slotStart, b.slotEnd)}
+              {formatSlot(b.slotStart, b.slotEnd, teacherTimezone)}
             </p>
             <StudentLink
               student={{
