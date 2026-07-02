@@ -60,6 +60,9 @@ export const esDict = {
         desc: "Recibes ejercicios, audios y lecturas para practicar entre clases.",
       },
     },
+    testimonials: {
+      title: "Lo que dicen mis estudiantes",
+    },
     cta: {
       title: "¿Listo para empezar?",
       subtitle:
@@ -274,6 +277,20 @@ export const esDict = {
   },
   learning: {
     loadError: "No se pudo cargar tu aprendizaje. Inténtalo de nuevo.",
+    testimonial: {
+      title: "Tu testimonio",
+      status: "Estado",
+      placeholder: "Cuéntanos tu experiencia con las clases…",
+      submit: "Enviar testimonio",
+      resubmit: "Actualizar testimonio",
+      error: "No se pudo enviar el testimonio. Inténtalo de nuevo.",
+      statuses: {
+        PENDING: "Pendiente de revisión",
+        APPROVED: "Publicado",
+        REJECTED: "No aprobado",
+        UNPUBLISHED: "Retirado",
+      },
+    },
     homework: {
       title: "Tareas",
       empty: "No tienes tareas asignadas.",
@@ -404,6 +421,24 @@ export const esDict = {
       units: "Unidades",
       homework: "Tareas",
       presentations: "Presentaciones",
+      testimonials: "Testimonios",
+    },
+    testimonials: {
+      loading: "Cargando…",
+      loadError: "No se pudieron cargar los testimonios.",
+      actionError: "No se pudo completar la acción. Inténtalo de nuevo.",
+      pendingTitle: "Pendientes de revisión",
+      pendingEmpty: "No hay testimonios pendientes.",
+      publishedTitle: "Publicados",
+      publishedEmpty: "Aún no hay testimonios publicados.",
+      otherTitle: "Rechazados / retirados",
+      approve: "Aprobar",
+      reject: "Rechazar",
+      unpublish: "Retirar",
+      delete: "Eliminar",
+      edit: "Editar",
+      save: "Guardar",
+      cancel: "Cancelar",
     },
     units: {
       title: "Unidades",

@@ -60,6 +60,9 @@ export const roDict = {
         desc: "Primești exerciții, audiouri și lecturi pentru a practica între cursuri.",
       },
     },
+    testimonials: {
+      title: "Ce spun studenții mei",
+    },
     cta: {
       title: "Ești gata să începi?",
       subtitle:
@@ -274,6 +277,20 @@ export const roDict = {
   },
   learning: {
     loadError: "Nu s-a putut încărca secțiunea de învățare. Încearcă din nou.",
+    testimonial: {
+      title: "Testimonialul tău",
+      status: "Stare",
+      placeholder: "Spune-ne despre experiența ta la cursuri…",
+      submit: "Trimite testimonialul",
+      resubmit: "Actualizează testimonialul",
+      error: "Testimonialul nu a putut fi trimis. Încearcă din nou.",
+      statuses: {
+        PENDING: "În așteptarea revizuirii",
+        APPROVED: "Publicat",
+        REJECTED: "Neaprobat",
+        UNPUBLISHED: "Retras",
+      },
+    },
     homework: {
       title: "Teme",
       empty: "Nu ai teme asignate.",
@@ -402,6 +419,24 @@ export const roDict = {
       units: "Unități",
       homework: "Teme",
       presentations: "Prezentări",
+      testimonials: "Testimoniale",
+    },
+    testimonials: {
+      loading: "Se încarcă…",
+      loadError: "Testimonialele nu au putut fi încărcate.",
+      actionError: "Acțiunea nu a putut fi finalizată. Încearcă din nou.",
+      pendingTitle: "În așteptarea revizuirii",
+      pendingEmpty: "Nu există testimoniale în așteptare.",
+      publishedTitle: "Publicate",
+      publishedEmpty: "Încă nu există testimoniale publicate.",
+      otherTitle: "Respinse / retrase",
+      approve: "Aprobă",
+      reject: "Respinge",
+      unpublish: "Retrage",
+      delete: "Șterge",
+      edit: "Editează",
+      save: "Salvează",
+      cancel: "Anulează",
     },
     units: {
       title: "Unități",

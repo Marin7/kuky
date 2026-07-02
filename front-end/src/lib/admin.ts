@@ -613,3 +613,52 @@ export const updatePlacementLevelThresholds = (
     method: "PUT",
     body: JSON.stringify(thresholds),
   });
+
+// ---------------------------------------------------------------------------
+// Testimonials review/curation
+// ---------------------------------------------------------------------------
+
+export type TestimonialStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "UNPUBLISHED";
+
+export interface AdminTestimonial {
+  id: string;
+  text: string;
+  studentName: string;
+  status: TestimonialStatus;
+  displayOrder: number;
+  submittedAt: string;
+  reviewedAt: string | null;
+}
+
+export const getAdminTestimonials = () =>
+  apiCall<AdminTestimonial[]>("/testimonials");
+
+export const approveTestimonial = (id: string) =>
+  apiCall<AdminTestimonial>(`/testimonials/${id}/approve`, { method: "POST" });
+
+export const rejectTestimonial = (id: string) =>
+  apiCall<AdminTestimonial>(`/testimonials/${id}/reject`, { method: "POST" });
+
+export const unpublishTestimonial = (id: string) =>
+  apiCall<AdminTestimonial>(`/testimonials/${id}/unpublish`, {
+    method: "POST",
+  });
+
+export const updateTestimonialText = (id: string, text: string) =>
+  apiCall<AdminTestimonial>(`/testimonials/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ text }),
+  });
+
+export const reorderTestimonials = (orderedIds: string[]) =>
+  apiCall<AdminTestimonial[]>("/testimonials/reorder", {
+    method: "PUT",
+    body: JSON.stringify({ orderedIds }),
+  });
+
+export const deleteTestimonial = (id: string) =>
+  apiCall<void>(`/testimonials/${id}`, { method: "DELETE" });

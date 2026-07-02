@@ -25,6 +25,7 @@ import com.kuky.backend.scheduling.exception.BookingNotAllowedException;
 import com.kuky.backend.scheduling.exception.BookingNotFoundException;
 import com.kuky.backend.scheduling.exception.MeetingProvisioningException;
 import com.kuky.backend.scheduling.exception.SlotUnavailableException;
+import com.kuky.backend.testimonials.exception.TestimonialNotFoundException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -227,5 +228,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleSectionNotStarted(SectionNotStartedException ex) {
         return ResponseEntity.badRequest()
                 .body(Map.of("error", "SECTION_NOT_STARTED", "message", ex.getMessage()));
+    }
+
+    // Testimonials exceptions
+
+    @ExceptionHandler(TestimonialNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleTestimonialNotFound(TestimonialNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "TESTIMONIAL_NOT_FOUND", "message", ex.getMessage()));
     }
 }

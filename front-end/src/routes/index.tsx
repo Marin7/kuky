@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import teacherUrl from "@/assets/teacher.jpg";
 import { seo } from "@/lib/seo";
+import { TestimonialsSection } from "@/components/TestimonialsSection";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -87,6 +88,8 @@ function Index() {
           ))}
         </div>
       </section>
+
+      <TestimonialsSection />
 
       {/* CTA */}
       <section className="mx-auto max-w-6xl px-6 py-16">

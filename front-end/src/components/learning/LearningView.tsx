@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PastClassesList } from "./PastClassesList";
 import { HomeworkSubmitDialog } from "./HomeworkSubmitDialog";
 import { LearningContent } from "./LearningContent";
+import { MyTestimonial } from "./MyTestimonial";
 
 function LearningSkeleton() {
   return (
@@ -75,6 +76,7 @@ export function LearningView() {
             onOpenHomework={setDialogItem}
           />
           <PastClassesList classes={data.pastClasses} />
+          <MyTestimonial />
         </>
       )}
 

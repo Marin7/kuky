@@ -60,6 +60,9 @@ export const enDict = {
         desc: "You receive exercises, audio and reading materials to practise between classes.",
       },
     },
+    testimonials: {
+      title: "What my students say",
+    },
     cta: {
       title: "Ready to get started?",
       subtitle:
@@ -270,6 +273,20 @@ export const enDict = {
   },
   learning: {
     loadError: "Could not load your learning area. Please try again.",
+    testimonial: {
+      title: "Your testimonial",
+      status: "Status",
+      placeholder: "Tell us about your experience with the classes…",
+      submit: "Submit testimonial",
+      resubmit: "Update testimonial",
+      error: "Could not submit the testimonial. Please try again.",
+      statuses: {
+        PENDING: "Pending review",
+        APPROVED: "Published",
+        REJECTED: "Not approved",
+        UNPUBLISHED: "Unpublished",
+      },
+    },
     homework: {
       title: "Homework",
       empty: "You have no assigned homework.",
@@ -396,6 +413,24 @@ export const enDict = {
       units: "Units",
       homework: "Homework",
       presentations: "Presentations",
+      testimonials: "Testimonials",
+    },
+    testimonials: {
+      loading: "Loading…",
+      loadError: "Could not load testimonials.",
+      actionError: "Could not complete the action. Please try again.",
+      pendingTitle: "Pending review",
+      pendingEmpty: "No pending testimonials.",
+      publishedTitle: "Published",
+      publishedEmpty: "No testimonials published yet.",
+      otherTitle: "Rejected / unpublished",
+      approve: "Approve",
+      reject: "Reject",
+      unpublish: "Unpublish",
+      delete: "Delete",
+      edit: "Edit",
+      save: "Save",
+      cancel: "Cancel",
     },
     units: {
       title: "Units",

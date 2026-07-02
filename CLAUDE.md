@@ -55,6 +55,7 @@ npm run lint && npm run format
 - **Admin role**: `users.role` is `USER`, `STUDENT`, or `ADMIN`. `AdminBootstrap` (`CommandLineRunner`) promotes the account matching `app.scheduling.teacher-email` to `ADMIN` on startup; takes effect on next login.
 - **User vs. student**: registering an account only creates a `USER` (default role, since V23) — it does **not** grant student access. The teacher promotes/revokes `STUDENT` status from the admin panel's Users/Students tabs (`POST`/`DELETE /api/v1/admin/users/{id}/student`). Booking a class (`POST /bookings`), purchasing/unlocking a resource (`POST /purchases`), and all of `/api/v1/learning/**` require `hasAnyRole("STUDENT", "ADMIN")` (`SecurityConfig`) — browsing the schedule/resource listings and the placement test stay open to any authenticated user. Revoking student status never touches existing bookings/purchases/homework history.
 - **Homework formats**: `MANUAL` (free-text, `PENDING→SUBMITTED→REVIEWED`) and `EXERCISE` (auto-graded, `SINGLE_CHOICE`/`MULTI_CHOICE`/`FILL_BLANK`, terminal `GRADED` status). Answer key hidden from students pre-submit via separate DTOs.
+- **Testimonials**: own top-level `testimonials` package (not nested under `learning`, since reads are public). One row per student (`UNIQUE(user_id)` on `testimonials`) — resubmitting is an upsert that resets `status` to `PENDING`, never a second row. Status lifecycle `PENDING → APPROVED|REJECTED`, `APPROVED ⇄ UNPUBLISHED`. `student_name` is a snapshot captured at submit time (not a live join), so it survives account renames/deletion. `GET /api/v1/testimonials` is public and returns `APPROVED` only; submission/own-status require `STUDENT`/`ADMIN`; review/curation lives under the existing `/api/v1/admin/**` matcher.
 - **Error responses**: `{"error":"ERROR_CODE","message":"..."}` — codes in `contracts/api.md`, mapped in `GlobalExceptionHandler`.
 
 ## Production environment variables
@@ -74,17 +75,17 @@ npm run lint && npm run format
 
 | Route | Description |
 |-------|-------------|
-| `/` | Landing — hero, features, CTA |
+| `/` | Landing — hero, features, student testimonials (approved only), CTA |
 | `/sobre-mi` | Paula's bio |
 | `/cuenta` | Register / login / forgot+reset password |
 | `/reservas` | Public schedule, book 1-on-1 with Zoom, manage bookings |
 | `/recursos` | Free & paid resources, purchase + unlock, history |
-| `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise) |
+| `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise), submit/view own testimonial |
 | `/prueba-de-nivel` | Login-gated placement test: 3 timed auto-graded sections (Reading/Audio/Grammar, per-skill CEFR) + full evaluation (offline bank transfer, Writing submission, book appointment via `/reservas`) |
-| `/panel` | Admin: availability editor, Units tab (create/reorder units, attach presentations & homeworks, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Prueba de nivel tab (author placement questions/config, view student results) |
+| `/panel` | Admin: availability editor, Units tab (create/reorder units, attach presentations & homeworks, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Prueba de nivel tab (author placement questions/config, view student results), Testimonios tab (review/approve/reject/edit/reorder/unpublish student testimonials) |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/013-class-reminder-emails/plan.md`
+`specs/014-homepage-testimonials/plan.md`
 <!-- SPECKIT END -->
