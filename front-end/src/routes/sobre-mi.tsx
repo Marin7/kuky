@@ -1,16 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import teacherUrl from "@/assets/teacher.jpg";
-import { seo } from "@/lib/seo";
+import { seo, jsonLd, OG_IMAGE, SITE_URL } from "@/lib/seo";
+
+const PAULA_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Paula",
+  jobTitle: "Profesora de español",
+  description:
+    "Conoce a Paula, profesora de español dedicada a ayudar a estudiantes rumanos a dominar el idioma.",
+  image: OG_IMAGE,
+  worksFor: {
+    "@type": "EducationalOrganization",
+    name: "Español con Paula",
+    url: SITE_URL,
+  },
+};
 
 export const Route = createFileRoute("/sobre-mi")({
   head: () => ({
-    meta: seo({
-      title: "Sobre mí — Español con Paula",
-      description:
-        "Conoce a Paula, profesora de español dedicada a ayudar a estudiantes rumanos a dominar el idioma.",
-      path: "/sobre-mi",
-    }),
+    meta: [
+      ...seo({
+        title: "Sobre mí — Español con Paula",
+        description:
+          "Conoce a Paula, profesora de español dedicada a ayudar a estudiantes rumanos a dominar el idioma.",
+        path: "/sobre-mi",
+      }),
+      jsonLd(PAULA_JSON_LD),
+    ],
   }),
   component: SobreMi,
 });

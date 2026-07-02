@@ -18,13 +18,38 @@ const DEFAULT_DESCRIPTION =
   "Clases de español personalizadas, 100% online, para estudiantes rumanos de todos los niveles.";
 
 // Stable path served from front-end/public/. Absolute URL required by OG.
-const OG_IMAGE = `${SITE_URL}/og-image.jpg`;
+export const OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 type SeoInput = {
   title: string;
   description?: string;
   /** Route path beginning with "/", used to build the canonical og:url. */
   path?: string;
+};
+
+// Renders as <script type="application/ld+json">, per TanStack Router's
+// built-in convention for the "script:ld+json" meta key.
+export function jsonLd(data: Record<string, unknown>) {
+  return { "script:ld+json": data };
+}
+
+// Sitewide entity — included on every page (see __root.tsx) so search
+// engines can build a Knowledge Panel / rich result for the business.
+export const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "EducationalOrganization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: OG_IMAGE,
+  image: OG_IMAGE,
+  description: DEFAULT_DESCRIPTION,
+  founder: {
+    "@type": "Person",
+    name: "Paula",
+    jobTitle: "Profesora de español",
+  },
+  areaServed: "RO",
+  availableLanguage: ["es", "ro"],
 };
 
 export function seo({

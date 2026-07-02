@@ -15,7 +15,7 @@ import i18n, { getStoredLang } from "@/i18n";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteHeader, SiteFooter } from "../components/SiteHeader";
-import { seo } from "../lib/seo";
+import { seo, jsonLd, ORGANIZATION_JSON_LD } from "../lib/seo";
 
 function NotFoundComponent() {
   const { t } = useTranslation();
@@ -93,6 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             "Aprende español con una profesora dedicada. Clases personalizadas para estudiantes rumanos de todos los niveles.",
         }),
         { name: "theme-color", content: "#bc5a3c" },
+        jsonLd(ORGANIZATION_JSON_LD),
       ],
       links: [
         { rel: "stylesheet", href: appCss },

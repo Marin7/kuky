@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SobreMiRouteImport } from './routes/sobre-mi'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ReservasRouteImport } from './routes/reservas'
 import { Route as RecursosRouteImport } from './routes/recursos'
 import { Route as PruebaDeNivelRouteImport } from './routes/prueba-de-nivel'
@@ -34,6 +35,11 @@ const SobreMiRoute = SobreMiRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReservasRoute = ReservasRouteImport.update({
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
   '/recursos': typeof RecursosRoute
   '/reservas': typeof ReservasRoute
+  '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje_/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/prueba-de-nivel'
     | '/recursos'
     | '/reservas'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje/escucha/$homeworkId'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/prueba-de-nivel'
     | '/recursos'
     | '/reservas'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje/escucha/$homeworkId'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/prueba-de-nivel'
     | '/recursos'
     | '/reservas'
+    | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje_/escucha/$homeworkId'
@@ -231,6 +243,7 @@ export interface RootRouteChildren {
   PruebaDeNivelRoute: typeof PruebaDeNivelRoute
   RecursosRoute: typeof RecursosRoute
   ReservasRoute: typeof ReservasRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreMiRoute: typeof SobreMiRoute
   AprendizajeEscuchaHomeworkIdRoute: typeof AprendizajeEscuchaHomeworkIdRoute
@@ -256,6 +269,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reservas': {
@@ -367,6 +387,7 @@ const rootRouteChildren: RootRouteChildren = {
   PruebaDeNivelRoute: PruebaDeNivelRoute,
   RecursosRoute: RecursosRoute,
   ReservasRoute: ReservasRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
   AprendizajeEscuchaHomeworkIdRoute: AprendizajeEscuchaHomeworkIdRoute,
