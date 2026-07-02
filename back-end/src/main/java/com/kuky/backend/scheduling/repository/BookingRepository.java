@@ -36,6 +36,10 @@ public class BookingRepository {
         if (cancelledAt != null) {
             b.setCancelledAt(cancelledAt.toInstant());
         }
+        Timestamp reminderSentAt = rs.getTimestamp("reminder_sent_at");
+        if (reminderSentAt != null) {
+            b.setReminderSentAt(reminderSentAt.toInstant());
+        }
         return b;
     };
 
@@ -147,5 +151,42 @@ public class BookingRepository {
 
     public void delete(UUID id) {
         jdbc.update("DELETE FROM bookings WHERE id = :id", Map.of("id", id));
+    }
+
+    /** Lightweight projection of a booking due for its 24h-before reminder. */
+    public record ReminderDueView(UUID id, String email, Instant slotStart, String zoomJoinUrl) {}
+
+    /**
+     * Confirmed, not-yet-reminded bookings that have crossed the 24h-before mark
+     * (and haven't started yet). Catch-up style: bounded only by {@code now}, so a
+     * missed poll cycle is caught on the next run rather than relying on a narrow window.
+     */
+    public List<ReminderDueView> findBookingsDueForReminder(Instant now) {
+        String sql = """
+                SELECT b.id, u.email, b.slot_start, b.zoom_join_url
+                FROM bookings b JOIN users u ON u.id = b.user_id
+                WHERE b.status = 'CONFIRMED'
+                AND b.reminder_sent_at IS NULL
+                AND b.slot_start > :now
+                AND b.slot_start <= :dueBy
+                ORDER BY b.slot_start
+                """;
+        return jdbc.query(sql,
+                Map.of("now", Timestamp.from(now), "dueBy", Timestamp.from(now.plusSeconds(24 * 3600))),
+                (rs, rowNum) -> new ReminderDueView(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("email"),
+                        rs.getTimestamp("slot_start").toInstant(),
+                        rs.getString("zoom_join_url")));
+    }
+
+    /** Atomically claims a booking's reminder slot; returns false if it was already claimed. */
+    public boolean claimReminder(UUID id, Instant now) {
+        String sql = """
+                UPDATE bookings SET reminder_sent_at = :now
+                WHERE id = :id AND reminder_sent_at IS NULL
+                """;
+        int rows = jdbc.update(sql, Map.of("id", id, "now", Timestamp.from(now)));
+        return rows > 0;
     }
 }

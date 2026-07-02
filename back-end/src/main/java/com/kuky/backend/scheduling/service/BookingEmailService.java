@@ -70,6 +70,32 @@ public class BookingEmailService {
                 "Has cancelado la clase de " + studentEmail + " del " + when + ".");
     }
 
+    /** 24h-before reminder to the student. */
+    public void sendReminderToStudent(String studentEmail, Instant slotStart, String joinUrl) {
+        String when = FMT.format(slotStart);
+        String subject = "Recordatorio: tu clase es mañana — Español con Paula";
+        String body = """
+                Este es un recordatorio de que tu clase es en aproximadamente 24 horas.
+
+                Fecha y hora: %s
+                Enlace de Zoom: %s
+
+                ¡Hasta pronto!
+                """.formatted(when, joinUrl);
+        sendQuietly(studentEmail, subject, body);
+    }
+
+    /** 24h-before reminder to the teacher, identifying the student and class. */
+    public void sendReminderToTeacher(String teacherEmail, String studentEmail, Instant slotStart, String joinUrl) {
+        String when = FMT.format(slotStart);
+        String subject = "Recordatorio: clase con " + studentEmail + " — " + when;
+        String body = "Recordatorio de que tienes una clase en aproximadamente 24 horas.\n\n"
+                + "Estudiante: " + studentEmail
+                + "\nFecha y hora: " + when
+                + "\nEnlace de Zoom: " + joinUrl;
+        sendQuietly(teacherEmail, subject, body);
+    }
+
     private void sendQuietly(String to, String subject, String text) {
         try {
             SimpleMailMessage msg = new SimpleMailMessage();

@@ -14,6 +14,7 @@ public class Booking {
     private String zoomJoinUrl;
     private Instant createdAt;
     private Instant cancelledAt;
+    private Instant reminderSentAt;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -33,6 +34,8 @@ public class Booking {
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getCancelledAt() { return cancelledAt; }
     public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
+    public Instant getReminderSentAt() { return reminderSentAt; }
+    public void setReminderSentAt(Instant reminderSentAt) { this.reminderSentAt = reminderSentAt; }
 
     public Instant getSlotEnd() {
         return slotStart.plusSeconds((long) durationMinutes * 60);
