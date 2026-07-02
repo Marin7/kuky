@@ -1,12 +1,15 @@
 package com.kuky.backend.admin.controller;
 
 import com.kuky.backend.admin.dto.AdminBookingDto;
+import com.kuky.backend.admin.dto.SetNoShowRequest;
 import com.kuky.backend.scheduling.repository.BookingRepository;
 import com.kuky.backend.scheduling.service.BookingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,6 +47,13 @@ public class BookingAdminController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> cancelBooking(@PathVariable UUID id) {
         bookingService.cancelBookingAsAdmin(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Teacher marks (or unmarks) a past confirmed class as a no-show. */
+    @PutMapping("/{id}/no-show")
+    public ResponseEntity<Void> setNoShow(@PathVariable UUID id, @RequestBody SetNoShowRequest request) {
+        bookingService.setNoShow(id, request.noShow());
         return ResponseEntity.noContent().build();
     }
 }

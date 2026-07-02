@@ -8,5 +8,6 @@ public record StudentProfileBookingDto(
         Instant slotStart,
         Instant slotEnd,
         String status,
-        String zoomJoinUrl
+        String zoomJoinUrl,
+        boolean noShow
 ) {}

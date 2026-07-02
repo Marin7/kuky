@@ -40,6 +40,7 @@ public class BookingRepository {
         if (reminderSentAt != null) {
             b.setReminderSentAt(reminderSentAt.toInstant());
         }
+        b.setNoShow(rs.getBoolean("no_show"));
         return b;
     };
 
@@ -147,6 +148,11 @@ public class BookingRepository {
                 WHERE id = :id
                 """;
         jdbc.update(sql, Map.of("id", id, "cancelledAt", Timestamp.from(when)));
+    }
+
+    public void setNoShow(UUID id, boolean noShow) {
+        String sql = "UPDATE bookings SET no_show = :noShow WHERE id = :id";
+        jdbc.update(sql, Map.of("id", id, "noShow", noShow));
     }
 
     public void delete(UUID id) {

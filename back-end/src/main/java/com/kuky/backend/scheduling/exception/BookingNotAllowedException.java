@@ -3,7 +3,7 @@ package com.kuky.backend.scheduling.exception;
 public class BookingNotAllowedException extends RuntimeException {
 
     public enum Reason {
-        RANGE, LEAD, STATE, CUTOFF
+        RANGE, LEAD, STATE, CUTOFF, NOT_ELIGIBLE_FOR_NO_SHOW
     }
 
     private final Reason reason;

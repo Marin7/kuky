@@ -97,6 +97,12 @@ export const getAdminBookings = () => apiCall<AdminBooking[]>("/bookings");
 export const cancelAdminBooking = (id: string) =>
   apiCall<void>(`/bookings/${id}`, { method: "DELETE" });
 
+export const setBookingNoShow = (id: string, noShow: boolean) =>
+  apiCall<void>(`/bookings/${id}/no-show`, {
+    method: "PUT",
+    body: JSON.stringify({ noShow }),
+  });
+
 // ---------------------------------------------------------------------------
 // Availability (User Story 1)
 // ---------------------------------------------------------------------------
@@ -185,6 +191,7 @@ export interface StudentProfileBooking {
   slotEnd: string;
   status: string;
   zoomJoinUrl: string | null;
+  noShow: boolean;
 }
 
 export interface StudentProfileHomework {
@@ -200,6 +207,27 @@ export interface StudentProfilePresentation {
   level: HomeworkLevel | null;
 }
 
+export interface UnitProgress {
+  unitId: string;
+  subject: string;
+  level: HomeworkLevel;
+  totalHomeworks: number;
+  completedHomeworks: number;
+  complete: boolean;
+}
+
+export interface HomeworkBreakdown {
+  pending: number;
+  submitted: number;
+  completed: number;
+}
+
+export interface StudentProgress {
+  units: UnitProgress[];
+  homeworkBreakdown: HomeworkBreakdown;
+  attendedClasses: number;
+}
+
 export interface StudentProfile {
   id: string;
   email: string;
@@ -211,6 +239,7 @@ export interface StudentProfile {
   bookings: StudentProfileBooking[];
   homeworks: StudentProfileHomework[];
   presentations: StudentProfilePresentation[];
+  progress: StudentProgress;
 }
 
 export const getStudentProfile = (id: string) =>

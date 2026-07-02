@@ -239,6 +239,40 @@ public class UnitRepository {
         touch(unitId);
     }
 
+    // --- Student progress ------------------------------------------------------
+
+    /**
+     * Homework totals are counted via {@code homework_targets}, not
+     * {@code homework_assignments.unit_id} alone — a homework filed under a unit
+     * is only "the student's" if they were actually targeted for it (see
+     * V18__create_units.sql: unit_id is organisational-only, never authoritative
+     * for student access).
+     */
+    public record UnitProgressView(UUID unitId, String subject, String level,
+                                   int totalHomeworks, int completedHomeworks) {}
+
+    public List<UnitProgressView> findProgressForStudent(UUID studentId) {
+        String sql = """
+                SELECT u.id AS unit_id, u.subject, u.level,
+                       COUNT(t.id) AS total_homeworks,
+                       COUNT(t.id) FILTER (WHERE COALESCE(s.status, 'PENDING') IN ('REVIEWED', 'GRADED')) AS completed_homeworks
+                FROM unit_assignments ua
+                JOIN units u ON u.id = ua.unit_id
+                LEFT JOIN homework_assignments ha ON ha.unit_id = u.id
+                LEFT JOIN homework_targets t ON t.assignment_id = ha.id AND t.user_id = ua.user_id
+                LEFT JOIN homework_submissions s ON s.assignment_id = ha.id AND s.user_id = ua.user_id
+                WHERE ua.user_id = :studentId
+                GROUP BY u.id, u.subject, u.level, u.position
+                ORDER BY u.position
+                """;
+        return jdbc.query(sql, Map.of("studentId", studentId), (rs, n) -> new UnitProgressView(
+                rs.getObject("unit_id", UUID.class),
+                rs.getString("subject"),
+                rs.getString("level"),
+                rs.getInt("total_homeworks"),
+                rs.getInt("completed_homeworks")));
+    }
+
     // --- Unit-derived presentation access (for LearningService) --------------
 
     public boolean isAccessibleByUser(UUID presentationId, UUID userId) {

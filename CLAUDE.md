@@ -82,10 +82,10 @@ npm run lint && npm run format
 | `/recursos` | Free & paid resources, purchase + unlock, history |
 | `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise), submit/view own testimonial |
 | `/prueba-de-nivel` | Login-gated placement test: 3 timed auto-graded sections (Reading/Audio/Grammar, per-skill CEFR) + full evaluation (offline bank transfer, Writing submission, book appointment via `/reservas`) |
-| `/panel` | Admin: availability editor, Units tab (create/reorder units, attach presentations & homeworks, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Prueba de nivel tab (author placement questions/config, view student results), Testimonios tab (review/approve/reject/edit/reorder/unpublish student testimonials) |
+| `/panel` | Admin: availability editor, Units tab (create/reorder units, attach presentations & homeworks, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Prueba de nivel tab (author placement questions/config, view student results), Testimonios tab (review/approve/reject/edit/reorder/unpublish student testimonials), student profile (curriculum/homework/attendance progress summary, mark/unmark class no-shows) |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/014-homepage-testimonials/plan.md`
+`specs/015-student-progress/plan.md`
 <!-- SPECKIT END -->

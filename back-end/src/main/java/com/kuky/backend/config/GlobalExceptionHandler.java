@@ -117,6 +117,9 @@ public class GlobalExceptionHandler {
                     .body(Map.of("error", "CANCELLATION_TOO_LATE", "message", "El plazo de cancelación ha pasado."));
             case STATE -> ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "ALREADY_CANCELLED", "message", "Esta reserva ya fue cancelada."));
+            case NOT_ELIGIBLE_FOR_NO_SHOW -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("error", "BOOKING_NOT_ELIGIBLE_FOR_NO_SHOW",
+                            "message", "Solo se pueden marcar como no asistidas las clases confirmadas y ya finalizadas."));
         };
     }
 

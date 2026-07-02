@@ -165,6 +165,23 @@ public class BookingService {
                         booking.getSlotStart()));
     }
 
+    /**
+     * Teacher-initiated attendance correction — only meaningful for a class that already
+     * happened. Secured by the /api/v1/admin/** matcher in SecurityConfig.
+     */
+    public void setNoShow(UUID bookingId, boolean noShow) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Reserva no encontrada."));
+
+        boolean isPastConfirmed = "CONFIRMED".equals(booking.getStatus())
+                && booking.getSlotStart().isBefore(Instant.now());
+        if (!isPastConfirmed) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.NOT_ELIGIBLE_FOR_NO_SHOW);
+        }
+
+        bookingRepository.setNoShow(bookingId, noShow);
+    }
+
     private BookingResponse toResponse(Booking b) {
         return new BookingResponse(
                 b.getId(),

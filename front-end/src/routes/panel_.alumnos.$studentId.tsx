@@ -5,11 +5,13 @@ import { getMe } from "@/lib/auth";
 import {
   getStudentProfile,
   getStudentPlacementEvaluation,
+  setBookingNoShow,
   studentDisplayName,
   type StudentProfile,
   type StudentPlacementEvaluation,
 } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
+import { StudentHomeworkBreakdown } from "@/components/admin/students/StudentHomeworkBreakdown";
 
 export const Route = createFileRoute("/panel_/alumnos/$studentId")({
   component: StudentProfilePage,
@@ -119,6 +121,13 @@ function StudentProfilePage() {
       .catch(() => setPlacement(null));
   }, [studentId]);
 
+  const handleToggleNoShow = (bookingId: string, noShow: boolean) => {
+    setBookingNoShow(bookingId, noShow)
+      .then(() => getStudentProfile(studentId))
+      .then(setProfile)
+      .catch(() => setError(t("admin.studentProfile.loadError")));
+  };
+
   const upcoming =
     profile?.bookings.filter(
       (b) => b.status === "CONFIRMED" && new Date(b.slotEnd) > new Date(),
@@ -197,6 +206,92 @@ function StudentProfilePage() {
 
           <div className="space-y-10">
             <Section
+              title={t("admin.studentProfile.progress.title")}
+              count={profile.progress.units.length}
+            >
+              {profile.progress.units.length === 0 &&
+              profile.progress.homeworkBreakdown.pending === 0 &&
+              profile.progress.homeworkBreakdown.submitted === 0 &&
+              profile.progress.homeworkBreakdown.completed === 0 &&
+              profile.progress.attendedClasses === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t("admin.studentProfile.progress.empty")}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div className="rounded-lg border bg-card p-3 text-center">
+                      <p className="text-lg font-semibold">
+                        {profile.progress.attendedClasses}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("admin.studentProfile.progress.attendedClasses")}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border bg-card p-3 text-center">
+                      <p className="text-lg font-semibold">
+                        {placement?.result?.overallCefr ??
+                          t("admin.studentProfile.progress.noLevel")}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("admin.studentProfile.progress.level")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {profile.progress.units.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">
+                        {t("admin.studentProfile.progress.units")}
+                      </p>
+                      <div className="divide-y rounded-lg border">
+                        {profile.progress.units.map((u) => (
+                          <div
+                            key={u.unitId}
+                            className="flex items-center justify-between px-4 py-3 text-sm"
+                          >
+                            <span>
+                              {u.subject}{" "}
+                              <span className="text-xs text-muted-foreground">
+                                ({u.level})
+                              </span>
+                            </span>
+                            <span className="flex items-center gap-2 ml-4 shrink-0">
+                              <span className="text-xs text-muted-foreground">
+                                {u.completedHomeworks}/{u.totalHomeworks}
+                              </span>
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  u.complete
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {u.complete
+                                  ? t(
+                                      "admin.studentProfile.progress.unitComplete",
+                                    )
+                                  : t(
+                                      "admin.studentProfile.progress.unitInProgress",
+                                    )}
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <StudentHomeworkBreakdown
+                    pending={profile.progress.homeworkBreakdown.pending}
+                    submitted={profile.progress.homeworkBreakdown.submitted}
+                    completed={profile.progress.homeworkBreakdown.completed}
+                  />
+                </div>
+              )}
+            </Section>
+
+            <Section
               title={t("admin.studentProfile.upcomingClasses")}
               count={upcoming.length}
             >
@@ -243,9 +338,24 @@ function StudentProfilePage() {
                   {past.map((b) => (
                     <div
                       key={b.id}
-                      className="px-4 py-3 text-sm capitalize text-muted-foreground"
+                      className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground"
                     >
-                      {formatSlot(b.slotStart, b.slotEnd)}
+                      <span className="capitalize">
+                        {formatSlot(b.slotStart, b.slotEnd)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleNoShow(b.id, !b.noShow)}
+                        className={`ml-4 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium hover:underline ${
+                          b.noShow
+                            ? "bg-red-100 text-red-700"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {b.noShow
+                          ? t("admin.studentProfile.progress.unmarkNoShow")
+                          : t("admin.studentProfile.progress.markNoShow")}
+                      </button>
                     </div>
                   ))}
                 </div>

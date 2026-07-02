@@ -14,5 +14,6 @@ public record StudentProfileResponse(
         Instant createdAt,
         List<StudentProfileBookingDto> bookings,
         List<StudentProfileHomeworkDto> homeworks,
-        List<StudentProfilePresentationDto> presentations
+        List<StudentProfilePresentationDto> presentations,
+        StudentProgressDto progress
 ) {}
