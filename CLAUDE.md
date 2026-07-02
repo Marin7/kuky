@@ -87,5 +87,5 @@ npm run lint && npm run format
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/015-student-progress/plan.md`
+`specs/016-ics-calendar-attachment/plan.md`
 <!-- SPECKIT END -->

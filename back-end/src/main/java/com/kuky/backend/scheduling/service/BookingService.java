@@ -83,7 +83,7 @@ public class BookingService {
 
         emailService.sendConfirmation(userEmail,
                 props.getScheduling().getTeacherEmail(),
-                slotStart, duration, meeting.joinUrl());
+                booking.getId(), slotStart, duration, meeting.joinUrl());
 
         return toResponse(booking);
     }
@@ -136,7 +136,10 @@ public class BookingService {
         emailService.sendCancellation(
                 props.getScheduling().getTeacherEmail(),
                 userEmail,
-                booking.getSlotStart());
+                booking.getId(),
+                booking.getSlotStart(),
+                booking.getDurationMinutes(),
+                booking.getZoomJoinUrl());
     }
 
     /**
@@ -162,7 +165,10 @@ public class BookingService {
                 emailService.sendCancellationByTeacher(
                         student.getEmail(),
                         props.getScheduling().getTeacherEmail(),
-                        booking.getSlotStart()));
+                        booking.getId(),
+                        booking.getSlotStart(),
+                        booking.getDurationMinutes(),
+                        booking.getZoomJoinUrl()));
     }
 
     /**
