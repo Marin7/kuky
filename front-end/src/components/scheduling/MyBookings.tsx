@@ -47,6 +47,11 @@ function BookingCard({
         <p className="font-medium">
           {formatSlot(booking.slotStart, booking.slotEnd, timezone)}
         </p>
+        {booking.isCompanionStudent && (
+          <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+            {t("schedule.myBookings.joiningSharedClass")}
+          </span>
+        )}
         {booking.zoomJoinUrl && (
           <a
             href={booking.zoomJoinUrl}

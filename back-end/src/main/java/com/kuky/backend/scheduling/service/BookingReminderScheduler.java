@@ -40,6 +40,9 @@ public class BookingReminderScheduler {
                 continue;
             }
             emailService.sendReminderToStudent(booking.email(), booking.slotStart(), booking.zoomJoinUrl());
+            if (booking.companionStudentEmail() != null) {
+                emailService.sendReminderToStudent(booking.companionStudentEmail(), booking.slotStart(), booking.zoomJoinUrl());
+            }
             emailService.sendReminderToTeacher(props.getScheduling().getTeacherEmail(), booking.email(),
                     booking.slotStart(), booking.zoomJoinUrl());
             log.info("Sent 24h reminder for booking {}", booking.id());

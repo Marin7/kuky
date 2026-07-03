@@ -211,6 +211,7 @@ export const enDict = {
       cancelled: "Cancelled",
       cancelClass: "Cancel class",
       cancelling: "Cancelling…",
+      joiningSharedClass: "You've joined this class",
       loadError: "Could not load your classes.",
       cancelError: "Could not cancel the class. Please try again.",
       cancellationTooLateError:
@@ -554,6 +555,27 @@ export const enDict = {
       cancelConfirm:
         "Cancel this class? The student will be notified by email.",
       cancelError: "Could not cancel the class. Please try again.",
+      companion: {
+        attach: "Add classmate",
+        detach: "Remove classmate",
+        detachConfirm:
+          "Remove this student from the class? The class will still take place for whoever booked it.",
+        detachError: "Could not remove the classmate. Please try again.",
+        dialogTitle: "Add classmate",
+        noStudents: "No students available.",
+        save: "Add",
+        saving: "Adding…",
+        alreadyAttachedError: "This class already has a classmate attached.",
+        sameAsBookingStudentError: "Already the one who booked this class.",
+        notStudentError: "This user does not have student access.",
+        notEligibleForExtendedError:
+          "This student doesn't have access to 1.5-hour classes.",
+        notAttachableError:
+          "A cancelled or already-finished class can't be modified.",
+        genericError: "Could not add the student. Please try again.",
+        markNoShow: "Mark no-show",
+        unmarkNoShow: "Unmark no-show",
+      },
     },
     homework: {
       loading: "Loading…",

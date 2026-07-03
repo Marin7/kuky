@@ -219,6 +219,7 @@ export const roDict = {
       cancelled: "Anulată",
       cancelClass: "Anulează cursul",
       cancelling: "Se anulează…",
+      joiningSharedClass: "Te-ai alăturat acestui curs",
       loadError: "Nu s-au putut încărca cursurile.",
       cancelError: "Nu s-a putut anula cursul. Încearcă din nou.",
       cancellationTooLateError:
@@ -565,6 +566,28 @@ export const roDict = {
       cancelling: "Se anulează…",
       cancelConfirm: "Anulezi acest curs? Studentul va fi anunțat prin e-mail.",
       cancelError: "Cursul nu a putut fi anulat. Încearcă din nou.",
+      companion: {
+        attach: "Adaugă coleg de curs",
+        detach: "Elimină coleg de curs",
+        detachConfirm:
+          "Elimini acest student din curs? Cursul va avea loc în continuare pentru cel care l-a rezervat.",
+        detachError:
+          "Colegul de curs nu a putut fi eliminat. Încearcă din nou.",
+        dialogTitle: "Adaugă coleg de curs",
+        noStudents: "Niciun student disponibil.",
+        save: "Adaugă",
+        saving: "Se adaugă…",
+        alreadyAttachedError: "Acest curs are deja un coleg de curs.",
+        sameAsBookingStudentError: "Este deja cel care a rezervat acest curs.",
+        notStudentError: "Acest utilizator nu are acces de student.",
+        notEligibleForExtendedError:
+          "Acest student nu are acces la cursurile de 1 oră și jumătate.",
+        notAttachableError:
+          "Un curs anulat sau deja finalizat nu poate fi modificat.",
+        genericError: "Studentul nu a putut fi adăugat. Încearcă din nou.",
+        markNoShow: "Marchează absența",
+        unmarkNoShow: "Anulează absența",
+      },
     },
     homework: {
       loading: "Se încarcă…",

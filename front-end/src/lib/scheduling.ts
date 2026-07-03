@@ -33,6 +33,7 @@ export interface BookingSummary {
   status: string;
   zoomJoinUrl: string;
   cancellable: boolean;
+  isCompanionStudent: boolean;
 }
 
 export interface MyBookingsResponse {

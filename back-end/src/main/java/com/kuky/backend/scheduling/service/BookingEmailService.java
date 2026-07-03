@@ -88,6 +88,16 @@ public class BookingEmailService {
     /** Student-initiated cancellation: notify the teacher, and confirm the cancellation to the student. */
     public void sendCancellation(String teacherEmail, String studentEmail, UUID bookingId,
                                  Instant slotStart, int durationMinutes, String joinUrl) {
+        sendCancellation(teacherEmail, studentEmail, bookingId, slotStart, durationMinutes, joinUrl, null);
+    }
+
+    /**
+     * Student-initiated cancellation, also notifying the companion student (if any) on a shared
+     * booking — whichever student didn't initiate the cancellation still needs to know.
+     */
+    public void sendCancellation(String teacherEmail, String studentEmail, UUID bookingId,
+                                 Instant slotStart, int durationMinutes, String joinUrl,
+                                 String companionStudentEmail) {
         String whenForTeacher = formatForTeacher(slotStart);
         String whenForStudent = formatForStudent(slotStart, studentEmail);
 
@@ -102,11 +112,30 @@ public class BookingEmailService {
         sendQuietly(studentEmail, "Clase cancelada — Español con Paula",
                 "Has cancelado tu clase del " + whenForStudent + ".",
                 studentIcs, IcsEventFactory.Method.CANCEL);
+
+        if (companionStudentEmail != null) {
+            String whenForCompanionStudent = formatForStudent(slotStart, companionStudentEmail);
+            byte[] companionStudentIcs = buildIcs(IcsEventFactory.Method.CANCEL, bookingId, slotStart, durationMinutes,
+                    "Cancelada", joinUrl, teacherEmail, companionStudentEmail);
+            sendQuietly(companionStudentEmail, "Clase cancelada — Español con Paula",
+                    "La clase del " + whenForCompanionStudent + " a la que te habías unido ha sido cancelada.",
+                    companionStudentIcs, IcsEventFactory.Method.CANCEL);
+        }
     }
 
     /** Teacher-initiated cancellation: notify the student their class was cancelled, and confirm to the teacher. */
     public void sendCancellationByTeacher(String studentEmail, String teacherEmail, UUID bookingId,
                                           Instant slotStart, int durationMinutes, String joinUrl) {
+        sendCancellationByTeacher(studentEmail, teacherEmail, bookingId, slotStart, durationMinutes, joinUrl, null);
+    }
+
+    /**
+     * Teacher-initiated cancellation, also notifying the companion student (if any) on a shared
+     * booking.
+     */
+    public void sendCancellationByTeacher(String studentEmail, String teacherEmail, UUID bookingId,
+                                          Instant slotStart, int durationMinutes, String joinUrl,
+                                          String companionStudentEmail) {
         String whenForStudent = formatForStudent(slotStart, studentEmail);
         String whenForTeacher = formatForTeacher(slotStart);
         String subject = "Clase cancelada — Español con Paula";
@@ -127,6 +156,40 @@ public class BookingEmailService {
         sendQuietly(teacherEmail, "Clase cancelada: " + studentEmail + " — " + whenForTeacher,
                 "Has cancelado la clase de " + studentEmail + " del " + whenForTeacher + ".",
                 teacherIcs, IcsEventFactory.Method.CANCEL);
+
+        if (companionStudentEmail != null) {
+            String whenForCompanionStudent = formatForStudent(slotStart, companionStudentEmail);
+            byte[] companionStudentIcs = buildIcs(IcsEventFactory.Method.CANCEL, bookingId, slotStart, durationMinutes,
+                    "Cancelada por la profesora", joinUrl, teacherEmail, companionStudentEmail);
+            sendQuietly(companionStudentEmail, subject,
+                    "La clase del " + whenForCompanionStudent + " a la que te habías unido ha sido cancelada por la profesora.",
+                    companionStudentIcs, IcsEventFactory.Method.CANCEL);
+        }
+    }
+
+    /**
+     * Notifies a student they've been attached as the companion participant on an existing class,
+     * sharing it with equal standing alongside whoever made the booking.
+     * Uses the booking's real id as the ICS UID (matching {@link #sendConfirmation}) so a later
+     * cancellation's CANCEL event correctly replaces this REQUEST in the student's calendar.
+     */
+    public void sendCompanionStudentAttached(String toEmail, UUID bookingId, Instant slotStart,
+                                          int durationMinutes, String joinUrl) {
+        String when = formatForStudent(slotStart, toEmail);
+        String subject = "Te han añadido a una clase — Español con Paula";
+        String body = """
+                La profesora te ha añadido a una clase.
+
+                Fecha y hora: %s
+                Duración: %d minutos
+                Enlace de Zoom: %s
+
+                ¡Hasta pronto!
+                """.formatted(when, durationMinutes, joinUrl);
+
+        byte[] ics = buildIcs(IcsEventFactory.Method.REQUEST, bookingId, slotStart, durationMinutes,
+                "Enlace de Zoom: " + joinUrl, joinUrl, fromAddress, toEmail);
+        sendQuietly(toEmail, subject, body, ics, IcsEventFactory.Method.REQUEST);
     }
 
     /** 24h-before reminder to the student. No calendar attachment — the student already has one from the confirmation. */

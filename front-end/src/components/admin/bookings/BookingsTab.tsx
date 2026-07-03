@@ -3,12 +3,14 @@ import { useTranslation } from "react-i18next";
 import {
   getAdminBookings,
   cancelAdminBooking,
+  detachCompanionStudent,
   type AdminBooking,
 } from "@/lib/admin";
 import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StudentLink } from "@/components/admin/students/StudentLink";
+import { AttachCompanionStudentDialog } from "@/components/admin/bookings/AttachCompanionStudentDialog";
 
 function formatSlot(
   isoStart: string,
@@ -45,6 +47,9 @@ export function BookingsTab() {
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [attachingTo, setAttachingTo] = useState<AdminBooking | null>(null);
+  const [detachError, setDetachError] = useState<string | null>(null);
+  const [detaching, setDetaching] = useState<string | null>(null);
 
   useEffect(() => {
     getAdminBookings()
@@ -64,6 +69,34 @@ export function BookingsTab() {
       setCancelError(t("admin.bookings.cancelError"));
     } finally {
       setCancelling(null);
+    }
+  };
+
+  const handleDetach = async (b: AdminBooking) => {
+    if (!window.confirm(t("admin.bookings.companion.detachConfirm"))) return;
+    setDetaching(b.id);
+    setDetachError(null);
+    try {
+      await detachCompanionStudent(b.id);
+      setBookings((prev) =>
+        prev.map((x) =>
+          x.id === b.id
+            ? {
+                ...x,
+                companionStudentId: null,
+                companionStudentEmail: null,
+                companionStudentFirstName: null,
+                companionStudentLastName: null,
+                companionStudentUsername: null,
+                companionStudentNoShow: null,
+              }
+            : x,
+        ),
+      );
+    } catch {
+      setDetachError(t("admin.bookings.companion.detachError"));
+    } finally {
+      setDetaching(null);
     }
   };
 
@@ -93,6 +126,7 @@ export function BookingsTab() {
         {t("admin.bookings.description")}
       </p>
       {cancelError && <p className="text-sm text-destructive">{cancelError}</p>}
+      {detachError && <p className="text-sm text-destructive">{detachError}</p>}
       {bookings.map((b) => (
         <Card key={b.id} className="text-sm">
           <CardContent className="pt-4 space-y-1">
@@ -109,6 +143,29 @@ export function BookingsTab() {
               }}
               showEmail
             />
+            {b.companionStudentId && b.companionStudentEmail && (
+              <div className="flex items-center gap-2">
+                <StudentLink
+                  student={{
+                    id: b.companionStudentId,
+                    email: b.companionStudentEmail,
+                    firstName: b.companionStudentFirstName,
+                    lastName: b.companionStudentLastName,
+                    username: b.companionStudentUsername,
+                  }}
+                  showEmail
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={detaching === b.id}
+                  onClick={() => handleDetach(b)}
+                  className="h-6 text-xs text-destructive"
+                >
+                  {t("admin.bookings.companion.detach")}
+                </Button>
+              </div>
+            )}
             {b.zoomJoinUrl && (
               <a
                 href={b.zoomJoinUrl}
@@ -119,7 +176,7 @@ export function BookingsTab() {
                 {b.zoomJoinUrl}
               </a>
             )}
-            <div className="pt-1">
+            <div className="pt-1 flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -131,10 +188,33 @@ export function BookingsTab() {
                   ? t("admin.bookings.cancelling")
                   : t("admin.bookings.cancelClass")}
               </Button>
+              {!b.companionStudentId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAttachingTo(b)}
+                  className="h-7 text-xs"
+                >
+                  {t("admin.bookings.companion.attach")}
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
       ))}
+
+      {attachingTo && (
+        <AttachCompanionStudentDialog
+          open={!!attachingTo}
+          onOpenChange={(open) => !open && setAttachingTo(null)}
+          booking={attachingTo}
+          onAttached={(updated) => {
+            setBookings((prev) =>
+              prev.map((x) => (x.id === updated.id ? updated : x)),
+            );
+          }}
+        />
+      )}
     </div>
   );
 }

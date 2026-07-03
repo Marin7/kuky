@@ -115,6 +115,12 @@ export interface AdminBooking {
   slotStart: string; // ISO
   slotEnd: string; // ISO
   zoomJoinUrl: string | null;
+  companionStudentId: string | null;
+  companionStudentEmail: string | null;
+  companionStudentFirstName: string | null;
+  companionStudentLastName: string | null;
+  companionStudentUsername: string | null;
+  companionStudentNoShow: boolean | null;
 }
 
 export const getAdminBookings = () => apiCall<AdminBooking[]>("/bookings");
@@ -122,10 +128,27 @@ export const getAdminBookings = () => apiCall<AdminBooking[]>("/bookings");
 export const cancelAdminBooking = (id: string) =>
   apiCall<void>(`/bookings/${id}`, { method: "DELETE" });
 
-export const setBookingNoShow = (id: string, noShow: boolean) =>
+export type StudentRole = "BOOKING_STUDENT" | "COMPANION";
+
+export const setBookingNoShow = (
+  id: string,
+  noShow: boolean,
+  studentRole?: StudentRole,
+) =>
   apiCall<void>(`/bookings/${id}/no-show`, {
     method: "PUT",
-    body: JSON.stringify({ noShow }),
+    body: JSON.stringify({ noShow, studentRole }),
+  });
+
+export const attachCompanionStudent = (bookingId: string, studentId: string) =>
+  apiCall<AdminBooking>(`/bookings/${bookingId}/companion-student`, {
+    method: "POST",
+    body: JSON.stringify({ studentId }),
+  });
+
+export const detachCompanionStudent = (bookingId: string) =>
+  apiCall<void>(`/bookings/${bookingId}/companion-student`, {
+    method: "DELETE",
   });
 
 // ---------------------------------------------------------------------------
@@ -217,6 +240,7 @@ export interface StudentProfileBooking {
   status: string;
   zoomJoinUrl: string | null;
   noShow: boolean;
+  isCompanionStudent: boolean;
 }
 
 export interface StudentProfileHomework {

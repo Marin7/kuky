@@ -41,6 +41,8 @@ public class BookingRepository {
             b.setReminderSentAt(reminderSentAt.toInstant());
         }
         b.setNoShow(rs.getBoolean("no_show"));
+        b.setCompanionStudentId(rs.getObject("second_student_id", UUID.class));
+        b.setCompanionStudentNoShow((Boolean) rs.getObject("second_student_no_show"));
         return b;
     };
 
@@ -87,14 +89,22 @@ public class BookingRepository {
     /** Full admin view of an upcoming confirmed booking, including end time and Zoom URL. */
     public record AdminBookingView(UUID id, UUID studentId, String email,
                                    String firstName, String lastName, String username,
-                                   Instant slotStart, Instant slotEnd, String zoomJoinUrl) {}
+                                   Instant slotStart, Instant slotEnd, String zoomJoinUrl,
+                                   UUID companionStudentId, String companionStudentEmail,
+                                   String companionStudentFirstName, String companionStudentLastName,
+                                   String companionStudentUsername, Boolean companionStudentNoShow) {}
 
     /** Upcoming confirmed bookings for the admin panel (start at/after {@code from}). */
     public List<AdminBookingView> findUpcomingBookingsForAdmin(Instant from) {
         String sql = """
                 SELECT b.id, u.id AS student_id, u.email, u.first_name, u.last_name, u.username,
-                       b.slot_start, b.duration_minutes, b.zoom_join_url
-                FROM bookings b JOIN users u ON u.id = b.user_id
+                       b.slot_start, b.duration_minutes, b.zoom_join_url,
+                       su.id AS second_student_id, su.email AS second_student_email,
+                       su.first_name AS second_student_first_name, su.last_name AS second_student_last_name,
+                       su.username AS second_student_username, b.second_student_no_show
+                FROM bookings b
+                JOIN users u ON u.id = b.user_id
+                LEFT JOIN users su ON su.id = b.second_student_id
                 WHERE b.status = 'CONFIRMED' AND b.slot_start >= :from
                 ORDER BY b.slot_start
                 """;
@@ -110,7 +120,13 @@ public class BookingRepository {
                     rs.getString("username"),
                     slotStart,
                     slotStart.plusSeconds((long) minutes * 60),
-                    rs.getString("zoom_join_url"));
+                    rs.getString("zoom_join_url"),
+                    rs.getObject("second_student_id", UUID.class),
+                    rs.getString("second_student_email"),
+                    rs.getString("second_student_first_name"),
+                    rs.getString("second_student_last_name"),
+                    rs.getString("second_student_username"),
+                    (Boolean) rs.getObject("second_student_no_show"));
         });
     }
 
@@ -121,7 +137,10 @@ public class BookingRepository {
     }
 
     public List<Booking> findByUserId(UUID userId) {
-        String sql = "SELECT * FROM bookings WHERE user_id = :userId ORDER BY slot_start DESC";
+        String sql = """
+                SELECT * FROM bookings WHERE user_id = :userId OR second_student_id = :userId
+                ORDER BY slot_start DESC
+                """;
         return jdbc.query(sql, Map.of("userId", userId), BOOKING_MAPPER);
     }
 
@@ -167,12 +186,31 @@ public class BookingRepository {
         jdbc.update(sql, Map.of("id", id, "noShow", noShow));
     }
 
+    public void setCompanionStudentNoShow(UUID id, boolean noShow) {
+        String sql = "UPDATE bookings SET second_student_no_show = :noShow WHERE id = :id";
+        jdbc.update(sql, Map.of("id", id, "noShow", noShow));
+    }
+
+    public void setCompanionStudentId(UUID bookingId, UUID studentId) {
+        String sql = "UPDATE bookings SET second_student_id = :studentId WHERE id = :bookingId";
+        jdbc.update(sql, Map.of("bookingId", bookingId, "studentId", studentId));
+    }
+
+    public void clearCompanionStudentId(UUID bookingId) {
+        String sql = """
+                UPDATE bookings SET second_student_id = NULL, second_student_no_show = NULL
+                WHERE id = :bookingId
+                """;
+        jdbc.update(sql, Map.of("bookingId", bookingId));
+    }
+
     public void delete(UUID id) {
         jdbc.update("DELETE FROM bookings WHERE id = :id", Map.of("id", id));
     }
 
     /** Lightweight projection of a booking due for its 24h-before reminder. */
-    public record ReminderDueView(UUID id, String email, Instant slotStart, String zoomJoinUrl) {}
+    public record ReminderDueView(UUID id, String email, Instant slotStart, String zoomJoinUrl,
+                                  String companionStudentEmail) {}
 
     /**
      * Confirmed, not-yet-reminded bookings that have crossed the 24h-before mark
@@ -181,8 +219,10 @@ public class BookingRepository {
      */
     public List<ReminderDueView> findBookingsDueForReminder(Instant now) {
         String sql = """
-                SELECT b.id, u.email, b.slot_start, b.zoom_join_url
-                FROM bookings b JOIN users u ON u.id = b.user_id
+                SELECT b.id, u.email, b.slot_start, b.zoom_join_url, su.email AS second_student_email
+                FROM bookings b
+                JOIN users u ON u.id = b.user_id
+                LEFT JOIN users su ON su.id = b.second_student_id
                 WHERE b.status = 'CONFIRMED'
                 AND b.reminder_sent_at IS NULL
                 AND b.slot_start > :now
@@ -195,7 +235,8 @@ public class BookingRepository {
                         rs.getObject("id", UUID.class),
                         rs.getString("email"),
                         rs.getTimestamp("slot_start").toInstant(),
-                        rs.getString("zoom_join_url")));
+                        rs.getString("zoom_join_url"),
+                        rs.getString("second_student_email")));
     }
 
     /** Atomically claims a booking's reminder slot; returns false if it was already claimed. */

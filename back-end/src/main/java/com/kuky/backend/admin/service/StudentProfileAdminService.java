@@ -44,7 +44,7 @@ public class StudentProfileAdminService {
                 .orElseThrow(() -> new StudentNotFoundException("Alumno no encontrado."));
 
         List<StudentProfileBookingDto> bookings = bookingRepository.findByUserId(studentId).stream()
-                .map(this::toBookingDto)
+                .map(b -> toBookingDto(b, studentId))
                 .toList();
 
         List<StudentProfileHomeworkDto> homeworks = homeworkTargetRepository
@@ -109,13 +109,21 @@ public class StudentProfileAdminService {
                 .count();
     }
 
-    private StudentProfileBookingDto toBookingDto(Booking b) {
+    /**
+     * {@code viewedStudentId} may be either the booking student or the companion student on a
+     * shared booking (findByUserId matches both) — the no-show flag and role reported here MUST
+     * reflect whichever one this profile actually belongs to, not always the booking student's.
+     */
+    private StudentProfileBookingDto toBookingDto(Booking b, UUID viewedStudentId) {
+        boolean isCompanionStudent = viewedStudentId.equals(b.getCompanionStudentId());
+        boolean noShow = isCompanionStudent ? Boolean.TRUE.equals(b.getCompanionStudentNoShow()) : b.isNoShow();
         return new StudentProfileBookingDto(
                 b.getId(),
                 b.getSlotStart(),
                 b.getSlotStart().plusSeconds((long) b.getDurationMinutes() * 60),
                 b.getStatus(),
                 b.getZoomJoinUrl(),
-                b.isNoShow());
+                noShow,
+                isCompanionStudent);
     }
 }

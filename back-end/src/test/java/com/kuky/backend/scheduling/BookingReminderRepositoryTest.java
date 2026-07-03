@@ -71,6 +71,39 @@ class BookingReminderRepositoryTest {
         assertThat(due).extracting(BookingRepository.ReminderDueView::id).doesNotContain(bookingId);
     }
 
+    @Test
+    void findBookingsDueForReminder_populatesSecondStudentEmail_whenOneIsAttached() {
+        jdbcTemplate.execute("""
+                INSERT INTO users (id, email, password_hash, status, role, gdpr_consent)
+                VALUES (gen_random_uuid(), 'reminder-second@kuky.es', '$2a$12$placeholder', 'ACTIVE', 'STUDENT', true)
+                ON CONFLICT (email) DO NOTHING
+                """);
+        UUID companionStudentId = jdbcTemplate.queryForObject(
+                "SELECT id FROM users WHERE email = 'reminder-second@kuky.es'", UUID.class);
+
+        Instant now = Instant.now();
+        UUID bookingId = insertBooking(now.plusSeconds(23 * 3600), "CONFIRMED", null);
+        jdbcTemplate.update("UPDATE bookings SET second_student_id = ? WHERE id = ?", companionStudentId, bookingId);
+
+        List<BookingRepository.ReminderDueView> due = bookingRepository.findBookingsDueForReminder(now);
+
+        BookingRepository.ReminderDueView view = due.stream()
+                .filter(v -> v.id().equals(bookingId)).findFirst().orElseThrow();
+        assertThat(view.companionStudentEmail()).isEqualTo("reminder-second@kuky.es");
+    }
+
+    @Test
+    void findBookingsDueForReminder_companionStudentEmailIsNull_whenNoneAttached() {
+        Instant now = Instant.now();
+        UUID bookingId = insertBooking(now.plusSeconds(23 * 3600), "CONFIRMED", null);
+
+        List<BookingRepository.ReminderDueView> due = bookingRepository.findBookingsDueForReminder(now);
+
+        BookingRepository.ReminderDueView view = due.stream()
+                .filter(v -> v.id().equals(bookingId)).findFirst().orElseThrow();
+        assertThat(view.companionStudentEmail()).isNull();
+    }
+
     private UUID insertBooking(Instant slotStart, String status, Instant cancelledAt) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("""

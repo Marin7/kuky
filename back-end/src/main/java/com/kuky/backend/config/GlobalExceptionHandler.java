@@ -135,6 +135,21 @@ public class GlobalExceptionHandler {
             case NOT_ELIGIBLE_FOR_EXTENDED -> ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "EXTENDED_CLASS_NOT_ELIGIBLE",
                             "message", "No tienes acceso a las clases de 1 hora y media. Contacta con la profesora."));
+            case COMPANION_ALREADY_ATTACHED -> ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "COMPANION_ALREADY_ATTACHED",
+                            "message", "Esta clase ya tiene un estudiante acompañante. Elimínalo antes de añadir otro."));
+            case COMPANION_SAME_AS_BOOKING_STUDENT -> ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "COMPANION_SAME_AS_BOOKING_STUDENT",
+                            "message", "El estudiante ya es el titular de esta clase."));
+            case COMPANION_NOT_STUDENT -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("error", "COMPANION_NOT_STUDENT",
+                            "message", "Este usuario no es un estudiante activo."));
+            case COMPANION_NOT_ATTACHED -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "COMPANION_NOT_ATTACHED",
+                            "message", "Esta clase no tiene un estudiante acompañante."));
+            case BOOKING_NOT_ATTACHABLE -> ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", "BOOKING_NOT_ATTACHABLE",
+                            "message", "Esta clase ya fue cancelada o ya ha tenido lugar."));
         };
     }
 

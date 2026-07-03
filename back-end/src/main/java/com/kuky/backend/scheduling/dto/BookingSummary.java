@@ -9,5 +9,6 @@ public record BookingSummary(
         Instant slotEnd,
         String status,
         String zoomJoinUrl,
-        boolean cancellable
+        boolean cancellable,
+        boolean isCompanionStudent
 ) {}

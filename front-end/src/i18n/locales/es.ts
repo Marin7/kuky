@@ -220,6 +220,7 @@ export const esDict = {
       cancelled: "Cancelada",
       cancelClass: "Cancelar clase",
       cancelling: "Cancelando…",
+      joiningSharedClass: "Te has unido a esta clase",
       loadError: "No se pudieron cargar tus clases.",
       cancelError: "No se pudo cancelar la clase. Inténtalo de nuevo.",
       cancellationTooLateError:
@@ -569,6 +570,28 @@ export const esDict = {
       cancelConfirm:
         "¿Cancelar esta clase? Se avisará al estudiante por correo.",
       cancelError: "No se pudo cancelar la clase. Inténtalo de nuevo.",
+      companion: {
+        attach: "Añadir compañero de clase",
+        detach: "Quitar compañero de clase",
+        detachConfirm:
+          "¿Quitar a este alumno de la clase? La clase seguirá teniendo lugar para quien la reservó.",
+        detachError:
+          "No se pudo quitar al compañero de clase. Inténtalo de nuevo.",
+        dialogTitle: "Añadir compañero de clase",
+        noStudents: "No hay alumnos disponibles.",
+        save: "Añadir",
+        saving: "Añadiendo…",
+        alreadyAttachedError: "Esta clase ya tiene un compañero de clase.",
+        sameAsBookingStudentError: "Ya es quien reservó esta clase.",
+        notStudentError: "Este usuario no tiene acceso de alumno.",
+        notEligibleForExtendedError:
+          "Este alumno no tiene acceso a las clases de 1 hora y media.",
+        notAttachableError:
+          "No se puede modificar una clase cancelada o ya finalizada.",
+        genericError: "No se pudo añadir al alumno. Inténtalo de nuevo.",
+        markNoShow: "Marcar ausencia",
+        unmarkNoShow: "Quitar ausencia",
+      },
     },
     homework: {
       loading: "Cargando…",

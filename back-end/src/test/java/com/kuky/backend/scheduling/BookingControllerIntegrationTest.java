@@ -231,6 +231,66 @@ class BookingControllerIntegrationTest {
                 .andExpect(status().isCreated());
     }
 
+    // --- shared bookings: companion student's own view/cancellation (US2) ------------------------
+
+    @Test
+    void listBookings_asSecondStudent_includesSharedBooking() throws Exception {
+        Instant slotStart = validFutureSlot();
+        ensureTestUser();
+
+        String created = mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(slotStart, 60)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String bookingId = created.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+        attachCompanionStudent(bookingId, "test2@kuky.es");
+
+        mockMvc.perform(get("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.upcoming[0].id").value(bookingId))
+                .andExpect(jsonPath("$.upcoming[0].isCompanionStudent").value(true));
+    }
+
+    @Test
+    void cancelBooking_asSecondStudent_cancelsWholeClass_removingItFromBothViews() throws Exception {
+        Instant slotStart = validFutureSlot();
+        ensureTestUser();
+
+        String created = mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(slotStart, 60)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String bookingId = created.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+        attachCompanionStudent(bookingId, "test2@kuky.es");
+
+        mockMvc.perform(delete("/api/v1/bookings/{id}", bookingId)
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.upcoming").isEmpty());
+
+        mockMvc.perform(get("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.upcoming").isEmpty());
+    }
+
+    private void attachCompanionStudent(String bookingId, String companionStudentEmail) {
+        jdbcTemplate.update("""
+                UPDATE bookings SET second_student_id = (SELECT id FROM users WHERE email = ?) WHERE id = ?::uuid
+                """, companionStudentEmail, bookingId);
+    }
+
     private static String bookingJson(Instant slotStart, int durationMinutes) {
         return "{\"slotStart\":\"" + slotStart.toString() + "\",\"durationMinutes\":" + durationMinutes + "}";
     }

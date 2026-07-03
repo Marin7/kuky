@@ -16,6 +16,8 @@ public class Booking {
     private Instant cancelledAt;
     private Instant reminderSentAt;
     private boolean noShow;
+    private UUID companionStudentId;
+    private Boolean companionStudentNoShow;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -39,6 +41,10 @@ public class Booking {
     public void setReminderSentAt(Instant reminderSentAt) { this.reminderSentAt = reminderSentAt; }
     public boolean isNoShow() { return noShow; }
     public void setNoShow(boolean noShow) { this.noShow = noShow; }
+    public UUID getCompanionStudentId() { return companionStudentId; }
+    public void setCompanionStudentId(UUID companionStudentId) { this.companionStudentId = companionStudentId; }
+    public Boolean getCompanionStudentNoShow() { return companionStudentNoShow; }
+    public void setCompanionStudentNoShow(Boolean companionStudentNoShow) { this.companionStudentNoShow = companionStudentNoShow; }
 
     public Instant getSlotEnd() {
         return slotStart.plusSeconds((long) durationMinutes * 60);

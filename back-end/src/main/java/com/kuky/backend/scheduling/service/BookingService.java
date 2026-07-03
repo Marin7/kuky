@@ -1,5 +1,6 @@
 package com.kuky.backend.scheduling.service;
 
+import com.kuky.backend.admin.exception.UserNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.config.SchedulingProperties;
@@ -107,12 +108,12 @@ public class BookingService {
 
         List<BookingSummary> upcoming = all.stream()
                 .filter(b -> b.getSlotEnd().isAfter(now) && "CONFIRMED".equals(b.getStatus()))
-                .map(b -> toSummary(b, cancelCutoff))
+                .map(b -> toSummary(b, cancelCutoff, user.getId()))
                 .toList();
 
         List<BookingSummary> past = all.stream()
                 .filter(b -> !b.getSlotEnd().isAfter(now) || "CANCELLED".equals(b.getStatus()))
-                .map(b -> toSummary(b, cancelCutoff))
+                .map(b -> toSummary(b, cancelCutoff, user.getId()))
                 .toList();
 
         return new MyBookingsResponse(upcoming, past);
@@ -123,7 +124,8 @@ public class BookingService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
 
         Booking booking = bookingRepository.findById(bookingId)
-                .filter(b -> b.getUserId().equals(user.getId()))
+                .filter(b -> b.getUserId().equals(user.getId())
+                        || (b.getCompanionStudentId() != null && b.getCompanionStudentId().equals(user.getId())))
                 .orElseThrow(() -> new BookingNotFoundException("Reserva no encontrada."));
 
         if ("CANCELLED".equals(booking.getStatus())) {
@@ -142,13 +144,21 @@ public class BookingService {
             meetingProvider.cancel(booking.getZoomMeetingId());
         }
 
+        // Whichever student actually cancelled gets the "you cancelled" message; the other
+        // participant on a shared booking (if any) gets the "the class you joined was cancelled" one.
+        boolean cancelledByBookingStudent = booking.getUserId().equals(user.getId());
+        String otherStudentEmail = cancelledByBookingStudent
+                ? resolveCompanionStudentEmail(booking)
+                : userRepository.findById(booking.getUserId()).map(User::getEmail).orElse(null);
+
         emailService.sendCancellation(
                 props.getScheduling().getTeacherEmail(),
                 userEmail,
                 booking.getId(),
                 booking.getSlotStart(),
                 booking.getDurationMinutes(),
-                booking.getZoomJoinUrl());
+                booking.getZoomJoinUrl(),
+                otherStudentEmail);
     }
 
     /**
@@ -170,6 +180,7 @@ public class BookingService {
             meetingProvider.cancel(booking.getZoomMeetingId());
         }
 
+        String companionStudentEmail = resolveCompanionStudentEmail(booking);
         userRepository.findById(booking.getUserId()).ifPresent(student ->
                 emailService.sendCancellationByTeacher(
                         student.getEmail(),
@@ -177,7 +188,15 @@ public class BookingService {
                         booking.getId(),
                         booking.getSlotStart(),
                         booking.getDurationMinutes(),
-                        booking.getZoomJoinUrl()));
+                        booking.getZoomJoinUrl(),
+                        companionStudentEmail));
+    }
+
+    private String resolveCompanionStudentEmail(Booking booking) {
+        if (booking.getCompanionStudentId() == null) {
+            return null;
+        }
+        return userRepository.findById(booking.getCompanionStudentId()).map(User::getEmail).orElse(null);
     }
 
     /**
@@ -185,6 +204,16 @@ public class BookingService {
      * happened. Secured by the /api/v1/admin/** matcher in SecurityConfig.
      */
     public void setNoShow(UUID bookingId, boolean noShow) {
+        setNoShow(bookingId, noShow, "BOOKING_STUDENT");
+    }
+
+    /**
+     * Teacher-initiated attendance correction, targeting either the booking student or the
+     * companion student independently — both have equal standing on the class, this only
+     * selects which one's flag to update. {@code studentRole} is {@code "BOOKING_STUDENT"} or
+     * {@code "COMPANION"}.
+     */
+    public void setNoShow(UUID bookingId, boolean noShow, String studentRole) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Reserva no encontrada."));
 
@@ -194,7 +223,69 @@ public class BookingService {
             throw new BookingNotAllowedException(BookingNotAllowedException.Reason.NOT_ELIGIBLE_FOR_NO_SHOW);
         }
 
-        bookingRepository.setNoShow(bookingId, noShow);
+        if ("COMPANION".equals(studentRole)) {
+            if (booking.getCompanionStudentId() == null) {
+                throw new BookingNotAllowedException(BookingNotAllowedException.Reason.COMPANION_NOT_ATTACHED);
+            }
+            bookingRepository.setCompanionStudentNoShow(bookingId, noShow);
+        } else {
+            bookingRepository.setNoShow(bookingId, noShow);
+        }
+    }
+
+    /**
+     * Teacher-initiated: attaches a companion student to an existing, still-upcoming, confirmed
+     * booking, so both students share the class with equal standing. Secured by the
+     * /api/v1/admin/** matcher in SecurityConfig.
+     */
+    public Booking attachCompanionStudent(UUID bookingId, UUID studentId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Reserva no encontrada."));
+        User targetStudent = userRepository.findById(studentId)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado."));
+
+        boolean isFutureConfirmed = "CONFIRMED".equals(booking.getStatus())
+                && booking.getSlotStart().isAfter(Instant.now());
+        if (!isFutureConfirmed) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.BOOKING_NOT_ATTACHABLE);
+        }
+        if (booking.getCompanionStudentId() != null) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.COMPANION_ALREADY_ATTACHED);
+        }
+        if (studentId.equals(booking.getUserId())) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.COMPANION_SAME_AS_BOOKING_STUDENT);
+        }
+        if (!"STUDENT".equals(targetStudent.getRole())) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.COMPANION_NOT_STUDENT);
+        }
+        int extendedDuration = props.getScheduling().getExtendedClassDurationMinutes();
+        if (booking.getDurationMinutes() == extendedDuration && !targetStudent.isExtendedClassEligible()) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.NOT_ELIGIBLE_FOR_EXTENDED);
+        }
+
+        bookingRepository.setCompanionStudentId(bookingId, studentId);
+        booking.setCompanionStudentId(studentId);
+
+        emailService.sendCompanionStudentAttached(targetStudent.getEmail(), booking.getId(),
+                booking.getSlotStart(), booking.getDurationMinutes(), booking.getZoomJoinUrl());
+
+        return booking;
+    }
+
+    /**
+     * Teacher-initiated: detaches the companion student from a booking, reverting it to a normal
+     * single-student booking without affecting the booking student's own booking. Secured by the
+     * /api/v1/admin/** matcher in SecurityConfig.
+     */
+    public void detachCompanionStudent(UUID bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException("Reserva no encontrada."));
+
+        if (booking.getCompanionStudentId() == null) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.COMPANION_NOT_ATTACHED);
+        }
+
+        bookingRepository.clearCompanionStudentId(bookingId);
     }
 
     private BookingResponse toResponse(Booking b) {
@@ -209,17 +300,19 @@ public class BookingService {
         );
     }
 
-    private BookingSummary toSummary(Booking b, int cancelCutoffHours) {
+    private BookingSummary toSummary(Booking b, int cancelCutoffHours, UUID requestingUserId) {
         Instant cutoffInstant = Instant.now().plusSeconds((long) cancelCutoffHours * 3600);
         boolean cancellable = "CONFIRMED".equals(b.getStatus())
                 && b.getSlotStart().isAfter(cutoffInstant);
+        boolean isCompanionStudent = b.getCompanionStudentId() != null && b.getCompanionStudentId().equals(requestingUserId);
         return new BookingSummary(
                 b.getId(),
                 b.getSlotStart(),
                 b.getSlotEnd(),
                 b.getStatus(),
                 b.getZoomJoinUrl(),
-                cancellable
+                cancellable,
+                isCompanionStudent
         );
     }
 }

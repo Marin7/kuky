@@ -41,7 +41,7 @@ class BookingReminderSchedulerTest {
         Instant slotStart = CLOCK.instant().plusSeconds(23 * 3600);
         String joinUrl = "https://zoom.example/abc";
         BookingRepository.ReminderDueView due =
-                new BookingRepository.ReminderDueView(bookingId, "student@kuky.es", slotStart, joinUrl);
+                new BookingRepository.ReminderDueView(bookingId, "student@kuky.es", slotStart, joinUrl, null);
 
         when(bookingRepository.findBookingsDueForReminder(CLOCK.instant())).thenReturn(List.of(due));
         when(bookingRepository.claimReminder(eq(bookingId), any())).thenReturn(true);
@@ -53,11 +53,29 @@ class BookingReminderSchedulerTest {
     }
 
     @Test
+    void sendsReminderToSecondStudentToo_whenBookingIsShared() {
+        UUID bookingId = UUID.randomUUID();
+        Instant slotStart = CLOCK.instant().plusSeconds(23 * 3600);
+        String joinUrl = "https://zoom.example/abc";
+        BookingRepository.ReminderDueView due = new BookingRepository.ReminderDueView(
+                bookingId, "student@kuky.es", slotStart, joinUrl, "second@kuky.es");
+
+        when(bookingRepository.findBookingsDueForReminder(CLOCK.instant())).thenReturn(List.of(due));
+        when(bookingRepository.claimReminder(eq(bookingId), any())).thenReturn(true);
+
+        scheduler.sendDueReminders();
+
+        verify(emailService).sendReminderToStudent("student@kuky.es", slotStart, joinUrl);
+        verify(emailService).sendReminderToStudent("second@kuky.es", slotStart, joinUrl);
+        verify(emailService).sendReminderToTeacher(TEACHER_EMAIL, "student@kuky.es", slotStart, joinUrl);
+    }
+
+    @Test
     void sendsNoEmail_whenClaimFails() {
         UUID bookingId = UUID.randomUUID();
         Instant slotStart = CLOCK.instant().plusSeconds(23 * 3600);
-        BookingRepository.ReminderDueView due =
-                new BookingRepository.ReminderDueView(bookingId, "student@kuky.es", slotStart, "https://zoom.example/abc");
+        BookingRepository.ReminderDueView due = new BookingRepository.ReminderDueView(
+                bookingId, "student@kuky.es", slotStart, "https://zoom.example/abc", null);
 
         when(bookingRepository.findBookingsDueForReminder(CLOCK.instant())).thenReturn(List.of(due));
         when(bookingRepository.claimReminder(eq(bookingId), any())).thenReturn(false);

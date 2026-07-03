@@ -129,8 +129,16 @@ function StudentProfilePage() {
       .catch(() => setPlacement(null));
   }, [studentId]);
 
-  const handleToggleNoShow = (bookingId: string, noShow: boolean) => {
-    setBookingNoShow(bookingId, noShow)
+  const handleToggleNoShow = (
+    bookingId: string,
+    noShow: boolean,
+    isCompanionStudent: boolean,
+  ) => {
+    setBookingNoShow(
+      bookingId,
+      noShow,
+      isCompanionStudent ? "COMPANION" : "BOOKING_STUDENT",
+    )
       .then(() => getStudentProfile(studentId))
       .then(setProfile)
       .catch(() => setError(t("admin.studentProfile.loadError")));
@@ -353,7 +361,13 @@ function StudentProfilePage() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleToggleNoShow(b.id, !b.noShow)}
+                        onClick={() =>
+                          handleToggleNoShow(
+                            b.id,
+                            !b.noShow,
+                            b.isCompanionStudent,
+                          )
+                        }
                         className={`ml-4 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium hover:underline ${
                           b.noShow
                             ? "bg-red-100 text-red-700"

@@ -150,6 +150,42 @@ class StudentProfileAdminServiceTest {
     }
 
     @Test
+    void booking_reportsThisStudentsOwnNoShowFlag_whenViewedStudentIsTheSecondStudent() {
+        // findByUserId matches both the primary and second student on a shared booking (spec 021);
+        // this profile belongs to the second student, so it must report second_student_no_show,
+        // not the primary's no_show flag — regardless of which one is actually true.
+        UUID primaryId = UUID.randomUUID();
+        Booking shared = new Booking();
+        shared.setId(UUID.randomUUID());
+        shared.setUserId(primaryId);
+        shared.setCompanionStudentId(studentId);
+        shared.setSlotStart(Instant.now().minus(1, ChronoUnit.DAYS));
+        shared.setDurationMinutes(60);
+        shared.setStatus("CONFIRMED");
+        shared.setNoShow(true);
+        shared.setCompanionStudentNoShow(false);
+        when(bookingRepository.findByUserId(studentId)).thenReturn(List.of(shared));
+
+        StudentProfileResponse response = service.getProfile(studentId);
+
+        assertThat(response.bookings()).hasSize(1);
+        assertThat(response.bookings().get(0).isCompanionStudent()).isTrue();
+        assertThat(response.bookings().get(0).noShow()).isFalse();
+    }
+
+    @Test
+    void booking_reportsPrimaryNoShowFlag_whenViewedStudentIsThePrimary() {
+        Booking own = booking("CONFIRMED", Instant.now().minus(1, ChronoUnit.DAYS));
+        own.setNoShow(true);
+        when(bookingRepository.findByUserId(studentId)).thenReturn(List.of(own));
+
+        StudentProfileResponse response = service.getProfile(studentId);
+
+        assertThat(response.bookings().get(0).isCompanionStudent()).isFalse();
+        assertThat(response.bookings().get(0).noShow()).isTrue();
+    }
+
+    @Test
     void unitIsCompleteOnlyWhenAllTargetedHomeworksAreDone() {
         UUID doneUnit = UUID.randomUUID();
         UUID inProgressUnit = UUID.randomUUID();

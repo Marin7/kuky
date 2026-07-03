@@ -12,5 +12,11 @@ public record AdminBookingDto(
         String studentUsername,
         Instant slotStart,
         Instant slotEnd,
-        String zoomJoinUrl
+        String zoomJoinUrl,
+        UUID companionStudentId,
+        String companionStudentEmail,
+        String companionStudentFirstName,
+        String companionStudentLastName,
+        String companionStudentUsername,
+        Boolean companionStudentNoShow
 ) {}
