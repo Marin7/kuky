@@ -13,7 +13,7 @@ import com.kuky.backend.scheduling.exception.SlotUnavailableException;
 import com.kuky.backend.scheduling.meeting.MeetingProvider;
 import com.kuky.backend.scheduling.model.Booking;
 import com.kuky.backend.scheduling.repository.BookingRepository;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -45,14 +45,23 @@ public class BookingService {
         this.props = props;
     }
 
-    public BookingResponse createBooking(String userEmail, Instant slotStart) {
+    public BookingResponse createBooking(String userEmail, Instant slotStart, int durationMinutes) {
         User user = userRepository.findByEmailIgnoreCase(userEmail.toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
 
-        // Validate slot is bookable (range + lead time)
-        availabilityService.validateBookable(slotStart);
+        int standardDuration = props.getScheduling().getClassDurationMinutes();
+        int extendedDuration = props.getScheduling().getExtendedClassDurationMinutes();
+        if (durationMinutes != standardDuration && durationMinutes != extendedDuration) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.INVALID_DURATION);
+        }
+        if (durationMinutes == extendedDuration && !user.isExtendedClassEligible()) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.NOT_ELIGIBLE_FOR_EXTENDED);
+        }
 
-        int duration = props.getScheduling().getClassDurationMinutes();
+        // Validate slot is bookable (range + lead time + availability fit + overlap)
+        availabilityService.validateBookable(slotStart, durationMinutes);
+
+        int duration = durationMinutes;
 
         // Reserve the slot
         Booking booking = new Booking();
@@ -63,7 +72,7 @@ public class BookingService {
 
         try {
             booking = bookingRepository.insert(booking);
-        } catch (DuplicateKeyException e) {
+        } catch (DataIntegrityViolationException e) {
             throw new SlotUnavailableException("Esta hora ya ha sido reservada.");
         }
 

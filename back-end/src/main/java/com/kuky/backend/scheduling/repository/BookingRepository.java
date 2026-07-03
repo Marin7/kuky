@@ -44,24 +44,34 @@ public class BookingRepository {
         return b;
     };
 
-    public List<Instant> findConfirmedSlotStartsBetween(Instant from, Instant to) {
+    /** A confirmed booking's reserved window, for overlap checks against candidate slots. */
+    public record BookedInterval(Instant slotStart, int durationMinutes) {}
+
+    /**
+     * Confirmed bookings whose [slot_start, slot_start + duration) window can overlap
+     * [from, to) — a true interval overlap, not just slot_start falling in range, since
+     * durations now vary (a booking starting just before {@code from} can still extend into it).
+     */
+    public List<BookedInterval> findConfirmedBookingIntervalsBetween(Instant from, Instant to) {
         String sql = """
-                SELECT slot_start FROM bookings
+                SELECT slot_start, duration_minutes FROM bookings
                 WHERE status = 'CONFIRMED'
-                AND slot_start >= :from AND slot_start < :to
+                AND slot_start < :to
+                AND slot_start + (duration_minutes * INTERVAL '1 minute') > :from
                 """;
         return jdbc.query(sql,
                 Map.of("from", Timestamp.from(from), "to", Timestamp.from(to)),
-                (rs, rowNum) -> rs.getTimestamp("slot_start").toInstant());
+                (rs, rowNum) -> new BookedInterval(
+                        rs.getTimestamp("slot_start").toInstant(), rs.getInt("duration_minutes")));
     }
 
     /** Lightweight projection of an upcoming confirmed booking (with the student's email). */
-    public record ConfirmedBookingView(UUID id, String email, Instant slotStart) {}
+    public record ConfirmedBookingView(UUID id, String email, Instant slotStart, int durationMinutes) {}
 
     /** Upcoming confirmed bookings (start at/after {@code from}), joined to the booking student. */
     public List<ConfirmedBookingView> findUpcomingConfirmedBookings(Instant from) {
         String sql = """
-                SELECT b.id, u.email, b.slot_start
+                SELECT b.id, u.email, b.slot_start, b.duration_minutes
                 FROM bookings b JOIN users u ON u.id = b.user_id
                 WHERE b.status = 'CONFIRMED' AND b.slot_start >= :from
                 ORDER BY b.slot_start
@@ -70,7 +80,8 @@ public class BookingRepository {
                 (rs, rowNum) -> new ConfirmedBookingView(
                         rs.getObject("id", UUID.class),
                         rs.getString("email"),
-                        rs.getTimestamp("slot_start").toInstant()));
+                        rs.getTimestamp("slot_start").toInstant(),
+                        rs.getInt("duration_minutes")));
     }
 
     /** Full admin view of an upcoming confirmed booking, including end time and Zoom URL. */
@@ -118,13 +129,14 @@ public class BookingRepository {
         Instant now = Instant.now();
         UUID id = UUID.randomUUID();
         String sql = """
-                INSERT INTO bookings (id, user_id, slot_start, duration_minutes, status, created_at)
-                VALUES (:id, :userId, :slotStart, :durationMinutes, :status, :createdAt)
+                INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status, created_at)
+                VALUES (:id, :userId, :slotStart, :slotEnd, :durationMinutes, :status, :createdAt)
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("userId", booking.getUserId())
                 .addValue("slotStart", Timestamp.from(booking.getSlotStart()))
+                .addValue("slotEnd", Timestamp.from(booking.getSlotEnd()))
                 .addValue("durationMinutes", booking.getDurationMinutes())
                 .addValue("status", booking.getStatus())
                 .addValue("createdAt", Timestamp.from(now));

@@ -196,7 +196,8 @@ public class AuthService {
         return new UserResponse(u.getId(), u.getEmail(), u.getRole(),
                 u.getFirstName(), u.getLastName(), u.getUsername(),
                 u.getAvatarImageId(), u.getStatus(),
-                u.getTimezone(), u.isTimezoneManual());
+                u.getTimezone(), u.isTimezoneManual(),
+                u.isExtendedClassEligible());
     }
 
     private void issueActivationEmail(User user) {

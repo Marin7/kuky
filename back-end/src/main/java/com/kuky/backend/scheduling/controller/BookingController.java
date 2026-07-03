@@ -26,7 +26,7 @@ public class BookingController {
     public ResponseEntity<BookingResponse> createBooking(
             @AuthenticationPrincipal String email,
             @Valid @RequestBody CreateBookingRequest request) {
-        BookingResponse response = bookingService.createBooking(email, request.slotStart());
+        BookingResponse response = bookingService.createBooking(email, request.slotStart(), request.durationMinutes());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

@@ -130,6 +130,11 @@ public class GlobalExceptionHandler {
             case NOT_ELIGIBLE_FOR_NO_SHOW -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                     .body(Map.of("error", "BOOKING_NOT_ELIGIBLE_FOR_NO_SHOW",
                             "message", "Solo se pueden marcar como no asistidas las clases confirmadas y ya finalizadas."));
+            case INVALID_DURATION -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("error", "INVALID_DURATION", "message", "Duración de clase no válida."));
+            case NOT_ELIGIBLE_FOR_EXTENDED -> ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "EXTENDED_CLASS_NOT_ELIGIBLE",
+                            "message", "No tienes acceso a las clases de 1 hora y media. Contacta con la profesora."));
         };
     }
 

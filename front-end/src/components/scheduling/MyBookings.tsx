@@ -10,15 +10,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-function formatSlot(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat("es", {
+function formatSlot(start: string, end: string, timezone: string): string {
+  const startText = new Intl.DateTimeFormat("es", {
     weekday: "long",
     day: "numeric",
     month: "long",
     hour: "2-digit",
     minute: "2-digit",
     timeZone: timezone,
-  }).format(new Date(iso));
+  }).format(new Date(start));
+  const endText = new Intl.DateTimeFormat("es", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone,
+  }).format(new Date(end));
+  return `${startText} – ${endText}`;
 }
 
 interface BookingCardProps {
@@ -38,7 +44,9 @@ function BookingCard({
   return (
     <Card className="text-sm">
       <CardContent className="pt-4 space-y-2">
-        <p className="font-medium">{formatSlot(booking.slotStart, timezone)}</p>
+        <p className="font-medium">
+          {formatSlot(booking.slotStart, booking.slotEnd, timezone)}
+        </p>
         {booking.zoomJoinUrl && (
           <a
             href={booking.zoomJoinUrl}

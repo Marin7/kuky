@@ -2,6 +2,7 @@ package com.kuky.backend.scheduling.service;
 
 import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.scheduling.exception.BookingNotAllowedException;
+import com.kuky.backend.scheduling.exception.SlotUnavailableException;
 import com.kuky.backend.scheduling.model.AvailabilityRule;
 import com.kuky.backend.scheduling.model.DayWindow;
 import com.kuky.backend.scheduling.model.Slot;
@@ -46,9 +47,8 @@ public class AvailabilityService {
         this.clock = clock;
     }
 
-    public List<Slot> generateSchedule() {
+    public List<Slot> generateSchedule(int durationMinutes) {
         ZoneId zone = zone();
-        int durationMinutes = props.getScheduling().getClassDurationMinutes();
         int minLeadHours = props.getScheduling().getMinLeadHours();
 
         LocalDate horizonStart = horizonStartDate();
@@ -58,9 +58,8 @@ public class AvailabilityService {
         Instant horizonStartInstant = horizonStart.atStartOfDay(zone).toInstant();
         Instant horizonEndInstant = horizonEnd.atStartOfDay(zone).toInstant();
 
-        Set<Instant> bookedStarts = bookingRepository
-                .findConfirmedSlotStartsBetween(horizonStartInstant, horizonEndInstant)
-                .stream().collect(Collectors.toSet());
+        List<BookingRepository.BookedInterval> bookedIntervals = bookingRepository
+                .findConfirmedBookingIntervalsBetween(horizonStartInstant, horizonEndInstant);
 
         Map<LocalDate, List<Interval>> intervalsByDate =
                 availabilityRepository.findDayWindowsBetween(horizonStart, horizonEnd).stream()
@@ -80,7 +79,7 @@ public class AvailabilityService {
                     Instant start = date.atTime(time).atZone(zone).toInstant();
                     Instant end = start.plusSeconds((long) durationMinutes * 60);
                     Slot.Status status;
-                    if (bookedStarts.contains(start)) {
+                    if (overlapsAny(start, end, bookedIntervals)) {
                         status = Slot.Status.BOOKED;
                     } else if (!start.isAfter(leadCutoff) || !start.isAfter(now)) {
                         status = Slot.Status.UNAVAILABLE;
@@ -96,9 +95,8 @@ public class AvailabilityService {
         return slots;
     }
 
-    public void validateBookable(Instant slotStart) {
+    public void validateBookable(Instant slotStart, int durationMinutes) {
         ZoneId zone = zone();
-        int durationMinutes = props.getScheduling().getClassDurationMinutes();
         int minLeadHours = props.getScheduling().getMinLeadHours();
 
         LocalDate horizonStart = horizonStartDate();
@@ -127,11 +125,20 @@ public class AvailabilityService {
                 || !fitsAvailability(date, time, durationMinutes)) {
             throw new BookingNotAllowedException(BookingNotAllowedException.Reason.RANGE);
         }
+
+        // Must not overlap any existing confirmed booking, regardless of that booking's own duration
+        // (previously implicitly relied on the DB unique index alone, which only worked because every
+        // booking shared one fixed duration — see research.md Decision 3).
+        Instant slotEnd = slotStart.plusSeconds((long) durationMinutes * 60);
+        List<BookingRepository.BookedInterval> nearby =
+                bookingRepository.findConfirmedBookingIntervalsBetween(slotStart, slotEnd);
+        if (overlapsAny(slotStart, slotEnd, nearby)) {
+            throw new SlotUnavailableException("Esta hora ya ha sido reservada.");
+        }
     }
 
     /** Upcoming confirmed bookings whose start no longer falls inside saved availability (FR-010). */
     public List<BookingRepository.ConfirmedBookingView> findConfirmedBookingsOutsideAvailability() {
-        int durationMinutes = props.getScheduling().getClassDurationMinutes();
         LocalDate horizonStart = horizonStartDate();
         LocalDate horizonEnd = horizonStart.plusWeeks(HORIZON_WEEKS);
         ensureWeeksMaterialized(horizonStart, horizonEnd);
@@ -142,11 +149,22 @@ public class AvailabilityService {
         List<BookingRepository.ConfirmedBookingView> conflicts = new ArrayList<>();
         for (var b : upcoming) {
             ZonedDateTime zdt = b.slotStart().atZone(zone());
-            if (!fitsAvailability(zdt.toLocalDate(), zdt.toLocalTime(), durationMinutes)) {
+            if (!fitsAvailability(zdt.toLocalDate(), zdt.toLocalTime(), b.durationMinutes())) {
                 conflicts.add(b);
             }
         }
         return conflicts;
+    }
+
+    /** Whether [start, end) overlaps any of the given booked intervals. */
+    private static boolean overlapsAny(Instant start, Instant end, List<BookingRepository.BookedInterval> intervals) {
+        for (BookingRepository.BookedInterval interval : intervals) {
+            Instant bookedEnd = interval.slotStart().plusSeconds((long) interval.durationMinutes() * 60);
+            if (start.isBefore(bookedEnd) && interval.slotStart().isBefore(end)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public Instant getHorizonStart() {

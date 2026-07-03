@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import {
   getStudents,
   revokeStudent,
+  grantExtendedClass,
+  revokeExtendedClass,
+  getExtendedClassEligibleStudentIds,
   studentDisplayName,
   type Student,
 } from "@/lib/admin";
@@ -15,12 +18,20 @@ export function StudentsTab() {
   const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [extendedEligibleIds, setExtendedEligibleIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [togglingExtended, setTogglingExtended] = useState<string | null>(null);
+  const [extendedError, setExtendedError] = useState<string | null>(null);
 
   useEffect(() => {
     getStudents()
       .then(setStudents)
       .catch(() => setStudents([]))
       .finally(() => setLoading(false));
+    getExtendedClassEligibleStudentIds()
+      .then((ids) => setExtendedEligibleIds(new Set(ids)))
+      .catch(() => setExtendedEligibleIds(new Set()));
   }, []);
 
   const handleRevoke = async (id: string) => {
@@ -34,6 +45,31 @@ export function StudentsTab() {
       setError(t("admin.students.revokeError"));
     } finally {
       setRevoking(null);
+    }
+  };
+
+  const handleToggleExtendedClass = async (s: Student) => {
+    const isEligible = extendedEligibleIds.has(s.id);
+    const confirmKey = isEligible
+      ? "admin.students.extendedClass.revokeConfirm"
+      : "admin.students.extendedClass.grantConfirm";
+    if (!window.confirm(t(confirmKey))) return;
+    setTogglingExtended(s.id);
+    setExtendedError(null);
+    try {
+      const updated = isEligible
+        ? await revokeExtendedClass(s.id)
+        : await grantExtendedClass(s.id);
+      setExtendedEligibleIds((prev) => {
+        const next = new Set(prev);
+        if (updated.extendedClassEligible) next.add(s.id);
+        else next.delete(s.id);
+        return next;
+      });
+    } catch {
+      setExtendedError(t("admin.students.extendedClass.error"));
+    } finally {
+      setTogglingExtended(null);
     }
   };
 
@@ -62,10 +98,14 @@ export function StudentsTab() {
         {t("admin.students.hint")}
       </p>
       {error && <p className="text-sm text-destructive mb-2">{error}</p>}
+      {extendedError && (
+        <p className="text-sm text-destructive mb-2">{extendedError}</p>
+      )}
       <ul className="divide-y rounded-lg border">
         {students.map((s) => {
           const name = studentDisplayName(s);
           const hasRealName = name !== s.email.split("@")[0];
+          const isExtendedEligible = extendedEligibleIds.has(s.id);
           return (
             <li
               key={s.id}
@@ -85,6 +125,24 @@ export function StudentsTab() {
                     @{s.username}
                   </span>
                 )}
+                {isExtendedEligible && (
+                  <span className="text-xs rounded-full bg-primary/10 text-primary px-2 py-0.5">
+                    {t("admin.students.extendedClass.eligibleBadge")}
+                  </span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={togglingExtended === s.id}
+                  onClick={() => handleToggleExtendedClass(s)}
+                  className="h-7 text-xs"
+                >
+                  {togglingExtended === s.id
+                    ? t("admin.students.extendedClass.saving")
+                    : isExtendedEligible
+                      ? t("admin.students.extendedClass.revoke")
+                      : t("admin.students.extendedClass.grant")}
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"

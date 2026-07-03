@@ -184,6 +184,9 @@ export const roDict = {
     selectDay: "Selectează o zi pentru a vedea orele disponibile.",
     noSlotsDay: "Nu există ore disponibile pentru această zi.",
     calendarDays: ["Lu", "Ma", "Mi", "Jo", "Vi", "Sâ", "Du"],
+    durationLabel: "Durata cursului",
+    duration60: "1 oră",
+    duration90: "1 oră și jumătate",
     booking: {
       confirmTitle: "Confirmă rezervarea",
       confirmedTitle: "Rezervare confirmată!",
@@ -204,6 +207,9 @@ export const roDict = {
       meetingError:
         "Nu s-a putut crea videoconferința. Te rugăm să încerci din nou.",
       genericError: "Nu s-a putut finaliza rezervarea. Încearcă din nou.",
+      extendedClassNotEligibleError:
+        "Nu ai acces la cursurile de 1 oră și jumătate. Contactează profesoara.",
+      invalidDurationError: "Durată de curs nevalidă.",
     },
     myBookings: {
       title: "Cursurile mele",
@@ -713,6 +719,17 @@ export const roDict = {
       revokeConfirm:
         "Elimini accesul de elev pentru această persoană? Îl poți acorda din nou oricând.",
       revokeError: "Nu s-a putut elimina accesul de elev.",
+      extendedClass: {
+        grant: "Permite clase de 1h30",
+        revoke: "Elimină clasele de 1h30",
+        saving: "Se salvează…",
+        grantConfirm:
+          "Permiți acestei persoane să rezerve clase de o oră și jumătate?",
+        revokeConfirm:
+          "Elimini accesul la clasele de o oră și jumătate pentru această persoană? Clasele deja rezervate nu vor fi afectate.",
+        error: "Nu s-a putut actualiza accesul la clasele de 1h30.",
+        eligibleBadge: "1h30 activat",
+      },
     },
     users: {
       loading: "Se încarcă…",

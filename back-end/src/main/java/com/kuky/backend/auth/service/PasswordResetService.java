@@ -79,7 +79,8 @@ public class PasswordResetService {
         return new UserResponse(user.getId(), user.getEmail(), user.getRole(),
                 user.getFirstName(), user.getLastName(), user.getUsername(),
                 user.getAvatarImageId(), user.getStatus(),
-                user.getTimezone(), user.isTimezoneManual());
+                user.getTimezone(), user.isTimezoneManual(),
+                user.isExtendedClassEligible());
     }
 
     private void invalidateAllTokensForUser(UUID userId) {

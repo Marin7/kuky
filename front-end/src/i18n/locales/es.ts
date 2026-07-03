@@ -185,6 +185,9 @@ export const esDict = {
     selectDay: "Selecciona un día para ver los horarios disponibles.",
     noSlotsDay: "No hay horarios disponibles para este día.",
     calendarDays: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
+    durationLabel: "Duración de la clase",
+    duration60: "1 hora",
+    duration90: "1 hora y media",
     booking: {
       confirmTitle: "Confirmar reserva",
       confirmedTitle: "¡Reserva confirmada!",
@@ -205,6 +208,9 @@ export const esDict = {
       meetingError:
         "No se pudo crear la videollamada. Por favor, inténtalo de nuevo.",
       genericError: "No se pudo completar la reserva. Inténtalo de nuevo.",
+      extendedClassNotEligibleError:
+        "No tienes acceso a las clases de 1 hora y media. Contacta con la profesora.",
+      invalidDurationError: "Duración de clase no válida.",
     },
     myBookings: {
       title: "Mis clases",
@@ -717,6 +723,17 @@ export const esDict = {
       revokeConfirm:
         "¿Quitar el acceso de alumno/a a esta persona? Podrás volver a concedérselo cuando quieras.",
       revokeError: "No se pudo quitar el acceso de alumno/a.",
+      extendedClass: {
+        grant: "Permitir clases de 1h30",
+        revoke: "Quitar clases de 1h30",
+        saving: "Guardando…",
+        grantConfirm:
+          "¿Permitir que esta persona reserve clases de 1 hora y media?",
+        revokeConfirm:
+          "¿Quitar el acceso a las clases de 1 hora y media a esta persona? Sus clases ya reservadas no se verán afectadas.",
+        error: "No se pudo actualizar el acceso a clases de 1h30.",
+        eligibleBadge: "1h30 habilitado",
+      },
     },
     users: {
       loading: "Cargando…",

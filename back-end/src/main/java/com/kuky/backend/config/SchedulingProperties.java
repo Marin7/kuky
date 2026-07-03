@@ -19,6 +19,7 @@ public class SchedulingProperties {
         // day-start/day-end/lunch-break-* were removed when availability became teacher-managed
         // (V7): the public schedule is now derived from availability_rules/exceptions, not these.
         private int classDurationMinutes = 60;
+        private int extendedClassDurationMinutes = 90;
         private int minLeadHours = 24;
         private int cancelCutoffHours = 24;
 
@@ -28,6 +29,8 @@ public class SchedulingProperties {
         public void setTeacherEmail(String teacherEmail) { this.teacherEmail = teacherEmail; }
         public int getClassDurationMinutes() { return classDurationMinutes; }
         public void setClassDurationMinutes(int classDurationMinutes) { this.classDurationMinutes = classDurationMinutes; }
+        public int getExtendedClassDurationMinutes() { return extendedClassDurationMinutes; }
+        public void setExtendedClassDurationMinutes(int extendedClassDurationMinutes) { this.extendedClassDurationMinutes = extendedClassDurationMinutes; }
         public int getMinLeadHours() { return minLeadHours; }
         public void setMinLeadHours(int minLeadHours) { this.minLeadHours = minLeadHours; }
         public int getCancelCutoffHours() { return cancelCutoffHours; }

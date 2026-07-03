@@ -63,12 +63,13 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
-export const getSchedule = () => apiCall<ScheduleResponse>("/schedule");
+export const getSchedule = (durationMinutes = 60) =>
+  apiCall<ScheduleResponse>(`/schedule?durationMinutes=${durationMinutes}`);
 
-export const createBooking = (slotStart: string) =>
+export const createBooking = (slotStart: string, durationMinutes: number) =>
   apiCall<BookingResponse>("/bookings", {
     method: "POST",
-    body: JSON.stringify({ slotStart }),
+    body: JSON.stringify({ slotStart, durationMinutes }),
   });
 
 export const listBookings = () => apiCall<MyBookingsResponse>("/bookings");

@@ -7,6 +7,7 @@ import {
 } from "@/lib/scheduling";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { CalendarPicker } from "./CalendarPicker";
 import { TimeSlotList } from "./TimeSlotList";
 import { BookingDialog } from "./BookingDialog";
@@ -58,11 +59,15 @@ export function ScheduleView({
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [user, setUser] = useState<UserResponse | null>(null);
+  const [duration, setDuration] = useState<60 | 90>(60);
 
-  const fetchSchedule = () => {
+  const canBook = user?.role === "STUDENT" || user?.role === "ADMIN";
+  const canBookExtended = canBook && !!user?.extendedClassEligible;
+
+  const fetchSchedule = (forDuration: number = duration) => {
     setLoading(true);
     setError(null);
-    getSchedule()
+    getSchedule(forDuration)
       .then(setSchedule)
       .catch(() => setError(t("schedule.loadError")))
       .finally(() => setLoading(false));
@@ -75,9 +80,16 @@ export function ScheduleView({
       .catch(() => setUser(null));
 
     if (onRefreshRef) {
-      onRefreshRef.current = fetchSchedule;
+      onRefreshRef.current = () => fetchSchedule();
     }
   }, []);
+
+  const handleSelectDuration = (value: 60 | 90) => {
+    if (value === duration) return;
+    setDuration(value);
+    setSelectedDay(null);
+    fetchSchedule(value);
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
@@ -89,6 +101,34 @@ export function ScheduleView({
           {t("schedule.subtitle", { zone: timezone })}
         </p>
       </div>
+
+      {canBookExtended && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            {t("schedule.durationLabel")}
+          </span>
+          <div className="inline-flex rounded-lg border p-0.5">
+            <Button
+              type="button"
+              size="sm"
+              variant={duration === 60 ? "default" : "ghost"}
+              className="h-7 text-xs"
+              onClick={() => handleSelectDuration(60)}
+            >
+              {t("schedule.duration60")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={duration === 90 ? "default" : "ghost"}
+              className="h-7 text-xs"
+              onClick={() => handleSelectDuration(90)}
+            >
+              {t("schedule.duration90")}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {loading && <ScheduleSkeleton />}
 
@@ -127,9 +167,10 @@ export function ScheduleView({
 
       <BookingDialog
         slot={selectedSlot}
+        durationMinutes={duration}
         timezone={timezone}
         isAuthenticated={!!user}
-        canBook={user?.role === "STUDENT" || user?.role === "ADMIN"}
+        canBook={canBook}
         onClose={() => setSelectedSlot(null)}
         onSuccess={() => {
           fetchSchedule();

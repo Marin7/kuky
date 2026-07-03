@@ -5,5 +5,7 @@ import java.time.Instant;
 
 public record CreateBookingRequest(
         @NotNull(message = "El inicio de la clase es obligatorio.")
-        Instant slotStart
+        Instant slotStart,
+        @NotNull(message = "La duración de la clase es obligatoria.")
+        Integer durationMinutes
 ) {}

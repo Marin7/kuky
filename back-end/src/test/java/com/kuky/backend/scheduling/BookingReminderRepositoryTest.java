@@ -74,12 +74,12 @@ class BookingReminderRepositoryTest {
     private UUID insertBooking(Instant slotStart, String status, Instant cancelledAt) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("""
-                        INSERT INTO bookings (id, user_id, slot_start, duration_minutes, status,
+                        INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status,
                                                zoom_join_url, created_at, cancelled_at)
-                        VALUES (?, ?, ?, 60, ?, 'https://zoom.example/test', now(), ?)
+                        VALUES (?, ?, ?, ?, 60, ?, 'https://zoom.example/test', now(), ?)
                         """,
-                id, userId, java.sql.Timestamp.from(slotStart), status,
-                cancelledAt == null ? null : java.sql.Timestamp.from(cancelledAt));
+                id, userId, java.sql.Timestamp.from(slotStart), java.sql.Timestamp.from(slotStart.plusSeconds(3600)),
+                status, cancelledAt == null ? null : java.sql.Timestamp.from(cancelledAt));
         return id;
     }
 }

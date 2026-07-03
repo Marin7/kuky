@@ -85,4 +85,34 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    public void sendExtendedClassGrantedEmail(String toEmail) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(toEmail);
+        message.setSubject("Ya puedes reservar clases de 1h30 — Kuky");
+        message.setText(
+                "¡Hola!\n\n" +
+                "Paula te ha dado acceso a las clases de 1 hora y media. A partir de ahora, al reservar " +
+                "una clase podrás elegir entre 1 hora y 1 hora y media.\n\n" +
+                "Saludos,\nEl equipo de Kuky"
+        );
+
+        mailSender.send(message);
+    }
+
+    public void sendExtendedClassRevokedEmail(String toEmail) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(toEmail);
+        message.setSubject("Tu acceso a clases de 1h30 ha cambiado — Kuky");
+        message.setText(
+                "Hola,\n\n" +
+                "Tu acceso a las clases de 1 hora y media ha sido retirado por Paula. Ya no podrás reservar " +
+                "nuevas clases de 1h30, pero tus clases ya reservadas no se ven afectadas.\n\n" +
+                "Saludos,\nEl equipo de Kuky"
+        );
+
+        mailSender.send(message);
+    }
 }

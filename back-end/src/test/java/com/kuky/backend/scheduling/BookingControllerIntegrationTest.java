@@ -61,9 +61,10 @@ class BookingControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/bookings")
                         .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(bookingJson(slotStart)))
+                        .content(bookingJson(slotStart, 60)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.durationMinutes").value(60))
                 .andExpect(jsonPath("$.zoomJoinUrl").isNotEmpty());
     }
 
@@ -76,14 +77,14 @@ class BookingControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/bookings")
                         .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(bookingJson(slotStart)))
+                        .content(bookingJson(slotStart, 60)))
                 .andExpect(status().isCreated());
 
         // Second booking for same slot fails
         mockMvc.perform(post("/api/v1/bookings")
                         .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(bookingJson(slotStart)))
+                        .content(bookingJson(slotStart, 60)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("SLOT_UNAVAILABLE"));
     }
@@ -97,7 +98,7 @@ class BookingControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/bookings")
                         .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(bookingJson(tooSoon)))
+                        .content(bookingJson(tooSoon, 60)))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error").value("BOOKING_TOO_SOON"));
     }
@@ -110,7 +111,7 @@ class BookingControllerIntegrationTest {
         mockMvc.perform(post("/api/v1/bookings")
                         .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(bookingJson(slotStart)))
+                        .content(bookingJson(slotStart, 60)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/v1/bookings")
@@ -120,20 +121,79 @@ class BookingControllerIntegrationTest {
                 .andExpect(jsonPath("$.upcoming[0].zoomJoinUrl").isNotEmpty());
     }
 
-    private static String bookingJson(Instant slotStart) {
-        return "{\"slotStart\":\"" + slotStart.toString() + "\"}";
+    // --- extended (1.5-hour) duration: booking creation and schedule (US2) -------------------
+
+    @Test
+    void bookSlot_90Minutes_returns201_forEligibleStudent() throws Exception {
+        Instant slotStart = validFutureSlot();
+        ensureTestUser();
+        grantExtendedClass("test@kuky.es");
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(slotStart, 90)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.durationMinutes").value(90));
+    }
+
+    @Test
+    void bookSlot_90Minutes_returns403_forNonEligibleStudent() throws Exception {
+        Instant slotStart = validFutureSlot();
+        ensureTestUser();
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(slotStart, 90)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("EXTENDED_CLASS_NOT_ELIGIBLE"));
+    }
+
+    @Test
+    void bookSlot_invalidDuration_returns422() throws Exception {
+        Instant slotStart = validFutureSlot();
+        ensureTestUser();
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(slotStart, 45)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("INVALID_DURATION"));
+    }
+
+    @Test
+    void getSchedule_90Minutes_returnsSlotsOnTheNinetyMinuteGrid() throws Exception {
+        mockMvc.perform(get("/api/v1/schedule").param("durationMinutes", "90"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getSchedule_invalidDuration_returns422() throws Exception {
+        mockMvc.perform(get("/api/v1/schedule").param("durationMinutes", "45"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("INVALID_DURATION"));
+    }
+
+    private static String bookingJson(Instant slotStart, int durationMinutes) {
+        return "{\"slotStart\":\"" + slotStart.toString() + "\",\"durationMinutes\":" + durationMinutes + "}";
     }
 
     private void ensureTestUser() {
         jdbcTemplate.execute("""
                 INSERT INTO users (id, email, password_hash, status, role, gdpr_consent)
                 VALUES (gen_random_uuid(), 'test@kuky.es', '$2a$12$placeholder', 'ACTIVE', 'STUDENT', true)
-                ON CONFLICT (email) DO NOTHING
+                ON CONFLICT (email) DO UPDATE SET extended_class_eligible = false
                 """);
         jdbcTemplate.execute("""
                 INSERT INTO users (id, email, password_hash, status, role, gdpr_consent)
                 VALUES (gen_random_uuid(), 'test2@kuky.es', '$2a$12$placeholder', 'ACTIVE', 'STUDENT', true)
                 ON CONFLICT (email) DO NOTHING
                 """);
+    }
+
+    private void grantExtendedClass(String email) {
+        jdbcTemplate.update("UPDATE users SET extended_class_eligible = true WHERE email = ?", email);
     }
 }

@@ -17,6 +17,7 @@ public class User {
     private UUID avatarImageId;
     private String timezone;
     private boolean timezoneIsManual;
+    private boolean extendedClassEligible;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -44,6 +45,8 @@ public class User {
     public void setTimezone(String timezone) { this.timezone = timezone; }
     public boolean isTimezoneManual() { return timezoneIsManual; }
     public void setTimezoneManual(boolean timezoneIsManual) { this.timezoneIsManual = timezoneIsManual; }
+    public boolean isExtendedClassEligible() { return extendedClassEligible; }
+    public void setExtendedClassEligible(boolean extendedClassEligible) { this.extendedClassEligible = extendedClassEligible; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

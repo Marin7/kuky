@@ -78,6 +78,30 @@ export const revokeStudent = (id: string) =>
   apiCall<UserRole>(`/users/${id}/student`, { method: "DELETE" });
 
 // ---------------------------------------------------------------------------
+// Extended-class eligibility (grant/revoke 1.5-hour booking access)
+// ---------------------------------------------------------------------------
+
+export interface ExtendedClassEligibility {
+  id: string;
+  extendedClassEligible: boolean;
+}
+
+export const grantExtendedClass = (id: string) =>
+  apiCall<ExtendedClassEligibility>(`/users/${id}/extended-class`, {
+    method: "POST",
+  });
+
+export const revokeExtendedClass = (id: string) =>
+  apiCall<ExtendedClassEligibility>(`/users/${id}/extended-class`, {
+    method: "DELETE",
+  });
+
+// Kept separate from getStudents() — that roster is shared by pickers that have no
+// need for booking-duration eligibility (homework assignment, presentation sharing).
+export const getExtendedClassEligibleStudentIds = () =>
+  apiCall<string[]>("/students/extended-class-eligible-ids");
+
+// ---------------------------------------------------------------------------
 // Bookings (admin upcoming view)
 // ---------------------------------------------------------------------------
 

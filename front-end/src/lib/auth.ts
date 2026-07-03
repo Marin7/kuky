@@ -23,6 +23,7 @@ export interface UserResponse {
   status: "ACTIVE" | "PENDING";
   timezone?: string;
   timezoneIsManual: boolean;
+  extendedClassEligible: boolean;
 }
 
 /**

@@ -111,16 +111,17 @@ BEGIN
     VALUES (gen_random_uuid(), sub_id, q2, 'vive', 1);
 
     -- Bookings: one completed, one cancelled, one upcoming
-    INSERT INTO bookings (id, user_id, slot_start, duration_minutes, status, created_at)
-    VALUES (gen_random_uuid(), student_id, NOW() - INTERVAL '10 days', 60, 'CONFIRMED', NOW() - INTERVAL '17 days');
+    INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status, created_at)
+    VALUES (gen_random_uuid(), student_id, NOW() - INTERVAL '10 days', NOW() - INTERVAL '10 days' + INTERVAL '60 minutes',
+            60, 'CONFIRMED', NOW() - INTERVAL '17 days');
 
-    INSERT INTO bookings (id, user_id, slot_start, duration_minutes, status, created_at, cancelled_at)
-    VALUES (gen_random_uuid(), student_id, NOW() - INTERVAL '5 days', 60, 'CANCELLED',
-            NOW() - INTERVAL '12 days', NOW() - INTERVAL '6 days');
+    INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status, created_at, cancelled_at)
+    VALUES (gen_random_uuid(), student_id, NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days' + INTERVAL '60 minutes',
+            60, 'CANCELLED', NOW() - INTERVAL '12 days', NOW() - INTERVAL '6 days');
 
-    INSERT INTO bookings (id, user_id, slot_start, duration_minutes, status, zoom_join_url, created_at)
-    VALUES (gen_random_uuid(), student_id, NOW() + INTERVAL '3 days', 60, 'CONFIRMED',
-            'https://zoom.us/j/000000000-demo', NOW() - INTERVAL '1 day');
+    INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status, zoom_join_url, created_at)
+    VALUES (gen_random_uuid(), student_id, NOW() + INTERVAL '3 days', NOW() + INTERVAL '3 days' + INTERVAL '60 minutes',
+            60, 'CONFIRMED', 'https://zoom.us/j/000000000-demo', NOW() - INTERVAL '1 day');
 
     -- Purchase + entitlement for an already-seeded paid resource
     SELECT id INTO resource_id FROM resources WHERE slug = 'gramatica-a1';

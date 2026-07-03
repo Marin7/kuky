@@ -14,6 +14,7 @@ import { StudentOnlyNotice } from "@/components/StudentOnlyNotice";
 
 interface BookingDialogProps {
   slot: Slot | null;
+  durationMinutes: number;
   timezone: string;
   isAuthenticated: boolean;
   canBook: boolean;
@@ -32,8 +33,17 @@ function formatSlotDateTime(iso: string, timezone: string): string {
   }).format(new Date(iso));
 }
 
+function formatTime(iso: string, timezone: string): string {
+  return new Intl.DateTimeFormat("es", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone,
+  }).format(new Date(iso));
+}
+
 export function BookingDialog({
   slot,
+  durationMinutes,
   timezone,
   isAuthenticated,
   canBook,
@@ -44,10 +54,12 @@ export function BookingDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joinUrl, setJoinUrl] = useState<string | null>(null);
+  const [confirmedEnd, setConfirmedEnd] = useState<string | null>(null);
 
   useEffect(() => {
     if (slot) {
       setJoinUrl(null);
+      setConfirmedEnd(null);
       setError(null);
       setLoading(false);
     }
@@ -60,6 +72,10 @@ export function BookingDialog({
       SLOT_OUT_OF_RANGE: t("schedule.booking.slotOutOfRangeError"),
       MEETING_PROVISIONING_FAILED: t("schedule.booking.meetingError"),
       ACCESS_DENIED: t("studentOnly.message"),
+      EXTENDED_CLASS_NOT_ELIGIBLE: t(
+        "schedule.booking.extendedClassNotEligibleError",
+      ),
+      INVALID_DURATION: t("schedule.booking.invalidDurationError"),
     };
     return map[errorCode] ?? t("schedule.booking.genericError");
   };
@@ -69,8 +85,9 @@ export function BookingDialog({
     setLoading(true);
     setError(null);
     try {
-      const booking = await createBooking(slot.start);
+      const booking = await createBooking(slot.start, durationMinutes);
       setJoinUrl(booking.zoomJoinUrl);
+      setConfirmedEnd(booking.slotEnd);
       onSuccess();
     } catch (e) {
       const apiErr = e as ApiError;
@@ -84,6 +101,7 @@ export function BookingDialog({
     if (!open) {
       setError(null);
       setJoinUrl(null);
+      setConfirmedEnd(null);
       onClose();
     }
   };
@@ -118,6 +136,7 @@ export function BookingDialog({
               {t("schedule.booking.confirmedTitle")}{" "}
               <strong>
                 {slot ? formatSlotDateTime(slot.start, timezone) : ""}
+                {confirmedEnd ? ` – ${formatTime(confirmedEnd, timezone)}` : ""}
               </strong>
               .
             </p>

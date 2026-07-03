@@ -155,8 +155,8 @@ class StudentAdminControllerIntegrationTest {
     void revokeStudent_demotesStudentAndSendsEmail_andPreservesHistoryEndpoints() throws Exception {
         // Give the student a booking so we can prove history stays reachable after revoke.
         jdbcTemplate.update("""
-                INSERT INTO bookings (id, user_id, slot_start, duration_minutes, status)
-                VALUES (gen_random_uuid(), ?, NOW() + INTERVAL '7 days', 60, 'CONFIRMED')
+                INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status)
+                VALUES (gen_random_uuid(), ?, NOW() + INTERVAL '7 days', NOW() + INTERVAL '7 days' + INTERVAL '60 minutes', 60, 'CONFIRMED')
                 """, studentId);
 
         mockMvc.perform(delete("/api/v1/admin/users/" + studentId + "/student")
@@ -199,6 +199,115 @@ class StudentAdminControllerIntegrationTest {
     @Test
     void revokeStudent_returns403_forNonAdmin() throws Exception {
         mockMvc.perform(delete("/api/v1/admin/users/" + studentId + "/student")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                studentEmail, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void grantExtendedClass_grantsEligibilityAndSendsEmail() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/users/" + studentId + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.extendedClassEligible").value(true));
+
+        Boolean eligible = jdbcTemplate.queryForObject(
+                "SELECT extended_class_eligible FROM users WHERE id = ?", Boolean.class, studentId);
+        org.junit.jupiter.api.Assertions.assertEquals(Boolean.TRUE, eligible);
+        Mockito.verify(mailSender).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void grantExtendedClass_isIdempotent_whenAlreadyEligible() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/users/" + studentId + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isOk());
+        Mockito.reset(mailSender);
+
+        mockMvc.perform(post("/api/v1/admin/users/" + studentId + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.extendedClassEligible").value(true));
+
+        Mockito.verify(mailSender, Mockito.never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void grantExtendedClass_returns404_forUnknownId() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/users/" + UUID.randomUUID() + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("USER_NOT_FOUND"));
+    }
+
+    @Test
+    void grantExtendedClass_returns404_forAdminId() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/users/" + adminAccountId + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("USER_NOT_FOUND"));
+    }
+
+    @Test
+    void grantExtendedClass_returns403_forNonAdmin() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/users/" + studentId + "/extended-class")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                studentEmail, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void revokeExtendedClass_revokesEligibilityAndSendsEmail_andPreservesExistingBookingDuration() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/users/" + studentId + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isOk());
+
+        // FR-013: an existing 90-minute booking made while eligible must be unaffected by revocation.
+        jdbcTemplate.update("""
+                INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status)
+                VALUES (gen_random_uuid(), ?, NOW() + INTERVAL '7 days', NOW() + INTERVAL '7 days' + INTERVAL '90 minutes', 90, 'CONFIRMED')
+                """, studentId);
+        Mockito.reset(mailSender);
+
+        mockMvc.perform(delete("/api/v1/admin/users/" + studentId + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.extendedClassEligible").value(false));
+
+        Boolean eligible = jdbcTemplate.queryForObject(
+                "SELECT extended_class_eligible FROM users WHERE id = ?", Boolean.class, studentId);
+        org.junit.jupiter.api.Assertions.assertEquals(Boolean.FALSE, eligible);
+        Mockito.verify(mailSender).send(any(SimpleMailMessage.class));
+
+        Integer duration = jdbcTemplate.queryForObject(
+                "SELECT duration_minutes FROM bookings WHERE user_id = ? AND status = 'CONFIRMED'",
+                Integer.class, studentId);
+        org.junit.jupiter.api.Assertions.assertEquals(90, duration);
+
+        jdbcTemplate.update("DELETE FROM bookings WHERE user_id = ?", studentId);
+    }
+
+    @Test
+    void revokeExtendedClass_isIdempotent_whenAlreadyIneligible() throws Exception {
+        mockMvc.perform(delete("/api/v1/admin/users/" + studentId + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.extendedClassEligible").value(false));
+
+        Mockito.verify(mailSender, Mockito.never()).send(any(SimpleMailMessage.class));
+    }
+
+    @Test
+    void revokeExtendedClass_returns404_forUnknownId() throws Exception {
+        mockMvc.perform(delete("/api/v1/admin/users/" + UUID.randomUUID() + "/extended-class")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("USER_NOT_FOUND"));
+    }
+
+    @Test
+    void revokeExtendedClass_returns403_forNonAdmin() throws Exception {
+        mockMvc.perform(delete("/api/v1/admin/users/" + studentId + "/extended-class")
                         .with(authentication(new UsernamePasswordAuthenticationToken(
                                 studentEmail, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
                 .andExpect(status().isForbidden());

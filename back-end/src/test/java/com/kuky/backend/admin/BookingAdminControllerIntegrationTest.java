@@ -73,9 +73,10 @@ class BookingAdminControllerIntegrationTest {
     private UUID insertBooking(String status, Instant slotStart) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("""
-                INSERT INTO bookings (id, user_id, slot_start, duration_minutes, status)
-                VALUES (?, ?, ?, 50, ?)
-                """, id, studentId, java.sql.Timestamp.from(slotStart), status);
+                INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status)
+                VALUES (?, ?, ?, ?, 50, ?)
+                """, id, studentId, java.sql.Timestamp.from(slotStart),
+                java.sql.Timestamp.from(slotStart.plusSeconds(50 * 60)), status);
         return id;
     }
 

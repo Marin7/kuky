@@ -55,4 +55,32 @@ class EmailServiceTest {
         assertThat(message.getSubject()).isNotBlank();
         assertThat(message.getText()).isNotBlank();
     }
+
+    @Test
+    void sendExtendedClassGrantedEmail_sendsMessageToRecipientWithNonEmptyContent() {
+        emailService.sendExtendedClassGrantedEmail("alumno@example.com");
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+
+        SimpleMailMessage message = captor.getValue();
+        assertThat(message.getTo()).containsExactly("alumno@example.com");
+        assertThat(message.getFrom()).isEqualTo("noreply@kuky.es");
+        assertThat(message.getSubject()).isNotBlank();
+        assertThat(message.getText()).isNotBlank();
+    }
+
+    @Test
+    void sendExtendedClassRevokedEmail_sendsMessageToRecipientWithNonEmptyContent() {
+        emailService.sendExtendedClassRevokedEmail("exalumno@example.com");
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+
+        SimpleMailMessage message = captor.getValue();
+        assertThat(message.getTo()).containsExactly("exalumno@example.com");
+        assertThat(message.getFrom()).isEqualTo("noreply@kuky.es");
+        assertThat(message.getSubject()).isNotBlank();
+        assertThat(message.getText()).isNotBlank();
+    }
 }

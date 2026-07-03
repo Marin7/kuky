@@ -36,6 +36,7 @@ public class UserRepository {
         u.setAvatarImageId(rs.getObject("avatar_image_id", UUID.class));
         u.setTimezone(rs.getString("timezone"));
         u.setTimezoneManual(rs.getBoolean("timezone_is_manual"));
+        u.setExtendedClassEligible(rs.getBoolean("extended_class_eligible"));
         u.setCreatedAt(rs.getTimestamp("created_at").toInstant());
         u.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
         return u;
@@ -69,6 +70,11 @@ public class UserRepository {
         return jdbc.query(sql, Map.of(), USER_MAPPER);
     }
 
+    public List<UUID> findExtendedClassEligibleStudentIds() {
+        String sql = "SELECT id FROM users WHERE role = 'STUDENT' AND extended_class_eligible = true";
+        return jdbc.query(sql, Map.of(), (rs, rowNum) -> rs.getObject("id", UUID.class));
+    }
+
     /** Grant student status by id (idempotent: no-op if already STUDENT). Returns rows affected. */
     public int promoteToStudentById(UUID id) {
         String sql = "UPDATE users SET role = 'STUDENT', updated_at = NOW() "
@@ -80,6 +86,20 @@ public class UserRepository {
     public int revokeStudentById(UUID id) {
         String sql = "UPDATE users SET role = 'USER', updated_at = NOW() "
                 + "WHERE id = :id AND role = 'STUDENT'";
+        return jdbc.update(sql, Map.of("id", id));
+    }
+
+    /** Grant extended-class eligibility by id (idempotent: no-op if already eligible). Returns rows affected. */
+    public int grantExtendedClassById(UUID id) {
+        String sql = "UPDATE users SET extended_class_eligible = true, updated_at = NOW() "
+                + "WHERE id = :id AND extended_class_eligible = false";
+        return jdbc.update(sql, Map.of("id", id));
+    }
+
+    /** Revoke extended-class eligibility by id (idempotent: no-op if already ineligible). Returns rows affected. */
+    public int revokeExtendedClassById(UUID id) {
+        String sql = "UPDATE users SET extended_class_eligible = false, updated_at = NOW() "
+                + "WHERE id = :id AND extended_class_eligible = true";
         return jdbc.update(sql, Map.of("id", id));
     }
 

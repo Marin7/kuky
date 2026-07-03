@@ -1,5 +1,6 @@
 package com.kuky.backend.admin.controller;
 
+import com.kuky.backend.admin.dto.ExtendedClassEligibilityResponse;
 import com.kuky.backend.admin.dto.RegisteredUserResponse;
 import com.kuky.backend.admin.dto.StudentProfileResponse;
 import com.kuky.backend.admin.dto.StudentResponse;
@@ -52,6 +53,16 @@ public class StudentAdminController {
                 .toList();
     }
 
+    /**
+     * Ids of current students who hold "extended class" eligibility. Kept separate from
+     * {@link #getStudents()} because that roster is also reused by the homework-assignment
+     * and presentation-sharing pickers, which have no need for booking-duration eligibility.
+     */
+    @GetMapping("/students/extended-class-eligible-ids")
+    public List<UUID> getExtendedClassEligibleStudentIds() {
+        return userRepository.findExtendedClassEligibleStudentIds();
+    }
+
     @GetMapping("/students/{id}/profile")
     public StudentProfileResponse getProfile(@PathVariable UUID id) {
         return profileService.getProfile(id);
@@ -93,6 +104,36 @@ public class StudentAdminController {
             }
         }
         return new UserRoleResponse(id, "USER");
+    }
+
+    @PostMapping("/users/{id}/extended-class")
+    public ExtendedClassEligibilityResponse grantExtendedClass(@PathVariable UUID id) {
+        User user = requireGrantableOrRevocableUser(id);
+        if (!user.isExtendedClassEligible()) {
+            userRepository.grantExtendedClassById(id);
+            try {
+                emailService.sendExtendedClassGrantedEmail(user.getEmail());
+            } catch (Exception e) {
+                log.warn("EmailService — failed to send extended-class-granted email to {}: {}",
+                        user.getEmail(), e.getMessage());
+            }
+        }
+        return new ExtendedClassEligibilityResponse(id, true);
+    }
+
+    @DeleteMapping("/users/{id}/extended-class")
+    public ExtendedClassEligibilityResponse revokeExtendedClass(@PathVariable UUID id) {
+        User user = requireGrantableOrRevocableUser(id);
+        if (user.isExtendedClassEligible()) {
+            userRepository.revokeExtendedClassById(id);
+            try {
+                emailService.sendExtendedClassRevokedEmail(user.getEmail());
+            } catch (Exception e) {
+                log.warn("EmailService — failed to send extended-class-revoked email to {}: {}",
+                        user.getEmail(), e.getMessage());
+            }
+        }
+        return new ExtendedClassEligibilityResponse(id, false);
     }
 
     /** Loads the user or 404s; an ADMIN id is treated as not-found since admins are out of scope. */
