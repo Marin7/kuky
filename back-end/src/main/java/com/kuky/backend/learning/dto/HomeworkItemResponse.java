@@ -1,7 +1,10 @@
 package com.kuky.backend.learning.dto;
 
+import com.kuky.backend.learning.model.FormattedTextSegment;
+
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record HomeworkItemResponse(
@@ -13,7 +16,8 @@ public record HomeworkItemResponse(
         String level,
         String format,            // MANUAL | EXERCISE
         String status,
-        String response,
+        List<FormattedTextSegment> response,
+        List<FormattedTextSegment> feedback,   // teacher's formatted feedback, present once REVIEWED
         Integer scorePercent,     // present when status == GRADED
         Instant submittedAt,
         boolean overdue,

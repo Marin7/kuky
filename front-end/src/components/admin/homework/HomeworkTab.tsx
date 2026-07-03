@@ -1,5 +1,11 @@
 import { HomeworkAdminList } from "./HomeworkAdminList";
+import { HomeworkReviewQueue } from "./HomeworkReviewQueue";
 
 export function HomeworkTab() {
-  return <HomeworkAdminList />;
+  return (
+    <div>
+      <HomeworkReviewQueue />
+      <HomeworkAdminList />
+    </div>
+  );
 }

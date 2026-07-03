@@ -6,6 +6,7 @@ import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
+import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkStatus;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,7 +47,7 @@ public class HomeworkSubmissionService {
         this.props = props;
     }
 
-    public HomeworkItemResponse submit(String userEmail, UUID assignmentId, String response) {
+    public HomeworkItemResponse submit(String userEmail, UUID assignmentId, List<FormattedTextSegment> response) {
         User user = userRepository.findByEmailIgnoreCase(userEmail.toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
 
@@ -64,11 +66,17 @@ public class HomeworkSubmissionService {
             throw new SubmissionNotAllowedException("Esta tarea ya ha sido revisada y no puede modificarse.");
         }
 
+        // A MANUAL homework may be "marked done" with no answer text at all (response == null);
+        // when text is provided, it must pass the same formatted-text rules as teacher feedback.
+        if (response != null) {
+            FormattedTextSegment.validate(response);
+        }
+
         HomeworkSubmission saved = submissionRepository.upsert(
                 user.getId(),
                 assignmentId,
                 HomeworkStatus.SUBMITTED.name(),
-                response,
+                FormattedTextSegment.toJson(response),
                 Instant.now());
 
         LocalDate today = LocalDate.now(ZoneId.of(props.getScheduling().getTeacherTimezone()));

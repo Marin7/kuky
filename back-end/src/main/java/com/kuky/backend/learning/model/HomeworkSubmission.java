@@ -9,9 +9,11 @@ public class HomeworkSubmission {
     private UUID userId;
     private UUID assignmentId;
     private String status; // one of HomeworkStatus
-    private String responseText; // nullable
+    private String responseText; // nullable — JSON-encoded List<FormattedTextSegment>
     private Integer scorePercent; // nullable — set only when status = GRADED
+    private String feedback; // nullable — JSON-encoded List<FormattedTextSegment>, set once REVIEWED
     private Instant submittedAt; // nullable
+    private Instant reviewedAt; // nullable — set when feedback is saved
     private Instant updatedAt;
 
     public UUID getId() { return id; }
@@ -26,8 +28,12 @@ public class HomeworkSubmission {
     public void setResponseText(String responseText) { this.responseText = responseText; }
     public Integer getScorePercent() { return scorePercent; }
     public void setScorePercent(Integer scorePercent) { this.scorePercent = scorePercent; }
+    public String getFeedback() { return feedback; }
+    public void setFeedback(String feedback) { this.feedback = feedback; }
     public Instant getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(Instant submittedAt) { this.submittedAt = submittedAt; }
+    public Instant getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

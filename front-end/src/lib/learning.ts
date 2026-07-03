@@ -1,4 +1,5 @@
 import { API_ORIGIN } from "@/lib/api";
+import type { FormattedText } from "@/components/learning/richtext/types";
 const API_BASE = `${API_ORIGIN}/api/v1`;
 
 export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
@@ -28,7 +29,8 @@ export interface HomeworkItem {
   level: HomeworkLevel | null;
   format: HomeworkFormat;
   status: HomeworkStatus;
-  response: string | null;
+  response: FormattedText | null;
+  feedback: FormattedText | null; // teacher's formatted feedback, present once REVIEWED
   scorePercent: number | null; // present when status === "GRADED"
   submittedAt: string | null; // ISO instant or null
   overdue: boolean;
@@ -134,7 +136,10 @@ export const audioFileUrl = (audioFileId: string) =>
 
 export const getLearning = () => apiCall<LearningResponse>("/learning");
 
-export const submitHomework = (assignmentId: string, response?: string) =>
+export const submitHomework = (
+  assignmentId: string,
+  response?: FormattedText | null,
+) =>
   apiCall<HomeworkItem>(`/learning/homework/${assignmentId}`, {
     method: "PUT",
     body: JSON.stringify({ response: response ?? null }),

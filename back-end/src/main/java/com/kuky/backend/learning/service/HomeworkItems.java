@@ -2,12 +2,14 @@ package com.kuky.backend.learning.service;
 
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
 import com.kuky.backend.learning.dto.UnitRef;
+import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Builds a {@link HomeworkItemResponse} from a (shared) assignment definition and
@@ -30,7 +32,10 @@ final class HomeworkItems {
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
                                            LocalDate today, UnitRef unit) {
         String status = submission != null ? submission.getStatus() : HomeworkStatus.PENDING.name();
-        String response = submission != null ? submission.getResponseText() : null;
+        List<FormattedTextSegment> response =
+                submission != null ? FormattedTextSegment.fromJson(submission.getResponseText()) : null;
+        List<FormattedTextSegment> feedback =
+                submission != null ? FormattedTextSegment.fromJson(submission.getFeedback()) : null;
         boolean overdue = a.getDueOn() != null
                 && a.getDueOn().isBefore(today)
                 && HomeworkStatus.PENDING.name().equals(status);
@@ -48,6 +53,7 @@ final class HomeworkItems {
                 format,
                 status,
                 response,
+                feedback,
                 scorePercent,
                 submission != null ? submission.getSubmittedAt() : null,
                 overdue,

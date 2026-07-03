@@ -49,7 +49,8 @@ public class StudentProfileAdminService {
 
         List<StudentProfileHomeworkDto> homeworks = homeworkTargetRepository
                 .findAssignmentsForStudent(studentId).stream()
-                .map(v -> new StudentProfileHomeworkDto(v.assignmentId(), v.title(), v.status(), v.submittedAt()))
+                .map(v -> new StudentProfileHomeworkDto(v.assignmentId(), v.title(), v.status(), v.submittedAt(),
+                        "MANUAL".equals(v.format()) && "SUBMITTED".equals(v.status()), v.submissionId()))
                 .toList();
 
         List<StudentProfilePresentationDto> presentations = presentationRepository

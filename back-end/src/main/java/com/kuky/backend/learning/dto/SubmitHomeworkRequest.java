@@ -1,8 +1,9 @@
 package com.kuky.backend.learning.dto;
 
-import jakarta.validation.constraints.Size;
+import com.kuky.backend.learning.model.FormattedTextSegment;
+
+import java.util.List;
 
 public record SubmitHomeworkRequest(
-        @Size(max = 2000, message = "La respuesta es demasiado larga (máximo 2000 caracteres).")
-        String response
+        List<FormattedTextSegment> response
 ) {}

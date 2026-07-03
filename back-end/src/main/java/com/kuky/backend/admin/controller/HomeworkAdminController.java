@@ -2,6 +2,9 @@ package com.kuky.backend.admin.controller;
 
 import com.kuky.backend.admin.dto.CreateHomeworkRequest;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
+import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
+import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
+import com.kuky.backend.admin.dto.SaveHomeworkFeedbackRequest;
 import com.kuky.backend.admin.dto.SetAssigneesRequest;
 import com.kuky.backend.admin.dto.UpdateHomeworkRequest;
 import com.kuky.backend.admin.service.HomeworkAdminService;
@@ -54,5 +57,23 @@ public class HomeworkAdminController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // --- Teacher review of MANUAL submissions --------------------------------
+
+    @GetMapping("/submissions")
+    public List<HomeworkReviewQueueItemDto> reviewQueue() {
+        return service.getReviewQueue();
+    }
+
+    @GetMapping("/submissions/{submissionId}")
+    public HomeworkSubmissionAdminDto submissionDetail(@PathVariable UUID submissionId) {
+        return service.getSubmissionDetail(submissionId);
+    }
+
+    @PutMapping("/submissions/{submissionId}/feedback")
+    public HomeworkSubmissionAdminDto saveFeedback(@PathVariable UUID submissionId,
+                                                   @Valid @RequestBody SaveHomeworkFeedbackRequest request) {
+        return service.saveFeedback(submissionId, request.feedback());
     }
 }

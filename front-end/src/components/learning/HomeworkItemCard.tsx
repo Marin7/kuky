@@ -3,6 +3,7 @@ import type { HomeworkItem, HomeworkType, HomeworkLevel } from "@/lib/learning";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("es", {
@@ -119,13 +120,13 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
           </p>
         )}
 
-        {item.response && (
-          <p className="rounded-md bg-secondary/40 p-2 text-muted-foreground">
+        {item.response && item.response.length > 0 && (
+          <div className="rounded-md bg-secondary/40 p-2 text-muted-foreground">
             <span className="font-medium text-foreground">
               {t("learning.homework.yourResponse")}{" "}
             </span>
-            {item.response}
-          </p>
+            <RichTextViewer segments={item.response} className="inline" />
+          </div>
         )}
 
         {item.homeworkType === "READ" ? (

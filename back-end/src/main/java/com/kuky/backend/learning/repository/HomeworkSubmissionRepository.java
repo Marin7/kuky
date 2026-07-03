@@ -34,9 +34,14 @@ public class HomeworkSubmissionRepository {
         s.setStatus(rs.getString("status"));
         s.setResponseText(rs.getString("response_text"));
         s.setScorePercent(rs.getObject("score_percent", Integer.class));
+        s.setFeedback(rs.getString("feedback"));
         Timestamp submittedAt = rs.getTimestamp("submitted_at");
         if (submittedAt != null) {
             s.setSubmittedAt(submittedAt.toInstant());
+        }
+        Timestamp reviewedAt = rs.getTimestamp("reviewed_at");
+        if (reviewedAt != null) {
+            s.setReviewedAt(reviewedAt.toInstant());
         }
         s.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
         return s;
@@ -110,5 +115,87 @@ public class HomeworkSubmissionRepository {
                 .addValue("submittedAt", submittedAt == null ? null : Timestamp.from(submittedAt))
                 .addValue("updatedAt", Timestamp.from(now));
         return jdbc.query(sql, params, SUBMISSION_MAPPER).stream().findFirst().orElseThrow();
+    }
+
+    // --- Teacher review of MANUAL submissions --------------------------------
+
+    public record ReviewQueueRow(UUID submissionId, UUID studentId, String studentEmail, String studentFirstName,
+                                 String studentLastName, String studentUsername, String assignmentTitle,
+                                 Instant submittedAt) {}
+
+    /** Every MANUAL-format submission currently awaiting teacher feedback, oldest first. */
+    public List<ReviewQueueRow> findSubmittedManualQueue() {
+        String sql = """
+                SELECT s.id AS submission_id, u.id AS student_id, u.email AS student_email,
+                       u.first_name AS student_first_name, u.last_name AS student_last_name,
+                       u.username AS student_username, ha.title AS assignment_title, s.submitted_at
+                FROM homework_submissions s
+                JOIN users u ON u.id = s.user_id
+                JOIN homework_assignments ha ON ha.id = s.assignment_id
+                WHERE s.status = 'SUBMITTED' AND ha.format = 'MANUAL'
+                ORDER BY s.submitted_at ASC
+                """;
+        return jdbc.query(sql, Map.of(), (rs, n) -> {
+            var submittedAt = rs.getTimestamp("submitted_at");
+            return new ReviewQueueRow(
+                    rs.getObject("submission_id", UUID.class),
+                    rs.getObject("student_id", UUID.class),
+                    rs.getString("student_email"),
+                    rs.getString("student_first_name"),
+                    rs.getString("student_last_name"),
+                    rs.getString("student_username"),
+                    rs.getString("assignment_title"),
+                    submittedAt == null ? null : submittedAt.toInstant());
+        });
+    }
+
+    public record SubmissionDetailRow(UUID submissionId, UUID studentId, String studentEmail,
+                                      String studentFirstName, String studentLastName, String studentUsername,
+                                      String assignmentTitle, String status, String responseText, String feedback,
+                                      Instant submittedAt, Instant reviewedAt) {}
+
+    /** Full detail of a single submission, joined with its student and assignment, for the review screen. */
+    public Optional<SubmissionDetailRow> findDetailById(UUID submissionId) {
+        String sql = """
+                SELECT s.id AS submission_id, u.id AS student_id, u.email AS student_email,
+                       u.first_name AS student_first_name, u.last_name AS student_last_name,
+                       u.username AS student_username, ha.title AS assignment_title,
+                       s.status, s.response_text, s.feedback, s.submitted_at, s.reviewed_at
+                FROM homework_submissions s
+                JOIN users u ON u.id = s.user_id
+                JOIN homework_assignments ha ON ha.id = s.assignment_id
+                WHERE s.id = :id
+                """;
+        return jdbc.query(sql, Map.of("id", submissionId), (rs, n) -> {
+            var submittedAt = rs.getTimestamp("submitted_at");
+            var reviewedAt = rs.getTimestamp("reviewed_at");
+            return new SubmissionDetailRow(
+                    rs.getObject("submission_id", UUID.class),
+                    rs.getObject("student_id", UUID.class),
+                    rs.getString("student_email"),
+                    rs.getString("student_first_name"),
+                    rs.getString("student_last_name"),
+                    rs.getString("student_username"),
+                    rs.getString("assignment_title"),
+                    rs.getString("status"),
+                    rs.getString("response_text"),
+                    rs.getString("feedback"),
+                    submittedAt == null ? null : submittedAt.toInstant(),
+                    reviewedAt == null ? null : reviewedAt.toInstant());
+        }).stream().findFirst();
+    }
+
+    /** Saves the teacher's feedback and transitions the submission to REVIEWED. */
+    public int updateFeedback(UUID submissionId, String feedbackJson, Instant reviewedAt) {
+        String sql = """
+                UPDATE homework_submissions
+                SET feedback = :feedback, status = 'REVIEWED', reviewed_at = :reviewedAt, updated_at = :updatedAt
+                WHERE id = :id
+                """;
+        return jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("feedback", feedbackJson)
+                .addValue("reviewedAt", Timestamp.from(reviewedAt))
+                .addValue("updatedAt", Timestamp.from(Instant.now()))
+                .addValue("id", submissionId));
     }
 }

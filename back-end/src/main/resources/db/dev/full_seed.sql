@@ -91,9 +91,11 @@ BEGIN
     VALUES (gen_random_uuid(), q2, 0, 'vive', true);
 
     -- Manual homework: SUBMITTED, awaiting teacher review
+    -- response_text is a JSON-encoded FormattedText segment array (018-homework-rich-text-annotations)
     INSERT INTO homework_submissions (id, user_id, assignment_id, status, response_text, submitted_at)
     VALUES (gen_random_uuid(), student_id, hw_manual, 'SUBMITTED',
-            'Hola, me llamo Ana. Soy de Bucarest y me gusta leer y viajar.', NOW() - INTERVAL '2 days');
+            '[{"text":"Hola, me llamo "},{"text":"Ana","color":"blue"},{"text":". Soy de "},{"text":"Bucarest","highlight":"yellow"},{"text":" y me gusta leer y "},{"text":"viajar","strike":true}]',
+            NOW() - INTERVAL '2 days');
 
     -- Exercise homework: GRADED, one right / one wrong answer (50%)
     INSERT INTO homework_submissions (id, user_id, assignment_id, status, submitted_at, score_percent)

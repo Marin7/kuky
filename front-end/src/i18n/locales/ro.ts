@@ -281,6 +281,25 @@ export const roDict = {
       brand: "Spaniolă cu Paula",
     },
   },
+  richText: {
+    color: "Culoare:",
+    highlight: "Evidențiere:",
+    strike: "Tăiere text",
+    clearColor: "Elimină culoarea",
+    clearHighlight: "Elimină evidențierea",
+    preview: "Previzualizare",
+    colors: {
+      red: "Roșu",
+      green: "Verde",
+      blue: "Albastru",
+      neutral: "Neutru",
+    },
+    highlights: {
+      yellow: "Galben",
+      green: "Verde",
+      pink: "Roz",
+    },
+  },
   learning: {
     loadError: "Nu s-a putut încărca secțiunea de învățare. Încearcă din nou.",
     testimonial: {
@@ -352,6 +371,7 @@ export const roDict = {
       autosaveHint: "Progresul tău este salvat automat pe acest dispozitiv.",
       notFound: "Această temă de redactare nu a putut fi găsită.",
       loadError: "Nu s-a putut încărca tema.",
+      teacherFeedback: "Feedback-ul profesoarei",
     },
     readPage: {
       back: "← Înapoi la învățarea mea",
@@ -631,6 +651,25 @@ export const roDict = {
           FILL_BLANK: "Completează spațiul",
         },
       },
+    },
+    homeworkReview: {
+      queueTitle: "Teme de scriere care așteaptă feedback",
+      queueEmpty: "Nu există lucrări care așteaptă feedback.",
+      reviewAction: "Corectează",
+      needsReviewBadge: "Așteaptă feedback",
+      dialogTitle: "Corectează lucrarea",
+      studentAnswer: "Răspunsul elevului",
+      yourFeedback: "Feedback-ul tău",
+      feedbackPlaceholder: "Scrie feedback-ul aici…",
+      save: "Salvează feedback-ul",
+      saving: "Se salvează…",
+      close: "Închide",
+      loadError: "Nu s-a putut încărca lucrarea.",
+      validationError:
+        "Feedback-ul este gol sau prea lung (maximum 2000 de caractere).",
+      alreadyReviewedError: "Această lucrare a fost deja corectată.",
+      notSubmittedError: "Elevul nu a trimis încă această lucrare.",
+      genericError: "Nu s-a putut salva feedback-ul. Încearcă din nou.",
     },
     presentations: {
       allLevels: "Toate nivelurile",

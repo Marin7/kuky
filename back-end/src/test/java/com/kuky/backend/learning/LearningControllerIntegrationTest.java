@@ -95,15 +95,35 @@ class LearningControllerIntegrationTest {
         mockMvc.perform(put("/api/v1/learning/homework/" + testAssignmentId)
                         .with(authentication(principal(testEmail)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"response\":\"Mi respuesta de prueba.\"}"))
+                        .content("{\"response\":[{\"text\":\"Mi respuesta de prueba.\",\"color\":\"blue\"}]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUBMITTED"))
-                .andExpect(jsonPath("$.response").value("Mi respuesta de prueba."));
+                .andExpect(jsonPath("$.response[0].text").value("Mi respuesta de prueba."))
+                .andExpect(jsonPath("$.response[0].color").value("blue"));
 
         // Persisted: a second GET shows the submitted status
         mockMvc.perform(get("/api/v1/learning").with(authentication(principal(testEmail))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.homework[?(@.id=='" + testAssignmentId + "')].status").value("SUBMITTED"));
+    }
+
+    @Test
+    void getOverview_includesFeedbackOnceReviewed() throws Exception {
+        jdbcTemplate.update(
+                "INSERT INTO homework_targets (assignment_id, user_id) SELECT ?, id FROM users WHERE email = ?",
+                testAssignmentId, testEmail);
+        jdbcTemplate.update("""
+                INSERT INTO homework_submissions (id, user_id, assignment_id, status, response_text, feedback, submitted_at, reviewed_at)
+                SELECT gen_random_uuid(), id, ?, 'REVIEWED', '[{"text":"Mi respuesta"}]', '[{"text":"Muy bien","color":"green"}]', NOW(), NOW()
+                FROM users WHERE email = ?
+                """, testAssignmentId, testEmail);
+
+        mockMvc.perform(get("/api/v1/learning").with(authentication(principal(testEmail))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.homework[?(@.id=='" + testAssignmentId + "')].status").value("REVIEWED"))
+                .andExpect(jsonPath("$.homework[?(@.id=='" + testAssignmentId + "')].response[0].text").value("Mi respuesta"))
+                .andExpect(jsonPath("$.homework[?(@.id=='" + testAssignmentId + "')].feedback[0].text").value("Muy bien"))
+                .andExpect(jsonPath("$.homework[?(@.id=='" + testAssignmentId + "')].feedback[0].color").value("green"));
     }
 
     @Test

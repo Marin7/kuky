@@ -7,5 +7,7 @@ public record StudentProfileHomeworkDto(
         UUID id,
         String title,
         String status,
-        Instant submittedAt
+        Instant submittedAt,
+        boolean needsReview,
+        UUID submissionId
 ) {}

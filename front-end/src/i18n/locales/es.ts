@@ -282,6 +282,25 @@ export const esDict = {
       brand: "Español con Paula",
     },
   },
+  richText: {
+    color: "Color:",
+    highlight: "Resaltado:",
+    strike: "Tachado",
+    clearColor: "Quitar color",
+    clearHighlight: "Quitar resaltado",
+    preview: "Vista previa",
+    colors: {
+      red: "Rojo",
+      green: "Verde",
+      blue: "Azul",
+      neutral: "Neutro",
+    },
+    highlights: {
+      yellow: "Amarillo",
+      green: "Verde",
+      pink: "Rosa",
+    },
+  },
   learning: {
     loadError: "No se pudo cargar tu aprendizaje. Inténtalo de nuevo.",
     testimonial: {
@@ -355,6 +374,7 @@ export const esDict = {
         "Tu progreso se guarda automáticamente en este dispositivo.",
       notFound: "No se ha encontrado esta tarea de redacción.",
       loadError: "No se pudo cargar la tarea.",
+      teacherFeedback: "Corrección de la profesora",
     },
     readPage: {
       back: "← Volver a mi aprendizaje",
@@ -635,6 +655,25 @@ export const esDict = {
           FILL_BLANK: "Rellenar el hueco",
         },
       },
+    },
+    homeworkReview: {
+      queueTitle: "Tareas de escritura pendientes de corregir",
+      queueEmpty: "No hay entregas pendientes de corregir.",
+      reviewAction: "Corregir",
+      needsReviewBadge: "Pendiente de corregir",
+      dialogTitle: "Corregir entrega",
+      studentAnswer: "Respuesta del alumno",
+      yourFeedback: "Tu corrección",
+      feedbackPlaceholder: "Escribe aquí tu corrección…",
+      save: "Guardar corrección",
+      saving: "Guardando…",
+      close: "Cerrar",
+      loadError: "No se pudo cargar la entrega.",
+      validationError:
+        "La corrección está vacía o es demasiado larga (máximo 2000 caracteres).",
+      alreadyReviewedError: "Esta entrega ya ha sido corregida.",
+      notSubmittedError: "El alumno todavía no ha enviado esta entrega.",
+      genericError: "No se pudo guardar la corrección. Inténtalo de nuevo.",
     },
     presentations: {
       allLevels: "Todos los niveles",

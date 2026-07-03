@@ -4,25 +4,34 @@ import com.kuky.backend.admin.dto.AssigneeDto;
 import com.kuky.backend.admin.dto.CreateHomeworkRequest;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.HomeworkQuestionDto;
+import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
+import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
 import com.kuky.backend.admin.dto.UpdateHomeworkRequest;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
+import com.kuky.backend.learning.exception.NotSubmittedException;
+import com.kuky.backend.learning.exception.SubmissionNotFoundException;
+import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkLevel;
 import com.kuky.backend.learning.model.HomeworkQuestion;
+import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.model.QuestionOption;
 import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
+import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -37,17 +46,66 @@ public class HomeworkAdminService {
     private final HomeworkQuestionRepository questionRepository;
     private final AudioFileRepository audioFileRepository;
     private final UserRepository userRepository;
+    private final HomeworkSubmissionRepository submissionRepository;
 
     public HomeworkAdminService(ContentRepository contentRepository,
                                 HomeworkTargetRepository targetRepository,
                                 HomeworkQuestionRepository questionRepository,
                                 AudioFileRepository audioFileRepository,
-                                UserRepository userRepository) {
+                                UserRepository userRepository,
+                                HomeworkSubmissionRepository submissionRepository) {
         this.contentRepository = contentRepository;
         this.targetRepository = targetRepository;
         this.questionRepository = questionRepository;
         this.audioFileRepository = audioFileRepository;
         this.userRepository = userRepository;
+        this.submissionRepository = submissionRepository;
+    }
+
+    // --- Teacher review of MANUAL submissions --------------------------------
+
+    public List<HomeworkReviewQueueItemDto> getReviewQueue() {
+        return submissionRepository.findSubmittedManualQueue().stream()
+                .map(r -> new HomeworkReviewQueueItemDto(
+                        r.submissionId(), r.studentId(), r.studentEmail(), r.studentFirstName(),
+                        r.studentLastName(), r.studentUsername(), r.assignmentTitle(), r.submittedAt()))
+                .toList();
+    }
+
+    public HomeworkSubmissionAdminDto getSubmissionDetail(UUID submissionId) {
+        var row = submissionRepository.findDetailById(submissionId)
+                .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
+        return toSubmissionAdminDto(row);
+    }
+
+    /**
+     * Saves the teacher's formatted feedback and transitions the submission to
+     * REVIEWED. Feedback goes through the same {@link FormattedTextSegment}
+     * validator used by the student-submit path — an over-length or malformed
+     * feedback array is rejected exactly like an over-length answer.
+     */
+    public HomeworkSubmissionAdminDto saveFeedback(UUID submissionId, List<FormattedTextSegment> feedback) {
+        FormattedTextSegment.validate(feedback);
+        var row = submissionRepository.findDetailById(submissionId)
+                .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
+        if (HomeworkStatus.REVIEWED.name().equals(row.status())) {
+            throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
+        }
+        if (!HomeworkStatus.SUBMITTED.name().equals(row.status())) {
+            throw new NotSubmittedException("Esta entrega todavía no ha sido enviada por el alumno.");
+        }
+        submissionRepository.updateFeedback(submissionId, FormattedTextSegment.toJson(feedback), Instant.now());
+        var updated = submissionRepository.findDetailById(submissionId).orElseThrow();
+        return toSubmissionAdminDto(updated);
+    }
+
+    private HomeworkSubmissionAdminDto toSubmissionAdminDto(HomeworkSubmissionRepository.SubmissionDetailRow row) {
+        return new HomeworkSubmissionAdminDto(
+                row.submissionId(), row.studentId(), row.studentEmail(), row.studentFirstName(),
+                row.studentLastName(), row.studentUsername(), row.assignmentTitle(), row.status(),
+                FormattedTextSegment.fromJson(row.responseText()),
+                FormattedTextSegment.fromJson(row.feedback()),
+                row.submittedAt(), row.reviewedAt());
     }
 
     public List<HomeworkAdminItem> list() {

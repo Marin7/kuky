@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { getLearning, type HomeworkItem } from "@/lib/learning";
 import { ManualAnswerForm } from "./ManualAnswerForm";
+import { RichTextViewer } from "./richtext/RichTextViewer";
 
 interface Props {
   homeworkId: string;
@@ -73,6 +74,17 @@ export function HomeworkWritePage({ homeworkId }: Props) {
             }}
             onSubmitted={() => navigate({ to: "/aprendizaje" })}
           />
+
+          {item.feedback && item.feedback.length > 0 && (
+            <div className="mt-8 space-y-2">
+              <p className="text-sm font-medium text-foreground">
+                {t("learning.writePage.teacherFeedback")}
+              </p>
+              <div className="rounded-md border bg-muted/20 p-3">
+                <RichTextViewer segments={item.feedback} />
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

@@ -9,12 +9,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import {
   submitHomework,
   type HomeworkItem,
   type ApiError,
 } from "@/lib/learning";
+import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
+import {
+  plainText,
+  type FormattedText,
+} from "@/components/learning/richtext/types";
 
 interface HomeworkSubmitDialogProps {
   item: HomeworkItem | null;
@@ -28,14 +32,14 @@ export function HomeworkSubmitDialog({
   onSubmitted,
 }: HomeworkSubmitDialogProps) {
   const { t } = useTranslation();
-  const [text, setText] = useState("");
+  const [answer, setAnswer] = useState<FormattedText>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [lastItemId, setLastItemId] = useState<string | null>(null);
   if (item && item.id !== lastItemId) {
     setLastItemId(item.id);
-    setText(item.response ?? "");
+    setAnswer(item.response ?? []);
     setError(null);
   }
 
@@ -44,7 +48,11 @@ export function HomeworkSubmitDialog({
     setSubmitting(true);
     setError(null);
     try {
-      const updated = await submitHomework(item.id, text.trim() || undefined);
+      const hasContent = plainText(answer).trim().length > 0;
+      const updated = await submitHomework(
+        item.id,
+        hasContent ? answer : undefined,
+      );
       onSubmitted(updated);
       onClose();
     } catch (e) {
@@ -70,16 +78,15 @@ export function HomeworkSubmitDialog({
         </DialogHeader>
 
         <div className="space-y-2">
-          <label htmlFor="homework-response" className="text-sm font-medium">
+          <label className="text-sm font-medium">
             {t("learning.submitDialog.yourAnswer")}
           </label>
-          <Textarea
-            id="homework-response"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+          <RichTextEditor
+            value={answer}
+            onChange={setAnswer}
             placeholder={t("learning.submitDialog.placeholder")}
+            disabled={submitting}
             rows={6}
-            maxLength={2000}
           />
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>

@@ -277,6 +277,25 @@ export const enDict = {
       brand: "Spanish with Paula",
     },
   },
+  richText: {
+    color: "Color:",
+    highlight: "Highlight:",
+    strike: "Strikethrough",
+    clearColor: "Clear color",
+    clearHighlight: "Clear highlight",
+    preview: "Preview",
+    colors: {
+      red: "Red",
+      green: "Green",
+      blue: "Blue",
+      neutral: "Neutral",
+    },
+    highlights: {
+      yellow: "Yellow",
+      green: "Green",
+      pink: "Pink",
+    },
+  },
   learning: {
     loadError: "Could not load your learning area. Please try again.",
     testimonial: {
@@ -348,6 +367,7 @@ export const enDict = {
       autosaveHint: "Your progress is saved automatically on this device.",
       notFound: "This writing assignment could not be found.",
       loadError: "Could not load the assignment.",
+      teacherFeedback: "Teacher's feedback",
     },
     readPage: {
       back: "← Back to my learning",
@@ -626,6 +646,26 @@ export const enDict = {
           FILL_BLANK: "Fill in the blank",
         },
       },
+    },
+    homeworkReview: {
+      queueTitle: "Writing homework awaiting feedback",
+      queueEmpty: "No submissions awaiting feedback.",
+      reviewAction: "Review",
+      needsReviewBadge: "Awaiting feedback",
+      dialogTitle: "Review submission",
+      studentAnswer: "Student's answer",
+      yourFeedback: "Your feedback",
+      feedbackPlaceholder: "Write your feedback here…",
+      save: "Save feedback",
+      saving: "Saving…",
+      close: "Close",
+      loadError: "Could not load the submission.",
+      validationError:
+        "Feedback is empty or too long (maximum 2000 characters).",
+      alreadyReviewedError: "This submission has already been reviewed.",
+      notSubmittedError:
+        "This submission hasn't been submitted by the student yet.",
+      genericError: "Could not save feedback. Please try again.",
     },
     presentations: {
       allLevels: "All levels",

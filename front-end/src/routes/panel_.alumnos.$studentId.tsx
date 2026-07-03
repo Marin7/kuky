@@ -13,6 +13,7 @@ import {
 import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
 import { Button } from "@/components/ui/button";
 import { StudentHomeworkBreakdown } from "@/components/admin/students/StudentHomeworkBreakdown";
+import { HomeworkReviewDialog } from "@/components/admin/homework/HomeworkReviewDialog";
 
 export const Route = createFileRoute("/panel_/alumnos/$studentId")({
   component: StudentProfilePage,
@@ -106,6 +107,7 @@ function StudentProfilePage() {
   const [placement, setPlacement] = useState<StudentPlacementEvaluation | null>(
     null,
   );
+  const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
     getMe()
@@ -391,6 +393,15 @@ function StudentProfilePage() {
                           </span>
                         )}
                         <StatusBadge status={hw.status} />
+                        {hw.needsReview && hw.submissionId && (
+                          <button
+                            type="button"
+                            onClick={() => setOpenSubmissionId(hw.submissionId)}
+                            className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:underline"
+                          >
+                            {t("admin.homeworkReview.needsReviewBadge")}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -476,6 +487,17 @@ function StudentProfilePage() {
             )}
           </div>
         </>
+      )}
+
+      {openSubmissionId && (
+        <HomeworkReviewDialog
+          submissionId={openSubmissionId}
+          onClose={() => setOpenSubmissionId(null)}
+          onReviewed={() => {
+            setOpenSubmissionId(null);
+            getStudentProfile(studentId).then(setProfile);
+          }}
+        />
       )}
     </div>
   );

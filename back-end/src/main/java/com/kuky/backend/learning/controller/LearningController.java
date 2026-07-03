@@ -61,7 +61,7 @@ public class LearningController {
             @AuthenticationPrincipal String email,
             @PathVariable UUID assignmentId,
             @Valid @RequestBody(required = false) SubmitHomeworkRequest request) {
-        String response = request == null ? null : request.response();
+        var response = request == null ? null : request.response();
         return ResponseEntity.ok(submissionService.submit(email, assignmentId, response));
     }
 

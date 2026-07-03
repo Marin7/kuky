@@ -3,6 +3,7 @@
 // Methods are added per feature area (availability, homework, presentations).
 
 import { API_ORIGIN } from "@/lib/api";
+import type { FormattedText } from "@/components/learning/richtext/types";
 const API_BASE = `${API_ORIGIN}/api/v1/admin`;
 
 export interface ApiError {
@@ -199,6 +200,8 @@ export interface StudentProfileHomework {
   title: string;
   status: string;
   submittedAt: string | null;
+  needsReview: boolean;
+  submissionId: string | null;
 }
 
 export interface StudentProfilePresentation {
@@ -370,6 +373,54 @@ export const setAssignees = (id: string, assigneeIds: string[]) =>
 
 export const deleteHomework = (id: string) =>
   apiCall<void>(`/homework/${id}`, { method: "DELETE" });
+
+// ---------------------------------------------------------------------------
+// Teacher review of Writing (MANUAL) submissions
+// ---------------------------------------------------------------------------
+
+export interface HomeworkReviewQueueItem {
+  submissionId: string;
+  studentId: string;
+  studentEmail: string;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studentUsername: string | null;
+  assignmentTitle: string;
+  submittedAt: string;
+}
+
+export interface HomeworkSubmissionAdmin {
+  submissionId: string;
+  studentId: string;
+  studentEmail: string;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studentUsername: string | null;
+  assignmentTitle: string;
+  status: "PENDING" | "SUBMITTED" | "REVIEWED";
+  response: FormattedText;
+  feedback: FormattedText | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+}
+
+export const getHomeworkReviewQueue = () =>
+  apiCall<HomeworkReviewQueueItem[]>("/homework/submissions");
+
+export const getHomeworkSubmission = (submissionId: string) =>
+  apiCall<HomeworkSubmissionAdmin>(`/homework/submissions/${submissionId}`);
+
+export const saveHomeworkFeedback = (
+  submissionId: string,
+  feedback: FormattedText,
+) =>
+  apiCall<HomeworkSubmissionAdmin>(
+    `/homework/submissions/${submissionId}/feedback`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ feedback }),
+    },
+  );
 
 // ---------------------------------------------------------------------------
 // Presentations (User Story 3)

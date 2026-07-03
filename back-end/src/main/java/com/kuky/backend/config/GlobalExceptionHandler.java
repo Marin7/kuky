@@ -9,9 +9,12 @@ import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.admin.exception.UserNotFoundException;
+import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.InvalidAudioException;
+import com.kuky.backend.learning.exception.NotSubmittedException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
+import com.kuky.backend.learning.exception.SubmissionNotFoundException;
 import com.kuky.backend.placement.exception.PlacementNotFoundException;
 import com.kuky.backend.placement.exception.SectionAlreadySubmittedException;
 import com.kuky.backend.placement.exception.SectionNotStartedException;
@@ -180,6 +183,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleSubmissionNotAllowed(SubmissionNotAllowedException ex) {
         return ResponseEntity.status(ex.getStatus())
                 .body(Map.of("error", "SUBMISSION_NOT_ALLOWED", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(SubmissionNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleSubmissionNotFound(SubmissionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "SUBMISSION_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AlreadyReviewedException.class)
+    public ResponseEntity<Map<String, String>> handleAlreadyReviewed(AlreadyReviewedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "ALREADY_REVIEWED", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(NotSubmittedException.class)
+    public ResponseEntity<Map<String, String>> handleNotSubmitted(NotSubmittedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "NOT_SUBMITTED", "message", ex.getMessage()));
     }
 
     // Admin / backoffice exceptions

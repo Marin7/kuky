@@ -4,6 +4,7 @@ import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.learning.dto.LearningResponse;
+import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
@@ -125,7 +126,8 @@ class LearningServiceTest {
         s.setAssignmentId(a.getId());
         s.setUserId(userId);
         s.setStatus(HomeworkStatus.SUBMITTED.name());
-        s.setResponseText("Mi respuesta");
+        List<FormattedTextSegment> response = List.of(new FormattedTextSegment("Mi respuesta", null, null, null));
+        s.setResponseText(FormattedTextSegment.toJson(response));
         s.setSubmittedAt(Instant.now());
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
         when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
@@ -135,7 +137,7 @@ class LearningServiceTest {
         LearningResponse overview = service.getOverview(EMAIL);
 
         assertThat(overview.homework().get(0).status()).isEqualTo("SUBMITTED");
-        assertThat(overview.homework().get(0).response()).isEqualTo("Mi respuesta");
+        assertThat(overview.homework().get(0).response()).isEqualTo(response);
         // Past-due but submitted ⇒ not overdue
         assertThat(overview.homework().get(0).overdue()).isFalse();
     }

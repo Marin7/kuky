@@ -79,13 +79,14 @@ public class HomeworkTargetRepository {
         return count != null && count > 0;
     }
 
-    public record StudentAssignmentView(UUID assignmentId, String title, String status, Instant submittedAt) {}
+    public record StudentAssignmentView(UUID assignmentId, String title, String status, Instant submittedAt,
+                                        String format, UUID submissionId) {}
 
     public List<StudentAssignmentView> findAssignmentsForStudent(UUID userId) {
         String sql = """
                 SELECT ha.id AS assignment_id, ha.title,
                        COALESCE(s.status, 'PENDING') AS status,
-                       s.submitted_at
+                       s.submitted_at, ha.format, s.id AS submission_id
                 FROM homework_targets t
                 JOIN homework_assignments ha ON ha.id = t.assignment_id
                 LEFT JOIN homework_submissions s
@@ -99,7 +100,9 @@ public class HomeworkTargetRepository {
                     rs.getObject("assignment_id", UUID.class),
                     rs.getString("title"),
                     rs.getString("status"),
-                    submittedAt == null ? null : submittedAt.toInstant());
+                    submittedAt == null ? null : submittedAt.toInstant(),
+                    rs.getString("format"),
+                    rs.getObject("submission_id", UUID.class));
         });
     }
 }
