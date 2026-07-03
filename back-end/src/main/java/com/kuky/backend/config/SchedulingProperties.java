@@ -22,6 +22,7 @@ public class SchedulingProperties {
         private int extendedClassDurationMinutes = 90;
         private int minLeadHours = 24;
         private int cancelCutoffHours = 24;
+        private int bufferMinutes = 15;
 
         public String getTeacherTimezone() { return teacherTimezone; }
         public void setTeacherTimezone(String teacherTimezone) { this.teacherTimezone = teacherTimezone; }
@@ -35,6 +36,8 @@ public class SchedulingProperties {
         public void setMinLeadHours(int minLeadHours) { this.minLeadHours = minLeadHours; }
         public int getCancelCutoffHours() { return cancelCutoffHours; }
         public void setCancelCutoffHours(int cancelCutoffHours) { this.cancelCutoffHours = cancelCutoffHours; }
+        public int getBufferMinutes() { return bufferMinutes; }
+        public void setBufferMinutes(int bufferMinutes) { this.bufferMinutes = bufferMinutes; }
     }
 
     public static class Zoom {

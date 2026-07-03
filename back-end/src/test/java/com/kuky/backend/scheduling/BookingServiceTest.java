@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -197,5 +198,42 @@ class BookingServiceTest {
 
         assertThatThrownBy(() -> service.createBooking(email, slotStart, 90))
                 .isInstanceOf(SlotUnavailableException.class);
+    }
+
+    // --- 15-minute booking buffer (spec 020, US1/US2) -----------------------------------------
+
+    @Test
+    void createBooking_propagatesBufferRejection_asSlotUnavailable() {
+        // AvailabilityService.validateBookable() is the sole gate for the buffer rule (spec 020) —
+        // this proves BookingService neither catches nor bypasses that rejection before insert.
+        String email = "student@example.com";
+        Instant slotStart = Instant.now().plus(2, ChronoUnit.DAYS);
+        when(userRepository.findByEmailIgnoreCase(anyString()))
+                .thenReturn(Optional.of(user(email, true)));
+        doThrow(new SlotUnavailableException("Esta hora ya ha sido reservada."))
+                .when(availabilityService).validateBookable(slotStart, 60);
+
+        assertThatThrownBy(() -> service.createBooking(email, slotStart, 60))
+                .isInstanceOf(SlotUnavailableException.class);
+
+        verify(bookingRepository, never()).insert(any());
+    }
+
+    @Test
+    void createBooking_bufferRejectionAppliesEvenWhenTheAdjacentBookingBelongsToTheSameStudent() {
+        // BookingRepository.BookedInterval (consumed by validateBookable) carries no user id at all —
+        // the buffer check structurally cannot distinguish "my own earlier class" from anyone else's,
+        // so the rejection path here is identical regardless of whose booking triggered it (US2).
+        String email = "repeat-student@example.com";
+        Instant slotStart = Instant.now().plus(2, ChronoUnit.DAYS);
+        when(userRepository.findByEmailIgnoreCase(anyString()))
+                .thenReturn(Optional.of(user(email, true)));
+        doThrow(new SlotUnavailableException("Esta hora ya ha sido reservada."))
+                .when(availabilityService).validateBookable(slotStart, 60);
+
+        assertThatThrownBy(() -> service.createBooking(email, slotStart, 60))
+                .isInstanceOf(SlotUnavailableException.class);
+
+        verify(meetingProvider, never()).create(any(), anyInt(), anyString());
     }
 }

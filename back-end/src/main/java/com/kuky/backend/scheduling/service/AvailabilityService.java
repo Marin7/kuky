@@ -79,8 +79,10 @@ public class AvailabilityService {
                     Instant start = date.atTime(time).atZone(zone).toInstant();
                     Instant end = start.plusSeconds((long) durationMinutes * 60);
                     Slot.Status status;
-                    if (overlapsAny(start, end, bookedIntervals)) {
+                    if (overlapsAny(start, end, bookedIntervals, 0)) {
                         status = Slot.Status.BOOKED;
+                    } else if (overlapsAny(start, end, bookedIntervals, props.getScheduling().getBufferMinutes())) {
+                        status = Slot.Status.UNAVAILABLE;
                     } else if (!start.isAfter(leadCutoff) || !start.isAfter(now)) {
                         status = Slot.Status.UNAVAILABLE;
                     } else {
@@ -126,13 +128,17 @@ public class AvailabilityService {
             throw new BookingNotAllowedException(BookingNotAllowedException.Reason.RANGE);
         }
 
-        // Must not overlap any existing confirmed booking, regardless of that booking's own duration
-        // (previously implicitly relied on the DB unique index alone, which only worked because every
-        // booking shared one fixed duration — see research.md Decision 3).
+        // Must not overlap — or fall within the buffer of — any existing confirmed booking, regardless
+        // of that booking's own duration (previously implicitly relied on the DB unique index alone,
+        // which only worked because every booking shared one fixed duration — see research.md Decision 3).
+        // The query range is widened by the buffer so bookings just outside [slotStart, slotEnd) but
+        // inside the buffer zone are actually fetched (spec 020, research.md Decision 2).
+        int bufferMinutes = props.getScheduling().getBufferMinutes();
+        long bufferSeconds = bufferMinutes * 60L;
         Instant slotEnd = slotStart.plusSeconds((long) durationMinutes * 60);
-        List<BookingRepository.BookedInterval> nearby =
-                bookingRepository.findConfirmedBookingIntervalsBetween(slotStart, slotEnd);
-        if (overlapsAny(slotStart, slotEnd, nearby)) {
+        List<BookingRepository.BookedInterval> nearby = bookingRepository.findConfirmedBookingIntervalsBetween(
+                slotStart.minusSeconds(bufferSeconds), slotEnd.plusSeconds(bufferSeconds));
+        if (overlapsAny(slotStart, slotEnd, nearby, bufferMinutes)) {
             throw new SlotUnavailableException("Esta hora ya ha sido reservada.");
         }
     }
@@ -156,11 +162,18 @@ public class AvailabilityService {
         return conflicts;
     }
 
-    /** Whether [start, end) overlaps any of the given booked intervals. */
-    private static boolean overlapsAny(Instant start, Instant end, List<BookingRepository.BookedInterval> intervals) {
+    /**
+     * Whether [start, end), widened by {@code bufferMinutes} on both sides, overlaps any of the given
+     * booked intervals' real (unbuffered) window. Pass {@code 0} for an exact-overlap test.
+     */
+    private static boolean overlapsAny(Instant start, Instant end, List<BookingRepository.BookedInterval> intervals,
+                                        int bufferMinutes) {
+        long bufferSeconds = bufferMinutes * 60L;
+        Instant bufferedStart = start.minusSeconds(bufferSeconds);
+        Instant bufferedEnd = end.plusSeconds(bufferSeconds);
         for (BookingRepository.BookedInterval interval : intervals) {
             Instant bookedEnd = interval.slotStart().plusSeconds((long) interval.durationMinutes() * 60);
-            if (start.isBefore(bookedEnd) && interval.slotStart().isBefore(end)) {
+            if (bufferedStart.isBefore(bookedEnd) && interval.slotStart().isBefore(bufferedEnd)) {
                 return true;
             }
         }

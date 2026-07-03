@@ -176,6 +176,61 @@ class BookingControllerIntegrationTest {
                 .andExpect(jsonPath("$.error").value("INVALID_DURATION"));
     }
 
+    // --- 15-minute booking buffer (spec 020, US1/US3) -----------------------------------------
+
+    @Test
+    void bookSlot_returns409_whenWithinFifteenMinuteBufferOfAnotherBooking() throws Exception {
+        Instant firstSlot = validFutureSlot();
+        // Both slots must stay hour-aligned (validateBookable requires it for a 60-min booking), so
+        // the closest reachable case is the immediately-adjacent (0 min gap) back-to-back slot —
+        // previously allowed, now rejected by the buffer (FR-001).
+        Instant nearbySlot = firstSlot.plusSeconds(3600);
+        ensureTestUser();
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(firstSlot, 60)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(nearbySlot, 60)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("SLOT_UNAVAILABLE"));
+    }
+
+    @Test
+    void bookSlot_afterCancellation_reopensItsFormerBufferZone() throws Exception {
+        // spec 020 FR-006: cancelling a booking releases its buffer for the very next request —
+        // there is no separate "release" step, findConfirmedBookingIntervalsBetween already
+        // excludes non-CONFIRMED rows.
+        Instant firstSlot = validFutureSlot();
+        // Immediately-adjacent (0 min gap) slot, matching the rejection case above — must be
+        // hour-aligned for validateBookable to consider it at all.
+        Instant nearbySlot = firstSlot.plusSeconds(3600);
+        ensureTestUser();
+
+        String created = mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(firstSlot, 60)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String bookingId = created.replaceAll(".*\"id\":\"([^\"]+)\".*", "$1");
+
+        mockMvc.perform(delete("/api/v1/bookings/{id}", bookingId)
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/v1/bookings")
+                        .with(authentication(new UsernamePasswordAuthenticationToken("test2@kuky.es", null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(bookingJson(nearbySlot, 60)))
+                .andExpect(status().isCreated());
+    }
+
     private static String bookingJson(Instant slotStart, int durationMinutes) {
         return "{\"slotStart\":\"" + slotStart.toString() + "\",\"durationMinutes\":" + durationMinutes + "}";
     }
