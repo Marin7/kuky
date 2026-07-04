@@ -30,16 +30,19 @@ public class BookingEmailService {
     private final String fromAddress;
     private final UserRepository userRepository;
     private final ZoneId teacherZone;
+    private final boolean mailEnabled;
     private final IcsEventFactory icsFactory = new IcsEventFactory();
 
     public BookingEmailService(JavaMailSender mailSender,
                                @Value("${app.mail.from}") String fromAddress,
                                UserRepository userRepository,
-                               SchedulingProperties props) {
+                               SchedulingProperties props,
+                               @Value("${app.mail.enabled:false}") boolean mailEnabled) {
         this.mailSender = mailSender;
         this.fromAddress = fromAddress;
         this.userRepository = userRepository;
         this.teacherZone = ZoneId.of(props.getScheduling().getTeacherTimezone());
+        this.mailEnabled = mailEnabled;
     }
 
     /** Zone-labeled local time for the student, falling back to the teacher's zone if the
@@ -230,6 +233,10 @@ public class BookingEmailService {
     }
 
     private void sendQuietly(String to, String subject, String text, byte[] icsBytes, IcsEventFactory.Method method) {
+        if (!mailEnabled) {
+            log.debug("BookingEmailService — mail disabled, skipping send to {}", to);
+            return;
+        }
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, icsBytes != null);

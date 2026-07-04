@@ -33,6 +33,7 @@ app:
   frontend:
     base-url: http://localhost:8080
   mail:
+    enabled: true
     from: dev@localhost
   scheduling:
     teacher-timezone: Europe/Madrid

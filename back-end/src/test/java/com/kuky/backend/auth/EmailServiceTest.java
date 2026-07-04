@@ -13,6 +13,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
@@ -26,6 +27,7 @@ class EmailServiceTest {
         emailService = new EmailService(mailSender);
         ReflectionTestUtils.setField(emailService, "fromAddress", "noreply@kuky.es");
         ReflectionTestUtils.setField(emailService, "baseUrl", "https://kuky.es");
+        ReflectionTestUtils.setField(emailService, "mailEnabled", true);
     }
 
     @Test
@@ -82,5 +84,14 @@ class EmailServiceTest {
         assertThat(message.getFrom()).isEqualTo("noreply@kuky.es");
         assertThat(message.getSubject()).isNotBlank();
         assertThat(message.getText()).isNotBlank();
+    }
+
+    @Test
+    void mailDisabled_skipsSendingEntirely() {
+        ReflectionTestUtils.setField(emailService, "mailEnabled", false);
+
+        emailService.sendStudentGrantedEmail("alumno@example.com");
+
+        verifyNoInteractions(mailSender);
     }
 }

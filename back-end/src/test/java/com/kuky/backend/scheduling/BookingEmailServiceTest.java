@@ -40,7 +40,7 @@ class BookingEmailServiceTest {
         userRepository = mock(UserRepository.class);
         when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.empty());
         SchedulingProperties props = new SchedulingProperties(); // default teacherTimezone = Europe/Madrid
-        emailService = new BookingEmailService(mailSender, "noreply@kuky.es", userRepository, props);
+        emailService = new BookingEmailService(mailSender, "noreply@kuky.es", userRepository, props, true);
     }
 
     private void studentHasTimezone(String email, String timezone) {
@@ -243,5 +243,16 @@ class BookingEmailServiceTest {
 
         // First send failed (exception swallowed), second (teacher) still went through.
         verify(mailSender, times(1)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void mailDisabled_skipsSendingEntirely() {
+        BookingEmailService disabledEmailService = new BookingEmailService(
+                mailSender, "noreply@kuky.es", userRepository, new SchedulingProperties(), false);
+
+        disabledEmailService.sendConfirmation("student@example.com", "paula@kuky.es", bookingId,
+                slotStart, 50, "https://zoom.us/j/123");
+
+        verifyNoInteractions(mailSender);
     }
 }

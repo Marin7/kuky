@@ -1,5 +1,7 @@
 package com.kuky.backend.auth.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -7,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
 
@@ -16,8 +20,19 @@ public class EmailService {
     @Value("${app.mail.from:noreply@kuky.es}")
     private String fromAddress;
 
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
+
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
+    }
+
+    private void send(SimpleMailMessage message) {
+        if (!mailEnabled) {
+            log.debug("EmailService — mail disabled, skipping send to {}", (Object) message.getTo());
+            return;
+        }
+        mailSender.send(message);
     }
 
     public void sendActivationEmail(String toEmail, String activationToken) {
@@ -35,7 +50,7 @@ public class EmailService {
                 "Saludos,\nEl equipo de Kuky"
         );
 
-        mailSender.send(message);
+        send(message);
     }
 
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
@@ -53,7 +68,7 @@ public class EmailService {
                 "Saludos,\nEl equipo de Kuky"
         );
 
-        mailSender.send(message);
+        send(message);
     }
 
     public void sendStudentGrantedEmail(String toEmail) {
@@ -68,7 +83,7 @@ public class EmailService {
                 "Saludos,\nEl equipo de Kuky"
         );
 
-        mailSender.send(message);
+        send(message);
     }
 
     public void sendStudentRevokedEmail(String toEmail) {
@@ -83,7 +98,7 @@ public class EmailService {
                 "Saludos,\nEl equipo de Kuky"
         );
 
-        mailSender.send(message);
+        send(message);
     }
 
     public void sendExtendedClassGrantedEmail(String toEmail) {
@@ -98,7 +113,7 @@ public class EmailService {
                 "Saludos,\nEl equipo de Kuky"
         );
 
-        mailSender.send(message);
+        send(message);
     }
 
     public void sendExtendedClassRevokedEmail(String toEmail) {
@@ -113,6 +128,6 @@ public class EmailService {
                 "Saludos,\nEl equipo de Kuky"
         );
 
-        mailSender.send(message);
+        send(message);
     }
 }

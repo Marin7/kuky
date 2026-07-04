@@ -41,6 +41,7 @@ app:
   frontend:
     base-url: ${FRONTEND_BASE_URL}
   mail:
+    enabled: ${MAIL_ENABLED:false}
     from: ${MAIL_FROM:noreply@kuky.es}
   scheduling:
     teacher-timezone: Europe/Madrid

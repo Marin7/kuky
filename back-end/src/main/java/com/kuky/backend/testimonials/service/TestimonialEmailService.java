@@ -15,11 +15,14 @@ public class TestimonialEmailService {
 
     private final JavaMailSender mailSender;
     private final String fromAddress;
+    private final boolean mailEnabled;
 
     public TestimonialEmailService(JavaMailSender mailSender,
-                                   @Value("${app.mail.from}") String fromAddress) {
+                                   @Value("${app.mail.from}") String fromAddress,
+                                   @Value("${app.mail.enabled:false}") boolean mailEnabled) {
         this.mailSender = mailSender;
         this.fromAddress = fromAddress;
+        this.mailEnabled = mailEnabled;
     }
 
     public void sendSubmittedNotificationToTeacher(String teacherEmail, String studentName) {
@@ -33,6 +36,10 @@ public class TestimonialEmailService {
     }
 
     private void sendQuietly(String to, String subject, String text) {
+        if (!mailEnabled) {
+            log.debug("TestimonialEmailService — mail disabled, skipping send to {}", to);
+            return;
+        }
         try {
             SimpleMailMessage msg = new SimpleMailMessage();
             msg.setFrom(fromAddress);
