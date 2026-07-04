@@ -27,6 +27,9 @@ COPY --from=builder /workspace/.output ./.output
 USER kuky
 ENV HOST=0.0.0.0
 ENV PORT=8080
+# Sized for the ~200m container memory limit set in docker-compose.yml.
+# Override by setting NODE_OPTIONS at `docker run`/compose.
+ENV NODE_OPTIONS="--max-old-space-size=150"
 EXPOSE 8080
 
 CMD ["node", ".output/server/index.mjs"]

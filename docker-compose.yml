@@ -2,6 +2,14 @@ services:
   postgres:
     image: postgres:18
     restart: unless-stopped
+    # Small workload — trim shared_buffers/max_connections well below Postgres'
+    # own defaults so it comfortably fits the mem_limit below.
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=64MB"
+      - "-c"
+      - "max_connections=50"
     environment:
       POSTGRES_DB: kuky
       POSTGRES_USER: kuky
@@ -15,6 +23,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 256m
 
   back-end:
     build: ./back-end
@@ -42,6 +51,7 @@ services:
       ZOOM_USER_ID: ${ZOOM_USER_ID:-me}
     ports:
       - "8081:8081"
+    mem_limit: 384m
 
   front-end:
     build:
@@ -54,6 +64,7 @@ services:
       - back-end
     ports:
       - "8080:8080"
+    mem_limit: 200m
 
 volumes:
   postgres-data:

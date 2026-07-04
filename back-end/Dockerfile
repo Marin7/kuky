@@ -33,4 +33,9 @@ COPY --from=builder /workspace/layers/application/ ./
 USER kuky
 EXPOSE 8081
 
+# Sized for the ~384m container memory limit set in docker-compose.yml — the JVM's
+# default MaxRAMPercentage (25%) leaves the heap too small for Spring Boot under that
+# limit, so raise it explicitly. Override by setting JAVA_TOOL_OPTIONS at `docker run`/compose.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=65 -XX:InitialRAMPercentage=50"
+
 ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
