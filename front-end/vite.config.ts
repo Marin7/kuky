@@ -12,4 +12,7 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Outside the Lovable sandbox this forces nitro to run (it otherwise no-ops)
+  // and targets a plain Node server, since prod runs on a VM, not Cloudflare.
+  nitro: { preset: "node-server" },
 });
