@@ -56,3 +56,5 @@ app:
     client-id: ${ZOOM_CLIENT_ID:}
     client-secret: ${ZOOM_CLIENT_SECRET:}
     user-id: ${ZOOM_USER_ID:me}
+  images:
+    storage-dir: ${IMAGES_STORAGE_DIR:./data/images}

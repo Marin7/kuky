@@ -1,5 +1,5 @@
 -- Dev-only seed data: a demo student account plus teaching materials, homeworks,
--- past/upcoming appointments, and a resource purchase — for local browser QA.
+-- and past/upcoming appointments — for local browser QA.
 -- NOT a Flyway migration — run manually against the local kuky_dev database, e.g.:
 --   psql -U kuky -d kuky_dev -f back-end/src/main/resources/db/dev/full_seed.sql
 -- Safe to re-run: it deletes its own previously-seeded rows (matched by title/email) first.
@@ -29,10 +29,8 @@ DECLARE
     q2          UUID;
     sub_id      UUID;
     ans_id      UUID;
-    resource_id UUID;
-    purchase_id UUID;
 BEGIN
-    -- Student account (STUDENT role grants booking/purchases/learning access)
+    -- Student account (STUDENT role grants booking/learning access)
     INSERT INTO users (id, email, password_hash, status, role, gdpr_consent, first_name, last_name, username)
     VALUES (
         gen_random_uuid(), 'estudiante.demo@kuky.es',
@@ -122,19 +120,6 @@ BEGIN
     INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status, zoom_join_url, created_at)
     VALUES (gen_random_uuid(), student_id, NOW() + INTERVAL '3 days', NOW() + INTERVAL '3 days' + INTERVAL '60 minutes',
             60, 'CONFIRMED', 'https://zoom.us/j/000000000-demo', NOW() - INTERVAL '1 day');
-
-    -- Purchase + entitlement for an already-seeded paid resource
-    SELECT id INTO resource_id FROM resources WHERE slug = 'gramatica-a1';
-    IF resource_id IS NOT NULL THEN
-        INSERT INTO purchases (id, user_id, item_type, resource_id, amount_cents,
-                                receipt_reference, payment_provider, purchased_at)
-        VALUES (gen_random_uuid(), student_id, 'RESOURCE', resource_id, 2500,
-                'DEMO-RECEIPT-0001', 'MANUAL', NOW() - INTERVAL '20 days')
-        RETURNING id INTO purchase_id;
-
-        INSERT INTO entitlements (id, user_id, resource_id, source_purchase_id, granted_at)
-        VALUES (gen_random_uuid(), student_id, resource_id, purchase_id, NOW() - INTERVAL '20 days');
-    END IF;
 
     RAISE NOTICE 'Seeded demo student: estudiante.demo@kuky.es / Demo1234!';
 END $$;
