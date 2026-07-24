@@ -17,7 +17,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kuky -d kuky"]
       interval: 10s
@@ -51,7 +51,8 @@ services:
       ZOOM_CLIENT_SECRET: ${ZOOM_CLIENT_SECRET:-}
       ZOOM_USER_ID: ${ZOOM_USER_ID:-me}
     ports:
-      - "8081:8081"
+      # Upcloud default firewall allows 8443/8880, not 8081.
+      - "8443:8081"
     mem_limit: 384m
 
   front-end:
@@ -64,7 +65,8 @@ services:
     depends_on:
       - back-end
     ports:
-      - "8080:8080"
+      # Upcloud default firewall allows 80, not 8080.
+      - "80:8080"
     mem_limit: 200m
 
 volumes:
