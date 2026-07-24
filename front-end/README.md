@@ -29,7 +29,7 @@ npm start
 
 `npm run build` targets Node (nitro's `node-server` preset — see `vite.config.ts`) and
 emits a self-contained server at `.output/server/index.mjs`. Set `VITE_API_BASE_URL` and
-`VITE_SITE_URL` (see `.env.example`) at build time, since they're baked into the client
+`VITE_SITE_URL` (see the repo-root `.env.example`) at build time, since they're baked into the client
 bundle.
 
 ```bash

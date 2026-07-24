@@ -6,7 +6,7 @@ WORKDIR /workspace
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Build-time env (baked into the client bundle by Vite/nitro — see .env.example).
+# Build-time env (baked into the client bundle by Vite/nitro — see repo-root .env.example).
 ARG VITE_API_BASE_URL
 ARG VITE_SITE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL

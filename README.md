@@ -109,8 +109,6 @@ Set these in your hosting environment before deploying.
 | `ZOOM_CLIENT_SECRET` | Zoom client secret |
 | `ZOOM_USER_ID` | Zoom user who hosts meetings (default: `me`) |
 
-See [`back-end/.env.example`](back-end/.env.example) for a copy-paste starting point.
-
 ### Frontend
 
 | Variable | Description |
@@ -118,7 +116,7 @@ See [`back-end/.env.example`](back-end/.env.example) for a copy-paste starting p
 | `VITE_API_BASE_URL` | Backend origin — `https://api.kuky.es` (no trailing slash) |
 | `VITE_SITE_URL` | Public site URL for SEO — `https://kuky.es` |
 
-See [`front-end/.env.example`](front-end/.env.example) for a copy-paste starting point.
+See [`.env.example`](.env.example) for a copy-paste starting point (used by `docker-compose.yml` on the VM).
 
 ## Project structure
 
@@ -129,7 +127,6 @@ kuky/
 │   │   ├── components/ # UI primitives (Shadcn), auth forms, scheduling, etc.
 │   │   ├── lib/        # API clients (auth, scheduling, resources, learning, admin)
 │   │   └── routes/     # File-based pages (TanStack Router)
-│   └── .env.example
 ├── back-end/           # Java 21 + Spring Boot 3.5 REST API
 │   ├── src/main/
 │   │   ├── java/com/kuky/backend/
@@ -143,6 +140,6 @@ kuky/
 │   │       ├── application.yaml        # Production config (env var placeholders)
 │   │       ├── application-local.yaml  # Local dev overrides
 │   │       └── db/migration/           # Flyway migrations V1–V14
-│   └── .env.example
+├── .env.example            # Production secrets template for docker-compose
 └── .github/workflows/ci.yml  # CI: backend build+test, frontend lint+build
 ```

@@ -4,4 +4,3 @@ src/test/
 *.md
 .env
 .env.*
-!.env.example
