@@ -96,8 +96,9 @@ Set these in your hosting environment before deploying.
 | `DB_USERNAME` | Database username |
 | `DB_PASSWORD` | Database password |
 | `APP_JWT_SECRET` | HS256 signing key, ≥32 characters (`openssl rand -base64 48`) |
-| `CORS_ALLOWED_ORIGIN` | Frontend origin — `https://kuky.es` |
-| `FRONTEND_BASE_URL` | Used in email links — `https://kuky.es` |
+| `COOKIE_SECURE` | Auth cookie `Secure` flag — `true` with HTTPS (default); `false` for temporary HTTP / IP-only deploys |
+| `CORS_ALLOWED_ORIGIN` | Frontend origin — e.g. `http://YOUR_IP:8080` or `https://kuky.es` |
+| `FRONTEND_BASE_URL` | Used in email links — same origin as the frontend |
 | `MAIL_HOST` | SMTP host |
 | `MAIL_PORT` | SMTP port (typically 587 for STARTTLS) |
 | `MAIL_USERNAME` | SMTP username (`api` for Mailtrap) |
@@ -113,10 +114,10 @@ Set these in your hosting environment before deploying.
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_API_BASE_URL` | Backend origin — `https://api.kuky.es` (no trailing slash) |
-| `VITE_SITE_URL` | Public site URL for SEO — `https://kuky.es` |
+| `VITE_API_BASE_URL` | Backend origin — e.g. `http://YOUR_IP:8081` or `https://api.kuky.es` (no trailing slash) |
+| `VITE_SITE_URL` | Public site URL for SEO — same as frontend origin |
 
-See [`.env.example`](.env.example) for a copy-paste starting point (used by `docker-compose.yml` on the VM).
+See [`.env.example`](.env.example) for a copy-paste starting point (used by `docker-compose.yml` on the VM). For an IP-only smoke deploy, keep `COOKIE_SECURE=false` and use `http://YOUR_IP:8080` / `:8081` throughout; flip to HTTPS + `COOKIE_SECURE=true` once you have a domain.
 
 ## Project structure
 

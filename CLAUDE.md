@@ -67,6 +67,7 @@ npm run lint && npm run format
 | `DB_URL` | `jdbc:postgresql://host:5432/kuky` |
 | `DB_USERNAME` / `DB_PASSWORD` | Database credentials |
 | `APP_JWT_SECRET` | HS256 key, ≥ 32 chars |
+| `COOKIE_SECURE` | Auth cookie `Secure` flag (`true` with HTTPS; `false` for temporary HTTP / IP-only) |
 | `CORS_ALLOWED_ORIGIN` | Frontend origin, e.g. `https://kuky.es` |
 | `FRONTEND_BASE_URL` | Used in password reset emails |
 | `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_TOKEN` / `MAIL_FROM` / `MAIL_ENABLED` | Production SMTP via Mailtrap (`live.smtp.mailtrap.io`, user `api`, token = API token). Local profile uses Mailpit on `:1025` instead. |

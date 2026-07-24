@@ -32,7 +32,8 @@ server:
 
 app:
   cookie:
-    secure: true
+    # false for temporary HTTP / IP-only smoke deploys; set true once HTTPS is on.
+    secure: ${COOKIE_SECURE:true}
   jwt:
     secret: ${APP_JWT_SECRET}
     expiry-seconds: 604800
