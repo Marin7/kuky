@@ -53,7 +53,7 @@ services:
     ports:
       # Upcloud default firewall allows 8443/8880, not 8081.
       - "8443:8081"
-    mem_limit: 384m
+    mem_limit: 768m
 
   front-end:
     build:
