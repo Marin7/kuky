@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -568,5 +570,85 @@ class BookingServiceTest {
         service.setNoShow(bookingId, true);
 
         verify(bookingRepository).setNoShow(bookingId, true);
+    }
+
+    // --- createBookingAsAdmin -----------------------------------------------------------------
+
+    @Test
+    void createBookingAsAdmin_succeedsOutsideAvailability_andUsesOverlapOnlyCheck() {
+        User student = studentUser("student@example.com", false);
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+        when(bookingRepository.insert(any(Booking.class))).thenAnswer(invocation -> {
+            Booking b = invocation.getArgument(0);
+            b.setId(bookingId);
+            return b;
+        });
+        when(meetingProvider.create(any(), eq(60), anyString()))
+                .thenReturn(new MeetingProvider.MeetingDetails("zoom-admin", "https://zoom.example/a"));
+
+        // Sunday 08:00 Bucharest — typically outside weekly availability; admin may still book.
+        LocalDate date = LocalDate.of(2026, 7, 26);
+        LocalTime time = LocalTime.of(8, 0);
+
+        Booking result = service.createBookingAsAdmin(student.getId(), date, time, 60);
+
+        assertThat(result.getId()).isEqualTo(bookingId);
+        verify(availabilityService).assertNoOverlap(any(Instant.class), eq(60));
+        verify(availabilityService, never()).validateBookable(any(), anyInt());
+        verify(emailService).sendConfirmation(eq(student.getEmail()), anyString(), eq(bookingId),
+                any(Instant.class), eq(60), anyString());
+    }
+
+    @Test
+    void createBookingAsAdmin_throwsNotAStudent_forNonStudentTarget() {
+        User user = user("plain@example.com", false);
+        user.setRole("USER");
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> service.createBookingAsAdmin(
+                user.getId(), LocalDate.of(2026, 7, 27), LocalTime.of(10, 0), 60))
+                .isInstanceOf(BookingNotAllowedException.class)
+                .satisfies(ex -> assertThat(((BookingNotAllowedException) ex).getReason())
+                        .isEqualTo(BookingNotAllowedException.Reason.NOT_A_STUDENT));
+
+        verify(bookingRepository, never()).insert(any());
+    }
+
+    @Test
+    void createBookingAsAdmin_throwsNotEligible_for90WithoutEligibility() {
+        User student = studentUser("student@example.com", false);
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+
+        assertThatThrownBy(() -> service.createBookingAsAdmin(
+                student.getId(), LocalDate.of(2026, 7, 27), LocalTime.of(10, 0), 90))
+                .isInstanceOf(BookingNotAllowedException.class)
+                .satisfies(ex -> assertThat(((BookingNotAllowedException) ex).getReason())
+                        .isEqualTo(BookingNotAllowedException.Reason.NOT_ELIGIBLE_FOR_EXTENDED));
+
+        verify(bookingRepository, never()).insert(any());
+    }
+
+    @Test
+    void createBookingAsAdmin_propagatesOverlapAsSlotUnavailable() {
+        User student = studentUser("student@example.com", false);
+        when(userRepository.findById(student.getId())).thenReturn(Optional.of(student));
+        doThrow(new SlotUnavailableException("Esta hora ya ha sido reservada."))
+                .when(availabilityService).assertNoOverlap(any(Instant.class), eq(60));
+
+        assertThatThrownBy(() -> service.createBookingAsAdmin(
+                student.getId(), LocalDate.of(2026, 7, 27), LocalTime.of(10, 0), 60))
+                .isInstanceOf(SlotUnavailableException.class);
+
+        verify(bookingRepository, never()).insert(any());
+    }
+
+    @Test
+    void createBookingAsAdmin_throwsUserNotFound_forUnknownStudentId() {
+        UUID unknownId = UUID.randomUUID();
+        when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.createBookingAsAdmin(
+                unknownId, LocalDate.of(2026, 7, 27), LocalTime.of(10, 0), 60))
+                .isInstanceOf(UserNotFoundException.class);
     }
 }

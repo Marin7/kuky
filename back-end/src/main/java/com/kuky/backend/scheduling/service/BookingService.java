@@ -18,6 +18,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -96,6 +99,66 @@ public class BookingService {
                 booking.getId(), slotStart, duration, meeting.joinUrl());
 
         return toResponse(booking);
+    }
+
+    /**
+     * Teacher-initiated booking for a student at an arbitrary wall-clock time in the teacher's
+     * timezone. Skips lead time, horizon, and availability-window checks, but still enforces
+     * duration/eligibility rules and overlap (including the inter-class buffer). Secured by the
+     * /api/v1/admin/** matcher in SecurityConfig.
+     */
+    public Booking createBookingAsAdmin(UUID studentId, LocalDate date, LocalTime time, int durationMinutes) {
+        User user = userRepository.findById(studentId)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado."));
+        if (!"STUDENT".equals(user.getRole())) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.NOT_A_STUDENT);
+        }
+
+        int standardDuration = props.getScheduling().getClassDurationMinutes();
+        int extendedDuration = props.getScheduling().getExtendedClassDurationMinutes();
+        if (durationMinutes != standardDuration && durationMinutes != extendedDuration) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.INVALID_DURATION);
+        }
+        if (durationMinutes == extendedDuration && !user.isExtendedClassEligible()) {
+            throw new BookingNotAllowedException(BookingNotAllowedException.Reason.NOT_ELIGIBLE_FOR_EXTENDED);
+        }
+
+        Instant slotStart = date.atTime(time)
+                .atZone(ZoneId.of(props.getScheduling().getTeacherTimezone()))
+                .toInstant();
+
+        availabilityService.assertNoOverlap(slotStart, durationMinutes);
+
+        Booking booking = new Booking();
+        booking.setUserId(user.getId());
+        booking.setSlotStart(slotStart);
+        booking.setDurationMinutes(durationMinutes);
+        booking.setStatus("CONFIRMED");
+
+        try {
+            booking = bookingRepository.insert(booking);
+        } catch (DataIntegrityViolationException e) {
+            throw new SlotUnavailableException("Esta hora ya ha sido reservada.");
+        }
+
+        MeetingProvider.MeetingDetails meeting;
+        try {
+            String topic = "Clase de español — " + user.getEmail();
+            meeting = meetingProvider.create(slotStart, durationMinutes, topic);
+        } catch (MeetingProvisioningException e) {
+            bookingRepository.delete(booking.getId());
+            throw e;
+        }
+
+        bookingRepository.updateZoomDetails(booking.getId(), meeting.meetingId(), meeting.joinUrl());
+        booking.setZoomMeetingId(meeting.meetingId());
+        booking.setZoomJoinUrl(meeting.joinUrl());
+
+        emailService.sendConfirmation(user.getEmail(),
+                props.getScheduling().getTeacherEmail(),
+                booking.getId(), slotStart, durationMinutes, meeting.joinUrl());
+
+        return booking;
     }
 
     public MyBookingsResponse listForUser(String userEmail) {

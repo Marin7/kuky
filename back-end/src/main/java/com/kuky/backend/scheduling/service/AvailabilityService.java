@@ -136,6 +136,15 @@ public class AvailabilityService {
         // which only worked because every booking shared one fixed duration — see research.md Decision 3).
         // The query range is widened by the buffer so bookings just outside [slotStart, slotEnd) but
         // inside the buffer zone are actually fetched (spec 020, research.md Decision 2).
+        assertNoOverlap(slotStart, durationMinutes);
+    }
+
+    /**
+     * Overlap / buffer check only — used by teacher-initiated bookings that intentionally skip
+     * lead time, horizon, and availability-window gates. Still rejects hard overlaps and the
+     * configured inter-class buffer.
+     */
+    public void assertNoOverlap(Instant slotStart, int durationMinutes) {
         int bufferMinutes = props.getScheduling().getBufferMinutes();
         long bufferSeconds = bufferMinutes * 60L;
         Instant slotEnd = slotStart.plusSeconds((long) durationMinutes * 60);

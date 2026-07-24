@@ -554,6 +554,30 @@ export const enDict = {
       cancelConfirm:
         "Cancel this class? The student will be notified by email.",
       cancelError: "Could not cancel the class. Please try again.",
+      create: {
+        open: "Create class",
+        dialogTitle: "Create class manually",
+        dialogDescription:
+          "Pick the student, date and time ({{timezone}}). The slot does not need to be marked available; overlapping an existing class is still rejected.",
+        studentLabel: "Student",
+        dateLabel: "Date",
+        timeLabel: "Time",
+        hourLabel: "Hour",
+        minuteLabel: "Minutes",
+        hourPlaceholder: "hh",
+        minutePlaceholder: "mm",
+        durationLabel: "Duration",
+        save: "Create",
+        saving: "Creating…",
+        slotUnavailableError:
+          "There is already another class at that time (or too close to it).",
+        notStudentError: "This user does not have student access.",
+        invalidDurationError: "Invalid class duration.",
+        notEligibleForExtendedError:
+          "This student doesn't have access to 1.5-hour classes.",
+        userNotFoundError: "Student not found.",
+        genericError: "Could not create the class. Please try again.",
+      },
       companion: {
         attach: "Add classmate",
         detach: "Remove classmate",

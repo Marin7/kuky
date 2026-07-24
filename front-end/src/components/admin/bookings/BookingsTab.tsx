@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StudentLink } from "@/components/admin/students/StudentLink";
 import { AttachCompanionStudentDialog } from "@/components/admin/bookings/AttachCompanionStudentDialog";
+import { CreateBookingDialog } from "@/components/admin/bookings/CreateBookingDialog";
 
 function formatSlot(
   isoStart: string,
@@ -39,6 +40,14 @@ function formatSlot(
   return `${datePart}, ${timePart}–${endTime}`;
 }
 
+function insertSorted(list: AdminBooking[], booking: AdminBooking): AdminBooking[] {
+  const next = [...list, booking];
+  next.sort(
+    (a, b) => new Date(a.slotStart).getTime() - new Date(b.slotStart).getTime(),
+  );
+  return next;
+}
+
 export function BookingsTab() {
   const { t } = useTranslation();
   const teacherTimezone = useTeacherTimezone();
@@ -48,6 +57,7 @@ export function BookingsTab() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [attachingTo, setAttachingTo] = useState<AdminBooking | null>(null);
+  const [creating, setCreating] = useState(false);
   const [detachError, setDetachError] = useState<string | null>(null);
   const [detaching, setDetaching] = useState<string | null>(null);
 
@@ -112,96 +122,104 @@ export function BookingsTab() {
     return <p className="text-sm text-destructive">{error}</p>;
   }
 
-  if (bookings.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        {t("admin.bookings.empty")}
-      </p>
-    );
-  }
-
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        {t("admin.bookings.description")}
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          {t("admin.bookings.description")}
+        </p>
+        <Button
+          size="sm"
+          className="shrink-0"
+          onClick={() => setCreating(true)}
+        >
+          {t("admin.bookings.create.open")}
+        </Button>
+      </div>
       {cancelError && <p className="text-sm text-destructive">{cancelError}</p>}
       {detachError && <p className="text-sm text-destructive">{detachError}</p>}
-      {bookings.map((b) => (
-        <Card key={b.id} className="text-sm">
-          <CardContent className="pt-4 space-y-1">
-            <p className="font-medium capitalize">
-              {formatSlot(b.slotStart, b.slotEnd, teacherTimezone)}
-            </p>
-            <StudentLink
-              student={{
-                id: b.studentId,
-                email: b.studentEmail,
-                firstName: b.studentFirstName,
-                lastName: b.studentLastName,
-                username: b.studentUsername,
-              }}
-              showEmail
-            />
-            {b.companionStudentId && b.companionStudentEmail && (
-              <div className="flex items-center gap-2">
-                <StudentLink
-                  student={{
-                    id: b.companionStudentId,
-                    email: b.companionStudentEmail,
-                    firstName: b.companionStudentFirstName,
-                    lastName: b.companionStudentLastName,
-                    username: b.companionStudentUsername,
-                  }}
-                  showEmail
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={detaching === b.id}
-                  onClick={() => handleDetach(b)}
-                  className="h-6 text-xs text-destructive"
+
+      {bookings.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {t("admin.bookings.empty")}
+        </p>
+      ) : (
+        bookings.map((b) => (
+          <Card key={b.id} className="text-sm">
+            <CardContent className="pt-4 space-y-1">
+              <p className="font-medium capitalize">
+                {formatSlot(b.slotStart, b.slotEnd, teacherTimezone)}
+              </p>
+              <StudentLink
+                student={{
+                  id: b.studentId,
+                  email: b.studentEmail,
+                  firstName: b.studentFirstName,
+                  lastName: b.studentLastName,
+                  username: b.studentUsername,
+                }}
+                showEmail
+              />
+              {b.companionStudentId && b.companionStudentEmail && (
+                <div className="flex items-center gap-2">
+                  <StudentLink
+                    student={{
+                      id: b.companionStudentId,
+                      email: b.companionStudentEmail,
+                      firstName: b.companionStudentFirstName,
+                      lastName: b.companionStudentLastName,
+                      username: b.companionStudentUsername,
+                    }}
+                    showEmail
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={detaching === b.id}
+                    onClick={() => handleDetach(b)}
+                    className="h-6 text-xs text-destructive"
+                  >
+                    {t("admin.bookings.companion.detach")}
+                  </Button>
+                </div>
+              )}
+              {b.zoomJoinUrl && (
+                <a
+                  href={b.zoomJoinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary text-xs break-all hover:underline"
                 >
-                  {t("admin.bookings.companion.detach")}
-                </Button>
-              </div>
-            )}
-            {b.zoomJoinUrl && (
-              <a
-                href={b.zoomJoinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary text-xs break-all hover:underline"
-              >
-                {b.zoomJoinUrl}
-              </a>
-            )}
-            <div className="pt-1 flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={cancelling === b.id}
-                onClick={() => handleCancel(b)}
-                className="h-7 text-xs"
-              >
-                {cancelling === b.id
-                  ? t("admin.bookings.cancelling")
-                  : t("admin.bookings.cancelClass")}
-              </Button>
-              {!b.companionStudentId && (
+                  {b.zoomJoinUrl}
+                </a>
+              )}
+              <div className="pt-1 flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setAttachingTo(b)}
+                  disabled={cancelling === b.id}
+                  onClick={() => handleCancel(b)}
                   className="h-7 text-xs"
                 >
-                  {t("admin.bookings.companion.attach")}
+                  {cancelling === b.id
+                    ? t("admin.bookings.cancelling")
+                    : t("admin.bookings.cancelClass")}
                 </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                {!b.companionStudentId && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAttachingTo(b)}
+                    className="h-7 text-xs"
+                  >
+                    {t("admin.bookings.companion.attach")}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      )}
 
       {attachingTo && (
         <AttachCompanionStudentDialog
@@ -215,6 +233,18 @@ export function BookingsTab() {
           }}
         />
       )}
+
+      <CreateBookingDialog
+        open={creating}
+        onOpenChange={setCreating}
+        onCreated={(booking) => {
+          // Past-or-started slots won't appear in the upcoming admin list — only insert
+          // when the new class is still upcoming.
+          if (new Date(booking.slotEnd).getTime() > Date.now()) {
+            setBookings((prev) => insertSorted(prev, booking));
+          }
+        }}
+      />
     </div>
   );
 }

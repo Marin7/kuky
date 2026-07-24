@@ -565,6 +565,30 @@ export const roDict = {
       cancelling: "Se anulează…",
       cancelConfirm: "Anulezi acest curs? Studentul va fi anunțat prin e-mail.",
       cancelError: "Cursul nu a putut fi anulat. Încearcă din nou.",
+      create: {
+        open: "Creează curs",
+        dialogTitle: "Creează curs manual",
+        dialogDescription:
+          "Alege elevul, data și ora ({{timezone}}). Intervalul nu trebuie să fie marcat ca disponibil; totuși se respinge dacă există deja un alt curs la acea oră.",
+        studentLabel: "Elev",
+        dateLabel: "Dată",
+        timeLabel: "Oră",
+        hourLabel: "Ora",
+        minuteLabel: "Minute",
+        hourPlaceholder: "hh",
+        minutePlaceholder: "mm",
+        durationLabel: "Durată",
+        save: "Creează",
+        saving: "Se creează…",
+        slotUnavailableError:
+          "Există deja un alt curs la acea oră (sau prea aproape).",
+        notStudentError: "Acest utilizator nu are acces de student.",
+        invalidDurationError: "Durată de curs nevalidă.",
+        notEligibleForExtendedError:
+          "Acest student nu are acces la cursurile de 1 oră și jumătate.",
+        userNotFoundError: "Elevul nu a fost găsit.",
+        genericError: "Cursul nu a putut fi creat. Încearcă din nou.",
+      },
       companion: {
         attach: "Adaugă coleg de curs",
         detach: "Elimină coleg de curs",

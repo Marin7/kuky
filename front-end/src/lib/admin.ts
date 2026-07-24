@@ -125,6 +125,17 @@ export interface AdminBooking {
 
 export const getAdminBookings = () => apiCall<AdminBooking[]>("/bookings");
 
+export const createAdminBooking = (body: {
+  studentId: string;
+  date: string; // YYYY-MM-DD, interpreted in the teacher's timezone
+  time: string; // HH:mm
+  durationMinutes: number;
+}) =>
+  apiCall<AdminBooking>("/bookings", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
 export const cancelAdminBooking = (id: string) =>
   apiCall<void>(`/bookings/${id}`, { method: "DELETE" });
 

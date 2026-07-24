@@ -150,6 +150,9 @@ public class GlobalExceptionHandler {
             case BOOKING_NOT_ATTACHABLE -> ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "BOOKING_NOT_ATTACHABLE",
                             "message", "Esta clase ya fue cancelada o ya ha tenido lugar."));
+            case NOT_A_STUDENT -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                    .body(Map.of("error", "NOT_A_STUDENT",
+                            "message", "Este usuario no es un estudiante activo."));
         };
     }
 

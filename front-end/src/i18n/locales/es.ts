@@ -569,6 +569,29 @@ export const esDict = {
       cancelConfirm:
         "¿Cancelar esta clase? Se avisará al estudiante por correo.",
       cancelError: "No se pudo cancelar la clase. Inténtalo de nuevo.",
+      create: {
+        open: "Crear clase",
+        dialogTitle: "Crear clase manualmente",
+        dialogDescription:
+          "Elige el alumno, la fecha y la hora ({{timezone}}). No hace falta que el hueco figure como disponible; sí se rechaza si ya hay otra clase a esa hora.",
+        studentLabel: "Alumno",
+        dateLabel: "Fecha",
+        timeLabel: "Hora",
+        hourLabel: "Hora",
+        minuteLabel: "Minutos",
+        hourPlaceholder: "hh",
+        minutePlaceholder: "mm",
+        durationLabel: "Duración",
+        save: "Crear",
+        saving: "Creando…",
+        slotUnavailableError: "Ya hay otra clase a esa hora (o demasiado cerca).",
+        notStudentError: "Este usuario no tiene acceso de alumno.",
+        invalidDurationError: "Duración de clase no válida.",
+        notEligibleForExtendedError:
+          "Este alumno no tiene acceso a las clases de 1 hora y media.",
+        userNotFoundError: "No se encontró al alumno.",
+        genericError: "No se pudo crear la clase. Inténtalo de nuevo.",
+      },
       companion: {
         attach: "Añadir compañero de clase",
         detach: "Quitar compañero de clase",

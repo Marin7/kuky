@@ -2,6 +2,7 @@ package com.kuky.backend.admin.controller;
 
 import com.kuky.backend.admin.dto.AdminBookingDto;
 import com.kuky.backend.admin.dto.AttachCompanionStudentRequest;
+import com.kuky.backend.admin.dto.CreateAdminBookingRequest;
 import com.kuky.backend.admin.dto.SetNoShowRequest;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
@@ -9,6 +10,7 @@ import com.kuky.backend.scheduling.model.Booking;
 import com.kuky.backend.scheduling.repository.BookingRepository;
 import com.kuky.backend.scheduling.service.BookingService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
@@ -53,6 +56,18 @@ public class BookingAdminController {
                         v.companionStudentFirstName(), v.companionStudentLastName(),
                         v.companionStudentUsername(), v.companionStudentNoShow()))
                 .toList();
+    }
+
+    /**
+     * Teacher creates a class for a student at an arbitrary date/time (availability windows and
+     * lead time are ignored). Still rejects overlaps with existing confirmed bookings.
+     */
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public AdminBookingDto createBooking(@Valid @RequestBody CreateAdminBookingRequest request) {
+        Booking booking = bookingService.createBookingAsAdmin(
+                request.studentId(), request.date(), request.time(), request.durationMinutes());
+        return toAdminBookingDto(booking);
     }
 
     /** Teacher cancels a class — bypasses the 24h student cutoff. */

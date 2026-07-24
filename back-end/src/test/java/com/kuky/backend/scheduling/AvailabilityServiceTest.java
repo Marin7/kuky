@@ -505,6 +505,29 @@ class AvailabilityServiceTest {
         assertThat(afterTransition).isEqualTo(Instant.parse("2026-10-26T07:00:00Z"));  // EET, UTC+2
     }
 
+    // --- assertNoOverlap (admin manual booking) ----------------------------------------------
+
+    @Test
+    void assertNoOverlap_allowsSlotOutsideAvailabilityAndInsideLeadTime() {
+        // Same clock as the suite (Mon 2026-06-15 09:00 Bucharest) — a slot only 2h ahead would
+        // fail validateBookable on LEAD, and with no day windows would fail RANGE. Admin path
+        // only cares about overlap.
+        Instant soon = LocalDate.of(2026, 6, 15).atTime(11, 0).atZone(BUCHAREST).toInstant();
+
+        assertThatCode(() -> service.assertNoOverlap(soon, 60)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void assertNoOverlap_rejectsHardOverlapWithExistingBooking() {
+        Instant existingStart = LocalDate.of(2026, 6, 24).atTime(10, 0).atZone(BUCHAREST).toInstant();
+        when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
+                .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 60)));
+        Instant candidateStart = LocalDate.of(2026, 6, 24).atTime(10, 30).atZone(BUCHAREST).toInstant();
+
+        assertThatThrownBy(() -> service.assertNoOverlap(candidateStart, 60))
+                .isInstanceOf(SlotUnavailableException.class);
+    }
+
     private static DayWindow dw(LocalDate date, String start, String end) {
         return new DayWindow(date, LocalTime.parse(start), LocalTime.parse(end));
     }
