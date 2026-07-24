@@ -21,10 +21,6 @@ import com.kuky.backend.placement.exception.SectionNotStartedException;
 import com.kuky.backend.presentations.exception.InvalidImageException;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.units.exception.UnitNotFoundException;
-import com.kuky.backend.resources.exception.AlreadyOwnedException;
-import com.kuky.backend.resources.exception.NotPurchasableException;
-import com.kuky.backend.resources.exception.ResourceLockedException;
-import com.kuky.backend.resources.exception.ResourceNotFoundException;
 import com.kuky.backend.scheduling.exception.BookingNotAllowedException;
 import com.kuky.backend.scheduling.exception.BookingNotFoundException;
 import com.kuky.backend.scheduling.exception.MeetingProvisioningException;
@@ -166,32 +162,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleBookingNotFound(BookingNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "BOOKING_NOT_FOUND", "message", ex.getMessage()));
-    }
-
-    // Resources exceptions
-
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleResourceNotFound(ResourceNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "RESOURCE_NOT_FOUND", "message", ex.getMessage()));
-    }
-
-    @ExceptionHandler(ResourceLockedException.class)
-    public ResponseEntity<Map<String, String>> handleResourceLocked(ResourceLockedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of("error", "RESOURCE_LOCKED", "message", ex.getMessage()));
-    }
-
-    @ExceptionHandler(AlreadyOwnedException.class)
-    public ResponseEntity<Map<String, String>> handleAlreadyOwned(AlreadyOwnedException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "ALREADY_OWNED", "message", ex.getMessage()));
-    }
-
-    @ExceptionHandler(NotPurchasableException.class)
-    public ResponseEntity<Map<String, String>> handleNotPurchasable(NotPurchasableException ex) {
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(Map.of("error", "NOT_PURCHASABLE", "message", ex.getMessage()));
     }
 
     // Learning exceptions

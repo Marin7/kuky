@@ -1,6 +1,5 @@
 package com.kuky.backend.units.repository;
 
-import com.kuky.backend.admin.dto.AssigneeDto;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.PresentationSummary;
 import com.kuky.backend.admin.dto.StudentResponse;
@@ -13,11 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -244,9 +241,8 @@ public class UnitRepository {
     /**
      * Homework totals are counted via {@code homework_targets}, not
      * {@code homework_assignments.unit_id} alone — a homework filed under a unit
-     * is only "the student's" if they were actually targeted for it (see
-     * V18__create_units.sql: unit_id is organisational-only, never authoritative
-     * for student access).
+     * is only "the student's" if they were actually targeted for it ({@code unit_id}
+     * is organisational-only, never authoritative for student access).
      */
     public record UnitProgressView(UUID unitId, String subject, String level,
                                    int totalHomeworks, int completedHomeworks) {}

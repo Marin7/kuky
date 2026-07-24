@@ -18,28 +18,28 @@ public class ImageRepository {
         this.jdbc = jdbc;
     }
 
-    public UUID insert(String contentType, byte[] data) {
-        UUID id = UUID.randomUUID();
+    public void insert(UUID id, String contentType, int byteSize) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("contentType", contentType)
-                .addValue("byteSize", data.length)
-                .addValue("data", data);
+                .addValue("byteSize", byteSize);
         jdbc.update("""
-                INSERT INTO images (id, content_type, byte_size, data)
-                VALUES (:id, :contentType, :byteSize, :data)
+                INSERT INTO images (id, content_type, byte_size)
+                VALUES (:id, :contentType, :byteSize)
                 """, params);
-        return id;
     }
 
     public Optional<Image> findById(UUID id) {
-        return jdbc.query("SELECT * FROM images WHERE id = :id", Map.of("id", id), (rs, n) -> {
-            Image img = new Image();
-            img.setId(rs.getObject("id", UUID.class));
-            img.setContentType(rs.getString("content_type"));
-            img.setByteSize(rs.getInt("byte_size"));
-            img.setData(rs.getBytes("data"));
-            return img;
-        }).stream().findFirst();
+        return jdbc.query(
+                "SELECT id, content_type, byte_size FROM images WHERE id = :id",
+                Map.of("id", id),
+                (rs, n) -> {
+                    Image img = new Image();
+                    img.setId(rs.getObject("id", UUID.class));
+                    img.setContentType(rs.getString("content_type"));
+                    img.setByteSize(rs.getInt("byte_size"));
+                    return img;
+                }
+        ).stream().findFirst();
     }
 }

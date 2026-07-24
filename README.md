@@ -69,7 +69,6 @@ No environment variables needed for local dev — the API client falls back to
 | `/sobre-mi` | Paula's bio and teaching stats |
 | `/cuenta` | Register, login, logout, forgot/reset password |
 | `/reservas` | Public schedule, 1-on-1 booking with Zoom, upcoming & past classes |
-| `/recursos` | Free & paid teaching resources, purchase, unlock, receipts |
 | `/aprendizaje` | Student-only: class intro, presentations, homework |
 | `/panel` | **Admin-only**: availability, homework authoring, presentation builder |
 

@@ -1,6 +1,9 @@
 ### IntelliJ IDEA ###
 .idea/*
 
+### Local uploaded images (app.images.storage-dir) ###
+data/
+
 ### Secrets — never commit real env files ###
 .env
 .env.local

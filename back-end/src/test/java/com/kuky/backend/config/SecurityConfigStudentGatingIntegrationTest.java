@@ -25,8 +25,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Verifies the student-only access gate added to SecurityConfig for booking creation,
- * purchasing, and coursework (/api/v1/learning/**), and that browsing/history endpoints
+ * Verifies the student-only access gate added to SecurityConfig for booking creation
+ * and coursework (/api/v1/learning/**), and that browsing/history endpoints
  * remain unaffected by role.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
@@ -84,12 +84,6 @@ class SecurityConfigStudentGatingIntegrationTest {
     }
 
     @Test
-    void purchase_anonymous_returns401() throws Exception {
-        mvc().perform(post("/api/v1/purchases").contentType(MediaType.APPLICATION_JSON).content("{}"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void learningOverview_anonymous_returns401() throws Exception {
         mvc().perform(get("/api/v1/learning")).andExpect(status().isUnauthorized());
     }
@@ -99,15 +93,6 @@ class SecurityConfigStudentGatingIntegrationTest {
     @Test
     void createBooking_userRole_returns403() throws Exception {
         mvc().perform(post("/api/v1/bookings")
-                        .with(authentication(principal("USER")))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void purchase_userRole_returns403() throws Exception {
-        mvc().perform(post("/api/v1/purchases")
                         .with(authentication(principal("USER")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -145,17 +130,6 @@ class SecurityConfigStudentGatingIntegrationTest {
     }
 
     @Test
-    void purchase_studentRole_passesGate() throws Exception {
-        // Empty body fails @Valid (itemType/slug required) *after* the security gate.
-        mvc().perform(post("/api/v1/purchases")
-                        .with(authentication(principal("STUDENT")))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
-    }
-
-    @Test
     void learningOverview_studentRole_passesGate() throws Exception {
         mvc().perform(get("/api/v1/learning")
                         .with(authentication(new UsernamePasswordAuthenticationToken(
@@ -170,24 +144,11 @@ class SecurityConfigStudentGatingIntegrationTest {
         mvc().perform(get("/api/v1/schedule")).andExpect(status().isOk());
     }
 
-    @Test
-    void getResourceCatalog_anonymous_returns200() throws Exception {
-        mvc().perform(get("/api/v1/resources")).andExpect(status().isOk());
-    }
-
     // --- Unaffected by role: own history stays authenticated-only ---
 
     @Test
     void listBookings_userRole_returns200() throws Exception {
         mvc().perform(get("/api/v1/bookings")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(
-                                userEmail, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void listPurchases_userRole_returns200() throws Exception {
-        mvc().perform(get("/api/v1/purchases")
                         .with(authentication(new UsernamePasswordAuthenticationToken(
                                 userEmail, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))))))
                 .andExpect(status().isOk());

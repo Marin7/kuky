@@ -18,9 +18,11 @@ public class ImageService {
     private static final long MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 
     private final ImageRepository imageRepository;
+    private final ImageFileStore imageFileStore;
 
-    public ImageService(ImageRepository imageRepository) {
+    public ImageService(ImageRepository imageRepository, ImageFileStore imageFileStore) {
         this.imageRepository = imageRepository;
+        this.imageFileStore = imageFileStore;
     }
 
     public UploadResult store(MultipartFile file) {
@@ -43,12 +45,24 @@ public class ImageService {
         if (data.length == 0 || data.length > MAX_BYTES) {
             throw new InvalidImageException("La imagen supera el tamaño máximo de 2 MB.");
         }
-        UUID id = imageRepository.insert(contentType, data);
+        UUID id = UUID.randomUUID();
+        imageFileStore.write(id, contentType, data);
+        try {
+            imageRepository.insert(id, contentType, data.length);
+        } catch (RuntimeException e) {
+            imageFileStore.deleteQuietly(id, contentType);
+            throw e;
+        }
         return new UploadResult(id, contentType, data.length);
     }
 
     public Optional<Image> find(UUID id) {
-        return imageRepository.findById(id);
+        return imageRepository.findById(id).flatMap(meta ->
+                imageFileStore.read(id, meta.getContentType()).map(bytes -> {
+                    meta.setData(bytes);
+                    return meta;
+                })
+        );
     }
 
     public record UploadResult(UUID id, String contentType, int byteSize) {}
