@@ -524,7 +524,6 @@ export const enDict = {
       loadError: "Could not load availability.",
       saveError: "Could not save.",
       saved: "Schedule saved.",
-      save: "Save schedule",
       saving: "Saving…",
       loading: "Loading…",
       general: {

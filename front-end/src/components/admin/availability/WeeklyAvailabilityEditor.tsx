@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getAvailability,
@@ -9,8 +9,10 @@ import {
   type ApiError,
 } from "@/lib/admin";
 import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// Debounce per-date saves so rapid clicks on the same day only trigger one PUT request.
+const AUTOSAVE_DEBOUNCE_MS = 600;
 
 const DAY_ABBREVS = ["", "lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
 const MONTH_ABBREVS = [
@@ -31,8 +33,8 @@ const MONTH_ABBREVS = [
 const WEEKS = 4;
 const DAYS = WEEKS * 7;
 
-const HOUR_START = 7;
-const HOUR_END = 21;
+const HOUR_START = 8;
+const HOUR_END = 20;
 const HOURS = Array.from(
   { length: HOUR_END - HOUR_START },
   (_, i) => HOUR_START + i,
@@ -129,13 +131,16 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const { t } = useTranslation();
   const teacherTimezone = useTeacherTimezone();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [initialSelected, setInitialSelected] = useState<Set<string>>(
-    new Set(),
-  );
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingDates, setSavingDates] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Mirrors `selected` synchronously so debounced saves always read the latest value,
+  // instead of a value captured by a stale closure from an earlier render.
+  const latestSelectedRef = useRef<Set<string>>(new Set());
+  const saveTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
   const dates = useMemo(
     () => getHorizonDates(teacherTimezone),
     [teacherTimezone],
@@ -151,7 +156,7 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   );
   const gridTemplateColumns = useMemo(
     () =>
-      `3rem ` +
+      `5rem ` +
       weeks
         .map(
           (_, w) =>
@@ -164,7 +169,7 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
   const applyAvailability = (days: DayAvailability[]) => {
     const s = computeSelected(days, dates);
     setSelected(s);
-    setInitialSelected(s);
+    latestSelectedRef.current = s;
   };
 
   useEffect(() => {
@@ -174,52 +179,57 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Cancel any pending debounced saves on unmount so they don't fire against a gone component.
+  useEffect(() => {
+    return () => {
+      saveTimers.current.forEach((timer) => clearTimeout(timer));
+    };
+  }, []);
+
+  const scheduleSave = (dateStr: string) => {
+    const existing = saveTimers.current.get(dateStr);
+    if (existing) clearTimeout(existing);
+
+    const timer = setTimeout(async () => {
+      saveTimers.current.delete(dateStr);
+      setSaved(false);
+      setError(null);
+      setSavingDates((prev) => new Set(prev).add(dateStr));
+      try {
+        const hours = HOURS.filter((h) =>
+          latestSelectedRef.current.has(`${dateStr}:${h}`),
+        );
+        const res = await setDayAvailability(dateStr, hoursToWindows(hours));
+        onConflicts(res.bookingConflicts);
+        setSaved(true);
+      } catch (e) {
+        setError((e as ApiError).message ?? t("admin.availability.saveError"));
+        // Resync with the server so the grid doesn't keep showing a change that failed to persist.
+        getAvailability()
+          .then(({ days }) => applyAvailability(days))
+          .catch(() => {});
+      } finally {
+        setSavingDates((prev) => {
+          const next = new Set(prev);
+          next.delete(dateStr);
+          return next;
+        });
+      }
+    }, AUTOSAVE_DEBOUNCE_MS);
+    saveTimers.current.set(dateStr, timer);
+  };
+
   const toggle = (dateStr: string, hour: number) => {
     const key = `${dateStr}:${hour}`;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      latestSelectedRef.current = next;
       return next;
     });
     setSaved(false);
-  };
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    setSaved(false);
-    try {
-      const changedDates = new Set<string>();
-      for (const col of dates) {
-        for (const hour of HOURS) {
-          const key = `${col.dateStr}:${hour}`;
-          if (selected.has(key) !== initialSelected.has(key)) {
-            changedDates.add(col.dateStr);
-            break;
-          }
-        }
-      }
-
-      let conflicts: BookingConflict[] = [];
-      for (const dateStr of changedDates) {
-        const hours = HOURS.filter((h) => selected.has(`${dateStr}:${h}`));
-        const res = await setDayAvailability(dateStr, hoursToWindows(hours));
-        conflicts = res.bookingConflicts;
-      }
-
-      const fresh = await getAvailability();
-      applyAvailability(fresh.days);
-      onConflicts(conflicts);
-      setSaved(true);
-    } catch (e) {
-      getAvailability()
-        .then(({ days }) => applyAvailability(days))
-        .catch(() => {});
-      setError((e as ApiError).message ?? t("admin.availability.saveError"));
-    } finally {
-      setSaving(false);
-    }
+    scheduleSave(dateStr);
   };
 
   if (loading)
@@ -264,8 +274,8 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
             {/* Hour rows */}
             {HOURS.map((hour) => (
               <Fragment key={hour}>
-                <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground h-11">
-                  {String(hour).padStart(2, "0")}:00
+                <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground h-11 whitespace-nowrap">
+                  {String(hour).padStart(2, "0")}:00-{String(hour + 1).padStart(2, "0")}:00
                 </div>
                 {weeks.map((week, w) => (
                   <Fragment key={`${hour}-${w}`}>
@@ -297,17 +307,17 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {saved && (
-          <p className="text-sm text-green-600">
-            {t("admin.availability.saved")}
+        {savingDates.size > 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {t("admin.availability.saving")}
           </p>
+        ) : (
+          saved && (
+            <p className="text-sm text-green-600">
+              {t("admin.availability.saved")}
+            </p>
+          )
         )}
-
-        <Button onClick={save} disabled={saving}>
-          {saving
-            ? t("admin.availability.saving")
-            : t("admin.availability.save")}
-        </Button>
       </CardContent>
     </Card>
   );

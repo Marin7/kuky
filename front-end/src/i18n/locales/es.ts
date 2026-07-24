@@ -539,7 +539,6 @@ export const esDict = {
       loadError: "No se pudo cargar la disponibilidad.",
       saveError: "No se pudo guardar.",
       saved: "Horario guardado.",
-      save: "Guardar horario",
       saving: "Guardando…",
       loading: "Cargando…",
       general: {

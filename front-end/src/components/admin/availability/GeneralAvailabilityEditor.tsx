@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getAvailability,
@@ -7,14 +7,16 @@ import {
   type BookingConflict,
   type ApiError,
 } from "@/lib/admin";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// Debounce autosave so rapid clicks across several cells only trigger one PUT request.
+const AUTOSAVE_DEBOUNCE_MS = 600;
 
 const DAY_ABBREVS = ["", "lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
 const DOWS = [1, 2, 3, 4, 5, 6, 7];
 
-const HOUR_START = 7;
-const HOUR_END = 21;
+const HOUR_START = 8;
+const HOUR_END = 20;
 const HOURS = Array.from(
   { length: HOUR_END - HOUR_START },
   (_, i) => HOUR_START + i,
@@ -74,13 +76,55 @@ export function GeneralAvailabilityEditor({ onConflicts }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  // Mirrors `selected` synchronously so the debounced save always reads the latest value,
+  // instead of a value captured by a stale closure from an earlier render.
+  const latestSelectedRef = useRef<Set<string>>(new Set());
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const applySelected = (s: Set<string>) => {
+    setSelected(s);
+    latestSelectedRef.current = s;
+  };
 
   useEffect(() => {
     getAvailability()
-      .then(({ weekly }) => setSelected(computeSelected(weekly)))
+      .then(({ weekly }) => applySelected(computeSelected(weekly)))
       .catch(() => setError(t("admin.availability.loadError")))
       .finally(() => setLoading(false));
   }, []);
+
+  // Cancel any pending debounced save on unmount so it doesn't fire against a gone component.
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, []);
+
+  const scheduleSave = () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      saveTimer.current = null;
+      setSaved(false);
+      setError(null);
+      setSaving(true);
+      try {
+        const res = await updateWeekly(
+          selectedToWindows(latestSelectedRef.current),
+        );
+        applySelected(computeSelected(res.weekly));
+        onConflicts(res.bookingConflicts);
+        setSaved(true);
+      } catch (e) {
+        setError((e as ApiError).message ?? t("admin.availability.saveError"));
+        // Resync with the server so the grid doesn't keep showing a change that failed to persist.
+        getAvailability()
+          .then(({ weekly }) => applySelected(computeSelected(weekly)))
+          .catch(() => {});
+      } finally {
+        setSaving(false);
+      }
+    }, AUTOSAVE_DEBOUNCE_MS);
+  };
 
   const toggle = (dow: number, hour: number) => {
     const key = `${dow}:${hour}`;
@@ -88,25 +132,11 @@ export function GeneralAvailabilityEditor({ onConflicts }: Props) {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      latestSelectedRef.current = next;
       return next;
     });
     setSaved(false);
-  };
-
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    setSaved(false);
-    try {
-      const res = await updateWeekly(selectedToWindows(selected));
-      setSelected(computeSelected(res.weekly));
-      onConflicts(res.bookingConflicts);
-      setSaved(true);
-    } catch (e) {
-      setError((e as ApiError).message ?? t("admin.availability.saveError"));
-    } finally {
-      setSaving(false);
-    }
+    scheduleSave();
   };
 
   if (loading)
@@ -130,7 +160,7 @@ export function GeneralAvailabilityEditor({ onConflicts }: Props) {
         <div
           className="grid w-full gap-x-1.5 gap-y-1"
           style={{
-            gridTemplateColumns: `3.5rem repeat(7, minmax(0, 1fr))`,
+            gridTemplateColumns: `5.5rem repeat(7, minmax(0, 1fr))`,
           }}
         >
           <div />
@@ -145,8 +175,8 @@ export function GeneralAvailabilityEditor({ onConflicts }: Props) {
 
           {HOURS.map((hour) => (
             <Fragment key={hour}>
-              <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground h-12">
-                {String(hour).padStart(2, "0")}:00
+              <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground h-12 whitespace-nowrap">
+                {String(hour).padStart(2, "0")}:00-{String(hour + 1).padStart(2, "0")}:00
               </div>
               {DOWS.map((dow) => {
                 const isOn = selected.has(`${dow}:${hour}`);
@@ -167,17 +197,17 @@ export function GeneralAvailabilityEditor({ onConflicts }: Props) {
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {saved && (
-          <p className="text-sm text-green-600">
-            {t("admin.availability.saved")}
+        {saving ? (
+          <p className="text-sm text-muted-foreground">
+            {t("admin.availability.saving")}
           </p>
+        ) : (
+          saved && (
+            <p className="text-sm text-green-600">
+              {t("admin.availability.saved")}
+            </p>
+          )
         )}
-
-        <Button onClick={save} disabled={saving}>
-          {saving
-            ? t("admin.availability.saving")
-            : t("admin.availability.save")}
-        </Button>
       </CardContent>
     </Card>
   );

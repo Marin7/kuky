@@ -102,17 +102,21 @@ public class BookingService {
         User user = userRepository.findByEmailIgnoreCase(userEmail.toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
 
-        List<Booking> all = bookingRepository.findByUserId(user.getId());
+        // Cancelled bookings are dropped entirely from the student's own history — they never
+        // held the class, so there's nothing to show, past or upcoming.
+        List<Booking> all = bookingRepository.findByUserId(user.getId()).stream()
+                .filter(b -> "CONFIRMED".equals(b.getStatus()))
+                .toList();
         Instant now = Instant.now();
         int cancelCutoff = props.getScheduling().getCancelCutoffHours();
 
         List<BookingSummary> upcoming = all.stream()
-                .filter(b -> b.getSlotEnd().isAfter(now) && "CONFIRMED".equals(b.getStatus()))
+                .filter(b -> b.getSlotEnd().isAfter(now))
                 .map(b -> toSummary(b, cancelCutoff, user.getId()))
                 .toList();
 
         List<BookingSummary> past = all.stream()
-                .filter(b -> !b.getSlotEnd().isAfter(now) || "CANCELLED".equals(b.getStatus()))
+                .filter(b -> !b.getSlotEnd().isAfter(now))
                 .map(b -> toSummary(b, cancelCutoff, user.getId()))
                 .toList();
 

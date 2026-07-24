@@ -27,9 +27,9 @@ import static org.mockito.Mockito.*;
 /** Pure-logic tests for slot derivation and week materialization — no Spring context, no database. */
 class AvailabilityServiceTest {
 
-    private static final ZoneId MADRID = ZoneId.of("Europe/Madrid");
-    // Monday 2026-06-15, 08:00 Madrid (06:00 UTC in summer/CEST). Horizon: 06-15 .. 06-29.
-    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-06-15T06:00:00Z"), MADRID);
+    private static final ZoneId BUCHAREST = ZoneId.of("Europe/Bucharest");
+    // Monday 2026-06-15, 09:00 Bucharest (06:00 UTC in summer/EEST). Horizon: 06-15 .. 06-29.
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-06-15T06:00:00Z"), BUCHAREST);
     private static final LocalDate WEEK_1 = LocalDate.of(2026, 6, 15);
     private static final LocalDate WEEK_2 = LocalDate.of(2026, 6, 22);
     private static final LocalDate WEEK_3 = LocalDate.of(2026, 6, 29);
@@ -49,27 +49,27 @@ class AvailabilityServiceTest {
                 .thenReturn(List.of(WEEK_1, WEEK_2, WEEK_3, WEEK_4));
         when(availabilityRepo.findDayWindowsBetween(any(), any())).thenReturn(List.of());
         when(availabilityRepo.findDayWindows(any())).thenReturn(List.of());
-        SchedulingProperties props = new SchedulingProperties(); // defaults: Madrid, 60/90min, 24h lead
+        SchedulingProperties props = new SchedulingProperties(); // defaults: Bucharest, 60/90min, 24h lead, 30min buffer/step
         service = new AvailabilityService(props, bookingRepo, availabilityRepo, CLOCK);
     }
 
     private List<LocalTime> openTimesOn(LocalDate date, int durationMinutes) {
         return service.generateSchedule(durationMinutes).stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(date))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalDate().equals(date))
                 .filter(s -> s.getStatus() == Slot.Status.OPEN)
-                .map(s -> s.getStart().atZone(MADRID).toLocalTime())
+                .map(s -> s.getStart().atZone(BUCHAREST).toLocalTime())
                 .toList();
     }
 
     private static Slot.Status statusAt(List<Slot> slots, LocalTime time) {
         return slots.stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalTime().equals(time))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalTime().equals(time))
                 .findFirst().orElseThrow().getStatus();
     }
 
     private long openCountOn(LocalDate date, int durationMinutes) {
         return service.generateSchedule(durationMinutes).stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(date))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalDate().equals(date))
                 .filter(s -> s.getStatus() == Slot.Status.OPEN)
                 .count();
     }
@@ -77,12 +77,17 @@ class AvailabilityServiceTest {
     // --- slot derivation from the materialized snapshot --------------------------------------
 
     @Test
-    void generatesHourlySlotsInsideAWindow() {
+    void generatesHalfHourSteppedSlotsInsideAWindow() {
         when(availabilityRepo.findDayWindowsBetween(any(), any()))
                 .thenReturn(List.of(dw(LocalDate.of(2026, 6, 24), "09:00", "12:00")));
 
+        // 60-minute classes, but candidates start every 30 minutes (slotStepMinutes), not just on
+        // the hour — the last one that still fits before 12:00 is 11:00 (11:00+60=12:00).
         assertThat(openTimesOn(LocalDate.of(2026, 6, 24), 60))
-                .containsExactly(LocalTime.of(9, 0), LocalTime.of(10, 0), LocalTime.of(11, 0));
+                .containsExactly(
+                        LocalTime.of(9, 0), LocalTime.of(9, 30),
+                        LocalTime.of(10, 0), LocalTime.of(10, 30),
+                        LocalTime.of(11, 0));
     }
 
     @Test
@@ -112,12 +117,12 @@ class AvailabilityServiceTest {
                 .thenReturn(List.of(dw(LocalDate.of(2026, 6, 24), "09:00", "12:00")));
 
         assertThat(openCountOn(LocalDate.of(2026, 6, 23), 60)).isZero();
-        assertThat(openCountOn(LocalDate.of(2026, 6, 24), 60)).isEqualTo(3);
+        assertThat(openCountOn(LocalDate.of(2026, 6, 24), 60)).isEqualTo(5);
     }
 
     @Test
     void slotsWithinTheLeadWindowAreUnavailable() {
-        // Monday (today) 09:00 is < 24h ahead of the 08:00 "now" → not OPEN.
+        // Monday (today) 09:00 is < 24h ahead of the 09:00 "now" → not OPEN.
         when(availabilityRepo.findDayWindowsBetween(any(), any()))
                 .thenReturn(List.of(dw(WEEK_1, "09:00", "12:00")));
 
@@ -130,8 +135,8 @@ class AvailabilityServiceTest {
         when(availabilityRepo.findDayWindows(eq(date)))
                 .thenReturn(List.of(dw(date, "09:00", "12:00")));
 
-        Instant insideStart = date.atTime(10, 0).atZone(MADRID).toInstant();
-        Instant outsideStart = date.atTime(16, 0).atZone(MADRID).toInstant(); // no window
+        Instant insideStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
+        Instant outsideStart = date.atTime(16, 0).atZone(BUCHAREST).toInstant(); // no window
         when(bookingRepo.findUpcomingConfirmedBookings(any())).thenReturn(List.of(
                 new BookingRepository.ConfirmedBookingView(UUID.randomUUID(), "in@x.com", insideStart, 60),
                 new BookingRepository.ConfirmedBookingView(UUID.randomUUID(), "out@x.com", outsideStart, 60)));
@@ -148,9 +153,13 @@ class AvailabilityServiceTest {
         when(availabilityRepo.findDayWindowsBetween(any(), any()))
                 .thenReturn(List.of(dw(LocalDate.of(2026, 6, 24), "09:00", "13:00")));
 
-        // A 4-hour window chunked in 90-minute steps from window start: 09:00, 10:30, 12:00 (12:00+90=13:30 > 13:00 excluded).
+        // A 4-hour window, 90-minute classes, candidates every 30 minutes — the last one that
+        // still fits before 13:00 is 11:30 (11:30+90=13:00).
         assertThat(openTimesOn(LocalDate.of(2026, 6, 24), 90))
-                .containsExactly(LocalTime.of(9, 0), LocalTime.of(10, 30));
+                .containsExactly(
+                        LocalTime.of(9, 0), LocalTime.of(9, 30),
+                        LocalTime.of(10, 0), LocalTime.of(10, 30),
+                        LocalTime.of(11, 0), LocalTime.of(11, 30));
     }
 
     @Test
@@ -159,7 +168,10 @@ class AvailabilityServiceTest {
                 .thenReturn(List.of(dw(LocalDate.of(2026, 6, 24), "09:00", "12:00")));
 
         assertThat(openTimesOn(LocalDate.of(2026, 6, 24), 60))
-                .containsExactly(LocalTime.of(9, 0), LocalTime.of(10, 0), LocalTime.of(11, 0));
+                .containsExactly(
+                        LocalTime.of(9, 0), LocalTime.of(9, 30),
+                        LocalTime.of(10, 0), LocalTime.of(10, 30),
+                        LocalTime.of(11, 0));
     }
 
     @Test
@@ -170,16 +182,16 @@ class AvailabilityServiceTest {
 
         // An existing 60-minute booking at 09:30 (09:30-10:30) overlaps the 90-minute candidate
         // slot starting at 09:00 (09:00-10:30) and the one at 10:30 would not overlap it.
-        Instant existingStart = date.atTime(9, 30).atZone(MADRID).toInstant();
+        Instant existingStart = date.atTime(9, 30).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
                 .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 60)));
 
         List<Slot> slots = service.generateSchedule(90).stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(date))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalDate().equals(date))
                 .toList();
 
         Slot nineOClock = slots.stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalTime().equals(LocalTime.of(9, 0)))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalTime().equals(LocalTime.of(9, 0)))
                 .findFirst().orElseThrow();
         assertThat(nineOClock.getStatus()).isEqualTo(Slot.Status.BOOKED);
     }
@@ -203,7 +215,7 @@ class AvailabilityServiceTest {
         LocalDate date = LocalDate.of(2026, 6, 24);
         when(availabilityRepo.findDayWindows(eq(date)))
                 .thenReturn(List.of(dw(date, "09:00", "12:00")));
-        Instant slotStart = date.atTime(9, 0).atZone(MADRID).toInstant();
+        Instant slotStart = date.atTime(9, 0).atZone(BUCHAREST).toInstant();
 
         assertThatCode(() -> service.validateBookable(slotStart, 60)).doesNotThrowAnyException();
     }
@@ -214,7 +226,7 @@ class AvailabilityServiceTest {
         // Only a 60-minute window — a 90-minute booking can never fit.
         when(availabilityRepo.findDayWindows(eq(date)))
                 .thenReturn(List.of(dw(date, "09:00", "10:00")));
-        Instant slotStart = date.atTime(9, 0).atZone(MADRID).toInstant();
+        Instant slotStart = date.atTime(9, 0).atZone(BUCHAREST).toInstant();
 
         assertThatThrownBy(() -> service.validateBookable(slotStart, 90))
                 .isInstanceOf(BookingNotAllowedException.class)
@@ -227,7 +239,7 @@ class AvailabilityServiceTest {
         LocalDate date = LocalDate.of(2026, 6, 24);
         when(availabilityRepo.findDayWindows(eq(date)))
                 .thenReturn(List.of(dw(date, "09:00", "12:00")));
-        Instant slotStart = date.atTime(9, 0).atZone(MADRID).toInstant();
+        Instant slotStart = date.atTime(9, 0).atZone(BUCHAREST).toInstant();
 
         assertThatCode(() -> service.validateBookable(slotStart, 90)).doesNotThrowAnyException();
     }
@@ -239,8 +251,8 @@ class AvailabilityServiceTest {
                 .thenReturn(List.of(dw(date, "09:00", "13:00")));
         // Existing 90-minute booking 09:00-10:30. A new 60-minute request at 10:00 (aligned to the
         // hour, so it passes the alignment check) still overlaps it (10:00-11:00 vs 09:00-10:30).
-        Instant existingStart = date.atTime(9, 0).atZone(MADRID).toInstant();
-        Instant candidateStart = date.atTime(10, 0).atZone(MADRID).toInstant();
+        Instant existingStart = date.atTime(9, 0).atZone(BUCHAREST).toInstant();
+        Instant candidateStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
                 .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 90)));
 
@@ -248,7 +260,7 @@ class AvailabilityServiceTest {
                 .isInstanceOf(SlotUnavailableException.class);
     }
 
-    // --- 15-minute booking buffer (spec 020, US1/US3) -----------------------------------------
+    // --- booking buffer (spec 020, US1/US3; default widened from 15 to 30 minutes) ------------
 
     @Test
     void generateSchedule_bufferMarksNearAdjacentSlotsUnavailable_butExactOverlapStaysBooked() {
@@ -256,12 +268,12 @@ class AvailabilityServiceTest {
         when(availabilityRepo.findDayWindowsBetween(any(), any()))
                 .thenReturn(List.of(dw(date, "09:00", "13:00")));
         // Existing 60-minute booking 10:00-11:00.
-        Instant existingStart = date.atTime(10, 0).atZone(MADRID).toInstant();
+        Instant existingStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
                 .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 60)));
 
         List<Slot> slots = service.generateSchedule(60).stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(date))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalDate().equals(date))
                 .toList();
 
         assertThat(statusAt(slots, LocalTime.of(9, 0))).isEqualTo(Slot.Status.UNAVAILABLE); // 0 min gap before
@@ -271,37 +283,57 @@ class AvailabilityServiceTest {
     }
 
     @Test
-    void generateSchedule_slotExactlyFifteenMinutesAfterBookingEndsIsOpen() {
+    void generateSchedule_halfHourStepLetsTheNextClassStartExactlyOneBufferAfterThePrevious() {
+        // The scenario a teacher actually wants: book 09:00-10:00, then be able to offer a class
+        // starting at 10:30 (a real 30-minute break) instead of the previous behaviour where the
+        // only candidates were on the hour, forcing the next open slot all the way to 11:00.
         LocalDate date = LocalDate.of(2026, 6, 24);
         when(availabilityRepo.findDayWindowsBetween(any(), any()))
                 .thenReturn(List.of(dw(date, "09:00", "13:00")));
-        // Existing 45-minute booking 10:00-10:45 — the next hourly slot (11:00) starts exactly 15 min later.
-        Instant existingStart = date.atTime(10, 0).atZone(MADRID).toInstant();
+        Instant existingStart = date.atTime(9, 0).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
-                .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 45)));
+                .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 60)));
 
-        List<Slot> slots = service.generateSchedule(60).stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(date))
-                .toList();
+        List<LocalTime> open = openTimesOn(date, 60);
 
-        assertThat(statusAt(slots, LocalTime.of(11, 0))).isEqualTo(Slot.Status.OPEN);
+        // 09:00-10:00 is booked; 09:00/09:30 candidates overlap it; 10:00 sits inside its buffer
+        // zone; 10:30 is exactly one buffer past the booking's end and must be OPEN.
+        assertThat(open).doesNotContain(LocalTime.of(9, 0), LocalTime.of(9, 30), LocalTime.of(10, 0));
+        assertThat(open).contains(LocalTime.of(10, 30));
     }
 
     @Test
-    void generateSchedule_slotFourteenMinutesAfterBookingEndsIsUnavailable() {
+    void generateSchedule_slotExactlyThirtyMinutesAfterBookingEndsIsOpen() {
         LocalDate date = LocalDate.of(2026, 6, 24);
         when(availabilityRepo.findDayWindowsBetween(any(), any()))
                 .thenReturn(List.of(dw(date, "09:00", "13:00")));
-        // Existing 46-minute booking 10:00-10:46 — the next hourly slot (11:00) starts only 14 min later.
-        Instant existingStart = date.atTime(10, 0).atZone(MADRID).toInstant();
+        // Existing 60-minute booking 10:00-11:00 — the next half-hour-stepped slot (11:30) starts exactly 30 min later.
+        Instant existingStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
-                .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 46)));
+                .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 60)));
 
         List<Slot> slots = service.generateSchedule(60).stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(date))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalDate().equals(date))
                 .toList();
 
-        assertThat(statusAt(slots, LocalTime.of(11, 0))).isEqualTo(Slot.Status.UNAVAILABLE);
+        assertThat(statusAt(slots, LocalTime.of(11, 30))).isEqualTo(Slot.Status.OPEN);
+    }
+
+    @Test
+    void generateSchedule_slotTwentyNineMinutesAfterBookingEndsIsUnavailable() {
+        LocalDate date = LocalDate.of(2026, 6, 24);
+        when(availabilityRepo.findDayWindowsBetween(any(), any()))
+                .thenReturn(List.of(dw(date, "09:00", "13:00")));
+        // Existing 61-minute booking 10:00-11:01 — the next half-hour-stepped slot (11:30) starts only 29 min later.
+        Instant existingStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
+        when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
+                .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 61)));
+
+        List<Slot> slots = service.generateSchedule(60).stream()
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalDate().equals(date))
+                .toList();
+
+        assertThat(statusAt(slots, LocalTime.of(11, 30))).isEqualTo(Slot.Status.UNAVAILABLE);
     }
 
     @Test
@@ -309,11 +341,11 @@ class AvailabilityServiceTest {
         LocalDate date = LocalDate.of(2026, 6, 24);
         when(availabilityRepo.findDayWindowsBetween(any(), any()))
                 .thenReturn(List.of(dw(date, "09:00", "13:00")));
-        Instant existingStart = date.atTime(10, 0).atZone(MADRID).toInstant();
+        Instant existingStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
                 .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 60)));
 
-        // Before cancellation: 11:00 sits inside the booking's buffer zone (booking ends 11:00, buffer to 11:15).
+        // Before cancellation: 11:00 sits inside the booking's buffer zone (booking ends 11:00, buffer to 11:30).
         assertThat(openTimesOn(date, 60)).doesNotContain(LocalTime.of(11, 0));
 
         // Cancellation: findConfirmedBookingIntervalsBetween already filters WHERE status = 'CONFIRMED',
@@ -329,25 +361,50 @@ class AvailabilityServiceTest {
         when(availabilityRepo.findDayWindows(eq(date)))
                 .thenReturn(List.of(dw(date, "09:00", "13:00")));
         // Existing 50-minute booking 10:00-10:50 — a candidate at 11:00 is only 10 minutes later.
-        Instant existingStart = date.atTime(10, 0).atZone(MADRID).toInstant();
+        Instant existingStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
                 .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 50)));
-        Instant candidateStart = date.atTime(11, 0).atZone(MADRID).toInstant();
+        Instant candidateStart = date.atTime(11, 0).atZone(BUCHAREST).toInstant();
 
         assertThatThrownBy(() -> service.validateBookable(candidateStart, 60))
                 .isInstanceOf(SlotUnavailableException.class);
     }
 
     @Test
-    void validateBookable_succeedsAtExactlyFifteenMinutesAfterExistingBookingEnds() {
+    void validateBookable_acceptsAHalfHourStartNotAlignedToTheClassDuration() {
+        // Previously the alignment check rejected any start not a multiple of the *class*
+        // duration (60), so 10:30 was impossible even with a free, fitting window.
         LocalDate date = LocalDate.of(2026, 6, 24);
         when(availabilityRepo.findDayWindows(eq(date)))
                 .thenReturn(List.of(dw(date, "09:00", "13:00")));
-        // Existing 45-minute booking 10:00-10:45 — a candidate at 11:00 is exactly 15 minutes later.
-        Instant existingStart = date.atTime(10, 0).atZone(MADRID).toInstant();
+        Instant slotStart = date.atTime(10, 30).atZone(BUCHAREST).toInstant();
+
+        assertThatCode(() -> service.validateBookable(slotStart, 60)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void validateBookable_rejectsAStartNotAlignedToTheConfiguredSlotStep() {
+        LocalDate date = LocalDate.of(2026, 6, 24);
+        when(availabilityRepo.findDayWindows(eq(date)))
+                .thenReturn(List.of(dw(date, "09:00", "13:00")));
+        Instant slotStart = date.atTime(9, 15).atZone(BUCHAREST).toInstant(); // not a multiple of 30
+
+        assertThatThrownBy(() -> service.validateBookable(slotStart, 60))
+                .isInstanceOf(BookingNotAllowedException.class)
+                .extracting(e -> ((BookingNotAllowedException) e).getReason())
+                .isEqualTo(BookingNotAllowedException.Reason.RANGE);
+    }
+
+    @Test
+    void validateBookable_succeedsAtExactlyThirtyMinutesAfterExistingBookingEnds() {
+        LocalDate date = LocalDate.of(2026, 6, 24);
+        when(availabilityRepo.findDayWindows(eq(date)))
+                .thenReturn(List.of(dw(date, "09:00", "13:00")));
+        // Existing 30-minute booking 10:00-10:30 — a candidate at 11:00 is exactly 30 minutes later.
+        Instant existingStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
-                .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 45)));
-        Instant candidateStart = date.atTime(11, 0).atZone(MADRID).toInstant();
+                .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 30)));
+        Instant candidateStart = date.atTime(11, 0).atZone(BUCHAREST).toInstant();
 
         assertThatCode(() -> service.validateBookable(candidateStart, 60)).doesNotThrowAnyException();
     }
@@ -359,10 +416,10 @@ class AvailabilityServiceTest {
                 .thenReturn(List.of(dw(date, "09:00", "13:00")));
         // Existing 60-minute booking 11:00-12:00. A candidate 10:00-11:00 touches it with 0 min gap —
         // previously allowed (no overlap), now rejected (FR-002).
-        Instant existingStart = date.atTime(11, 0).atZone(MADRID).toInstant();
+        Instant existingStart = date.atTime(11, 0).atZone(BUCHAREST).toInstant();
         when(bookingRepo.findConfirmedBookingIntervalsBetween(any(), any()))
                 .thenReturn(List.of(new BookingRepository.BookedInterval(existingStart, 60)));
-        Instant candidateStart = date.atTime(10, 0).atZone(MADRID).toInstant();
+        Instant candidateStart = date.atTime(10, 0).atZone(BUCHAREST).toInstant();
 
         assertThatThrownBy(() -> service.validateBookable(candidateStart, 60))
                 .isInstanceOf(SlotUnavailableException.class);
@@ -418,13 +475,13 @@ class AvailabilityServiceTest {
 
     @Test
     void slotInstantsShiftCorrectlyAcrossTheOctoberDstTransition() {
-        // Spain's clocks go back one hour at 03:00 CEST on the last Sunday of October
-        // (2026-10-25). A 09:00 local Madrid slot must be 07:00 UTC (CEST, UTC+2) the week
-        // before the transition, and 08:00 UTC (CET, UTC+1) the week after — verifying the
+        // Romania's clocks go back one hour at 04:00 EEST on the last Sunday of October
+        // (2026-10-25). A 09:00 local Bucharest slot must be 06:00 UTC (EEST, UTC+3) the week
+        // before the transition, and 07:00 UTC (EET, UTC+2) the week after — verifying the
         // existing ZoneId-based conversion (not new logic) handles the fold correctly, per FR-006.
-        LocalDate weekBefore = LocalDate.of(2026, 10, 19); // Monday, still CEST
-        LocalDate weekAfter = LocalDate.of(2026, 10, 26);  // Monday, already CET
-        Clock dstClock = Clock.fixed(weekBefore.atStartOfDay(MADRID).toInstant(), MADRID);
+        LocalDate weekBefore = LocalDate.of(2026, 10, 19); // Monday, still EEST
+        LocalDate weekAfter = LocalDate.of(2026, 10, 26);  // Monday, already EET
+        Clock dstClock = Clock.fixed(weekBefore.atStartOfDay(BUCHAREST).toInstant(), BUCHAREST);
 
         AvailabilityRepository repo = mock(AvailabilityRepository.class);
         BookingRepository bookings = mock(BookingRepository.class);
@@ -438,14 +495,14 @@ class AvailabilityServiceTest {
         AvailabilityService dstService = new AvailabilityService(new SchedulingProperties(), bookings, repo, dstClock);
 
         Instant beforeTransition = dstService.generateSchedule(60).stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(weekBefore))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalDate().equals(weekBefore))
                 .findFirst().orElseThrow().getStart();
         Instant afterTransition = dstService.generateSchedule(60).stream()
-                .filter(s -> s.getStart().atZone(MADRID).toLocalDate().equals(weekAfter))
+                .filter(s -> s.getStart().atZone(BUCHAREST).toLocalDate().equals(weekAfter))
                 .findFirst().orElseThrow().getStart();
 
-        assertThat(beforeTransition).isEqualTo(Instant.parse("2026-10-19T07:00:00Z")); // CEST, UTC+2
-        assertThat(afterTransition).isEqualTo(Instant.parse("2026-10-26T08:00:00Z"));  // CET, UTC+1
+        assertThat(beforeTransition).isEqualTo(Instant.parse("2026-10-19T06:00:00Z")); // EEST, UTC+3
+        assertThat(afterTransition).isEqualTo(Instant.parse("2026-10-26T07:00:00Z"));  // EET, UTC+2
     }
 
     private static DayWindow dw(LocalDate date, String start, String end) {

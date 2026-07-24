@@ -44,11 +44,13 @@ app:
     enabled: ${MAIL_ENABLED:false}
     from: ${MAIL_FROM:noreply@kuky.es}
   scheduling:
-    teacher-timezone: Europe/Madrid
+    teacher-timezone: Europe/Bucharest
     teacher-email: ${TEACHER_EMAIL:noreply@kuky.es}
     class-duration-minutes: 60
     min-lead-hours: 24
     cancel-cutoff-hours: 24
+    buffer-minutes: 30
+    slot-step-minutes: 30
   zoom:
     account-id: ${ZOOM_ACCOUNT_ID:}
     client-id: ${ZOOM_CLIENT_ID:}

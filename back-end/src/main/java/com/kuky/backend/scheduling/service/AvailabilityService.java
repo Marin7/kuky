@@ -70,6 +70,8 @@ public class AvailabilityService {
         Instant now = clock.instant();
         Instant leadCutoff = now.plusSeconds((long) minLeadHours * 3600);
 
+        int stepMinutes = slotStep(durationMinutes);
+
         List<Slot> slots = new ArrayList<>();
         LocalDate date = horizonStart;
         while (date.isBefore(horizonEnd)) {
@@ -89,7 +91,7 @@ public class AvailabilityService {
                         status = Slot.Status.OPEN;
                     }
                     slots.add(new Slot(start, end, status));
-                    time = time.plusMinutes(durationMinutes);
+                    time = time.plusMinutes(stepMinutes);
                 }
             }
             date = date.plusDays(1);
@@ -122,8 +124,9 @@ public class AvailabilityService {
         ZonedDateTime zdt = slotStart.atZone(zone);
         LocalDate date = zdt.toLocalDate();
         LocalTime time = zdt.toLocalTime();
+        int stepMinutes = slotStep(durationMinutes);
         if (time.getSecond() != 0 || time.getNano() != 0
-                || time.getMinute() % durationMinutes != 0
+                || time.getMinute() % stepMinutes != 0
                 || !fitsAvailability(date, time, durationMinutes)) {
             throw new BookingNotAllowedException(BookingNotAllowedException.Reason.RANGE);
         }
@@ -249,6 +252,20 @@ public class AvailabilityService {
 
     private ZoneId zone() {
         return ZoneId.of(props.getScheduling().getTeacherTimezone());
+    }
+
+    /**
+     * Interval between candidate slot start times within a window (e.g. every 15 minutes), capped
+     * at the class duration so a misconfigured step larger than the class itself can't skip valid
+     * starts. Decoupling this from durationMinutes is what allows a class to end at a non-hour
+     * time (e.g. 10:15) and the next class to start right there instead of at the next full hour.
+     */
+    private int slotStep(int durationMinutes) {
+        int configured = props.getScheduling().getSlotStepMinutes();
+        if (configured <= 0) {
+            return durationMinutes;
+        }
+        return Math.min(configured, durationMinutes);
     }
 
     private LocalDate horizonStartDate() {

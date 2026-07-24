@@ -44,7 +44,7 @@ class BookingControllerIntegrationTest {
     }
 
     private Instant validFutureSlot() {
-        ZoneId zone = ZoneId.of("Europe/Madrid");
+        ZoneId zone = ZoneId.of("Europe/Bucharest");
         LocalDate today = LocalDate.now(zone);
         // Find a slot at least 25h out, on the hour, within 09:00-18:00, within the 2-week horizon
         LocalDate target = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusDays(7);

@@ -39,7 +39,7 @@ class BookingEmailServiceTest {
         when(mailSender.createMimeMessage()).thenAnswer(inv -> new MimeMessage(SESSION));
         userRepository = mock(UserRepository.class);
         when(userRepository.findByEmailIgnoreCase(anyString())).thenReturn(Optional.empty());
-        SchedulingProperties props = new SchedulingProperties(); // default teacherTimezone = Europe/Madrid
+        SchedulingProperties props = new SchedulingProperties(); // default teacherTimezone = Europe/Bucharest
         emailService = new BookingEmailService(mailSender, "noreply@kuky.es", userRepository, props, true);
     }
 
@@ -191,8 +191,8 @@ class BookingEmailServiceTest {
 
         MimeMessage[] sent = captureSentMessages(1);
         String body = textBodyOf(sent[0]);
-        // 2026-08-15T10:00:00Z is 12:00 in Europe/Madrid (CEST, UTC+2) — the teacher-zone fallback.
-        assertThat(body).contains("12:00 (Europe/Madrid)");
+        // 2026-08-15T10:00:00Z is 13:00 in Europe/Bucharest (EEST, UTC+3) — the teacher-zone fallback.
+        assertThat(body).contains("13:00 (Europe/Bucharest)");
     }
 
     @Test
@@ -203,7 +203,7 @@ class BookingEmailServiceTest {
 
         MimeMessage[] sent = captureSentMessages(1);
         String body = textBodyOf(sent[0]);
-        assertThat(body).contains("12:00 (Europe/Madrid)");
+        assertThat(body).contains("13:00 (Europe/Bucharest)");
         assertThat(body).doesNotContain("America/New_York");
     }
 

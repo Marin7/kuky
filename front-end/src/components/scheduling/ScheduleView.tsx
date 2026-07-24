@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getSchedule,
@@ -60,11 +60,14 @@ export function ScheduleView({
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [user, setUser] = useState<UserResponse | null>(null);
   const [duration, setDuration] = useState<60 | 90>(60);
+  // Keep the latest duration for refresh callbacks registered once on mount.
+  const durationRef = useRef(duration);
+  durationRef.current = duration;
 
   const canBook = user?.role === "STUDENT" || user?.role === "ADMIN";
   const canBookExtended = canBook && !!user?.extendedClassEligible;
 
-  const fetchSchedule = (forDuration: number = duration) => {
+  const fetchSchedule = (forDuration: number = durationRef.current) => {
     setLoading(true);
     setError(null);
     getSchedule(forDuration)
@@ -74,10 +77,23 @@ export function ScheduleView({
   };
 
   useEffect(() => {
-    fetchSchedule();
+    // Resolve duration from the user profile first so extended-class students
+    // land on 90 minutes without an intermediate 60-minute fetch.
     getMe()
-      .then(setUser)
-      .catch(() => setUser(null));
+      .then((me) => {
+        setUser(me);
+        const eligible =
+          (me.role === "STUDENT" || me.role === "ADMIN") &&
+          !!me.extendedClassEligible;
+        const initial: 60 | 90 = eligible ? 90 : 60;
+        setDuration(initial);
+        durationRef.current = initial;
+        fetchSchedule(initial);
+      })
+      .catch(() => {
+        setUser(null);
+        fetchSchedule(60);
+      });
 
     if (onRefreshRef) {
       onRefreshRef.current = () => fetchSchedule();

@@ -69,7 +69,7 @@ export function TimeSlotList({
               onClick={() => onSelect(slot)}
               className="w-full rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-foreground hover:bg-primary/10 hover:border-primary transition-colors text-left"
             >
-              {formatTime(slot.start, timezone, i18n.language)}
+              {`${formatTime(slot.start, timezone, i18n.language)} - ${formatTime(slot.end, timezone, i18n.language)}`}
             </button>
           ))}
         </div>

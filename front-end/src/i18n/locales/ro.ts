@@ -536,7 +536,6 @@ export const roDict = {
       loadError: "Nu s-a putut încărca disponibilitatea.",
       saveError: "Nu s-a putut salva.",
       saved: "Program salvat.",
-      save: "Salvează programul",
       saving: "Se salvează…",
       loading: "Se încarcă…",
       general: {

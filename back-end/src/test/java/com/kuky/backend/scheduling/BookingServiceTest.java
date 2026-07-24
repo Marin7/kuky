@@ -56,7 +56,7 @@ class BookingServiceTest {
         availabilityService = mock(AvailabilityService.class);
         meetingProvider = mock(MeetingProvider.class);
         emailService = mock(BookingEmailService.class);
-        SchedulingProperties props = new SchedulingProperties(); // real defaults: 60/90 min, Madrid, etc.
+        SchedulingProperties props = new SchedulingProperties(); // real defaults: 60/90 min, Bucharest, etc.
         service = new BookingService(bookingRepository, userRepository, availabilityService,
                 meetingProvider, emailService, props);
     }
@@ -390,6 +390,29 @@ class BookingServiceTest {
 
         assertThat(response.upcoming()).hasSize(1);
         assertThat(response.upcoming().get(0).isCompanionStudent()).isTrue();
+    }
+
+    @Test
+    void listForUser_excludesCancelledBookingsFromBothUpcomingAndPast() {
+        String email = "student@example.com";
+        UUID userId = UUID.randomUUID();
+        User student = studentUser(email, false);
+        student.setId(userId);
+        when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(student));
+
+        Booking cancelledUpcoming = booking("CANCELLED", Instant.now().plus(1, ChronoUnit.DAYS));
+        Booking cancelledPast = booking("CANCELLED", Instant.now().minus(1, ChronoUnit.DAYS));
+        Booking confirmedUpcoming = booking("CONFIRMED", Instant.now().plus(2, ChronoUnit.DAYS));
+        Booking confirmedPast = booking("CONFIRMED", Instant.now().minus(2, ChronoUnit.DAYS));
+        when(bookingRepository.findByUserId(userId)).thenReturn(
+                List.of(cancelledUpcoming, cancelledPast, confirmedUpcoming, confirmedPast));
+
+        MyBookingsResponse response = service.listForUser(email);
+
+        assertThat(response.upcoming()).hasSize(1);
+        assertThat(response.upcoming().get(0).status()).isEqualTo("CONFIRMED");
+        assertThat(response.past()).hasSize(1);
+        assertThat(response.past().get(0).status()).isEqualTo("CONFIRMED");
     }
 
     @Test

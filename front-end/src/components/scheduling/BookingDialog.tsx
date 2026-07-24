@@ -136,7 +136,7 @@ export function BookingDialog({
               {t("schedule.booking.confirmedTitle")}{" "}
               <strong>
                 {slot ? formatSlotDateTime(slot.start, timezone) : ""}
-                {confirmedEnd ? ` – ${formatTime(confirmedEnd, timezone)}` : ""}
+                {confirmedEnd ? ` - ${formatTime(confirmedEnd, timezone)}` : ""}
               </strong>
               .
             </p>
@@ -165,7 +165,11 @@ export function BookingDialog({
             {slot && (
               <p className="text-sm text-muted-foreground">
                 {t("schedule.booking.confirmTitle")}{" "}
-                <strong>{formatSlotDateTime(slot.start, timezone)}</strong>.
+                <strong>
+                  {formatSlotDateTime(slot.start, timezone)} -{" "}
+                  {formatTime(slot.end, timezone)}
+                </strong>
+                .
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}

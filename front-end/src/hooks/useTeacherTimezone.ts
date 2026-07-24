@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getSchedule } from "@/lib/scheduling";
 
-const FALLBACK_ZONE = "Europe/Madrid";
+const FALLBACK_ZONE = "Europe/Bucharest";
 
 /**
  * The teacher's fixed working time zone, read from the existing public schedule
