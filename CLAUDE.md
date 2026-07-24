@@ -69,7 +69,7 @@ npm run lint && npm run format
 | `APP_JWT_SECRET` | HS256 key, ≥ 32 chars |
 | `CORS_ALLOWED_ORIGIN` | Frontend origin, e.g. `https://kuky.es` |
 | `FRONTEND_BASE_URL` | Used in password reset emails |
-| `MAIL_HOST` / `MAIL_PORT` / `MAIL_FROM` | SMTP config |
+| `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_TOKEN` / `MAIL_FROM` / `MAIL_ENABLED` | Production SMTP via Mailtrap (`live.smtp.mailtrap.io`, user `api`, token = API token). Local profile uses Mailpit on `:1025` instead. |
 | `TEACHER_EMAIL` | Paula's email for booking notifications |
 | `ZOOM_ACCOUNT_ID` / `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET` / `ZOOM_USER_ID` | Zoom Server-to-Server OAuth |
 

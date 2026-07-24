@@ -41,7 +41,7 @@ services:
       MAIL_HOST: ${MAIL_HOST:-localhost}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_TOKEN: ${MAIL_TOKEN:-}
       MAIL_ENABLED: ${MAIL_ENABLED:-false}
       MAIL_FROM: ${MAIL_FROM:-noreply@kuky.es}
       TEACHER_EMAIL: ${TEACHER_EMAIL:-noreply@kuky.es}

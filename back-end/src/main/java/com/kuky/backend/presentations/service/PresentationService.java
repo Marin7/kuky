@@ -26,10 +26,14 @@ public class PresentationService {
 
     private final PresentationRepository repository;
     private final UserRepository userRepository;
+    private final PresentationFileStore fileStore;
 
-    public PresentationService(PresentationRepository repository, UserRepository userRepository) {
+    public PresentationService(PresentationRepository repository,
+                               UserRepository userRepository,
+                               PresentationFileStore fileStore) {
         this.repository = repository;
         this.userRepository = userRepository;
+        this.fileStore = fileStore;
     }
 
     public List<PresentationSummary> list() {
@@ -67,6 +71,7 @@ public class PresentationService {
         if (repository.delete(id) == 0) {
             throw new PresentationNotFoundException("Presentación no encontrada.");
         }
+        fileStore.deleteQuietly(id);
     }
 
     // --- file management -----------------------------------------------------
@@ -90,7 +95,14 @@ public class PresentationService {
             String name = (originalName != null && !originalName.isBlank()) ? originalName : "presentacion.pptx";
             String ct = file.getContentType() != null ? file.getContentType()
                     : "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-            repository.upsertFile(id, name, ct, (int) file.getSize(), file.getBytes());
+            byte[] data = file.getBytes();
+            fileStore.write(id, data);
+            try {
+                repository.upsertFile(id, name, ct, data.length);
+            } catch (RuntimeException e) {
+                fileStore.deleteQuietly(id);
+                throw e;
+            }
             repository.touch(id);
         } catch (IOException e) {
             throw new RuntimeException("Error al leer el archivo.", e);
@@ -101,13 +113,17 @@ public class PresentationService {
     public void removeFile(UUID id) {
         requirePresentation(id);
         repository.deleteFile(id);
+        fileStore.deleteQuietly(id);
         repository.touch(id);
     }
 
     public PresentationFile getFileData(UUID id) {
         requirePresentation(id);
-        return repository.findFile(id)
+        PresentationFile meta = repository.findFile(id)
                 .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
+        byte[] data = fileStore.read(id)
+                .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
+        return new PresentationFile(meta.presentationId(), meta.originalName(), meta.contentType(), meta.byteSize(), data);
     }
 
     // --- slides --------------------------------------------------------------

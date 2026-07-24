@@ -41,6 +41,8 @@ class LearningServiceTest {
     private UserRepository userRepository;
     @Mock
     private PresentationRepository presentationRepository;
+    @Mock
+    private com.kuky.backend.presentations.service.PresentationFileStore presentationFileStore;
 
     private LearningService service;
 
@@ -50,7 +52,7 @@ class LearningServiceTest {
     @BeforeEach
     void setUp() {
         service = new LearningService(contentRepository, submissionRepository, userRepository,
-                presentationRepository, new SchedulingProperties());
+                presentationRepository, presentationFileStore, new SchedulingProperties());
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);

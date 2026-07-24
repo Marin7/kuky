@@ -22,7 +22,7 @@ spring:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    password: ${MAIL_TOKEN:}
     properties:
       mail.smtp.auth: ${MAIL_SMTP_AUTH:true}
       mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:true}
@@ -58,3 +58,5 @@ app:
     user-id: ${ZOOM_USER_ID:me}
   images:
     storage-dir: ${IMAGES_STORAGE_DIR:./data/images}
+  presentation-files:
+    storage-dir: ${PRESENTATION_FILES_STORAGE_DIR:./data/presentation-files}

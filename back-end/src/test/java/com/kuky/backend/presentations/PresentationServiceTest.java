@@ -5,6 +5,7 @@ import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.presentations.model.Presentation;
 import com.kuky.backend.presentations.repository.PresentationRepository;
+import com.kuky.backend.presentations.service.PresentationFileStore;
 import com.kuky.backend.presentations.service.PresentationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,8 @@ class PresentationServiceTest {
     void setUp() {
         repository = mock(PresentationRepository.class);
         userRepository = mock(UserRepository.class);
-        service = new PresentationService(repository, userRepository);
+        PresentationFileStore fileStore = mock(PresentationFileStore.class);
+        service = new PresentationService(repository, userRepository, fileStore);
 
         Presentation p = new Presentation();
         p.setId(deckId);

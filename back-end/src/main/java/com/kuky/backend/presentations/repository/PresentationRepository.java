@@ -99,14 +99,17 @@ public class PresentationRepository {
     /** Full record including bytes — for serving a download. */
     public Optional<PresentationFile> findFile(UUID presentationId) {
         return jdbc.query(
-                "SELECT * FROM presentation_files WHERE presentation_id = :pid",
+                """
+                SELECT presentation_id, original_name, content_type, byte_size
+                FROM presentation_files WHERE presentation_id = :pid
+                """,
                 Map.of("pid", presentationId),
                 (rs, n) -> new PresentationFile(
                         rs.getObject("presentation_id", UUID.class),
                         rs.getString("original_name"),
                         rs.getString("content_type"),
                         rs.getInt("byte_size"),
-                        rs.getBytes("data")))
+                        null))
                 .stream().findFirst();
     }
 
@@ -120,23 +123,21 @@ public class PresentationRepository {
     }
 
     public void upsertFile(UUID presentationId, String originalName,
-                           String contentType, int byteSize, byte[] data) {
+                           String contentType, int byteSize) {
         jdbc.update("""
-                INSERT INTO presentation_files (presentation_id, original_name, content_type, byte_size, data)
-                VALUES (:pid, :name, :ct, :size, :data)
+                INSERT INTO presentation_files (presentation_id, original_name, content_type, byte_size)
+                VALUES (:pid, :name, :ct, :size)
                 ON CONFLICT (presentation_id) DO UPDATE SET
                     original_name = EXCLUDED.original_name,
                     content_type  = EXCLUDED.content_type,
                     byte_size     = EXCLUDED.byte_size,
-                    data          = EXCLUDED.data,
                     created_at    = NOW()
                 """,
                 new MapSqlParameterSource()
                         .addValue("pid", presentationId)
                         .addValue("name", originalName)
                         .addValue("ct", contentType)
-                        .addValue("size", byteSize)
-                        .addValue("data", data));
+                        .addValue("size", byteSize));
     }
 
     public void deleteFile(UUID presentationId) {

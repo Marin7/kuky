@@ -15,6 +15,7 @@ import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.presentations.model.PresentationFile;
 import com.kuky.backend.presentations.repository.PresentationRepository;
+import com.kuky.backend.presentations.service.PresentationFileStore;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -32,17 +33,20 @@ public class LearningService {
     private final HomeworkSubmissionRepository submissionRepository;
     private final UserRepository userRepository;
     private final PresentationRepository presentationRepository;
+    private final PresentationFileStore presentationFileStore;
     private final SchedulingProperties props;
 
     public LearningService(ContentRepository contentRepository,
                            HomeworkSubmissionRepository submissionRepository,
                            UserRepository userRepository,
                            PresentationRepository presentationRepository,
+                           PresentationFileStore presentationFileStore,
                            SchedulingProperties props) {
         this.contentRepository = contentRepository;
         this.submissionRepository = submissionRepository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
+        this.presentationFileStore = presentationFileStore;
         this.props = props;
     }
 
@@ -96,8 +100,11 @@ public class LearningService {
         if (!presentationRepository.isSharedWith(presentationId, user.getId())) {
             throw new PresentationNotFoundException("Presentación no encontrada.");
         }
-        return presentationRepository.findFile(presentationId)
+        PresentationFile meta = presentationRepository.findFile(presentationId)
                 .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
+        byte[] data = presentationFileStore.read(presentationId)
+                .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
+        return new PresentationFile(meta.presentationId(), meta.originalName(), meta.contentType(), meta.byteSize(), data);
     }
 
     private User requireUser(String email) {

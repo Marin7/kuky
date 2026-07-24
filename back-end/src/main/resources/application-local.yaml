@@ -45,3 +45,5 @@ app:
     user-id: "me"
   images:
     storage-dir: ./data/images
+  presentation-files:
+    storage-dir: ./data/presentation-files
