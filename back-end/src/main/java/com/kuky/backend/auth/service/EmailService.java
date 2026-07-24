@@ -32,11 +32,21 @@ public class EmailService {
             log.debug("EmailService — mail disabled, skipping send to {}", (Object) message.getTo());
             return;
         }
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+        } catch (Exception e) {
+            log.warn("EmailService — failed to send to {}: {}", (Object) message.getTo(), e.getMessage());
+            throw e;
+        }
     }
 
     public void sendActivationEmail(String toEmail, String activationToken) {
         String activationUrl = baseUrl + "/cuenta?activateToken=" + activationToken;
+
+        if (!mailEnabled) {
+            log.info("EmailService — mail disabled; activation URL for {}: {}", toEmail, activationUrl);
+            return;
+        }
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
@@ -55,6 +65,11 @@ public class EmailService {
 
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
         String resetUrl = baseUrl + "/cuenta?token=" + resetToken;
+
+        if (!mailEnabled) {
+            log.info("EmailService — mail disabled; reset URL for {}: {}", toEmail, resetUrl);
+            return;
+        }
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
