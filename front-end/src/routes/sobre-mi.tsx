@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import teacherUrl from "@/assets/teacher.jpg";
+import cvUrl from "@/assets/CV-aprilie 2026.pdf";
 import { seo, jsonLd, OG_IMAGE, SITE_URL } from "@/lib/seo";
 
 const PAULA_JSON_LD = {
@@ -13,7 +14,7 @@ const PAULA_JSON_LD = {
   image: OG_IMAGE,
   worksFor: {
     "@type": "EducationalOrganization",
-    name: "Español con Paula",
+    name: "Destino: Español",
     url: SITE_URL,
   },
 };
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/sobre-mi")({
   head: () => ({
     meta: [
       ...seo({
-        title: "Sobre mí — Español con Paula",
+        title: "Sobre mí — Destino: Español",
         description:
           "Conoce a Paula, profesora de español dedicada a ayudar a estudiantes rumanos a dominar el idioma.",
         path: "/sobre-mi",
@@ -37,43 +38,50 @@ function SobreMi() {
   const { t } = useTranslation();
   return (
     <div className="mx-auto max-w-5xl px-6 py-20">
-      <div className="grid gap-12 md:grid-cols-[2fr_3fr] md:items-start">
-        <img
-          src={teacherUrl}
-          alt="Paula, profesora de español"
-          className="aspect-[4/5] w-full rounded-2xl object-cover shadow-lg"
-        />
-        <div>
-          <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-primary">
-            {t("about.badge")}
-          </span>
-          <h1 className="mt-4 font-display text-4xl font-semibold md:text-5xl">
-            {t("about.title")}
-          </h1>
-          <div className="mt-6 space-y-4 text-muted-foreground">
-            <p>{t("about.p1")}</p>
-            <p>{t("about.p2")}</p>
-            <p>{t("about.p3")}</p>
-          </div>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-2">
-            {(["levels", "modality", "languages", "focus"] as const).map(
-              (key) => (
-                <div
-                  key={key}
-                  className="rounded-lg border border-border bg-card p-4"
-                >
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground">
-                    {t(`about.stats.${key}Label`)}
-                  </div>
-                  <div className="mt-1 font-medium">
-                    {t(`about.stats.${key}Value`)}
-                  </div>
-                </div>
+      <img
+        src={teacherUrl}
+        alt="Paula, profesora de español"
+        className="mb-8 aspect-[4/5] w-full rounded-2xl object-cover shadow-lg md:float-left md:mb-4 md:mr-10 md:w-[38%]"
+      />
+      <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-primary">
+        {t("about.badge")}
+      </span>
+      <h1 className="mt-4 font-display text-4xl font-semibold md:text-5xl">
+        {t("about.title")}
+      </h1>
+      <div className="mt-6 space-y-4 text-muted-foreground">
+        <p>{t("about.p1")}</p>
+        <p>
+          <Trans i18nKey="about.p2" components={{ em: <em /> }} />
+        </p>
+        <p>{t("about.p3")}</p>
+        <p>{t("about.p4")}</p>
+        <h2 className="clear-both pt-8 font-display text-2xl font-semibold text-foreground">
+          {t("about.trajectoryTitle")}
+        </h2>
+        <p>{t("about.p5")}</p>
+        <p>
+          <Trans i18nKey="about.p6" components={{ em: <em /> }} />
+        </p>
+        <p>{t("about.p7")}</p>
+        <blockquote className="border-l-4 border-primary bg-primary/5 px-5 py-4 font-display text-lg text-foreground">
+          {t("about.takeaway")}
+        </blockquote>
+        <p>
+          <Trans
+            i18nKey="about.cv"
+            components={{
+              cvLink: (
+                <a
+                  href={cvUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                />
               ),
-            )}
-          </div>
-        </div>
+            }}
+          />
+        </p>
       </div>
     </div>
   );

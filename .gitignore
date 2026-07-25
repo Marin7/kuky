@@ -4,6 +4,9 @@
 ### Local uploaded images (app.images.storage-dir) ###
 data/
 
+### Postgres dumps from scripts/backup-postgres.sh ###
+backups/
+
 ### Secrets — never commit real env files ###
 .env
 .env.local

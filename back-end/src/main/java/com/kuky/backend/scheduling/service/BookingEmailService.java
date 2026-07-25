@@ -65,7 +65,7 @@ public class BookingEmailService {
                                  Instant slotStart, int durationMinutes, String joinUrl) {
         String whenForStudent = formatForStudent(slotStart, studentEmail);
         String whenForTeacher = formatForTeacher(slotStart);
-        String subject = "Reserva confirmada — Español con Paula";
+        String subject = "Reserva confirmada — Destino: Español";
         String body = """
                 Tu clase ha sido reservada.
 
@@ -112,7 +112,7 @@ public class BookingEmailService {
 
         byte[] studentIcs = buildIcs(IcsEventFactory.Method.CANCEL, bookingId, slotStart, durationMinutes,
                 "Cancelada", joinUrl, teacherEmail, studentEmail);
-        sendQuietly(studentEmail, "Clase cancelada — Español con Paula",
+        sendQuietly(studentEmail, "Clase cancelada — Destino: Español",
                 "Has cancelado tu clase del " + whenForStudent + ".",
                 studentIcs, IcsEventFactory.Method.CANCEL);
 
@@ -120,7 +120,7 @@ public class BookingEmailService {
             String whenForCompanionStudent = formatForStudent(slotStart, companionStudentEmail);
             byte[] companionStudentIcs = buildIcs(IcsEventFactory.Method.CANCEL, bookingId, slotStart, durationMinutes,
                     "Cancelada", joinUrl, teacherEmail, companionStudentEmail);
-            sendQuietly(companionStudentEmail, "Clase cancelada — Español con Paula",
+            sendQuietly(companionStudentEmail, "Clase cancelada — Destino: Español",
                     "La clase del " + whenForCompanionStudent + " a la que te habías unido ha sido cancelada.",
                     companionStudentIcs, IcsEventFactory.Method.CANCEL);
         }
@@ -141,7 +141,7 @@ public class BookingEmailService {
                                           String companionStudentEmail) {
         String whenForStudent = formatForStudent(slotStart, studentEmail);
         String whenForTeacher = formatForTeacher(slotStart);
-        String subject = "Clase cancelada — Español con Paula";
+        String subject = "Clase cancelada — Destino: Español";
         String body = """
                 Tu clase del %s ha sido cancelada por la profesora.
 
@@ -179,7 +179,7 @@ public class BookingEmailService {
     public void sendCompanionStudentAttached(String toEmail, UUID bookingId, Instant slotStart,
                                           int durationMinutes, String joinUrl) {
         String when = formatForStudent(slotStart, toEmail);
-        String subject = "Te han añadido a una clase — Español con Paula";
+        String subject = "Te han añadido a una clase — Destino: Español";
         String body = """
                 La profesora te ha añadido a una clase.
 
@@ -198,7 +198,7 @@ public class BookingEmailService {
     /** 24h-before reminder to the student. No calendar attachment — the student already has one from the confirmation. */
     public void sendReminderToStudent(String studentEmail, Instant slotStart, String joinUrl) {
         String when = formatForStudent(slotStart, studentEmail);
-        String subject = "Recordatorio: tu clase es mañana — Español con Paula";
+        String subject = "Recordatorio: tu clase es mañana — Destino: Español";
         String body = """
                 Este es un recordatorio de que tu clase es en aproximadamente 24 horas.
 

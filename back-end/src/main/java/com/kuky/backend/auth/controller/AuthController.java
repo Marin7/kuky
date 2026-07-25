@@ -128,7 +128,7 @@ public class AuthController {
         UserResponse user = authService.activate(request.token());
         String token = jwtConfig.generateToken(user.id(), user.email(), user.role());
         setAuthCookie(response, token);
-        return ResponseEntity.ok(Map.of("message", "¡Cuenta activada! Ya puedes usar Kuky."));
+        return ResponseEntity.ok(Map.of("message", "¡Cuenta activada! Ya puedes usar Destino: Español."));
     }
 
     @PostMapping("/resend-activation")

@@ -35,7 +35,7 @@ export const Route = createFileRoute("/cuenta")({
   validateSearch: searchSchema,
   head: () => ({
     meta: seo({
-      title: "Mi cuenta — Español con Paula",
+      title: "Mi cuenta — Destino: Español",
       description: "Gestiona tu cuenta y tu perfil de estudiante.",
       path: "/cuenta",
     }),

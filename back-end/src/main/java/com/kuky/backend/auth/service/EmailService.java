@@ -51,13 +51,13 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(toEmail);
-        message.setSubject("Activa tu cuenta — Kuky");
+        message.setSubject("Activa tu cuenta — Destino: Español");
         message.setText(
                 "¡Hola!\n\n" +
                 "Haz clic en el siguiente enlace para activar tu cuenta:\n\n" +
                 activationUrl + "\n\n" +
                 "Este enlace expira en 24 horas. Si no creaste esta cuenta, ignora este correo.\n\n" +
-                "Saludos,\nEl equipo de Kuky"
+                "Saludos,\nDestino: Español"
         );
 
         send(message);
@@ -74,13 +74,13 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(toEmail);
-        message.setSubject("Recupera tu contraseña — Kuky");
+        message.setSubject("Recupera tu contraseña — Destino: Español");
         message.setText(
                 "Hola,\n\n" +
                 "Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n" +
                 resetUrl + "\n\n" +
                 "Este enlace expira en 1 hora. Si no solicitaste este correo, ignóralo.\n\n" +
-                "Saludos,\nEl equipo de Kuky"
+                "Saludos,\nDestino: Español"
         );
 
         send(message);
@@ -90,12 +90,12 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(toEmail);
-        message.setSubject("Ya eres alumno/a — Kuky");
+        message.setSubject("Ya eres alumno/a — Destino: Español");
         message.setText(
                 "¡Hola!\n\n" +
                 "Paula te ha dado acceso de alumno/a. Ya puedes reservar clases, " +
                 "comprar y desbloquear recursos, y acceder a tus tareas y presentaciones.\n\n" +
-                "Saludos,\nEl equipo de Kuky"
+                "Saludos,\nDestino: Español"
         );
 
         send(message);
@@ -105,12 +105,12 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(toEmail);
-        message.setSubject("Tu acceso de alumno/a ha cambiado — Kuky");
+        message.setSubject("Tu acceso de alumno/a ha cambiado — Destino: Español");
         message.setText(
                 "Hola,\n\n" +
                 "Tu acceso de alumno/a ha sido retirado por Paula. Ya no podrás reservar nuevas clases, " +
                 "comprar nuevos recursos ni acceder a nuevas tareas, pero tu historial sigue disponible.\n\n" +
-                "Saludos,\nEl equipo de Kuky"
+                "Saludos,\nDestino: Español"
         );
 
         send(message);
@@ -120,12 +120,12 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(toEmail);
-        message.setSubject("Ya puedes reservar clases de 1h30 — Kuky");
+        message.setSubject("Ya puedes reservar clases de 1h30 — Destino: Español");
         message.setText(
                 "¡Hola!\n\n" +
                 "Paula te ha dado acceso a las clases de 1 hora y media. A partir de ahora, al reservar " +
                 "una clase podrás elegir entre 1 hora y 1 hora y media.\n\n" +
-                "Saludos,\nEl equipo de Kuky"
+                "Saludos,\nDestino: Español"
         );
 
         send(message);
@@ -135,12 +135,12 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(toEmail);
-        message.setSubject("Tu acceso a clases de 1h30 ha cambiado — Kuky");
+        message.setSubject("Tu acceso a clases de 1h30 ha cambiado — Destino: Español");
         message.setText(
                 "Hola,\n\n" +
                 "Tu acceso a las clases de 1 hora y media ha sido retirado por Paula. Ya no podrás reservar " +
                 "nuevas clases de 1h30, pero tus clases ya reservadas no se ven afectadas.\n\n" +
-                "Saludos,\nEl equipo de Kuky"
+                "Saludos,\nDestino: Español"
         );
 
         send(message);

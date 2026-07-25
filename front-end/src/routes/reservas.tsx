@@ -9,7 +9,7 @@ import { seo } from "@/lib/seo";
 export const Route = createFileRoute("/reservas")({
   head: () => ({
     meta: seo({
-      title: "Reservas — Español con Paula",
+      title: "Reservas — Destino: Español",
       description:
         "Consulta el horario disponible y reserva tu clase de español.",
       path: "/reservas",

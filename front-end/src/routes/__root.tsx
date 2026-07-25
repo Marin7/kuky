@@ -88,7 +88,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { charSet: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         ...seo({
-          title: "Español con Paula — Clases de español para rumanos",
+          title: "Destino: Español — Clases de español para rumanos",
           description:
             "Aprende español con una profesora dedicada. Clases personalizadas para estudiantes rumanos de todos los niveles.",
         }),

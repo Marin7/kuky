@@ -6,7 +6,7 @@
 // spread the result into `meta`. TanStack Router dedupes meta by name/property,
 // so a route's tags override the site-wide defaults set in __root.tsx.
 
-const SITE_NAME = "Español con Paula";
+const SITE_NAME = "Destino: Español";
 
 // Public base URL. Override per-environment with VITE_SITE_URL (e.g. a staging
 // domain); falls back to the production origin. No trailing slash.

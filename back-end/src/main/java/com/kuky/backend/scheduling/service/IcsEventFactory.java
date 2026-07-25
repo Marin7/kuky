@@ -38,7 +38,7 @@ public class IcsEventFactory {
 
         StringBuilder sb = new StringBuilder();
         appendLine(sb, "BEGIN:VCALENDAR");
-        appendLine(sb, "PRODID:-//Kuky//Espanol con Paula//ES");
+        appendLine(sb, "PRODID:-//Kuky//Destino Espanol//ES");
         appendLine(sb, "VERSION:2.0");
         appendLine(sb, "METHOD:" + method.name());
         appendLine(sb, "CALSCALE:GREGORIAN");

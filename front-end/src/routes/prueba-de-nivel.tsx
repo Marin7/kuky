@@ -21,7 +21,7 @@ import { seo } from "@/lib/seo";
 export const Route = createFileRoute("/prueba-de-nivel")({
   head: () => ({
     meta: seo({
-      title: "Prueba de nivel — Español con Paula",
+      title: "Prueba de nivel — Destino: Español",
       description: "Descubre tu nivel de español con una prueba gratuita.",
       path: "/prueba-de-nivel",
     }),

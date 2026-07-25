@@ -7,7 +7,7 @@ import { TestimonialsSection } from "@/components/TestimonialsSection";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: seo({
-      title: "Español con Paula — Clases de español para rumanos",
+      title: "Destino: Español — Clases de español para rumanos",
       description:
         "Clases de español personalizadas, 100% online, para estudiantes rumanos de todos los niveles.",
       path: "/",

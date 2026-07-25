@@ -8,7 +8,7 @@ import { seo } from "@/lib/seo";
 export const Route = createFileRoute("/aprendizaje_/redaccion/$homeworkId")({
   head: () => ({
     meta: seo({
-      title: "Redacción — Español con Paula",
+      title: "Redacción — Destino: Español",
       description: "Escribe y entrega tu tarea de redacción.",
       path: "/aprendizaje/redaccion",
     }),

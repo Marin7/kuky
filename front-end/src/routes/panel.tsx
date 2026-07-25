@@ -13,7 +13,7 @@ export const Route = createFileRoute("/panel")({
   }),
   head: () => ({
     meta: seo({
-      title: "Panel de control — Español con Paula",
+      title: "Panel de control — Destino: Español",
       description:
         "Panel de la profesora: disponibilidad, tareas y presentaciones.",
       path: "/panel",

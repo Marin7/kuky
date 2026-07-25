@@ -5,7 +5,7 @@ import { seo } from "@/lib/seo";
 export const Route = createFileRoute("/panel_/tareas/$homeworkId")({
   head: () => ({
     meta: seo({
-      title: "Editar tarea — Español con Paula",
+      title: "Editar tarea — Destino: Español",
       description: "Edita una tarea de tus alumnos.",
       path: "/panel/tareas/editar",
     }),

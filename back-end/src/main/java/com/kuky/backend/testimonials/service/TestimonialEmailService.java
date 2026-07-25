@@ -26,7 +26,7 @@ public class TestimonialEmailService {
     }
 
     public void sendSubmittedNotificationToTeacher(String teacherEmail, String studentName) {
-        String subject = "Nuevo testimonio pendiente de revisión — Español con Paula";
+        String subject = "Nuevo testimonio pendiente de revisión — Destino: Español";
         String body = """
                 %s ha enviado un testimonio para revisar.
 

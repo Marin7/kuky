@@ -14,7 +14,7 @@ export const Route = createFileRoute("/aprendizaje_/lectura/$homeworkId")({
   }),
   head: () => ({
     meta: seo({
-      title: "Lectura — Español con Paula",
+      title: "Lectura — Destino: Español",
       description: "Lee el texto y resuelve tu tarea de lectura.",
       path: "/aprendizaje/lectura",
     }),
