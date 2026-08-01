@@ -4,6 +4,8 @@ import com.kuky.backend.auth.exception.AccountNotActivatedException;
 import com.kuky.backend.auth.exception.AuthException;
 import com.kuky.backend.auth.exception.DuplicateEmailException;
 import com.kuky.backend.auth.exception.DuplicateUsernameException;
+import com.kuky.backend.auth.exception.InterestsAccessDeniedException;
+import com.kuky.backend.auth.exception.InvalidInterestsException;
 import com.kuky.backend.auth.exception.InvalidTimezoneException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
@@ -90,6 +92,18 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInvalidTimezone(InvalidTimezoneException ex) {
         return ResponseEntity.badRequest()
                 .body(Map.of("error", "INVALID_TIMEZONE", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidInterestsException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidInterests(InvalidInterestsException ex) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", ex.getErrorCode(), "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InterestsAccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleInterestsAccessDenied(InterestsAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "FORBIDDEN", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidTokenException.class)

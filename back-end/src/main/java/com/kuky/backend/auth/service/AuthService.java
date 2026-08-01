@@ -1,8 +1,10 @@
 package com.kuky.backend.auth.service;
 
+import com.kuky.backend.auth.InterestCatalogue;
 import com.kuky.backend.auth.dto.AuthResponse;
 import com.kuky.backend.auth.dto.LoginRequest;
 import com.kuky.backend.auth.dto.RegisterRequest;
+import com.kuky.backend.auth.dto.UpdateInterestsRequest;
 import com.kuky.backend.auth.dto.UpdateProfileRequest;
 import com.kuky.backend.auth.dto.UpdateTimezoneRequest;
 import com.kuky.backend.auth.dto.UserResponse;
@@ -10,6 +12,8 @@ import com.kuky.backend.auth.exception.AccountNotActivatedException;
 import com.kuky.backend.auth.exception.AuthException;
 import com.kuky.backend.auth.exception.DuplicateEmailException;
 import com.kuky.backend.auth.exception.DuplicateUsernameException;
+import com.kuky.backend.auth.exception.InterestsAccessDeniedException;
+import com.kuky.backend.auth.exception.InvalidInterestsException;
 import com.kuky.backend.auth.exception.InvalidTimezoneException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.model.EmailActivationToken;
@@ -29,6 +33,9 @@ import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -183,6 +190,52 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException("Usuario no encontrado."));
     }
 
+    public UserResponse updateInterests(String email, UpdateInterestsRequest request) {
+        User user = userRepository.findByEmailIgnoreCase(email.toLowerCase(Locale.ROOT))
+                .orElseThrow(() -> new AuthException("Usuario no encontrado."));
+
+        String role = user.getRole();
+        if (!"STUDENT".equals(role) && !"ADMIN".equals(role)) {
+            throw new InterestsAccessDeniedException(
+                    "Solo los alumnos pueden actualizar sus intereses.");
+        }
+
+        List<String> raw = request.interests() == null ? List.of() : request.interests();
+        LinkedHashSet<String> unique = new LinkedHashSet<>();
+        for (String code : raw) {
+            if (code == null || code.isBlank()) {
+                continue;
+            }
+            String normalized = code.trim().toUpperCase(Locale.ROOT);
+            if (!InterestCatalogue.isAllowed(normalized)) {
+                throw new InvalidInterestsException(
+                        "INVALID_INTEREST",
+                        "El interés «" + code + "» no es válido.");
+            }
+            unique.add(normalized);
+        }
+        if (unique.size() > InterestCatalogue.MAX_SELECTIONS) {
+            throw new InvalidInterestsException(
+                    "TOO_MANY_INTERESTS",
+                    "Puedes seleccionar como máximo " + InterestCatalogue.MAX_SELECTIONS + " intereses.");
+        }
+
+        String note = normalize(request.interestsNote());
+        if (note != null && note.length() > InterestCatalogue.MAX_NOTE_LENGTH) {
+            throw new InvalidInterestsException(
+                    "VALIDATION_ERROR",
+                    "La nota no puede superar " + InterestCatalogue.MAX_NOTE_LENGTH + " caracteres.");
+        }
+
+        List<String> codes = new ArrayList<>(unique);
+        userRepository.replaceInterests(user.getId(), codes);
+        userRepository.updateInterestsNote(user.getId(), note);
+
+        return userRepository.findById(user.getId())
+                .map(this::toResponse)
+                .orElseThrow(() -> new AuthException("Usuario no encontrado."));
+    }
+
     public UUID uploadAvatar(String email, MultipartFile file) {
         User user = userRepository.findByEmailIgnoreCase(email.toLowerCase(Locale.ROOT))
                 .orElseThrow(() -> new AuthException("Usuario no encontrado."));
@@ -193,11 +246,15 @@ public class AuthService {
     }
 
     UserResponse toResponse(User u) {
+        List<String> interests = InterestCatalogue.filterKnown(
+                userRepository.findInterestCodesByUserId(u.getId()));
         return new UserResponse(u.getId(), u.getEmail(), u.getRole(),
                 u.getFirstName(), u.getLastName(), u.getUsername(),
                 u.getAvatarImageId(), u.getStatus(),
                 u.getTimezone(), u.isTimezoneManual(),
-                u.isExtendedClassEligible());
+                u.isExtendedClassEligible(),
+                interests,
+                u.getInterestsNote());
     }
 
     private void issueActivationEmail(User user) {

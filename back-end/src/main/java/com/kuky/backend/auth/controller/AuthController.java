@@ -110,6 +110,16 @@ public class AuthController {
         return ResponseEntity.ok(authService.updateTimezone(email, request));
     }
 
+    @PutMapping("/interests")
+    public ResponseEntity<UserResponse> updateInterests(
+            @AuthenticationPrincipal String email,
+            @Valid @RequestBody UpdateInterestsRequest request) {
+        if (email == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(authService.updateInterests(email, request));
+    }
+
     @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> uploadAvatar(
             @AuthenticationPrincipal String email,

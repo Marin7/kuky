@@ -24,6 +24,8 @@ export interface UserResponse {
   timezone?: string;
   timezoneIsManual: boolean;
   extendedClassEligible: boolean;
+  interests: string[];
+  interestsNote: string | null;
 }
 
 /**
@@ -109,6 +111,15 @@ export const updateTimezone = (zone: string, manual: boolean) =>
   apiCall<UserResponse>("/timezone", {
     method: "PUT",
     body: JSON.stringify({ zone, manual }),
+  });
+
+export const updateInterests = (data: {
+  interests: string[];
+  interestsNote: string | null;
+}) =>
+  apiCall<UserResponse>("/interests", {
+    method: "PUT",
+    body: JSON.stringify(data),
   });
 
 export const activate = (token: string) =>

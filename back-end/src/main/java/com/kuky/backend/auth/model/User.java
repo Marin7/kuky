@@ -18,6 +18,7 @@ public class User {
     private String timezone;
     private boolean timezoneIsManual;
     private boolean extendedClassEligible;
+    private String interestsNote;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -47,6 +48,8 @@ public class User {
     public void setTimezoneManual(boolean timezoneIsManual) { this.timezoneIsManual = timezoneIsManual; }
     public boolean isExtendedClassEligible() { return extendedClassEligible; }
     public void setExtendedClassEligible(boolean extendedClassEligible) { this.extendedClassEligible = extendedClassEligible; }
+    public String getInterestsNote() { return interestsNote; }
+    public void setInterestsNote(String interestsNote) { this.interestsNote = interestsNote; }
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }

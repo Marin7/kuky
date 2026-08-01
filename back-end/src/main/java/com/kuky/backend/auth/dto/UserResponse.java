@@ -6,4 +6,6 @@ public record UserResponse(UUID id, String email, String role,
                            String firstName, String lastName, String username,
                            UUID avatarImageId, String status,
                            String timezone, boolean timezoneIsManual,
-                           boolean extendedClassEligible) {}
+                           boolean extendedClassEligible,
+                           java.util.List<String> interests,
+                           String interestsNote) {}

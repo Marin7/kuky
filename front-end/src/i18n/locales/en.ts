@@ -142,6 +142,14 @@ export const enDict = {
     timezoneFallbackNote:
       "Couldn't detect your time zone; showing an estimate.",
     timezoneUseDevice: "Use my device's time zone",
+    interestsTitle: "Interests",
+    interestsHint: "Choose up to {{max}} topics you enjoy talking about in class.",
+    interestsNoteLabel: "Note (optional)",
+    interestsNotePlaceholder:
+      "Details you'd like to share (e.g. favorite bands, your job…)",
+    interestsSave: "Save interests",
+    interestsSaved: "Interests saved successfully.",
+    interestsSaveError: "Could not save interests.",
     logout: "Log out",
     checkEmail: "Check your email",
     activationSent:
@@ -752,6 +760,11 @@ export const enDict = {
       emptyPast: "None on record.",
       emptyHomework: "No homework assigned.",
       emptyPresentations: "No presentations shared.",
+      interests: {
+        title: "Interests",
+        empty: "No interests selected yet.",
+        noteLabel: "Note",
+      },
       progress: {
         title: "Progress",
         empty: "No activity yet.",
@@ -768,6 +781,20 @@ export const enDict = {
         unmarkNoShow: "Mark as attended",
       },
     },
+  },
+  interests: {
+    TRAVEL: "Travel",
+    MUSIC: "Music",
+    SPORTS: "Sports",
+    FOOD: "Food & cooking",
+    CINEMA: "Cinema & series",
+    READING: "Reading",
+    TECHNOLOGY: "Technology",
+    NATURE: "Nature",
+    ART: "Art",
+    WORK: "Work & career",
+    FAMILY: "Family",
+    CULTURE: "Culture & traditions",
   },
   placement: {
     intro: {

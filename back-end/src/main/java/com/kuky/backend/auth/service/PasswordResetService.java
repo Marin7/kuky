@@ -1,5 +1,6 @@
 package com.kuky.backend.auth.service;
 
+import com.kuky.backend.auth.InterestCatalogue;
 import com.kuky.backend.auth.dto.UserResponse;
 import com.kuky.backend.auth.exception.AuthException;
 import com.kuky.backend.auth.exception.InvalidTokenException;
@@ -80,7 +81,9 @@ public class PasswordResetService {
                 user.getFirstName(), user.getLastName(), user.getUsername(),
                 user.getAvatarImageId(), user.getStatus(),
                 user.getTimezone(), user.isTimezoneManual(),
-                user.isExtendedClassEligible());
+                user.isExtendedClassEligible(),
+                InterestCatalogue.filterKnown(userRepository.findInterestCodesByUserId(user.getId())),
+                user.getInterestsNote());
     }
 
     private void invalidateAllTokensForUser(UUID userId) {

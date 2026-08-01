@@ -37,6 +37,7 @@ public class UserRepository {
         u.setTimezone(rs.getString("timezone"));
         u.setTimezoneManual(rs.getBoolean("timezone_is_manual"));
         u.setExtendedClassEligible(rs.getBoolean("extended_class_eligible"));
+        u.setInterestsNote(rs.getString("interests_note"));
         u.setCreatedAt(rs.getTimestamp("created_at").toInstant());
         u.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
         return u;
@@ -136,6 +137,29 @@ public class UserRepository {
     public void updateAvatar(UUID id, UUID avatarImageId) {
         String sql = "UPDATE users SET avatar_image_id = :avatarImageId, updated_at = NOW() WHERE id = :id";
         jdbc.update(sql, Map.of("id", id, "avatarImageId", avatarImageId));
+    }
+
+    public List<String> findInterestCodesByUserId(UUID userId) {
+        String sql = "SELECT interest_code FROM user_interests WHERE user_id = :id ORDER BY interest_code";
+        return jdbc.query(sql, Map.of("id", userId), (rs, rowNum) -> rs.getString("interest_code"));
+    }
+
+    public void replaceInterests(UUID userId, List<String> codes) {
+        jdbc.update("DELETE FROM user_interests WHERE user_id = :id", Map.of("id", userId));
+        if (codes == null || codes.isEmpty()) {
+            return;
+        }
+        String sql = "INSERT INTO user_interests (user_id, interest_code) VALUES (:userId, :code)";
+        for (String code : codes) {
+            jdbc.update(sql, Map.of("userId", userId, "code", code));
+        }
+    }
+
+    public void updateInterestsNote(UUID userId, String note) {
+        String sql = "UPDATE users SET interests_note = :note, updated_at = NOW() WHERE id = :id";
+        jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("id", userId)
+                .addValue("note", note));
     }
 
     /** Promote a user to ADMIN by email (idempotent). Returns rows affected. */

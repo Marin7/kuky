@@ -2,6 +2,7 @@ package com.kuky.backend.admin.service;
 
 import com.kuky.backend.admin.dto.*;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
+import com.kuky.backend.auth.InterestCatalogue;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
@@ -71,6 +72,8 @@ public class StudentProfileAdminService {
                 user.getUsername(),
                 user.getAvatarImageId(),
                 user.getCreatedAt(),
+                InterestCatalogue.filterKnown(userRepository.findInterestCodesByUserId(studentId)),
+                user.getInterestsNote(),
                 bookings,
                 homeworks,
                 presentations,

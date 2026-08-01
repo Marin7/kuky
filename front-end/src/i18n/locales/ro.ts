@@ -142,6 +142,15 @@ export const roDict = {
     timezoneFallbackNote:
       "Nu am putut detecta fusul tău orar; se afișează o estimare.",
     timezoneUseDevice: "Folosește fusul orar al dispozitivului meu",
+    interestsTitle: "Interese",
+    interestsHint:
+      "Alege până la {{max}} teme despre care îți place să vorbești la oră.",
+    interestsNoteLabel: "Notă (opțional)",
+    interestsNotePlaceholder:
+      "Detalii pe care vrei să le împărtășești (ex. trupe preferate, job…)",
+    interestsSave: "Salvează interesele",
+    interestsSaved: "Interesele au fost salvate.",
+    interestsSaveError: "Nu s-au putut salva interesele.",
     logout: "Deconectare",
     checkEmail: "Verifică-ți email-ul",
     activationSent:
@@ -787,6 +796,11 @@ export const roDict = {
       emptyPast: "Niciunul înregistrat.",
       emptyHomework: "Fără teme asignate.",
       emptyPresentations: "Fără prezentări distribuite.",
+      interests: {
+        title: "Interese",
+        empty: "Încă nu a selectat interese.",
+        noteLabel: "Notă",
+      },
       progress: {
         title: "Progres",
         empty: "Fără activitate încă.",
@@ -808,6 +822,20 @@ export const roDict = {
     title: "Este necesar accesul de elev",
     message:
       "Accesul de elev este acordat de profesoară. Contacteaz-o pe Paula dacă crezi că ar trebui să ai acces.",
+  },
+  interests: {
+    TRAVEL: "Călătorii",
+    MUSIC: "Muzică",
+    SPORTS: "Sport",
+    FOOD: "Mâncare și gătit",
+    CINEMA: "Film și seriale",
+    READING: "Lectură",
+    TECHNOLOGY: "Tehnologie",
+    NATURE: "Natură",
+    ART: "Artă",
+    WORK: "Muncă și carieră",
+    FAMILY: "Familie",
+    CULTURE: "Cultură și tradiții",
   },
   placement: {
     intro: {

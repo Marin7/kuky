@@ -143,6 +143,15 @@ export const esDict = {
     timezoneFallbackNote:
       "No se pudo detectar tu zona horaria; se muestra una estimación.",
     timezoneUseDevice: "Usar la zona horaria de mi dispositivo",
+    interestsTitle: "Intereses",
+    interestsHint:
+      "Elige hasta {{max}} temas que te gusten hablar en clase.",
+    interestsNoteLabel: "Nota (opcional)",
+    interestsNotePlaceholder:
+      "Detalles que quieras compartir (p. ej. bandas favoritas, trabajo…)",
+    interestsSave: "Guardar intereses",
+    interestsSaved: "Intereses guardados correctamente.",
+    interestsSaveError: "No se pudieron guardar los intereses.",
     logout: "Cerrar sesión",
     checkEmail: "Revisa tu correo",
     activationSent:
@@ -791,6 +800,11 @@ export const esDict = {
       emptyPast: "Ninguna registrada.",
       emptyHomework: "Sin tareas asignadas.",
       emptyPresentations: "Sin presentaciones compartidas.",
+      interests: {
+        title: "Intereses",
+        empty: "Aún no ha seleccionado intereses.",
+        noteLabel: "Nota",
+      },
       progress: {
         title: "Progreso",
         empty: "Sin actividad todavía.",
@@ -812,6 +826,20 @@ export const esDict = {
     title: "Acceso de alumno/a requerido",
     message:
       "El acceso de alumno/a lo concede la profesora. Ponte en contacto con Paula si crees que deberías tener acceso.",
+  },
+  interests: {
+    TRAVEL: "Viajes",
+    MUSIC: "Música",
+    SPORTS: "Deportes",
+    FOOD: "Comida y cocina",
+    CINEMA: "Cine y series",
+    READING: "Lectura",
+    TECHNOLOGY: "Tecnología",
+    NATURE: "Naturaleza",
+    ART: "Arte",
+    WORK: "Trabajo y carrera",
+    FAMILY: "Familia",
+    CULTURE: "Cultura y tradiciones",
   },
   placement: {
     intro: {

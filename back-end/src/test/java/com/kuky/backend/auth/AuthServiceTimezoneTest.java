@@ -14,6 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,6 +36,7 @@ class AuthServiceTimezoneTest {
     @BeforeEach
     void setUp() {
         userRepository = mock(UserRepository.class);
+        when(userRepository.findInterestCodesByUserId(any())).thenReturn(List.of());
         authService = new AuthService(
                 userRepository,
                 mock(BCryptPasswordEncoder.class),

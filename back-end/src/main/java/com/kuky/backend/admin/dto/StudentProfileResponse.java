@@ -12,6 +12,8 @@ public record StudentProfileResponse(
         String username,
         UUID avatarImageId,
         Instant createdAt,
+        List<String> interests,
+        String interestsNote,
         List<StudentProfileBookingDto> bookings,
         List<StudentProfileHomeworkDto> homeworks,
         List<StudentProfilePresentationDto> presentations,

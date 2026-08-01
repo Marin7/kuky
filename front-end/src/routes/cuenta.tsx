@@ -11,6 +11,7 @@ import { RegistrationForm } from "@/components/auth/RegistrationForm";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { PasswordResetForm } from "@/components/auth/PasswordResetForm";
 import { TimezoneSetting } from "@/components/account/TimezoneSetting";
+import { InterestsSetting } from "@/components/account/InterestsSetting";
 import {
   activate,
   getMe,
@@ -478,6 +479,10 @@ function ProfileView({
           {saving ? t("common.saving") : t("account.saveChanges")}
         </Button>
       </form>
+
+      {(user.role === "STUDENT" || user.role === "ADMIN") && (
+        <InterestsSetting user={user} onUpdated={onUpdated} />
+      )}
 
       <TimezoneSetting />
 

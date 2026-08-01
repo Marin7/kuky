@@ -298,6 +298,8 @@ export interface StudentProfile {
   username: string | null;
   avatarImageId: string | null;
   createdAt: string;
+  interests: string[];
+  interestsNote: string | null;
   bookings: StudentProfileBooking[];
   homeworks: StudentProfileHomework[];
   presentations: StudentProfilePresentation[];
