@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getMe, type UserResponse } from "@/lib/auth";
 import { useTimezone } from "@/hooks/useTimezone";
 import { ScheduleView } from "@/components/scheduling/ScheduleView";
@@ -19,6 +20,8 @@ export const Route = createFileRoute("/reservas")({
 });
 
 function ReservasPage() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const { zone } = useTimezone();
@@ -28,9 +31,24 @@ function ReservasPage() {
   useEffect(() => {
     getMe()
       .then(setUser)
-      .catch(() => setUser(null))
+      .catch(() => {
+        setUser(null);
+        navigate({ to: "/cuenta" });
+      })
       .finally(() => setAuthLoading(false));
-  }, []);
+  }, [navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="mx-auto max-w-5xl px-6 py-16 text-center">
+        <p className="text-muted-foreground text-sm animate-pulse">
+          {t("common.loading")}
+        </p>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div>
@@ -39,13 +57,11 @@ function ReservasPage() {
         onRefreshRef={scheduleRefreshRef}
         onBookingSuccess={() => myBookingsRefreshRef.current?.()}
       />
-      {!authLoading && user && (
-        <MyBookings
-          timezone={zone}
-          onRefreshRef={myBookingsRefreshRef}
-          onScheduleRefresh={() => scheduleRefreshRef.current?.()}
-        />
-      )}
+      <MyBookings
+        timezone={zone}
+        onRefreshRef={myBookingsRefreshRef}
+        onScheduleRefresh={() => scheduleRefreshRef.current?.()}
+      />
     </div>
   );
 }

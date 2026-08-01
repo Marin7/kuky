@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getMe, type UserResponse } from "@/lib/auth";
@@ -12,7 +12,6 @@ import {
   type Skill,
 } from "@/lib/placement";
 import { PlacementIntro } from "@/components/placement/PlacementIntro";
-import { PlacementLoginRequired } from "@/components/placement/PlacementLoginRequired";
 import { SectionRunner } from "@/components/placement/SectionRunner";
 import { PlacementResult } from "@/components/placement/PlacementResult";
 import { FullEvaluationPanel } from "@/components/placement/FullEvaluationPanel";
@@ -33,6 +32,7 @@ type Stage = "intro" | "section" | "result" | "fullEvaluation";
 
 function PruebaDeNivelPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [user, setUser] = useState<UserResponse | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -47,10 +47,19 @@ function PruebaDeNivelPage() {
 
   useEffect(() => {
     getMe()
-      .then(setUser)
-      .catch(() => setUser(null))
+      .then((me) => {
+        if (me.role === "STUDENT") {
+          navigate({ to: "/aprendizaje" });
+          return;
+        }
+        setUser(me);
+      })
+      .catch(() => {
+        setUser(null);
+        navigate({ to: "/cuenta" });
+      })
       .finally(() => setAuthLoading(false));
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -116,15 +125,7 @@ function PruebaDeNivelPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        <PlacementLoginRequired />
-      </div>
-    );
-  }
-
-  if (!test) return null;
+  if (!user || !test) return null;
 
   const currentSection: SectionDto | undefined =
     test.sections[currentSkillIndex];

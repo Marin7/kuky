@@ -3,6 +3,7 @@ export const roDict = {
     home: "Acasă",
     about: "Despre mine",
     schedule: "Rezervări",
+    rules: "Condiții",
     test: "Test de nivel",
     learning: "Învățarea mea",
     panel: "Panou",
@@ -84,6 +85,43 @@ export const roDict = {
     takeaway:
       "A învăța o limbă este tot un drum, nu o țintă care se atinge de pe o zi pe alta, și fiecare pas mic contează.",
     cv: "Dacă vrei să afli mai multe despre traiectoria mea, poți consulta <cvLink>aici</cvLink> CV-ul meu.",
+  },
+  rules: {
+    badge: "Condiții",
+    title: "Condițiile cursurilor",
+    intro:
+      "Aici găsești prețul, politica de anulare și restul condițiilor cursurilor. Textele sunt provizorii și vor fi actualizate în curând.",
+    price: {
+      title: "Preț",
+      items: [
+        "Curs individual de 60 de minute: 20 €.",
+        "Curs de 90 de minute: preț de confirmat.",
+        "Plata se face înainte de curs, conform înțelegerii.",
+      ],
+    },
+    cancellation: {
+      title: "Anulare",
+      items: [
+        "Nu este posibilă anularea cu mai puțin de 1 oră înainte de curs.",
+        "Dacă anulezi cu mai puțin de 24 de ore înainte, se percepe 50% din prețul cursului.",
+        "Dacă anulezi cu mai mult de 24 de ore înainte, nu se aplică nicio taxă.",
+      ],
+    },
+    payment: {
+      title: "Plată",
+      items: [
+        "Metode de plată acceptate: transfer bancar (detalii de confirmat).",
+        "După rezervare, vei primi instrucțiunile de plată pe e-mail.",
+      ],
+    },
+    other: {
+      title: "Alte condiții",
+      items: [
+        "Cursurile se țin online pe Zoom.",
+        "Rezervarea se face cu cel puțin 24 de ore înainte.",
+        "Orice altă condiție va fi comunicată pe e-mail sau pe această pagină.",
+      ],
+    },
   },
   account: {
     activating: "Se activează contul…",

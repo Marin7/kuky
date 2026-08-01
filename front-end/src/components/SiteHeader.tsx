@@ -17,6 +17,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isStudent, setIsStudent] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -27,11 +28,13 @@ export function SiteHeader() {
           if (!active) return;
           setAuthed(true);
           setIsAdmin(me.role === "ADMIN");
+          setIsStudent(me.role === "STUDENT");
         })
         .catch(() => {
           if (!active) return;
           setAuthed(false);
           setIsAdmin(false);
+          setIsStudent(false);
         });
     check();
     window.addEventListener("auth-changed", check);
@@ -47,9 +50,14 @@ export function SiteHeader() {
       ? []
       : [
           { to: "/sobre-mi", label: t("nav.about") },
-          { to: "/reservas", label: t("nav.schedule") },
-          { to: "/prueba-de-nivel", label: t("nav.test") },
+          ...(authed
+            ? [{ to: "/reservas", label: t("nav.schedule") }]
+            : []),
+          ...(authed && !isStudent
+            ? [{ to: "/prueba-de-nivel", label: t("nav.test") }]
+            : []),
         ]),
+    { to: "/condiciones", label: t("nav.rules") },
     ...(authed && !isAdmin
       ? [{ to: "/aprendizaje", label: t("nav.learning") }]
       : []),

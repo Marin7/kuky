@@ -16,6 +16,7 @@ import { Route as ReservasRouteImport } from './routes/reservas'
 import { Route as PruebaDeNivelRouteImport } from './routes/prueba-de-nivel'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as CuentaRouteImport } from './routes/cuenta'
+import { Route as CondicionesRouteImport } from './routes/condiciones'
 import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PanelTareasNuevaRouteImport } from './routes/panel_.tareas.nueva'
@@ -59,6 +60,11 @@ const PanelRoute = PanelRouteImport.update({
 const CuentaRoute = CuentaRouteImport.update({
   id: '/cuenta',
   path: '/cuenta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CondicionesRoute = CondicionesRouteImport.update({
+  id: '/condiciones',
+  path: '/condiciones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AprendizajeRoute = AprendizajeRouteImport.update({
@@ -114,6 +120,7 @@ const AprendizajeEscuchaHomeworkIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/aprendizaje': typeof AprendizajeRoute
+  '/condiciones': typeof CondicionesRoute
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/aprendizaje': typeof AprendizajeRoute
+  '/condiciones': typeof CondicionesRoute
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/aprendizaje': typeof AprendizajeRoute
+  '/condiciones': typeof CondicionesRoute
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/aprendizaje'
+    | '/condiciones'
     | '/cuenta'
     | '/panel'
     | '/prueba-de-nivel'
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/aprendizaje'
+    | '/condiciones'
     | '/cuenta'
     | '/panel'
     | '/prueba-de-nivel'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/aprendizaje'
+    | '/condiciones'
     | '/cuenta'
     | '/panel'
     | '/prueba-de-nivel'
@@ -226,6 +238,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AprendizajeRoute: typeof AprendizajeRoute
+  CondicionesRoute: typeof CondicionesRoute
   CuentaRoute: typeof CuentaRoute
   PanelRoute: typeof PanelRoute
   PruebaDeNivelRoute: typeof PruebaDeNivelRoute
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       path: '/cuenta'
       fullPath: '/cuenta'
       preLoaderRoute: typeof CuentaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/condiciones': {
+      id: '/condiciones'
+      path: '/condiciones'
+      fullPath: '/condiciones'
+      preLoaderRoute: typeof CondicionesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aprendizaje': {
@@ -362,6 +382,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AprendizajeRoute: AprendizajeRoute,
+  CondicionesRoute: CondicionesRoute,
   CuentaRoute: CuentaRoute,
   PanelRoute: PanelRoute,
   PruebaDeNivelRoute: PruebaDeNivelRoute,

@@ -3,6 +3,7 @@ export const esDict = {
     home: "Inicio",
     about: "Sobre mí",
     schedule: "Reservas",
+    rules: "Condiciones",
     test: "Prueba de nivel",
     learning: "Mi aprendizaje",
     panel: "Panel",
@@ -84,6 +85,43 @@ export const esDict = {
     takeaway:
       "Aprender un idioma también es un camino, no una meta que se alcanza de un día para otro, y que cada pequeño paso cuenta.",
     cv: "Si quieres saber más sobre mi trayectoria, puedes consultar <cvLink>aquí</cvLink> mi currículum.",
+  },
+  rules: {
+    badge: "Condiciones",
+    title: "Condiciones de las clases",
+    intro:
+      "Aquí encontrarás el precio, la política de cancelación y el resto de condiciones de las clases. Los textos son provisionales y se actualizarán pronto.",
+    price: {
+      title: "Precio",
+      items: [
+        "Clase individual de 60 minutos: 20 €.",
+        "Clase de 90 minutos: precio a confirmar.",
+        "El pago se realiza antes de la clase, según lo acordado.",
+      ],
+    },
+    cancellation: {
+      title: "Cancelación",
+      items: [
+        "No es posible cancelar con menos de 1 hora de antelación.",
+        "Si cancelas con menos de 24 horas de antelación, se cobra el 50 % del precio de la clase.",
+        "Si cancelas con más de 24 horas de antelación, no se aplica cargo.",
+      ],
+    },
+    payment: {
+      title: "Pago",
+      items: [
+        "Formas de pago aceptadas: transferencia bancaria (detalles a confirmar).",
+        "Tras reservar, recibirás las instrucciones de pago por correo.",
+      ],
+    },
+    other: {
+      title: "Otras condiciones",
+      items: [
+        "Las clases se imparten online por Zoom.",
+        "Se reserva con al menos 24 horas de antelación.",
+        "Cualquier otra condición se comunicará por correo o en esta página.",
+      ],
+    },
   },
   account: {
     activating: "Activando tu cuenta…",

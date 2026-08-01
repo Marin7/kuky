@@ -3,6 +3,7 @@ export const enDict = {
     home: "Home",
     about: "About me",
     schedule: "Schedule",
+    rules: "Terms",
     test: "Level test",
     learning: "My learning",
     panel: "Panel",
@@ -84,6 +85,43 @@ export const enDict = {
     takeaway:
       "Learning a language is also a journey, not a goal reached overnight, and every small step counts.",
     cv: "If you want to know more about my background, you can check my CV <cvLink>here</cvLink>.",
+  },
+  rules: {
+    badge: "Terms",
+    title: "Class terms",
+    intro:
+      "Here you'll find pricing, cancellation policy and other class conditions. The text is provisional and will be updated soon.",
+    price: {
+      title: "Price",
+      items: [
+        "Individual 60-minute class: €20.",
+        "90-minute class: price to be confirmed.",
+        "Payment is made before the class, as agreed.",
+      ],
+    },
+    cancellation: {
+      title: "Cancellation",
+      items: [
+        "Cancellation is not possible less than 1 hour before the class.",
+        "If you cancel less than 24 hours before the class, 50% of the class price is charged.",
+        "If you cancel more than 24 hours in advance, no charge applies.",
+      ],
+    },
+    payment: {
+      title: "Payment",
+      items: [
+        "Accepted payment methods: bank transfer (details to be confirmed).",
+        "After booking, you'll receive payment instructions by email.",
+      ],
+    },
+    other: {
+      title: "Other conditions",
+      items: [
+        "Classes are taught online via Zoom.",
+        "Bookings must be made at least 24 hours in advance.",
+        "Any other conditions will be shared by email or on this page.",
+      ],
+    },
   },
   account: {
     activating: "Activating your account…",
