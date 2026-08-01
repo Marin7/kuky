@@ -14,7 +14,9 @@ import com.kuky.backend.learning.model.HomeworkSubmission;
 import org.springframework.http.HttpStatus;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
+import com.kuky.backend.university.repository.UniversityAvailabilityRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -36,15 +38,26 @@ public class HomeworkSubmissionService {
     private final HomeworkSubmissionRepository submissionRepository;
     private final UserRepository userRepository;
     private final SchedulingProperties props;
+    private final UniversityAvailabilityRepository universityAvailability;
+
+    @Autowired
+    public HomeworkSubmissionService(ContentRepository contentRepository,
+                                     HomeworkSubmissionRepository submissionRepository,
+                                     UserRepository userRepository,
+                                     SchedulingProperties props,
+                                     UniversityAvailabilityRepository universityAvailability) {
+        this.contentRepository = contentRepository;
+        this.submissionRepository = submissionRepository;
+        this.userRepository = userRepository;
+        this.props = props;
+        this.universityAvailability = universityAvailability;
+    }
 
     public HomeworkSubmissionService(ContentRepository contentRepository,
                                      HomeworkSubmissionRepository submissionRepository,
                                      UserRepository userRepository,
                                      SchedulingProperties props) {
-        this.contentRepository = contentRepository;
-        this.submissionRepository = submissionRepository;
-        this.userRepository = userRepository;
-        this.props = props;
+        this(contentRepository, submissionRepository, userRepository, props, null);
     }
 
     public HomeworkItemResponse submit(String userEmail, UUID assignmentId, List<FormattedTextSegment> response) {
@@ -53,6 +66,11 @@ public class HomeworkSubmissionService {
 
         HomeworkAssignment assignment = contentRepository.findPublishedAssignmentById(assignmentId)
                 .orElseThrow(() -> new AssignmentNotFoundException("Tarea no encontrada."));
+        if ("UNIVERSITY_STUDENT".equals(user.getRole())
+                && (universityAvailability == null
+                || !universityAvailability.homeworkAvailable(assignmentId, user.getUniversityLevel()))) {
+            throw new AssignmentNotFoundException("Tarea no encontrada.");
+        }
 
         if (assignment.getFormat() == HomeworkFormat.EXERCISE) {
             throw new SubmissionNotAllowedException(

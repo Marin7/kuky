@@ -47,7 +47,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/schedule").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/testimonials").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/university/schedule",
+                                "/api/v1/university/exams", "/api/v1/university/news").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/university/learning/**").hasAnyRole("UNIVERSITY_STUDENT", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/bookings").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers("/api/v1/learning/**").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/testimonials").hasAnyRole("STUDENT", "ADMIN")

@@ -89,5 +89,5 @@ npm run lint && npm run format
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/022-student-interests/plan.md`
+`specs/023-university-portal/plan.md`
 <!-- SPECKIT END -->

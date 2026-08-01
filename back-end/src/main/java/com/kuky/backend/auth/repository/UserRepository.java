@@ -29,6 +29,7 @@ public class UserRepository {
         u.setPasswordHash(rs.getString("password_hash"));
         u.setStatus(rs.getString("status"));
         u.setRole(rs.getString("role"));
+        u.setUniversityLevel(rs.getString("university_level"));
         u.setGdprConsent(rs.getBoolean("gdpr_consent"));
         u.setFirstName(rs.getString("first_name"));
         u.setLastName(rs.getString("last_name"));
@@ -66,6 +67,11 @@ public class UserRepository {
         return jdbc.query(sql, Map.of(), USER_MAPPER);
     }
 
+    public List<User> findUniversityStudents() {
+        return jdbc.query("SELECT * FROM users WHERE role = 'UNIVERSITY_STUDENT' ORDER BY email",
+                Map.of(), USER_MAPPER);
+    }
+
     public List<User> findRegisteredUsers() {
         String sql = "SELECT * FROM users WHERE role = 'USER' ORDER BY email";
         return jdbc.query(sql, Map.of(), USER_MAPPER);
@@ -88,6 +94,21 @@ public class UserRepository {
         String sql = "UPDATE users SET role = 'USER', updated_at = NOW() "
                 + "WHERE id = :id AND role = 'STUDENT'";
         return jdbc.update(sql, Map.of("id", id));
+    }
+
+    public int grantUniversityStudentById(UUID id, String level) {
+        return jdbc.update("UPDATE users SET role = 'UNIVERSITY_STUDENT', university_level = :level, updated_at = NOW() "
+                + "WHERE id = :id AND role = 'USER'", Map.of("id", id, "level", level));
+    }
+
+    public int revokeUniversityStudentById(UUID id) {
+        return jdbc.update("UPDATE users SET role = 'USER', university_level = NULL, updated_at = NOW() "
+                + "WHERE id = :id AND role = 'UNIVERSITY_STUDENT'", Map.of("id", id));
+    }
+
+    public int updateUniversityLevelById(UUID id, String level) {
+        return jdbc.update("UPDATE users SET university_level = :level, updated_at = NOW() "
+                + "WHERE id = :id AND role = 'UNIVERSITY_STUDENT'", Map.of("id", id, "level", level));
     }
 
     /** Grant extended-class eligibility by id (idempotent: no-op if already eligible). Returns rows affected. */

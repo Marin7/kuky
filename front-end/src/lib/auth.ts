@@ -15,7 +15,8 @@ export interface AuthResponse {
 export interface UserResponse {
   id: string;
   email: string;
-  role: "USER" | "STUDENT" | "ADMIN";
+  role: "USER" | "STUDENT" | "UNIVERSITY_STUDENT" | "ADMIN";
+  universityLevel: "BEGINNER" | "INTERMEDIATE" | null;
   firstName?: string;
   lastName?: string;
   username?: string;

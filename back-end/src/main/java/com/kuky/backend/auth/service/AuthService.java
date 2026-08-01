@@ -254,7 +254,8 @@ public class AuthService {
                 u.getTimezone(), u.isTimezoneManual(),
                 u.isExtendedClassEligible(),
                 interests,
-                u.getInterestsNote());
+                u.getInterestsNote(),
+                u.getUniversityLevel());
     }
 
     private void issueActivationEmail(User user) {

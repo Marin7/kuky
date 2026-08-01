@@ -83,7 +83,8 @@ public class PasswordResetService {
                 user.getTimezone(), user.isTimezoneManual(),
                 user.isExtendedClassEligible(),
                 InterestCatalogue.filterKnown(userRepository.findInterestCodesByUserId(user.getId())),
-                user.getInterestsNote());
+                user.getInterestsNote(),
+                user.getUniversityLevel());
     }
 
     private void invalidateAllTokensForUser(UUID userId) {

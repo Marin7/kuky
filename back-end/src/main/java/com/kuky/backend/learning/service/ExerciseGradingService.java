@@ -21,8 +21,10 @@ import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.university.repository.UniversityAvailabilityRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -54,6 +56,24 @@ public class ExerciseGradingService {
     private final HomeworkAnswerRepository answerRepository;
     private final HomeworkTargetRepository targetRepository;
     private final UserRepository userRepository;
+    private final UniversityAvailabilityRepository universityAvailability;
+
+    @Autowired
+    public ExerciseGradingService(ContentRepository contentRepository,
+                                  HomeworkQuestionRepository questionRepository,
+                                  HomeworkSubmissionRepository submissionRepository,
+                                  HomeworkAnswerRepository answerRepository,
+                                  HomeworkTargetRepository targetRepository,
+                                  UserRepository userRepository,
+                                  UniversityAvailabilityRepository universityAvailability) {
+        this.contentRepository = contentRepository;
+        this.questionRepository = questionRepository;
+        this.submissionRepository = submissionRepository;
+        this.answerRepository = answerRepository;
+        this.targetRepository = targetRepository;
+        this.userRepository = userRepository;
+        this.universityAvailability = universityAvailability;
+    }
 
     public ExerciseGradingService(ContentRepository contentRepository,
                                   HomeworkQuestionRepository questionRepository,
@@ -61,12 +81,8 @@ public class ExerciseGradingService {
                                   HomeworkAnswerRepository answerRepository,
                                   HomeworkTargetRepository targetRepository,
                                   UserRepository userRepository) {
-        this.contentRepository = contentRepository;
-        this.questionRepository = questionRepository;
-        this.submissionRepository = submissionRepository;
-        this.answerRepository = answerRepository;
-        this.targetRepository = targetRepository;
-        this.userRepository = userRepository;
+        this(contentRepository, questionRepository, submissionRepository, answerRepository, targetRepository,
+                userRepository, null);
     }
 
     /** Fetch an exercise to take (or re-render read-only when already graded). */
@@ -267,7 +283,14 @@ public class ExerciseGradingService {
     private HomeworkAssignment requireAssigned(UUID assignmentId, UUID userId) {
         HomeworkAssignment assignment = contentRepository.findPublishedAssignmentById(assignmentId)
                 .orElseThrow(() -> new AssignmentNotFoundException("Tarea no encontrada."));
-        if (!targetRepository.isAssignedTo(assignmentId, userId)) {
+        boolean universityAccess = false;
+        if (universityAvailability != null) {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new AssignmentNotFoundException("Tarea no encontrada."));
+            universityAccess = "UNIVERSITY_STUDENT".equals(user.getRole())
+                    && universityAvailability.homeworkAvailable(assignmentId, user.getUniversityLevel());
+        }
+        if (!universityAccess && !targetRepository.isAssignedTo(assignmentId, userId)) {
             throw new AssignmentNotFoundException("Tarea no encontrada.");
         }
         return assignment;

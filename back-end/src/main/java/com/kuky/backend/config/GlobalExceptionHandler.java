@@ -11,6 +11,7 @@ import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.admin.exception.UserNotFoundException;
+import com.kuky.backend.admin.exception.RoleConflictException;
 import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.InvalidAudioException;
@@ -222,6 +223,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleUserNotFound(UserNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "USER_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(RoleConflictException.class)
+    public ResponseEntity<Map<String, String>> handleRoleConflict(RoleConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "ROLE_CONFLICT", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(PresentationNotFoundException.class)

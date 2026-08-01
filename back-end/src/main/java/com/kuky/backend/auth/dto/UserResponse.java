@@ -8,4 +8,5 @@ public record UserResponse(UUID id, String email, String role,
                            String timezone, boolean timezoneIsManual,
                            boolean extendedClassEligible,
                            java.util.List<String> interests,
-                           String interestsNote) {}
+                           String interestsNote,
+                           String universityLevel) {}

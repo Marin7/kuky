@@ -24,6 +24,8 @@ public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
 
     @Value("${app.cookie.secure:true}")
     private boolean cookieSecure;
+    @Value("${app.cookie.domain:}")
+    private String cookieDomain;
 
     public JwtCookieAuthenticationFilter(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
@@ -44,13 +46,14 @@ public class JwtCookieAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
 
             // Rolling session: refresh cookie MaxAge on every authenticated request
-            ResponseCookie refreshed = ResponseCookie.from("auth-token", token)
+            ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("auth-token", token)
                     .httpOnly(true)
                     .secure(cookieSecure)
                     .sameSite("Lax")
                     .path("/")
-                    .maxAge(jwtConfig.getExpirySeconds())
-                    .build();
+                    .maxAge(jwtConfig.getExpirySeconds());
+            if (cookieDomain != null && !cookieDomain.isBlank()) builder.domain(cookieDomain);
+            ResponseCookie refreshed = builder.build();
             response.addHeader("Set-Cookie", refreshed.toString());
         }
 
