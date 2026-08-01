@@ -40,7 +40,7 @@ export const ORGANIZATION_JSON_LD = {
   "@type": "EducationalOrganization",
   name: SITE_NAME,
   url: SITE_URL,
-  logo: OG_IMAGE,
+  logo: `${SITE_URL}/logo-512.png`,
   image: OG_IMAGE,
   description: DEFAULT_DESCRIPTION,
   founder: {

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Trans, useTranslation } from "react-i18next";
-import teacherUrl from "@/assets/teacher.jpg";
+import paulaUrl from "@/assets/paula-portrait.jpg";
 import cvUrl from "@/assets/CV-aprilie 2026.pdf";
 import { seo, jsonLd, OG_IMAGE, SITE_URL } from "@/lib/seo";
 
@@ -39,7 +39,7 @@ function SobreMi() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-20">
       <img
-        src={teacherUrl}
+        src={paulaUrl}
         alt="Paula, profesora de español"
         className="mb-8 aspect-[4/5] w-full rounded-2xl object-cover shadow-lg md:float-left md:mb-4 md:mr-10 md:w-[38%]"
       />

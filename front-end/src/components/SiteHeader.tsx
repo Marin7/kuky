@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sheet";
 import { getMe } from "@/lib/auth";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import logoUrl from "@/assets/logo.png";
 
 export function SiteHeader() {
   const { t } = useTranslation();
@@ -58,12 +59,13 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link
-          to="/"
-          className="font-display text-xl font-semibold text-primary"
-        >
-          {t("nav.brand")}
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-2.5">
+        <Link to="/" className="flex shrink-0 items-center">
+          <img
+            src={logoUrl}
+            alt={t("nav.brand")}
+            className="h-12 w-auto max-w-[240px] object-contain sm:h-14 sm:max-w-[300px] md:h-16 md:max-w-[340px]"
+          />
         </Link>
 
         {/* Desktop nav */}
