@@ -275,7 +275,8 @@ export function WeeklyAvailabilityEditor({ onConflicts }: Props) {
             {HOURS.map((hour) => (
               <Fragment key={hour}>
                 <div className="flex items-center justify-end pr-2 text-xs text-muted-foreground h-11 whitespace-nowrap">
-                  {String(hour).padStart(2, "0")}:00-{String(hour + 1).padStart(2, "0")}:00
+                  {String(hour).padStart(2, "0")}:00-
+                  {String(hour + 1).padStart(2, "0")}:00
                 </div>
                 {weeks.map((week, w) => (
                   <Fragment key={`${hour}-${w}`}>

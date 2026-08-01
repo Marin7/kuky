@@ -69,11 +69,7 @@ export function CreateBookingDialog({ open, onOpenChange, onCreated }: Props) {
     const added = ids.find((id) => !selected.includes(id));
     const next = added ? [added] : [];
     setSelected(next);
-    if (
-      next.length === 1 &&
-      duration === 90 &&
-      !eligibleIds.has(next[0])
-    ) {
+    if (next.length === 1 && duration === 90 && !eligibleIds.has(next[0])) {
       setDuration(60);
     }
   };

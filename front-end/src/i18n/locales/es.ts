@@ -520,7 +520,8 @@ export const esDict = {
         durationLabel: "Duración",
         save: "Crear",
         saving: "Creando…",
-        slotUnavailableError: "Ya hay otra clase a esa hora (o demasiado cerca).",
+        slotUnavailableError:
+          "Ya hay otra clase a esa hora (o demasiado cerca).",
         notStudentError: "Este usuario no tiene acceso de alumno.",
         invalidDurationError: "Duración de clase no válida.",
         notEligibleForExtendedError:

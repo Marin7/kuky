@@ -40,7 +40,10 @@ function formatSlot(
   return `${datePart}, ${timePart}–${endTime}`;
 }
 
-function insertSorted(list: AdminBooking[], booking: AdminBooking): AdminBooking[] {
+function insertSorted(
+  list: AdminBooking[],
+  booking: AdminBooking,
+): AdminBooking[] {
   const next = [...list, booking];
   next.sort(
     (a, b) => new Date(a.slotStart).getTime() - new Date(b.slotStart).getTime(),
