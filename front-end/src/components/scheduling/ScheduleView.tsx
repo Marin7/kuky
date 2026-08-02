@@ -19,10 +19,10 @@ function ScheduleSkeleton() {
     <div className="rounded-xl border bg-card p-6 shadow-sm">
       <div className="flex flex-col md:flex-row gap-6 md:gap-10">
         <div className="space-y-3">
-          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-6 w-44" />
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: 21 }).map((_, i) => (
-              <Skeleton key={i} className="h-9 w-9 rounded-lg" />
+              <Skeleton key={i} className="h-11 w-11 rounded-full" />
             ))}
           </div>
         </div>
@@ -31,9 +31,9 @@ function ScheduleSkeleton() {
         <hr className="md:hidden" />
 
         <div className="flex-1 min-w-0 space-y-3">
-          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-6 w-52" />
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full rounded-lg" />
+            <Skeleton key={i} className="h-11 w-full rounded-lg" />
           ))}
         </div>
       </div>
@@ -110,17 +110,17 @@ export function ScheduleView({
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold">
+        <h1 className="font-display text-3xl font-bold">
           {t("schedule.title")}
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-base text-muted-foreground">
           {t("schedule.subtitle", { zone: timezone })}
         </p>
       </div>
 
       {canBookExtended && (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-base text-muted-foreground">
             {t("schedule.durationLabel")}
           </span>
           <div className="inline-flex rounded-lg border p-0.5">
@@ -128,7 +128,7 @@ export function ScheduleView({
               type="button"
               size="sm"
               variant={duration === 60 ? "default" : "ghost"}
-              className="h-7 text-xs"
+              className="h-8 text-sm"
               onClick={() => handleSelectDuration(60)}
             >
               {t("schedule.duration60")}
@@ -137,7 +137,7 @@ export function ScheduleView({
               type="button"
               size="sm"
               variant={duration === 90 ? "default" : "ghost"}
-              className="h-7 text-xs"
+              className="h-8 text-sm"
               onClick={() => handleSelectDuration(90)}
             >
               {t("schedule.duration90")}
@@ -149,7 +149,7 @@ export function ScheduleView({
       {loading && <ScheduleSkeleton />}
 
       {error && (
-        <div className="py-16 text-center text-destructive text-sm">
+        <div className="py-16 text-center text-destructive text-base">
           {error}
         </div>
       )}

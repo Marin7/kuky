@@ -40,7 +40,7 @@ export function TimeSlotList({
 
   if (!selectedDay) {
     return (
-      <div className="flex items-center justify-center h-full min-h-[140px] text-sm text-muted-foreground text-center px-4">
+      <div className="flex items-center justify-center h-full min-h-[140px] text-base text-muted-foreground text-center px-4">
         {t("schedule.selectDay")}
       </div>
     );
@@ -55,10 +55,10 @@ export function TimeSlotList({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold capitalize">{heading}</p>
+      <p className="text-base font-semibold capitalize">{heading}</p>
 
       {daySlots.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {t("schedule.noSlotsDay")}
         </p>
       ) : (
@@ -67,7 +67,7 @@ export function TimeSlotList({
             <button
               key={slot.start}
               onClick={() => onSelect(slot)}
-              className="w-full rounded-lg border border-primary/30 px-4 py-2 text-sm font-medium text-foreground hover:bg-primary/10 hover:border-primary transition-colors text-left"
+              className="w-full rounded-lg border border-primary/30 px-4 py-2.5 text-base font-medium text-foreground hover:bg-primary/10 hover:border-primary transition-colors text-left cursor-pointer"
             >
               {`${formatTime(slot.start, timezone, i18n.language)} - ${formatTime(slot.end, timezone, i18n.language)}`}
             </button>

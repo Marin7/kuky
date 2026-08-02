@@ -34,7 +34,7 @@ function DayCell({
 
   if (!available) {
     return (
-      <div className="flex items-center justify-center h-10 w-10 mx-auto rounded-full text-sm text-muted-foreground/40 select-none">
+      <div className="flex items-center justify-center h-12 w-12 mx-auto rounded-full text-base text-muted-foreground/40 select-none">
         {dayNumber}
       </div>
     );
@@ -44,7 +44,7 @@ function DayCell({
     <button
       onClick={() => onSelect(day)}
       className={[
-        "flex items-center justify-center h-10 w-10 mx-auto rounded-full text-sm font-medium transition-colors",
+        "flex items-center justify-center h-12 w-12 mx-auto rounded-full text-base font-medium transition-colors cursor-pointer",
         selected
           ? "bg-primary text-primary-foreground"
           : isToday
@@ -132,8 +132,8 @@ export function CalendarPicker({
   );
 
   return (
-    <div className="space-y-3 select-none min-w-[280px]">
-      <p className="text-sm font-semibold capitalize text-center">
+    <div className="space-y-3 select-none min-w-[320px]">
+      <p className="text-base font-semibold capitalize text-center">
         {monthLabel}
       </p>
 
@@ -141,7 +141,7 @@ export function CalendarPicker({
         {dayHeaders.map((d) => (
           <div
             key={d}
-            className="flex items-center justify-center h-8 text-xs font-medium text-muted-foreground"
+            className="flex items-center justify-center h-9 text-sm font-medium text-muted-foreground"
           >
             {d}
           </div>
