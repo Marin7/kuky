@@ -30,15 +30,11 @@ COPY --from=builder /workspace/layers/spring-boot-loader/ ./
 COPY --from=builder /workspace/layers/snapshot-dependencies/ ./
 COPY --from=builder /workspace/layers/application/ ./
 
-# Writable dirs for uploaded images and presentation PPTX files (app runs as non-root).
-RUN mkdir -p /app/data/images /app/data/presentation-files \
-    && chown -R kuky:kuky /app/data
-
 # Uploads live under the app user's home (writable); /app is root-owned WORKDIR.
-RUN mkdir -p /opt/kuky/data/images /opt/kuky/data/presentation-files \
-    && chown -R kuky:kuky /opt/kuky/data
-ENV IMAGES_STORAGE_DIR=/opt/kuky/data/images \
-    PRESENTATION_FILES_STORAGE_DIR=/opt/kuky/data/presentation-files
+RUN mkdir -p /home/kuky/data/images /home/kuky/data/presentation-files \
+    && chown -R kuky:kuky /home/kuky/data
+ENV IMAGES_STORAGE_DIR=/home/kuky/data/images \
+    PRESENTATION_FILES_STORAGE_DIR=/home/kuky/data/presentation-files
 
 USER kuky
 EXPOSE 8081

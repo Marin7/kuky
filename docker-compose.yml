@@ -55,7 +55,7 @@ services:
       - "8443:8081"
     volumes:
       # Persist uploaded images and presentation PPTX files across container rebuilds.
-      - back-end-data:/opt/kuky/data
+      - back-end-data:/home/kuky/data
     mem_limit: 768m
 
   front-end:
@@ -74,3 +74,4 @@ services:
 
 volumes:
   postgres-data:
+  back-end-data:
