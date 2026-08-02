@@ -1,5 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import teacherUrl from "@/assets/teacher.jpg";
 import { seo } from "@/lib/seo";
@@ -19,16 +18,6 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const configuredHost = import.meta.env.VITE_UNIVERSITY_HOST?.toLowerCase();
-    const host = window.location.hostname.toLowerCase();
-    if (host.startsWith("uni.") || host === configuredHost) {
-      navigate({ to: "/universidad", replace: true });
-    }
-  }, [navigate]);
-
   return (
     <div>
       {/* Hero */}

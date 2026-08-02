@@ -10,7 +10,6 @@ public class User {
     private String passwordHash;
     private String status = "ACTIVE";
     private String role = "USER";
-    private String universityLevel;
     private boolean gdprConsent;
     private String firstName;
     private String lastName;
@@ -33,8 +32,6 @@ public class User {
     public void setStatus(String status) { this.status = status; }
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
-    public String getUniversityLevel() { return universityLevel; }
-    public void setUniversityLevel(String universityLevel) { this.universityLevel = universityLevel; }
     public boolean isGdprConsent() { return gdprConsent; }
     public void setGdprConsent(boolean gdprConsent) { this.gdprConsent = gdprConsent; }
     public String getFirstName() { return firstName; }

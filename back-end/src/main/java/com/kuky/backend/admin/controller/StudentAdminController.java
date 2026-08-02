@@ -5,9 +5,6 @@ import com.kuky.backend.admin.dto.RegisteredUserResponse;
 import com.kuky.backend.admin.dto.StudentProfileResponse;
 import com.kuky.backend.admin.dto.StudentResponse;
 import com.kuky.backend.admin.dto.UserRoleResponse;
-import com.kuky.backend.admin.dto.GrantUniversityStudentRequest;
-import com.kuky.backend.admin.dto.UniversityStudentResponse;
-import com.kuky.backend.admin.exception.RoleConflictException;
 import com.kuky.backend.admin.exception.UserNotFoundException;
 import com.kuky.backend.admin.service.StudentProfileAdminService;
 import com.kuky.backend.auth.model.User;
@@ -19,11 +16,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestBody;
-import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.UUID;
@@ -59,13 +53,6 @@ public class StudentAdminController {
                 .toList();
     }
 
-    @GetMapping("/university/students")
-    public List<UniversityStudentResponse> getUniversityStudents() {
-        return userRepository.findUniversityStudents().stream().map(u ->
-                new UniversityStudentResponse(u.getId(), u.getEmail(), u.getFirstName(), u.getLastName(),
-                        u.getUsername(), u.getUniversityLevel())).toList();
-    }
-
     /**
      * Ids of current students who hold "extended class" eligibility. Kept separate from
      * {@link #getStudents()} because that roster is also reused by the homework-assignment
@@ -92,9 +79,6 @@ public class StudentAdminController {
     @PostMapping("/users/{id}/student")
     public UserRoleResponse grantStudent(@PathVariable UUID id) {
         User user = requireGrantableOrRevocableUser(id);
-        if ("UNIVERSITY_STUDENT".equals(user.getRole())) {
-            throw new RoleConflictException("Revoca primero el acceso universitario.");
-        }
         if (!"STUDENT".equals(user.getRole())) {
             userRepository.promoteToStudentById(id);
             try {
@@ -110,9 +94,6 @@ public class StudentAdminController {
     @DeleteMapping("/users/{id}/student")
     public UserRoleResponse revokeStudent(@PathVariable UUID id) {
         User user = requireGrantableOrRevocableUser(id);
-        if ("UNIVERSITY_STUDENT".equals(user.getRole())) {
-            throw new RoleConflictException("Revoca primero el acceso universitario.");
-        }
         if ("STUDENT".equals(user.getRole())) {
             userRepository.revokeStudentById(id);
             try {
@@ -123,39 +104,6 @@ public class StudentAdminController {
             }
         }
         return new UserRoleResponse(id, "USER");
-    }
-
-    @PostMapping("/users/{id}/university-student")
-    public UserRoleResponse grantUniversityStudent(@PathVariable UUID id,
-                                                    @Valid @RequestBody GrantUniversityStudentRequest request) {
-        User user = requireGrantableOrRevocableUser(id);
-        String level = validateUniversityLevel(request.level());
-        if (!"USER".equals(user.getRole())) {
-            throw new RoleConflictException("El usuario ya tiene un rol de alumno o administrador.");
-        }
-        userRepository.grantUniversityStudentById(id, level);
-        return new UserRoleResponse(id, "UNIVERSITY_STUDENT");
-    }
-
-    @DeleteMapping("/users/{id}/university-student")
-    public UserRoleResponse revokeUniversityStudent(@PathVariable UUID id) {
-        User user = requireGrantableOrRevocableUser(id);
-        if ("STUDENT".equals(user.getRole())) {
-            throw new RoleConflictException("El usuario es alumno privado.");
-        }
-        if ("UNIVERSITY_STUDENT".equals(user.getRole())) userRepository.revokeUniversityStudentById(id);
-        return new UserRoleResponse(id, "USER");
-    }
-
-    @PutMapping("/users/{id}/university-level")
-    public UserRoleResponse updateUniversityLevel(@PathVariable UUID id,
-                                                   @Valid @RequestBody GrantUniversityStudentRequest request) {
-        User user = requireGrantableOrRevocableUser(id);
-        if (!"UNIVERSITY_STUDENT".equals(user.getRole())) {
-            throw new RoleConflictException("El usuario no es alumno universitario.");
-        }
-        userRepository.updateUniversityLevelById(id, validateUniversityLevel(request.level()));
-        return new UserRoleResponse(id, "UNIVERSITY_STUDENT");
     }
 
     @PostMapping("/users/{id}/extended-class")
@@ -196,13 +144,5 @@ public class StudentAdminController {
             throw new UserNotFoundException("Usuario no encontrado.");
         }
         return user;
-    }
-
-    private static String validateUniversityLevel(String raw) {
-        String level = raw == null ? "" : raw.trim().toUpperCase(java.util.Locale.ROOT);
-        if (!level.equals("BEGINNER") && !level.equals("INTERMEDIATE")) {
-            throw new IllegalArgumentException("El nivel universitario debe ser BEGINNER o INTERMEDIATE.");
-        }
-        return level;
     }
 }

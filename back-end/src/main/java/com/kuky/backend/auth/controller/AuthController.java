@@ -33,8 +33,6 @@ public class AuthController {
 
     @Value("${app.cookie.secure:true}")
     private boolean cookieSecure;
-    @Value("${app.cookie.domain:}")
-    private String cookieDomain;
 
     public AuthController(AuthService authService,
                           PasswordResetService passwordResetService,
@@ -71,14 +69,13 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletResponse response) {
-        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("auth-token", "")
+        ResponseCookie cookie = ResponseCookie.from("auth-token", "")
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .sameSite("Lax")
                 .path("/")
-                .maxAge(0);
-        if (cookieDomain != null && !cookieDomain.isBlank()) builder.domain(cookieDomain);
-        ResponseCookie cookie = builder.build();
+                .maxAge(0)
+                .build();
         response.addHeader("Set-Cookie", cookie.toString());
         return ResponseEntity.noContent().build();
     }
@@ -171,14 +168,13 @@ public class AuthController {
     }
 
     private void setAuthCookie(HttpServletResponse response, String token) {
-        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from("auth-token", token)
+        ResponseCookie cookie = ResponseCookie.from("auth-token", token)
                 .httpOnly(true)
                 .secure(cookieSecure)
                 .sameSite("Lax")
                 .path("/")
-                .maxAge(jwtConfig.getExpirySeconds());
-        if (cookieDomain != null && !cookieDomain.isBlank()) builder.domain(cookieDomain);
-        ResponseCookie cookie = builder.build();
+                .maxAge(jwtConfig.getExpirySeconds())
+                .build();
         response.addHeader("Set-Cookie", cookie.toString());
     }
 

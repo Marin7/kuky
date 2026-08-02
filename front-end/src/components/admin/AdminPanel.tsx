@@ -9,7 +9,6 @@ import { HomeworkTab } from "@/components/admin/homework/HomeworkTab";
 import { PresentationsTab } from "@/components/admin/presentations/PresentationsTab";
 import { PlacementAuthoring } from "@/components/placement/admin/PlacementAuthoring";
 import { TestimonialsTab } from "@/components/admin/testimonials/TestimonialsTab";
-import { UniversityTab } from "@/components/admin/university/UniversityTab";
 
 const VALID_TABS = [
   "bookings",
@@ -21,7 +20,6 @@ const VALID_TABS = [
   "presentations",
   "placement",
   "testimonials",
-  "university",
 ];
 
 export function AdminPanel({ initialTab }: { initialTab?: string }) {
@@ -54,7 +52,6 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
           <TabsTrigger value="testimonials">
             {t("admin.tabs.testimonials")}
           </TabsTrigger>
-          <TabsTrigger value="university">{t("admin.tabs.university")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bookings" className="mt-6">
@@ -83,9 +80,6 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
         </TabsContent>
         <TabsContent value="testimonials" className="mt-6">
           <TestimonialsTab />
-        </TabsContent>
-        <TabsContent value="university" className="mt-6">
-          <UniversityTab />
         </TabsContent>
       </Tabs>
     </div>

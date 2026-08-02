@@ -18,7 +18,6 @@ export function SiteHeader() {
   const [authed, setAuthed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
-  const [universityHost, setUniversityHost] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -45,24 +44,7 @@ export function SiteHeader() {
     };
   }, [pathname]);
 
-  useEffect(() => {
-    const configuredHost = import.meta.env.VITE_UNIVERSITY_HOST?.toLowerCase();
-    const host = window.location.hostname.toLowerCase();
-    setUniversityHost(host.startsWith("uni.") || host === configuredHost);
-  }, []);
-
-  const isUniversityShell = pathname.startsWith("/universidad") || universityHost;
-  const universityNav = [
-    { to: "/universidad", label: t("nav.universityHome") },
-    { to: "/universidad/horario", label: t("nav.universitySchedule") },
-    { to: "/universidad/examenes", label: t("nav.universityExams") },
-    { to: "/universidad/noticias", label: t("nav.universityNews") },
-    ...(authed
-      ? [{ to: "/universidad/aprendizaje", label: t("nav.universityLearning") }]
-      : []),
-    { to: "/cuenta", label: t("nav.account") },
-  ] as const;
-  const privateNav = [
+  const nav = [
     { to: "/", label: t("nav.home") },
     ...(isAdmin
       ? []
@@ -82,12 +64,11 @@ export function SiteHeader() {
     ...(isAdmin ? [{ to: "/panel", label: t("nav.panel") }] : []),
     { to: "/cuenta", label: t("nav.account") },
   ] as const;
-  const nav = isUniversityShell ? universityNav : privateNav;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-2.5">
-        <Link to={isUniversityShell ? "/universidad" : "/"} className="flex shrink-0 items-center">
+        <Link to="/" className="flex shrink-0 items-center">
           <img
             src={logoUrl}
             alt={t("nav.brand")}

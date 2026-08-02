@@ -25,12 +25,11 @@ logging:
 app:
   cookie:
     secure: false
-    domain: ""
   jwt:
     secret: local-dev-secret-at-least-32-chars-long
     expiry-seconds: 604800
   cors:
-    allowed-origins: http://localhost:8080,http://uni.localhost:8080
+    allowed-origin: http://localhost:8080
   frontend:
     base-url: http://localhost:8080
   mail:

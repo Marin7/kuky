@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UniversidadRouteImport } from './routes/universidad'
 import { Route as SobreMiRouteImport } from './routes/sobre-mi'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -20,10 +19,6 @@ import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as CondicionesRouteImport } from './routes/condiciones'
 import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as UniversidadNoticiasRouteImport } from './routes/universidad.noticias'
-import { Route as UniversidadHorarioRouteImport } from './routes/universidad.horario'
-import { Route as UniversidadExamenesRouteImport } from './routes/universidad.examenes'
-import { Route as UniversidadAprendizajeRouteImport } from './routes/universidad.aprendizaje'
 import { Route as PanelTareasNuevaRouteImport } from './routes/panel_.tareas.nueva'
 import { Route as PanelTareasHomeworkIdRouteImport } from './routes/panel_.tareas.$homeworkId'
 import { Route as PanelAlumnosStudentIdRouteImport } from './routes/panel_.alumnos.$studentId'
@@ -31,13 +26,7 @@ import { Route as AprendizajeTareaHomeworkIdRouteImport } from './routes/aprendi
 import { Route as AprendizajeRedaccionHomeworkIdRouteImport } from './routes/aprendizaje_.redaccion.$homeworkId'
 import { Route as AprendizajeLecturaHomeworkIdRouteImport } from './routes/aprendizaje_.lectura.$homeworkId'
 import { Route as AprendizajeEscuchaHomeworkIdRouteImport } from './routes/aprendizaje_.escucha.$homeworkId'
-import { Route as UniversidadAprendizajeTareaHomeworkIdRouteImport } from './routes/universidad.aprendizaje.tarea.$homeworkId'
 
-const UniversidadRoute = UniversidadRouteImport.update({
-  id: '/universidad',
-  path: '/universidad',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SobreMiRoute = SobreMiRouteImport.update({
   id: '/sobre-mi',
   path: '/sobre-mi',
@@ -88,26 +77,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UniversidadNoticiasRoute = UniversidadNoticiasRouteImport.update({
-  id: '/noticias',
-  path: '/noticias',
-  getParentRoute: () => UniversidadRoute,
-} as any)
-const UniversidadHorarioRoute = UniversidadHorarioRouteImport.update({
-  id: '/horario',
-  path: '/horario',
-  getParentRoute: () => UniversidadRoute,
-} as any)
-const UniversidadExamenesRoute = UniversidadExamenesRouteImport.update({
-  id: '/examenes',
-  path: '/examenes',
-  getParentRoute: () => UniversidadRoute,
-} as any)
-const UniversidadAprendizajeRoute = UniversidadAprendizajeRouteImport.update({
-  id: '/aprendizaje',
-  path: '/aprendizaje',
-  getParentRoute: () => UniversidadRoute,
-} as any)
 const PanelTareasNuevaRoute = PanelTareasNuevaRouteImport.update({
   id: '/panel_/tareas/nueva',
   path: '/panel/tareas/nueva',
@@ -147,12 +116,6 @@ const AprendizajeEscuchaHomeworkIdRoute =
     path: '/aprendizaje/escucha/$homeworkId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const UniversidadAprendizajeTareaHomeworkIdRoute =
-  UniversidadAprendizajeTareaHomeworkIdRouteImport.update({
-    id: '/tarea/$homeworkId',
-    path: '/tarea/$homeworkId',
-    getParentRoute: () => UniversidadAprendizajeRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -165,11 +128,6 @@ export interface FileRoutesByFullPath {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
-  '/universidad': typeof UniversidadRouteWithChildren
-  '/universidad/aprendizaje': typeof UniversidadAprendizajeRouteWithChildren
-  '/universidad/examenes': typeof UniversidadExamenesRoute
-  '/universidad/horario': typeof UniversidadHorarioRoute
-  '/universidad/noticias': typeof UniversidadNoticiasRoute
   '/aprendizaje/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
@@ -177,7 +135,6 @@ export interface FileRoutesByFullPath {
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
-  '/universidad/aprendizaje/tarea/$homeworkId': typeof UniversidadAprendizajeTareaHomeworkIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -190,11 +147,6 @@ export interface FileRoutesByTo {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
-  '/universidad': typeof UniversidadRouteWithChildren
-  '/universidad/aprendizaje': typeof UniversidadAprendizajeRouteWithChildren
-  '/universidad/examenes': typeof UniversidadExamenesRoute
-  '/universidad/horario': typeof UniversidadHorarioRoute
-  '/universidad/noticias': typeof UniversidadNoticiasRoute
   '/aprendizaje/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
@@ -202,7 +154,6 @@ export interface FileRoutesByTo {
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
-  '/universidad/aprendizaje/tarea/$homeworkId': typeof UniversidadAprendizajeTareaHomeworkIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -216,11 +167,6 @@ export interface FileRoutesById {
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
-  '/universidad': typeof UniversidadRouteWithChildren
-  '/universidad/aprendizaje': typeof UniversidadAprendizajeRouteWithChildren
-  '/universidad/examenes': typeof UniversidadExamenesRoute
-  '/universidad/horario': typeof UniversidadHorarioRoute
-  '/universidad/noticias': typeof UniversidadNoticiasRoute
   '/aprendizaje_/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje_/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje_/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
@@ -228,7 +174,6 @@ export interface FileRoutesById {
   '/panel_/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel_/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel_/tareas/nueva': typeof PanelTareasNuevaRoute
-  '/universidad/aprendizaje/tarea/$homeworkId': typeof UniversidadAprendizajeTareaHomeworkIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -243,11 +188,6 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
-    | '/universidad'
-    | '/universidad/aprendizaje'
-    | '/universidad/examenes'
-    | '/universidad/horario'
-    | '/universidad/noticias'
     | '/aprendizaje/escucha/$homeworkId'
     | '/aprendizaje/lectura/$homeworkId'
     | '/aprendizaje/redaccion/$homeworkId'
@@ -255,7 +195,6 @@ export interface FileRouteTypes {
     | '/panel/alumnos/$studentId'
     | '/panel/tareas/$homeworkId'
     | '/panel/tareas/nueva'
-    | '/universidad/aprendizaje/tarea/$homeworkId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -268,11 +207,6 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
-    | '/universidad'
-    | '/universidad/aprendizaje'
-    | '/universidad/examenes'
-    | '/universidad/horario'
-    | '/universidad/noticias'
     | '/aprendizaje/escucha/$homeworkId'
     | '/aprendizaje/lectura/$homeworkId'
     | '/aprendizaje/redaccion/$homeworkId'
@@ -280,7 +214,6 @@ export interface FileRouteTypes {
     | '/panel/alumnos/$studentId'
     | '/panel/tareas/$homeworkId'
     | '/panel/tareas/nueva'
-    | '/universidad/aprendizaje/tarea/$homeworkId'
   id:
     | '__root__'
     | '/'
@@ -293,11 +226,6 @@ export interface FileRouteTypes {
     | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
-    | '/universidad'
-    | '/universidad/aprendizaje'
-    | '/universidad/examenes'
-    | '/universidad/horario'
-    | '/universidad/noticias'
     | '/aprendizaje_/escucha/$homeworkId'
     | '/aprendizaje_/lectura/$homeworkId'
     | '/aprendizaje_/redaccion/$homeworkId'
@@ -305,7 +233,6 @@ export interface FileRouteTypes {
     | '/panel_/alumnos/$studentId'
     | '/panel_/tareas/$homeworkId'
     | '/panel_/tareas/nueva'
-    | '/universidad/aprendizaje/tarea/$homeworkId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -319,7 +246,6 @@ export interface RootRouteChildren {
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreMiRoute: typeof SobreMiRoute
-  UniversidadRoute: typeof UniversidadRouteWithChildren
   AprendizajeEscuchaHomeworkIdRoute: typeof AprendizajeEscuchaHomeworkIdRoute
   AprendizajeLecturaHomeworkIdRoute: typeof AprendizajeLecturaHomeworkIdRoute
   AprendizajeRedaccionHomeworkIdRoute: typeof AprendizajeRedaccionHomeworkIdRoute
@@ -331,13 +257,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/universidad': {
-      id: '/universidad'
-      path: '/universidad'
-      fullPath: '/universidad'
-      preLoaderRoute: typeof UniversidadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/sobre-mi': {
       id: '/sobre-mi'
       path: '/sobre-mi'
@@ -408,34 +327,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/universidad/noticias': {
-      id: '/universidad/noticias'
-      path: '/noticias'
-      fullPath: '/universidad/noticias'
-      preLoaderRoute: typeof UniversidadNoticiasRouteImport
-      parentRoute: typeof UniversidadRoute
-    }
-    '/universidad/horario': {
-      id: '/universidad/horario'
-      path: '/horario'
-      fullPath: '/universidad/horario'
-      preLoaderRoute: typeof UniversidadHorarioRouteImport
-      parentRoute: typeof UniversidadRoute
-    }
-    '/universidad/examenes': {
-      id: '/universidad/examenes'
-      path: '/examenes'
-      fullPath: '/universidad/examenes'
-      preLoaderRoute: typeof UniversidadExamenesRouteImport
-      parentRoute: typeof UniversidadRoute
-    }
-    '/universidad/aprendizaje': {
-      id: '/universidad/aprendizaje'
-      path: '/aprendizaje'
-      fullPath: '/universidad/aprendizaje'
-      preLoaderRoute: typeof UniversidadAprendizajeRouteImport
-      parentRoute: typeof UniversidadRoute
-    }
     '/panel_/tareas/nueva': {
       id: '/panel_/tareas/nueva'
       path: '/panel/tareas/nueva'
@@ -485,48 +376,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AprendizajeEscuchaHomeworkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/universidad/aprendizaje/tarea/$homeworkId': {
-      id: '/universidad/aprendizaje/tarea/$homeworkId'
-      path: '/tarea/$homeworkId'
-      fullPath: '/universidad/aprendizaje/tarea/$homeworkId'
-      preLoaderRoute: typeof UniversidadAprendizajeTareaHomeworkIdRouteImport
-      parentRoute: typeof UniversidadAprendizajeRoute
-    }
   }
 }
-
-interface UniversidadAprendizajeRouteChildren {
-  UniversidadAprendizajeTareaHomeworkIdRoute: typeof UniversidadAprendizajeTareaHomeworkIdRoute
-}
-
-const UniversidadAprendizajeRouteChildren: UniversidadAprendizajeRouteChildren =
-  {
-    UniversidadAprendizajeTareaHomeworkIdRoute:
-      UniversidadAprendizajeTareaHomeworkIdRoute,
-  }
-
-const UniversidadAprendizajeRouteWithChildren =
-  UniversidadAprendizajeRoute._addFileChildren(
-    UniversidadAprendizajeRouteChildren,
-  )
-
-interface UniversidadRouteChildren {
-  UniversidadAprendizajeRoute: typeof UniversidadAprendizajeRouteWithChildren
-  UniversidadExamenesRoute: typeof UniversidadExamenesRoute
-  UniversidadHorarioRoute: typeof UniversidadHorarioRoute
-  UniversidadNoticiasRoute: typeof UniversidadNoticiasRoute
-}
-
-const UniversidadRouteChildren: UniversidadRouteChildren = {
-  UniversidadAprendizajeRoute: UniversidadAprendizajeRouteWithChildren,
-  UniversidadExamenesRoute: UniversidadExamenesRoute,
-  UniversidadHorarioRoute: UniversidadHorarioRoute,
-  UniversidadNoticiasRoute: UniversidadNoticiasRoute,
-}
-
-const UniversidadRouteWithChildren = UniversidadRoute._addFileChildren(
-  UniversidadRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -539,7 +390,6 @@ const rootRouteChildren: RootRouteChildren = {
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
-  UniversidadRoute: UniversidadRouteWithChildren,
   AprendizajeEscuchaHomeworkIdRoute: AprendizajeEscuchaHomeworkIdRoute,
   AprendizajeLecturaHomeworkIdRoute: AprendizajeLecturaHomeworkIdRoute,
   AprendizajeRedaccionHomeworkIdRoute: AprendizajeRedaccionHomeworkIdRoute,
