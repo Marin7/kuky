@@ -14,6 +14,8 @@ export function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage();
   const current = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
 
+  if (LANGUAGES.length < 2) return null;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

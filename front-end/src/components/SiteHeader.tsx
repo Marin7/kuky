@@ -17,7 +17,6 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isStudent, setIsStudent] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -28,13 +27,11 @@ export function SiteHeader() {
           if (!active) return;
           setAuthed(true);
           setIsAdmin(me.role === "ADMIN");
-          setIsStudent(me.role === "STUDENT");
         })
         .catch(() => {
           if (!active) return;
           setAuthed(false);
           setIsAdmin(false);
-          setIsStudent(false);
         });
     check();
     window.addEventListener("auth-changed", check);
@@ -53,11 +50,7 @@ export function SiteHeader() {
           ...(authed
             ? [{ to: "/reservas", label: t("nav.schedule") }]
             : []),
-          ...(authed && !isStudent
-            ? [{ to: "/prueba-de-nivel", label: t("nav.test") }]
-            : []),
         ]),
-    { to: "/condiciones", label: t("nav.rules") },
     ...(authed && !isAdmin
       ? [{ to: "/aprendizaje", label: t("nav.learning") }]
       : []),
@@ -77,13 +70,16 @@ export function SiteHeader() {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="hidden gap-7 text-sm md:flex">
+        <nav className="hidden gap-1 text-base md:flex">
           {nav.map((n) => (
             <Link
               key={n.to}
               to={n.to}
-              className="text-muted-foreground transition-colors hover:text-foreground"
-              activeProps={{ className: "text-foreground font-medium" }}
+              className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+              activeProps={{
+                className:
+                  "rounded-md px-3 py-1.5 text-foreground font-medium",
+              }}
               activeOptions={{ exact: n.to === "/" }}
             >
               {n.label}
@@ -116,10 +112,10 @@ export function SiteHeader() {
                     key={n.to}
                     to={n.to}
                     onClick={() => setOpen(false)}
-                    className="rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+                    className="rounded-md px-3 py-2 text-base text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
                     activeProps={{
                       className:
-                        "rounded-md px-3 py-2 text-sm bg-accent/20 text-foreground font-medium",
+                        "rounded-md px-3 py-2 text-base bg-accent/20 text-foreground font-medium",
                     }}
                     activeOptions={{ exact: n.to === "/" }}
                   >

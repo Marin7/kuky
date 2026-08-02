@@ -6,14 +6,15 @@ import { enDict } from "./locales/en";
 
 export type Lang = "es" | "ro" | "en";
 
+// RO and EN kept in resources below; re-add here when ready to expose again.
 export const LANGUAGES: { code: Lang; countryCode: string; label: string }[] = [
   { code: "es", countryCode: "es", label: "ES" },
-  { code: "ro", countryCode: "ro", label: "RO" },
-  { code: "en", countryCode: "gb", label: "EN" },
+  // { code: "ro", countryCode: "ro", label: "RO" },
+  // { code: "en", countryCode: "gb", label: "EN" },
 ];
 
 const STORAGE_KEY = "kuky-lang";
-const VALID_LANGS: Lang[] = ["es", "ro", "en"];
+const VALID_LANGS: Lang[] = LANGUAGES.map((l) => l.code);
 
 // Falls back to "es" for SSR (no localStorage), missing key, or any unrecognised value.
 export function getStoredLang(): Lang {

@@ -38,11 +38,11 @@ export const roDict = {
   home: {
     hero: {
       badge: "Cursuri pentru studenți români",
-      titleBefore: "Învață spaniola",
-      titleItalic: "cu încredere",
-      titleAfter: ".",
+      titleBefore: "Următoarea ta destinație vorbește",
+      titleItalic: "spaniola",
+      titleAfter: "Învață și tu.",
       subtitle:
-        "Cursuri personalizate, conversație reală și o metodă gândită pentru vorbitorii de română. Fă următorul pas în spaniola ta azi.",
+        "Fă primul pas cu cursuri personalizate, practică de conversație și o metodă creată special pentru studenți români.",
       ctaBook: "Rezervă un curs",
       ctaTest: "Testează-ți nivelul",
       ctaAbout: "Cunoaște-mă",

@@ -222,46 +222,6 @@ function StudentProfilePage() {
 
           <div className="space-y-10">
             <Section
-              title={t("admin.studentProfile.interests.title")}
-              count={
-                (profile.interests?.length ?? 0) +
-                (profile.interestsNote ? 1 : 0)
-              }
-            >
-              {(profile.interests?.length ?? 0) === 0 &&
-              !profile.interestsNote ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("admin.studentProfile.interests.empty")}
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {profile.interests.length > 0 && (
-                    <ul className="flex flex-wrap gap-2">
-                      {profile.interests.map((code) => (
-                        <li
-                          key={code}
-                          className="rounded-full border bg-card px-3 py-1 text-sm"
-                        >
-                          {t(`interests.${code}` as never)}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {profile.interestsNote && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-1">
-                        {t("admin.studentProfile.interests.noteLabel")}
-                      </p>
-                      <p className="text-sm whitespace-pre-wrap">
-                        {profile.interestsNote}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Section>
-
-            <Section
               title={t("admin.studentProfile.progress.title")}
               count={profile.progress.units.length}
             >

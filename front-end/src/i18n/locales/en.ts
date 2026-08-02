@@ -38,11 +38,11 @@ export const enDict = {
   home: {
     hero: {
       badge: "Classes for Romanian students",
-      titleBefore: "Learn Spanish",
-      titleItalic: "with confidence",
-      titleAfter: ".",
+      titleBefore: "Your next destination speaks",
+      titleItalic: "Spanish",
+      titleAfter: "You can learn it too.",
       subtitle:
-        "Personalised classes, real conversation and a method designed for Romanian speakers. Take the next step in your Spanish today.",
+        "Take the first step with personalised classes, conversation practice and a method created especially for Romanian students.",
       ctaBook: "Book a class",
       ctaTest: "Test your level",
       ctaAbout: "Meet me",

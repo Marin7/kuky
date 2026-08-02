@@ -28,36 +28,19 @@ function Index() {
             <span className="inline-block rounded-full bg-primary/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-primary">
               {t("home.hero.badge")}
             </span>
-            <h1 className="mt-5 font-display text-5xl font-semibold leading-tight md:text-6xl">
+            <h1 className="mt-5 font-display text-4xl font-semibold leading-tight md:text-5xl">
               {t("home.hero.titleBefore")}{" "}
               <span className="text-primary italic">
                 {t("home.hero.titleItalic")}
               </span>
-              {t("home.hero.titleAfter")}
+              .
+              <span className="mt-2 block text-3xl md:text-4xl font-semibold">
+                {t("home.hero.titleAfter")}
+              </span>
             </h1>
             <p className="mt-5 max-w-lg text-lg text-muted-foreground">
               {t("home.hero.subtitle")}
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/reservas"
-                className="rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-              >
-                {t("home.hero.ctaBook")}
-              </Link>
-              <Link
-                to="/prueba-de-nivel"
-                className="rounded-md border border-primary/40 bg-background px-5 py-3 text-sm font-medium text-primary hover:bg-primary/5"
-              >
-                {t("home.hero.ctaTest")}
-              </Link>
-              <Link
-                to="/sobre-mi"
-                className="rounded-md border border-border bg-background px-5 py-3 text-sm font-medium hover:bg-accent/30"
-              >
-                {t("home.hero.ctaAbout")}
-              </Link>
-            </div>
           </div>
           <div className="relative">
             <div className="absolute -inset-4 -z-10 rounded-3xl bg-accent/40 blur-2xl" />

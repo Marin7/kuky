@@ -38,11 +38,11 @@ export const esDict = {
   home: {
     hero: {
       badge: "Clases para estudiantes rumanos",
-      titleBefore: "Aprende español",
-      titleItalic: "con confianza",
-      titleAfter: ".",
+      titleBefore: "Tu próximo destino habla",
+      titleItalic: "español",
+      titleAfter: "Aprende tú también.",
       subtitle:
-        "Clases personalizadas, conversación real y un método pensado para hablantes de rumano. Da el siguiente paso en tu español hoy.",
+        "Da el primer paso con clases personalizadas, práctica de conversación y un método creado especialmente para estudiantes rumanos.",
       ctaBook: "Reservar una clase",
       ctaTest: "Prueba tu nivel",
       ctaAbout: "Conóceme",
@@ -65,7 +65,7 @@ export const esDict = {
       title: "Lo que dicen mis estudiantes",
     },
     cta: {
-      title: "¿Listo para empezar?",
+      title: "¿Listo/a para empezar?",
       subtitle:
         "Reserva tu primera clase de prueba y descubre cómo el español puede formar parte de tu día a día.",
       button: "Reservar ahora",
