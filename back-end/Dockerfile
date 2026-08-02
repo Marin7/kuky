@@ -30,6 +30,10 @@ COPY --from=builder /workspace/layers/spring-boot-loader/ ./
 COPY --from=builder /workspace/layers/snapshot-dependencies/ ./
 COPY --from=builder /workspace/layers/application/ ./
 
+# Writable dirs for uploaded images and presentation PPTX files (app runs as non-root).
+RUN mkdir -p /app/data/images /app/data/presentation-files \
+    && chown -R kuky:kuky /app/data
+
 USER kuky
 EXPOSE 8081
 
