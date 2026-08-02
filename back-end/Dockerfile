@@ -34,6 +34,12 @@ COPY --from=builder /workspace/layers/application/ ./
 RUN mkdir -p /app/data/images /app/data/presentation-files \
     && chown -R kuky:kuky /app/data
 
+# Uploads live under the app user's home (writable); /app is root-owned WORKDIR.
+RUN mkdir -p /opt/kuky/data/images /opt/kuky/data/presentation-files \
+    && chown -R kuky:kuky /opt/kuky/data
+ENV IMAGES_STORAGE_DIR=/opt/kuky/data/images \
+    PRESENTATION_FILES_STORAGE_DIR=/opt/kuky/data/presentation-files
+
 USER kuky
 EXPOSE 8081
 
