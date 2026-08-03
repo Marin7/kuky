@@ -86,6 +86,7 @@ public class LearningService {
                                 s.id(),
                                 s.title(),
                                 s.hasFile(),
+                                s.originalFileName(),
                                 s.unit() == null ? null
                                         : new UnitRef(
                                                 s.unit().level(), s.unit().subject(), s.unit().position())))
@@ -94,7 +95,7 @@ public class LearningService {
         return new LearningResponse(presentation, pastClasses, homework, sharedPresentations);
     }
 
-    /** Downloads the .pptx file for a shared presentation. Enforces share-gate. */
+    /** Downloads the file for a shared presentation (PPTX or PDF). Enforces share-gate. */
     public PresentationFile getPresentationFile(String userEmail, UUID presentationId) {
         User user = requireUser(userEmail);
         if (!presentationRepository.isSharedWith(presentationId, user.getId())) {

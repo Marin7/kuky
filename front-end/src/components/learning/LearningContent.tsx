@@ -97,7 +97,10 @@ function PresentationDownloadCard({
     setDownloading(true);
     setError(null);
     try {
-      await downloadPresentation(presentation.id, `${presentation.title}.pptx`);
+      await downloadPresentation(
+        presentation.id,
+        presentation.originalFileName ?? `${presentation.title}.pptx`,
+      );
     } catch {
       setError(t("learning.presentations.loadError"));
     } finally {

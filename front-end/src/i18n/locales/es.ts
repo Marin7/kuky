@@ -724,7 +724,7 @@ export const esDict = {
       delete: "Eliminar",
       replace: "Reemplazar",
       remove: "Quitar",
-      upload: "Subir archivo .pptx",
+      upload: "Subir archivo .pptx o .pdf",
       uploading: "Subiendo…",
       noShares: "Sin compartir.",
       uploadError: "Error al subir el archivo.",

@@ -23,6 +23,9 @@ import java.util.UUID;
 public class PresentationService {
 
     private static final long MAX_FILE_BYTES = 50L * 1024 * 1024; // 50 MB
+    private static final String PPTX_CONTENT_TYPE =
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    private static final String PDF_CONTENT_TYPE = "application/pdf";
 
     private final PresentationRepository repository;
     private final UserRepository userRepository;
@@ -85,16 +88,30 @@ public class PresentationService {
             throw new IllegalArgumentException("El archivo no puede superar los 50 MB.");
         }
         String originalName = file.getOriginalFilename();
-        boolean isPptx = (originalName != null && originalName.toLowerCase(Locale.ROOT).endsWith(".pptx"))
-                || "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                        .equals(file.getContentType());
-        if (!isPptx) {
-            throw new IllegalArgumentException("Solo se admiten archivos PowerPoint (.pptx).");
+        String lowerName = originalName != null ? originalName.toLowerCase(Locale.ROOT) : "";
+        String contentType = file.getContentType();
+        final boolean isPdf;
+        if (lowerName.endsWith(".pdf")) {
+            isPdf = true;
+        } else if (lowerName.endsWith(".pptx")) {
+            isPdf = false;
+        } else if (PDF_CONTENT_TYPE.equals(contentType)) {
+            isPdf = true;
+        } else if (PPTX_CONTENT_TYPE.equals(contentType)) {
+            isPdf = false;
+        } else {
+            throw new IllegalArgumentException("Solo se admiten archivos PowerPoint (.pptx) o PDF (.pdf).");
         }
         try {
-            String name = (originalName != null && !originalName.isBlank()) ? originalName : "presentacion.pptx";
-            String ct = file.getContentType() != null ? file.getContentType()
-                    : "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            String name;
+            String ct;
+            if (isPdf) {
+                name = (originalName != null && !originalName.isBlank()) ? originalName : "presentacion.pdf";
+                ct = PDF_CONTENT_TYPE;
+            } else {
+                name = (originalName != null && !originalName.isBlank()) ? originalName : "presentacion.pptx";
+                ct = PPTX_CONTENT_TYPE;
+            }
             byte[] data = file.getBytes();
             fileStore.write(id, data);
             try {

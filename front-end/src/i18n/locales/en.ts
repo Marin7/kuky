@@ -710,7 +710,7 @@ export const enDict = {
       delete: "Delete",
       replace: "Replace",
       remove: "Remove",
-      upload: "Upload .pptx file",
+      upload: "Upload .pptx or .pdf file",
       uploading: "Uploading…",
       noShares: "Not shared.",
       uploadError: "Error uploading file.",

@@ -720,7 +720,7 @@ export const roDict = {
       delete: "Șterge",
       replace: "Înlocuiește",
       remove: "Elimină",
-      upload: "Încarcă fișier .pptx",
+      upload: "Încarcă fișier .pptx sau .pdf",
       uploading: "Se încarcă…",
       noShares: "Nedistribuită.",
       uploadError: "Eroare la încărcarea fișierului.",

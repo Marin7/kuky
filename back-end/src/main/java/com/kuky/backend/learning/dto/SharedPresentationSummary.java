@@ -6,5 +6,6 @@ public record SharedPresentationSummary(
         UUID id,
         String title,
         boolean hasFile,
+        String originalFileName,
         UnitRef unit
 ) {}

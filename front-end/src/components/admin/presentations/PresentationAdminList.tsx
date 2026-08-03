@@ -366,7 +366,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <input
             type="file"
-            accept=".pptx"
+            accept=".pptx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
             className="hidden"
             ref={fileInputRef}
             onChange={handleFileChange}

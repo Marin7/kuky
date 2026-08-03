@@ -97,6 +97,7 @@ export interface SharedPresentationSummary {
   id: string;
   title: string;
   hasFile: boolean;
+  originalFileName: string | null;
   unit: UnitRef | null;
 }
 

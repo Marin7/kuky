@@ -15,13 +15,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Stores presentation PPTX bytes on disk under {@code app.presentation-files.storage-dir},
- * with classpath fallback under {@code presentation-files/} for seed files bundled in the jar.
+ * Stores presentation file bytes (PPTX or PDF) on disk under {@code app.presentation-files.storage-dir}.
+ * On-disk names use a fixed {@code .pptx} suffix for historical reasons; content type and original
+ * filename live in the DB. Classpath fallback under {@code presentation-files/} for seed files.
  */
 @Component
 public class PresentationFileStore {
 
     private static final Logger log = LoggerFactory.getLogger(PresentationFileStore.class);
+    /** Opaque storage suffix — not the uploaded file's real extension. */
     private static final String EXT = ".pptx";
 
     private final Path storageDir;

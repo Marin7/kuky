@@ -295,7 +295,7 @@ function PresentationRow({
     <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs">
       <input
         type="file"
-        accept=".pptx"
+        accept=".pptx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
         className="hidden"
         ref={fileInputRef}
         onChange={handleFileChange}
