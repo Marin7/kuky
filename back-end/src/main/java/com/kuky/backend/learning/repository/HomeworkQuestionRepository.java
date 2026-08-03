@@ -36,6 +36,8 @@ public class HomeworkQuestionRepository {
         q.setPosition(rs.getInt("position"));
         q.setKind(QuestionKind.valueOf(rs.getString("kind")));
         q.setPrompt(rs.getString("prompt"));
+        String structure = rs.getString("structure_json");
+        q.setStructureJson(structure == null ? "{}" : structure);
         return q;
     };
 
@@ -81,14 +83,17 @@ public class HomeworkQuestionRepository {
         for (HomeworkQuestion q : questions) {
             UUID questionId = UUID.randomUUID();
             jdbc.update("""
-                    INSERT INTO homework_questions (id, assignment_id, position, kind, prompt)
-                    VALUES (:id, :aid, :position, :kind, :prompt)
+                    INSERT INTO homework_questions (id, assignment_id, position, kind, prompt, structure_json)
+                    VALUES (:id, :aid, :position, :kind, :prompt, CAST(:structureJson AS jsonb))
                     """, new MapSqlParameterSource()
                     .addValue("id", questionId)
                     .addValue("aid", assignmentId)
                     .addValue("position", qPos++)
                     .addValue("kind", q.getKind().name())
-                    .addValue("prompt", q.getPrompt()));
+                    .addValue("prompt", q.getPrompt())
+                    .addValue("structureJson",
+                            q.getStructureJson() == null || q.getStructureJson().isBlank()
+                                    ? "{}" : q.getStructureJson()));
             int oPos = 0;
             for (QuestionOption o : q.getOptions()) {
                 jdbc.update("""

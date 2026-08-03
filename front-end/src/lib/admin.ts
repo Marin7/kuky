@@ -312,7 +312,14 @@ export const getStudentProfile = (id: string) =>
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type HomeworkFormat = "MANUAL" | "EXERCISE";
-export type QuestionKind = "SINGLE_CHOICE" | "MULTI_CHOICE" | "FILL_BLANK";
+export type QuestionKind =
+  | "SINGLE_CHOICE"
+  | "MULTI_CHOICE"
+  | "FILL_BLANK"
+  | "MULTI_BLANK"
+  | "DRAG_DROP"
+  | "TABLE_FILL"
+  | "MATCHING";
 
 export interface AdminOption {
   id?: string;
@@ -320,11 +327,68 @@ export interface AdminOption {
   correct: boolean;
 }
 
+// --- Structured question payloads (authoring / stored, includes answer key) ---
+// See specs/024-new-exercise-types/contracts/exercise-types-api.md
+
+export interface MultiBlankStructure {
+  blanks: { acceptedAnswers: string[] }[];
+}
+
+export interface BankItem {
+  id: string;
+  label: string;
+}
+
+export interface DragDropStructure {
+  /** Index i is the correct bank item for blank i (bank order = correct order). */
+  bank: BankItem[];
+}
+
+export interface TableFillCell {
+  r: number;
+  c: number;
+  type: "fixed" | "blank";
+  text?: string; // fixed cells
+  acceptedAnswers?: string[]; // blank cells
+}
+
+export interface TableFillStructure {
+  rowHeaders: string[];
+  colHeaders: string[];
+  cells: TableFillCell[];
+}
+
+export interface MatchingItem {
+  id: string;
+  label: string;
+}
+
+export interface MatchingPair {
+  leftId: string;
+  rightId: string;
+}
+
+export interface MatchingStructure {
+  left: MatchingItem[];
+  right: MatchingItem[];
+  pairs: MatchingPair[];
+}
+
+export type QuestionStructure =
+  | MultiBlankStructure
+  | DragDropStructure
+  | TableFillStructure
+  | MatchingStructure
+  | Record<string, never>; // legacy kinds: {}
+
 export interface AdminQuestion {
   id?: string;
   kind: QuestionKind;
   prompt: string;
+  /** Legacy kinds only; empty for the four structured kinds. */
   options: AdminOption[];
+  /** Required shape for structured kinds; {} (or omitted) for legacy kinds. */
+  structure?: QuestionStructure;
 }
 
 export interface HomeworkAdminItem {

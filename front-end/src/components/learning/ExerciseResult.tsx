@@ -56,6 +56,7 @@ export function ExerciseResult({ questions, result }: Props) {
               : question
                 ? optionLabels(question, qr.correctOptionIds)
                 : "";
+          const unitResults = qr.unitResults ?? [];
 
           return (
             <div key={qr.questionId} className="rounded-lg border p-3 text-sm">
@@ -69,13 +70,43 @@ export function ExerciseResult({ questions, result }: Props) {
                   {badge.text}
                 </span>
               </div>
-              {!qr.correct && correctText && (
-                <p className="mt-2 text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {t("learning.exerciseResult.correctAnswer")}{" "}
-                  </span>
-                  {correctText}
-                </p>
+              {unitResults.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {unitResults.map((u) => (
+                    <span
+                      key={u.index}
+                      className={`rounded px-2 py-1 text-xs ${
+                        u.correct
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {u.index + 1}.{" "}
+                      {u.correct
+                        ? t("learning.exerciseResult.unitCorrect")
+                        : t("learning.exerciseResult.unitIncorrect")}
+                      {!u.correct &&
+                        u.expectedDisplay &&
+                        u.expectedDisplay.length > 0 && (
+                          <>
+                            {" — "}
+                            {t("learning.exerciseResult.unitExpected")}{" "}
+                            {u.expectedDisplay.join(" / ")}
+                          </>
+                        )}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                !qr.correct &&
+                correctText && (
+                  <p className="mt-2 text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {t("learning.exerciseResult.correctAnswer")}{" "}
+                    </span>
+                    {correctText}
+                  </p>
+                )
               )}
             </div>
           );

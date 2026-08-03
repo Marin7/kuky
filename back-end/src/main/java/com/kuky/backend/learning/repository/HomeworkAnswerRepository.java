@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Types;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ public class HomeworkAnswerRepository {
         a.setSubmissionId(rs.getObject("submission_id", UUID.class));
         a.setQuestionId(rs.getObject("question_id", UUID.class));
         a.setAnswerText(rs.getString("answer_text"));
+        a.setAnswerJson(rs.getString("answer_json"));
         a.setScore(rs.getBigDecimal("score"));
         return a;
     };
@@ -39,15 +41,23 @@ public class HomeworkAnswerRepository {
                 Map.of("sid", submissionId));
         for (HomeworkAnswer a : answers) {
             UUID answerId = UUID.randomUUID();
-            jdbc.update("""
-                    INSERT INTO homework_answers (id, submission_id, question_id, answer_text, score)
-                    VALUES (:id, :sid, :qid, :answerText, :score)
-                    """, new MapSqlParameterSource()
+            MapSqlParameterSource params = new MapSqlParameterSource()
                     .addValue("id", answerId)
                     .addValue("sid", submissionId)
                     .addValue("qid", a.getQuestionId())
                     .addValue("answerText", a.getAnswerText())
-                    .addValue("score", a.getScore()));
+                    .addValue("score", a.getScore());
+            if (a.getAnswerJson() == null) {
+                params.addValue("answerJson", null, Types.NULL);
+            } else {
+                params.addValue("answerJson", a.getAnswerJson(), Types.VARCHAR);
+            }
+            jdbc.update("""
+                    INSERT INTO homework_answers (id, submission_id, question_id, answer_text, answer_json, score)
+                    VALUES (:id, :sid, :qid, :answerText,
+                            CASE WHEN :answerJson IS NULL THEN NULL ELSE CAST(:answerJson AS jsonb) END,
+                            :score)
+                    """, params);
             for (UUID optionId : a.getSelectedOptionIds()) {
                 jdbc.update("""
                         INSERT INTO homework_answer_options (answer_id, option_id)

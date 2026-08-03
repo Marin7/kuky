@@ -6,21 +6,54 @@ import {
   type ExerciseResult as ExerciseResultData,
   type AnswerPayload,
   type ApiError,
+  type MatchingAnswer,
 } from "@/lib/learning";
+import { countBlanks } from "@/lib/blankTokens";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExerciseResult } from "./ExerciseResult";
+import { MultiBlankQuestion } from "./MultiBlankQuestion";
+import { DragDropQuestion } from "./DragDropQuestion";
+import { TableFillQuestion } from "./TableFillQuestion";
+import { MatchingQuestion } from "./MatchingQuestion";
 
 interface AnswerState {
   selectedOptionIds: string[];
   answerText: string;
+  blanks: string[]; // MULTI_BLANK
+  placements: (string | null)[]; // DRAG_DROP
+  cells: Record<string, string>; // TABLE_FILL
+  pairs: MatchingAnswer["pairs"]; // MATCHING
 }
 
 interface Props {
   exercise: ExerciseResponse;
+}
+
+// The component's own kind renders the passage/title; the generic numbered
+// label above the question is skipped for these two.
+const RENDERS_OWN_PASSAGE = new Set(["MULTI_BLANK", "DRAG_DROP"]);
+
+function initialAnswerState(
+  q: ExerciseResponse["questions"][number],
+): AnswerState {
+  return {
+    selectedOptionIds: [],
+    answerText: "",
+    blanks:
+      q.kind === "MULTI_BLANK" ? Array(countBlanks(q.prompt)).fill("") : [],
+    placements:
+      q.kind === "DRAG_DROP"
+        ? Array(
+            Math.max(countBlanks(q.prompt), q.structure?.bank?.length ?? 0),
+          ).fill(null)
+        : [],
+    cells: {},
+    pairs: [],
+  };
 }
 
 /**
@@ -31,10 +64,7 @@ export function ExerciseForm({ exercise }: Props) {
   const { t } = useTranslation();
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(() =>
     Object.fromEntries(
-      exercise.questions.map((q) => [
-        q.id,
-        { selectedOptionIds: [], answerText: "" },
-      ]),
+      exercise.questions.map((q) => [q.id, initialAnswerState(q)]),
     ),
   );
   const [result, setResult] = useState<ExerciseResultData | null>(
@@ -64,16 +94,39 @@ export function ExerciseForm({ exercise }: Props) {
       [qId]: { ...prev[qId], answerText: text },
     }));
 
+  const setBlanks = (qId: string, blanks: string[]) =>
+    setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], blanks } }));
+
+  const setPlacements = (qId: string, placements: (string | null)[]) =>
+    setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], placements } }));
+
+  const setCells = (qId: string, cells: Record<string, string>) =>
+    setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], cells } }));
+
+  const setPairs = (qId: string, pairs: MatchingAnswer["pairs"]) =>
+    setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], pairs } }));
+
   const submit = async () => {
     setSubmitting(true);
     setError(null);
     try {
-      const payload: AnswerPayload[] = exercise.questions.map((q) => ({
-        questionId: q.id,
-        selectedOptionIds: answers[q.id]?.selectedOptionIds ?? [],
-        answerText:
-          q.kind === "FILL_BLANK" ? (answers[q.id]?.answerText ?? "") : null,
-      }));
+      const payload: AnswerPayload[] = exercise.questions.map((q) => {
+        const a = answers[q.id];
+        let answerJson: unknown = null;
+        if (q.kind === "MULTI_BLANK") answerJson = { blanks: a?.blanks ?? [] };
+        else if (q.kind === "DRAG_DROP")
+          answerJson = { placements: a?.placements ?? [] };
+        else if (q.kind === "TABLE_FILL")
+          answerJson = { cells: a?.cells ?? {} };
+        else if (q.kind === "MATCHING") answerJson = { pairs: a?.pairs ?? [] };
+
+        return {
+          questionId: q.id,
+          selectedOptionIds: a?.selectedOptionIds ?? [],
+          answerText: q.kind === "FILL_BLANK" ? (a?.answerText ?? "") : null,
+          answerJson,
+        };
+      });
       const res = await submitExercise(exercise.id, payload);
       setResult(res);
     } catch (e) {
@@ -101,7 +154,9 @@ export function ExerciseForm({ exercise }: Props) {
       {exercise.questions.map((q, i) => (
         <div key={q.id} className="space-y-2">
           <Label className="text-sm font-medium">
-            {i + 1}. {q.prompt}
+            {RENDERS_OWN_PASSAGE.has(q.kind)
+              ? `${i + 1}.`
+              : `${i + 1}. ${q.prompt}`}
           </Label>
 
           {q.kind === "SINGLE_CHOICE" && (
@@ -138,6 +193,40 @@ export function ExerciseForm({ exercise }: Props) {
               onChange={(e) => setText(q.id, e.target.value)}
               placeholder={t("learning.exercisePage.yourAnswer")}
               className="max-w-sm"
+            />
+          )}
+
+          {q.kind === "MULTI_BLANK" && (
+            <MultiBlankQuestion
+              prompt={q.prompt}
+              value={answers[q.id]?.blanks ?? []}
+              onChange={(blanks) => setBlanks(q.id, blanks)}
+            />
+          )}
+
+          {q.kind === "DRAG_DROP" && (
+            <DragDropQuestion
+              prompt={q.prompt}
+              bank={q.structure?.bank ?? []}
+              value={answers[q.id]?.placements ?? []}
+              onChange={(placements) => setPlacements(q.id, placements)}
+            />
+          )}
+
+          {q.kind === "TABLE_FILL" && (
+            <TableFillQuestion
+              structure={q.structure ?? {}}
+              value={answers[q.id]?.cells ?? {}}
+              onChange={(cells) => setCells(q.id, cells)}
+            />
+          )}
+
+          {q.kind === "MATCHING" && (
+            <MatchingQuestion
+              left={q.structure?.left ?? []}
+              right={q.structure?.right ?? []}
+              pairs={answers[q.id]?.pairs ?? []}
+              onChange={(pairs) => setPairs(q.id, pairs)}
             />
           )}
         </div>

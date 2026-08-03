@@ -1,5 +1,6 @@
 package com.kuky.backend.admin;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuky.backend.admin.dto.CreateHomeworkRequest;
 import com.kuky.backend.admin.dto.HomeworkQuestionDto;
 import com.kuky.backend.admin.dto.HomeworkQuestionDto.OptionDto;
@@ -50,7 +51,7 @@ class HomeworkExerciseAdminServiceTest {
         userRepository = mock(UserRepository.class);
         submissionRepository = mock(HomeworkSubmissionRepository.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
-                audioFileRepository, userRepository, submissionRepository);
+                audioFileRepository, userRepository, submissionRepository, new ObjectMapper());
 
         // For the happy path: insert returns an id and the re-fetch returns an assignment.
         when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
@@ -71,7 +72,7 @@ class HomeworkExerciseAdminServiceTest {
     }
 
     private static HomeworkQuestionDto q(String kind, OptionDto... options) {
-        return new HomeworkQuestionDto(null, kind, "¿…?", List.of(options));
+        return new HomeworkQuestionDto(null, kind, "¿…?", List.of(options), null);
     }
 
     @Test

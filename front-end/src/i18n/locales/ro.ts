@@ -350,6 +350,20 @@ export const roDict = {
       submitting: "Se predă…",
       loadError: "Nu s-a putut încărca exercițiul.",
       submitError: "Nu s-a putut preda exercițiul.",
+      dragDropInstructions:
+        "Trage un cuvânt pe spațiu, sau apasă cuvântul și apoi spațiul.",
+      matchingInstructions:
+        "Alege un element din stânga, apoi perechea lui din dreapta.",
+      wordBank: "Banca de cuvinte",
+      wordBankMissing:
+        "Nu există cuvinte în bancă. Verifică dacă exercițiul a fost salvat corect.",
+      dropTargets: "Text — plasează cuvintele în spații",
+      dropHere: "Plasează aici",
+      emptyBlank: "Gol",
+      selectedHint: "Selectat: «{{word}}». Apasă un spațiu pentru a-l plasa.",
+      clear: "Șterge",
+      leftColumn: "Stânga",
+      rightColumn: "Dreapta",
     },
     writePage: {
       back: "← Înapoi la învățarea mea",
@@ -395,6 +409,9 @@ export const roDict = {
       questionIncorrect: "Incorect",
       questionPartial: "Parțial",
       correctAnswer: "Răspuns corect:",
+      unitCorrect: "Corect",
+      unitIncorrect: "Incorect",
+      unitExpected: "Așteptat:",
     },
     pastClasses: {
       title: "Cursuri anterioare",
@@ -684,7 +701,42 @@ export const roDict = {
           SINGLE_CHOICE: "Alegere unică",
           MULTI_CHOICE: "Alegere multiplă",
           FILL_BLANK: "Completează spațiul",
+          MULTI_BLANK: "Mai multe spații",
+          DRAG_DROP: "Trage și plasează",
+          TABLE_FILL: "Completează tabelul",
+          MATCHING: "Potrivire",
         },
+        promptBlanksHint:
+          "Scrie ___ (trei liniuțe de subliniere) unde vrei un spațiu liber. Ai nevoie de 2 până la 20.",
+        promptOptionalHint: "Enunț sau titlu scurt (opțional).",
+        blankLabel: "Spațiul {{index}}",
+        blankCountWarning:
+          "Adaugă cel puțin două spații libere (___) în enunț pentru a configura răspunsurile.",
+        multiBlankHint:
+          "Definește răspunsurile acceptate pentru fiecare spațiu liber din enunț (elevul scrie).",
+        dragDropHint:
+          "Scrie cuvântul corect pentru fiecare spațiu, în ordine. Elevul va vedea aceste cuvinte amestecate într-o bancă și trebuie să le tragă (nu să scrie).",
+        wordBankTitle: "Banca de cuvinte",
+        bankWordLabel: "Cuvântul {{index}} (spațiul {{index}})",
+        bankPreview: "Așa va vedea elevul banca (în altă ordine):",
+        bankItemPlaceholder: "Cuvânt sau expresie din bancă",
+        tableFillHint:
+          "Definește rândurile și coloanele tabelului și marchează ce celule completează elevul.",
+        columnHeaderPlaceholder: "Coloană",
+        rowHeaderPlaceholder: "Rând",
+        addColumn: "Adaugă coloană",
+        addRow: "Adaugă rând",
+        cellBlank: "Spațiu liber",
+        cellFixed: "Fix",
+        cellTextPlaceholder: "Text fix",
+        matchingHint:
+          "Adaugă elemente în fiecare coloană și alege cu ce element din dreapta se potrivește fiecare.",
+        leftColumn: "Coloana stângă",
+        rightColumn: "Coloana dreaptă",
+        itemPlaceholder: "Element",
+        matchWith: "Potrivește cu…",
+        noPair: "Fără pereche",
+        addItem: "Adaugă element",
       },
     },
     homeworkReview: {

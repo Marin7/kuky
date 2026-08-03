@@ -1,5 +1,10 @@
 package com.kuky.backend.admin.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.kuky.backend.admin.dto.AssigneeDto;
 import com.kuky.backend.admin.dto.CreateHomeworkRequest;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
@@ -28,12 +33,18 @@ import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.learning.service.BlankPassageParser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 /** Teacher-side homework authoring + assignment + submission review. */
@@ -47,19 +58,22 @@ public class HomeworkAdminService {
     private final AudioFileRepository audioFileRepository;
     private final UserRepository userRepository;
     private final HomeworkSubmissionRepository submissionRepository;
+    private final ObjectMapper objectMapper;
 
     public HomeworkAdminService(ContentRepository contentRepository,
                                 HomeworkTargetRepository targetRepository,
                                 HomeworkQuestionRepository questionRepository,
                                 AudioFileRepository audioFileRepository,
                                 UserRepository userRepository,
-                                HomeworkSubmissionRepository submissionRepository) {
+                                HomeworkSubmissionRepository submissionRepository,
+                                ObjectMapper objectMapper) {
         this.contentRepository = contentRepository;
         this.targetRepository = targetRepository;
         this.questionRepository = questionRepository;
         this.audioFileRepository = audioFileRepository;
         this.userRepository = userRepository;
         this.submissionRepository = submissionRepository;
+        this.objectMapper = objectMapper;
     }
 
     // --- Teacher review of MANUAL submissions --------------------------------
@@ -205,23 +219,37 @@ public class HomeworkAdminService {
             }
             QuestionKind kind = parseKind(q.kind());
             List<HomeworkQuestionDto.OptionDto> opts = q.options() == null ? List.of() : q.options();
-            validateOptions(kind, opts);
 
             HomeworkQuestion model = new HomeworkQuestion();
             model.setKind(kind);
             model.setPrompt(q.prompt().strip());
-            List<QuestionOption> optionModels = new ArrayList<>();
-            for (HomeworkQuestionDto.OptionDto o : opts) {
-                if (o.label() == null || o.label().isBlank()) {
-                    throw new IllegalArgumentException("Las opciones y respuestas no pueden estar vacías.");
+
+            if (kind.isStructured()) {
+                if (!opts.isEmpty()) {
+                    throw new IllegalArgumentException("Este tipo de pregunta no admite opciones.");
                 }
-                QuestionOption om = new QuestionOption();
-                om.setLabel(o.label().strip());
-                // Fill-blank accepted answers are always part of the key.
-                om.setCorrect(kind == QuestionKind.FILL_BLANK || o.correct());
-                optionModels.add(om);
+                JsonNode normalized = validateStructure(kind, model.getPrompt(), q.structure());
+                model.setStructureJson(writeStructure(normalized));
+                model.setOptions(List.of());
+            } else {
+                if (!isStructureEmpty(q.structure())) {
+                    throw new IllegalArgumentException("Este tipo de pregunta no admite una estructura adicional.");
+                }
+                model.setStructureJson("{}");
+                validateOptions(kind, opts);
+                List<QuestionOption> optionModels = new ArrayList<>();
+                for (HomeworkQuestionDto.OptionDto o : opts) {
+                    if (o.label() == null || o.label().isBlank()) {
+                        throw new IllegalArgumentException("Las opciones y respuestas no pueden estar vacías.");
+                    }
+                    QuestionOption om = new QuestionOption();
+                    om.setLabel(o.label().strip());
+                    // Fill-blank accepted answers are always part of the key.
+                    om.setCorrect(kind == QuestionKind.FILL_BLANK || o.correct());
+                    optionModels.add(om);
+                }
+                model.setOptions(optionModels);
             }
-            model.setOptions(optionModels);
             mapped.add(model);
         }
         return mapped;
@@ -252,7 +280,263 @@ public class HomeworkAdminService {
                     throw new IllegalArgumentException("Una pregunta de rellenar el hueco necesita al menos una respuesta aceptada.");
                 }
             }
+            default -> { /* structured kinds are validated via validateStructure */ }
         }
+    }
+
+    // --- structured question validation (MULTI_BLANK, DRAG_DROP, TABLE_FILL, MATCHING) -------
+
+    /** {@code true} for {@code null}, a missing node, or an empty JSON object — i.e. "no structure". */
+    private static boolean isStructureEmpty(JsonNode structure) {
+        return structure == null || structure.isNull() || structure.isMissingNode()
+                || (structure.isObject() && structure.isEmpty());
+    }
+
+    private String writeStructure(JsonNode structure) {
+        try {
+            return objectMapper.writeValueAsString(structure);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo guardar la estructura de la pregunta.", e);
+        }
+    }
+
+    /**
+     * Validates the kind-specific {@code structure} payload and returns a
+     * normalized {@link JsonNode} (trimmed strings, ids generated where
+     * missing) ready to persist as {@code structure_json}. Throws
+     * {@link IllegalArgumentException} (→ VALIDATION_ERROR) on any rule
+     * violation, per {@code specs/024-new-exercise-types/data-model.md}.
+     */
+    private JsonNode validateStructure(QuestionKind kind, String prompt, JsonNode structure) {
+        if (isStructureEmpty(structure) || !structure.isObject()) {
+            throw new IllegalArgumentException("Esta pregunta necesita una estructura válida.");
+        }
+        return switch (kind) {
+            case MULTI_BLANK -> validateMultiBlank(prompt, structure);
+            case DRAG_DROP -> validateDragDrop(prompt, structure);
+            case TABLE_FILL -> validateTableFill(structure);
+            case MATCHING -> validateMatching(structure);
+            default -> throw new IllegalStateException("Tipo de pregunta no estructurado: " + kind);
+        };
+    }
+
+    private JsonNode validateMultiBlank(String prompt, JsonNode structure) {
+        int blankCount = BlankPassageParser.countBlanks(prompt);
+        if (blankCount < 2 || blankCount > 20) {
+            throw new IllegalArgumentException("El enunciado debe tener entre 2 y 20 huecos (___).");
+        }
+        JsonNode blanksNode = structure.get("blanks");
+        if (blanksNode == null || !blanksNode.isArray() || blanksNode.size() != blankCount) {
+            throw new IllegalArgumentException("El número de respuestas no coincide con el número de huecos del enunciado.");
+        }
+        ArrayNode blanks = objectMapper.createArrayNode();
+        for (JsonNode blankNode : blanksNode) {
+            ObjectNode entry = objectMapper.createObjectNode();
+            entry.set("acceptedAnswers", normalizeAnswerList(blankNode == null ? null : blankNode.get("acceptedAnswers")));
+            blanks.add(entry);
+        }
+        return objectMapper.createObjectNode().set("blanks", blanks);
+    }
+
+    private JsonNode validateDragDrop(String prompt, JsonNode structure) {
+        int blankCount = BlankPassageParser.countBlanks(prompt);
+        if (blankCount < 2 || blankCount > 20) {
+            throw new IllegalArgumentException("El enunciado debe tener entre 2 y 20 huecos (___).");
+        }
+        JsonNode bankNode = structure.get("bank");
+        if (bankNode == null || !bankNode.isArray() || bankNode.size() != blankCount) {
+            throw new IllegalArgumentException("El banco de palabras debe tener el mismo número de elementos que huecos.");
+        }
+        ArrayNode bank = objectMapper.createArrayNode();
+        Set<String> seenIds = new HashSet<>();
+        for (JsonNode item : bankNode) {
+            String label = textOrNull(item, "label");
+            if (label == null || label.isBlank()) {
+                throw new IllegalArgumentException("Las palabras del banco no pueden estar vacías.");
+            }
+            String id = normalizeOrGenerateId(item);
+            if (!seenIds.add(id)) {
+                throw new IllegalArgumentException("Los identificadores del banco de palabras deben ser únicos.");
+            }
+            ObjectNode entry = objectMapper.createObjectNode();
+            entry.put("id", id);
+            entry.put("label", label.strip());
+            bank.add(entry);
+        }
+        return objectMapper.createObjectNode().set("bank", bank);
+    }
+
+    private JsonNode validateTableFill(JsonNode structure) {
+        JsonNode rowHeadersNode = structure.get("rowHeaders");
+        JsonNode colHeadersNode = structure.get("colHeaders");
+        if (rowHeadersNode == null || !rowHeadersNode.isArray() || colHeadersNode == null || !colHeadersNode.isArray()) {
+            throw new IllegalArgumentException("La tabla necesita encabezados de filas y columnas.");
+        }
+        int rows = rowHeadersNode.size();
+        int cols = colHeadersNode.size();
+        if (rows < 1 || rows > 12 || cols < 1 || cols > 12) {
+            throw new IllegalArgumentException("La tabla debe tener entre 1 y 12 filas y entre 1 y 12 columnas.");
+        }
+        ArrayNode rowHeaders = objectMapper.createArrayNode();
+        rowHeadersNode.forEach(h -> rowHeaders.add(headerText(h)));
+        ArrayNode colHeaders = objectMapper.createArrayNode();
+        colHeadersNode.forEach(h -> colHeaders.add(headerText(h)));
+
+        JsonNode cellsNode = structure.get("cells");
+        if (cellsNode == null || !cellsNode.isArray()) {
+            throw new IllegalArgumentException("La tabla necesita las celdas.");
+        }
+        Map<Integer, ObjectNode> byCoord = new LinkedHashMap<>();
+        int blankCount = 0;
+        for (JsonNode cell : cellsNode) {
+            int r = requiredInt(cell, "r");
+            int c = requiredInt(cell, "c");
+            if (r < 0 || r >= rows || c < 0 || c >= cols) {
+                throw new IllegalArgumentException("Las celdas de la tabla tienen coordenadas fuera de rango.");
+            }
+            int key = r * cols + c;
+            if (byCoord.containsKey(key)) {
+                throw new IllegalArgumentException("Cada celda de la tabla debe aparecer una sola vez.");
+            }
+            String type = textOrNull(cell, "type");
+            ObjectNode entry = objectMapper.createObjectNode();
+            entry.put("r", r);
+            entry.put("c", c);
+            if ("blank".equals(type)) {
+                entry.put("type", "blank");
+                entry.set("acceptedAnswers", normalizeAnswerList(cell.get("acceptedAnswers")));
+                blankCount++;
+            } else if ("fixed".equals(type)) {
+                JsonNode textNode = cell.get("text");
+                if (textNode == null || !textNode.isTextual()) {
+                    throw new IllegalArgumentException("Las celdas fijas necesitan un texto (puede estar vacío).");
+                }
+                entry.put("type", "fixed");
+                entry.put("text", textNode.asText());
+            } else {
+                throw new IllegalArgumentException("El tipo de celda no es válido.");
+            }
+            byCoord.put(key, entry);
+        }
+        if (byCoord.size() != rows * cols) {
+            throw new IllegalArgumentException("La tabla debe tener una celda en cada posición de la cuadrícula.");
+        }
+        if (blankCount < 1 || blankCount > 50) {
+            throw new IllegalArgumentException("La tabla debe tener entre 1 y 50 huecos.");
+        }
+        ArrayNode cells = objectMapper.createArrayNode();
+        for (int key : new TreeSet<>(byCoord.keySet())) {
+            cells.add(byCoord.get(key));
+        }
+        ObjectNode result = objectMapper.createObjectNode();
+        result.set("rowHeaders", rowHeaders);
+        result.set("colHeaders", colHeaders);
+        result.set("cells", cells);
+        return result;
+    }
+
+    private JsonNode validateMatching(JsonNode structure) {
+        JsonNode leftNode = structure.get("left");
+        JsonNode rightNode = structure.get("right");
+        if (leftNode == null || !leftNode.isArray() || rightNode == null || !rightNode.isArray()) {
+            throw new IllegalArgumentException("La pregunta de emparejar necesita las listas de la izquierda y la derecha.");
+        }
+        if (leftNode.isEmpty() || leftNode.size() > 20 || rightNode.isEmpty() || rightNode.size() > 20) {
+            throw new IllegalArgumentException("Cada lista debe tener entre 1 y 20 elementos.");
+        }
+        Map<String, ObjectNode> leftById = normalizeMatchingSide(leftNode);
+        Map<String, ObjectNode> rightById = normalizeMatchingSide(rightNode);
+
+        JsonNode pairsNode = structure.get("pairs");
+        if (pairsNode == null || !pairsNode.isArray() || pairsNode.isEmpty()) {
+            throw new IllegalArgumentException("La pregunta de emparejar necesita al menos una pareja correcta.");
+        }
+        ArrayNode pairs = objectMapper.createArrayNode();
+        Set<String> usedLeft = new HashSet<>();
+        Set<String> usedRight = new HashSet<>();
+        for (JsonNode pair : pairsNode) {
+            String leftId = textOrNull(pair, "leftId");
+            String rightId = textOrNull(pair, "rightId");
+            if (leftId == null || !leftById.containsKey(leftId) || rightId == null || !rightById.containsKey(rightId)) {
+                throw new IllegalArgumentException("Las parejas hacen referencia a elementos que no existen.");
+            }
+            if (!usedLeft.add(leftId) || !usedRight.add(rightId)) {
+                throw new IllegalArgumentException("Cada elemento solo puede aparecer en una pareja.");
+            }
+            ObjectNode entry = objectMapper.createObjectNode();
+            entry.put("leftId", leftId);
+            entry.put("rightId", rightId);
+            pairs.add(entry);
+        }
+
+        ArrayNode left = objectMapper.createArrayNode();
+        leftById.values().forEach(left::add);
+        ArrayNode right = objectMapper.createArrayNode();
+        rightById.values().forEach(right::add);
+
+        ObjectNode result = objectMapper.createObjectNode();
+        result.set("left", left);
+        result.set("right", right);
+        result.set("pairs", pairs);
+        return result;
+    }
+
+    private LinkedHashMap<String, ObjectNode> normalizeMatchingSide(JsonNode sideNode) {
+        LinkedHashMap<String, ObjectNode> byId = new LinkedHashMap<>();
+        for (JsonNode item : sideNode) {
+            String label = textOrNull(item, "label");
+            if (label == null || label.isBlank()) {
+                throw new IllegalArgumentException("Los elementos de la pregunta de emparejar no pueden estar vacíos.");
+            }
+            String id = normalizeOrGenerateId(item);
+            if (byId.containsKey(id)) {
+                throw new IllegalArgumentException("Los identificadores de la pregunta de emparejar deben ser únicos.");
+            }
+            ObjectNode entry = objectMapper.createObjectNode();
+            entry.put("id", id);
+            entry.put("label", label.strip());
+            byId.put(id, entry);
+        }
+        return byId;
+    }
+
+    /** Non-empty (after trim) accepted-answer list, normalized to trimmed strings. */
+    private ArrayNode normalizeAnswerList(JsonNode node) {
+        if (node == null || !node.isArray() || node.isEmpty()) {
+            throw new IllegalArgumentException("Cada hueco necesita al menos una respuesta aceptada.");
+        }
+        ArrayNode result = objectMapper.createArrayNode();
+        for (JsonNode item : node) {
+            String value = item != null && item.isTextual() ? item.asText() : null;
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException("Las respuestas aceptadas no pueden estar vacías.");
+            }
+            result.add(value.strip());
+        }
+        return result;
+    }
+
+    private static String textOrNull(JsonNode node, String field) {
+        if (node == null) return null;
+        JsonNode value = node.get(field);
+        return value != null && value.isTextual() ? value.asText() : null;
+    }
+
+    private static String normalizeOrGenerateId(JsonNode node) {
+        String id = textOrNull(node, "id");
+        return id == null || id.isBlank() ? UUID.randomUUID().toString() : id.strip();
+    }
+
+    private static String headerText(JsonNode node) {
+        return node != null && node.isTextual() ? node.asText() : "";
+    }
+
+    private static int requiredInt(JsonNode cell, String field) {
+        JsonNode value = cell == null ? null : cell.get(field);
+        if (value == null || !value.isInt()) {
+            throw new IllegalArgumentException("Las coordenadas de las celdas no son válidas.");
+        }
+        return value.asInt();
     }
 
     // --- audio source -------------------------------------------------------
@@ -318,7 +602,18 @@ public class HomeworkAdminService {
         List<HomeworkQuestionDto.OptionDto> options = q.getOptions().stream()
                 .map(o -> new HomeworkQuestionDto.OptionDto(o.getId(), o.getLabel(), o.isCorrect()))
                 .toList();
-        return new HomeworkQuestionDto(q.getId(), q.getKind().name(), q.getPrompt(), options);
+        return new HomeworkQuestionDto(q.getId(), q.getKind().name(), q.getPrompt(), options, readStructure(q.getStructureJson()));
+    }
+
+    private JsonNode readStructure(String structureJson) {
+        if (structureJson == null || structureJson.isBlank()) {
+            return objectMapper.createObjectNode();
+        }
+        try {
+            return objectMapper.readTree(structureJson);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo leer la estructura de la pregunta.", e);
+        }
     }
 
     private static HomeworkType parseType(String raw) {

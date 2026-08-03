@@ -5,6 +5,7 @@ import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
 import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuky.backend.admin.service.HomeworkAdminService;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
@@ -55,7 +56,7 @@ class HomeworkAdminServiceTest {
         userRepository = mock(UserRepository.class);
         submissionRepository = mock(HomeworkSubmissionRepository.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
-                audioFileRepository, userRepository, submissionRepository);
+                audioFileRepository, userRepository, submissionRepository, new ObjectMapper());
 
         User student = new User();
         student.setId(studentId);

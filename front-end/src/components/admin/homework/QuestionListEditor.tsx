@@ -2,21 +2,11 @@ import { useTranslation } from "react-i18next";
 import type { AdminQuestion } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import { QuestionEditorCard } from "./QuestionEditorCard";
+import { defaultQuestion } from "./questionDefaults";
 
 interface Props {
   questions: AdminQuestion[];
   onChange: (questions: AdminQuestion[]) => void;
-}
-
-function newQuestion(): AdminQuestion {
-  return {
-    kind: "SINGLE_CHOICE",
-    prompt: "",
-    options: [
-      { label: "", correct: false },
-      { label: "", correct: false },
-    ],
-  };
 }
 
 export function QuestionListEditor({ questions, onChange }: Props) {
@@ -36,7 +26,7 @@ export function QuestionListEditor({ questions, onChange }: Props) {
     onChange(next);
   };
 
-  const add = () => onChange([...questions, newQuestion()]);
+  const add = () => onChange([...questions, defaultQuestion()]);
 
   return (
     <div className="space-y-4">

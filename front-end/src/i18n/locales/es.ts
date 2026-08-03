@@ -144,8 +144,7 @@ export const esDict = {
       "No se pudo detectar tu zona horaria; se muestra una estimación.",
     timezoneUseDevice: "Usar la zona horaria de mi dispositivo",
     interestsTitle: "Intereses",
-    interestsHint:
-      "Elige hasta {{max}} temas que te gusten hablar en clase.",
+    interestsHint: "Elige hasta {{max}} temas que te gusten hablar en clase.",
     interestsNoteLabel: "Nota (opcional)",
     interestsNotePlaceholder:
       "Detalles que quieras compartir (p. ej. bandas favoritas, trabajo…)",
@@ -352,6 +351,20 @@ export const esDict = {
       submitting: "Entregando…",
       loadError: "No se pudo cargar el ejercicio.",
       submitError: "No se pudo entregar el ejercicio.",
+      dragDropInstructions:
+        "Arrastra una palabra al hueco, o pulsa la palabra y luego el hueco.",
+      matchingInstructions:
+        "Elige un elemento de la izquierda y después su pareja a la derecha.",
+      wordBank: "Banco de palabras",
+      wordBankMissing:
+        "No hay palabras en el banco. Revisa que el ejercicio se haya guardado correctamente.",
+      dropTargets: "Texto — suelta las palabras en los huecos",
+      dropHere: "Suelta aquí",
+      emptyBlank: "Vacío",
+      selectedHint: "Seleccionada: «{{word}}». Pulsa un hueco para colocarla.",
+      clear: "Quitar",
+      leftColumn: "Izquierda",
+      rightColumn: "Derecha",
     },
     writePage: {
       back: "← Volver a mi aprendizaje",
@@ -398,6 +411,9 @@ export const esDict = {
       questionIncorrect: "Incorrecta",
       questionPartial: "Parcial",
       correctAnswer: "Respuesta correcta:",
+      unitCorrect: "Correcto",
+      unitIncorrect: "Incorrecto",
+      unitExpected: "Esperado:",
     },
     pastClasses: {
       title: "Clases anteriores",
@@ -688,7 +704,42 @@ export const esDict = {
           SINGLE_CHOICE: "Opción única",
           MULTI_CHOICE: "Opción múltiple",
           FILL_BLANK: "Rellenar el hueco",
+          MULTI_BLANK: "Varios huecos",
+          DRAG_DROP: "Arrastrar y soltar",
+          TABLE_FILL: "Rellenar tabla",
+          MATCHING: "Emparejar",
         },
+        promptBlanksHint:
+          "Escribe ___ (tres guiones bajos) donde quieras un hueco. Necesitas entre 2 y 20.",
+        promptOptionalHint: "Enunciado o título breve (opcional).",
+        blankLabel: "Hueco {{index}}",
+        blankCountWarning:
+          "Añade al menos dos huecos (___) en el enunciado para poder configurar las respuestas.",
+        multiBlankHint:
+          "Define las respuestas aceptadas para cada hueco del enunciado (el alumno escribe).",
+        dragDropHint:
+          "Escribe la palabra correcta para cada hueco, en orden. El alumno verá estas palabras mezcladas en un banco y deberá arrastrarlas (no escribir).",
+        wordBankTitle: "Banco de palabras",
+        bankWordLabel: "Palabra {{index}} (hueco {{index}})",
+        bankPreview: "Así verá el alumno el banco (en otro orden):",
+        bankItemPlaceholder: "Palabra o frase del banco",
+        tableFillHint:
+          "Define las filas y columnas de la tabla y marca qué celdas rellena el alumno.",
+        columnHeaderPlaceholder: "Columna",
+        rowHeaderPlaceholder: "Fila",
+        addColumn: "Añadir columna",
+        addRow: "Añadir fila",
+        cellBlank: "Hueco",
+        cellFixed: "Fijo",
+        cellTextPlaceholder: "Texto fijo",
+        matchingHint:
+          "Añade elementos a cada columna y elige con qué elemento de la derecha se empareja cada uno.",
+        leftColumn: "Columna izquierda",
+        rightColumn: "Columna derecha",
+        itemPlaceholder: "Elemento",
+        matchWith: "Emparejar con…",
+        noPair: "Sin pareja",
+        addItem: "Añadir elemento",
       },
     },
     homeworkReview: {

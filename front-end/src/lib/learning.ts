@@ -6,7 +6,14 @@ export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type HomeworkFormat = "MANUAL" | "EXERCISE";
-export type QuestionKind = "SINGLE_CHOICE" | "MULTI_CHOICE" | "FILL_BLANK";
+export type QuestionKind =
+  | "SINGLE_CHOICE"
+  | "MULTI_CHOICE"
+  | "FILL_BLANK"
+  | "MULTI_BLANK"
+  | "DRAG_DROP"
+  | "TABLE_FILL"
+  | "MATCHING";
 
 export interface PresentationBlock {
   heading: string;
@@ -46,11 +53,69 @@ export interface StudentOption {
   label: string;
 }
 
+// --- Structured question payloads (student-facing — answer key stripped) ---
+// See specs/024-new-exercise-types/contracts/exercise-types-api.md
+
+export interface StudentBankItem {
+  id: string;
+  label: string;
+}
+
+export interface StudentTableCell {
+  r: number;
+  c: number;
+  type: "fixed" | "blank";
+  text?: string; // fixed cells only
+}
+
+export interface StudentMatchItem {
+  id: string;
+  label: string;
+}
+
+export interface StudentStructure {
+  bank?: StudentBankItem[]; // DRAG_DROP
+  rowHeaders?: string[]; // TABLE_FILL
+  colHeaders?: string[]; // TABLE_FILL
+  cells?: StudentTableCell[]; // TABLE_FILL
+  left?: StudentMatchItem[]; // MATCHING
+  right?: StudentMatchItem[]; // MATCHING
+  // MULTI_BLANK carries no extra structure — blanks render from `___` in prompt.
+}
+
 export interface StudentQuestion {
   id: string;
   kind: QuestionKind;
   prompt: string;
-  options: StudentOption[]; // empty for FILL_BLANK
+  options: StudentOption[]; // legacy choice only; else []
+  structure?: StudentStructure;
+}
+
+// --- Student answer JSON shapes by structured kind (submit payload) ---
+
+export interface MultiBlankAnswer {
+  blanks: string[];
+}
+
+export interface DragDropAnswer {
+  placements: (string | null)[];
+}
+
+export interface TableFillAnswer {
+  /** Key `"r,c"` for blank cells only. */
+  cells: Record<string, string>;
+}
+
+export interface MatchingAnswer {
+  pairs: { leftId: string; rightId: string }[];
+}
+
+export interface UnitResult {
+  index: number;
+  score: number; // 0 or 1
+  correct: boolean;
+  studentDisplay?: string | null;
+  expectedDisplay?: string[] | null; // revealed when !correct
 }
 
 export interface QuestionResult {
@@ -59,6 +124,7 @@ export interface QuestionResult {
   correct: boolean;
   correctOptionIds: string[];
   acceptedAnswers: string[];
+  unitResults?: UnitResult[]; // structured multi-unit kinds; empty/omitted for legacy
 }
 
 export interface ExerciseResult {
@@ -85,6 +151,8 @@ export interface AnswerPayload {
   questionId: string;
   selectedOptionIds: string[];
   answerText: string | null;
+  /** Structured kinds (MULTI_BLANK/DRAG_DROP/TABLE_FILL/MATCHING); null/omitted for legacy kinds. */
+  answerJson?: unknown | null;
 }
 
 export interface UnitRef {

@@ -143,7 +143,8 @@ export const enDict = {
       "Couldn't detect your time zone; showing an estimate.",
     timezoneUseDevice: "Use my device's time zone",
     interestsTitle: "Interests",
-    interestsHint: "Choose up to {{max}} topics you enjoy talking about in class.",
+    interestsHint:
+      "Choose up to {{max}} topics you enjoy talking about in class.",
     interestsNoteLabel: "Note (optional)",
     interestsNotePlaceholder:
       "Details you'd like to share (e.g. favorite bands, your job…)",
@@ -341,6 +342,20 @@ export const enDict = {
       submitting: "Submitting…",
       loadError: "Could not load the exercise.",
       submitError: "Could not submit the exercise.",
+      dragDropInstructions:
+        "Drag a word onto a blank, or tap the word and then the blank.",
+      matchingInstructions:
+        "Choose an item on the left, then its match on the right.",
+      wordBank: "Word bank",
+      wordBankMissing:
+        "No words in the bank. Check that the exercise was saved correctly.",
+      dropTargets: "Text — drop words into the blanks",
+      dropHere: "Drop here",
+      emptyBlank: "Empty",
+      selectedHint: "Selected: “{{word}}”. Tap a blank to place it.",
+      clear: "Clear",
+      leftColumn: "Left",
+      rightColumn: "Right",
     },
     writePage: {
       back: "← Back to my learning",
@@ -386,6 +401,9 @@ export const enDict = {
       questionIncorrect: "Incorrect",
       questionPartial: "Partial",
       correctAnswer: "Correct answer:",
+      unitCorrect: "Correct",
+      unitIncorrect: "Incorrect",
+      unitExpected: "Expected:",
     },
     pastClasses: {
       title: "Past classes",
@@ -673,7 +691,42 @@ export const enDict = {
           SINGLE_CHOICE: "Single choice",
           MULTI_CHOICE: "Multiple choice",
           FILL_BLANK: "Fill in the blank",
+          MULTI_BLANK: "Multiple blanks",
+          DRAG_DROP: "Drag and drop",
+          TABLE_FILL: "Table fill",
+          MATCHING: "Matching",
         },
+        promptBlanksHint:
+          "Type ___ (three underscores) where you want a blank. You need between 2 and 20.",
+        promptOptionalHint: "Short instruction or title (optional).",
+        blankLabel: "Blank {{index}}",
+        blankCountWarning:
+          "Add at least two blanks (___) to the prompt to configure the answers.",
+        multiBlankHint:
+          "Set the accepted answers for each blank in the prompt (the student types).",
+        dragDropHint:
+          "Enter the correct word for each blank, in order. The student will see these words shuffled in a bank and must drag them (not type).",
+        wordBankTitle: "Word bank",
+        bankWordLabel: "Word {{index}} (blank {{index}})",
+        bankPreview: "How the student will see the bank (in a different order):",
+        bankItemPlaceholder: "Bank word or phrase",
+        tableFillHint:
+          "Set up the table's rows and columns and mark which cells the student fills in.",
+        columnHeaderPlaceholder: "Column",
+        rowHeaderPlaceholder: "Row",
+        addColumn: "Add column",
+        addRow: "Add row",
+        cellBlank: "Blank",
+        cellFixed: "Fixed",
+        cellTextPlaceholder: "Fixed text",
+        matchingHint:
+          "Add items to each column and choose which right-hand item each one matches.",
+        leftColumn: "Left column",
+        rightColumn: "Right column",
+        itemPlaceholder: "Item",
+        matchWith: "Match with…",
+        noPair: "No match",
+        addItem: "Add item",
       },
     },
     homeworkReview: {

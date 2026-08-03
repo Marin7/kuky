@@ -15,9 +15,18 @@ public record ExerciseResultResponse(
 ) {
     public record QuestionResultDto(
             UUID questionId,
-            double score,                 // 0..1 (fractional for MULTI_CHOICE)
+            double score,                 // 0..1 (fractional for MULTI_CHOICE / multi-unit)
             boolean correct,              // score == 1
             List<UUID> correctOptionIds,  // for choice — revealed post-submit
-            List<String> acceptedAnswers  // for fill-blank — revealed post-submit
+            List<String> acceptedAnswers, // for FILL_BLANK — revealed post-submit
+            List<UnitResultDto> unitResults // structured multi-unit kinds; empty for legacy
+    ) {}
+
+    public record UnitResultDto(
+            int index,
+            double score,
+            boolean correct,
+            String studentDisplay,
+            List<String> expectedDisplay
     ) {}
 }

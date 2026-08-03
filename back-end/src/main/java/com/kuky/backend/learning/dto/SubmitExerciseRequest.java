@@ -1,5 +1,7 @@
 package com.kuky.backend.learning.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -10,6 +12,7 @@ public record SubmitExerciseRequest(
     public record AnswerDto(
             UUID questionId,
             List<UUID> selectedOptionIds, // choice questions; [] otherwise
-            String answerText             // fill-blank; null otherwise
+            String answerText,            // fill-blank; null otherwise
+            JsonNode answerJson           // structured kinds; null otherwise
     ) {}
 }

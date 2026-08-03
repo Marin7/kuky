@@ -12,6 +12,8 @@ public class HomeworkQuestion {
     private int position;
     private QuestionKind kind;
     private String prompt;
+    /** Kind-specific JSON payload (answer key for structured kinds); "{}" for legacy. */
+    private String structureJson = "{}";
     private List<QuestionOption> options = new ArrayList<>();
 
     public UUID getId() { return id; }
@@ -24,6 +26,10 @@ public class HomeworkQuestion {
     public void setKind(QuestionKind kind) { this.kind = kind; }
     public String getPrompt() { return prompt; }
     public void setPrompt(String prompt) { this.prompt = prompt; }
+    public String getStructureJson() { return structureJson; }
+    public void setStructureJson(String structureJson) {
+        this.structureJson = structureJson == null || structureJson.isBlank() ? "{}" : structureJson;
+    }
     public List<QuestionOption> getOptions() { return options; }
     public void setOptions(List<QuestionOption> options) { this.options = options; }
 }
