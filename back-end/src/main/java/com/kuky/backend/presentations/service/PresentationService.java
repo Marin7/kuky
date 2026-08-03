@@ -16,12 +16,16 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class PresentationService {
 
+    static final int MAX_FILES_PER_PRESENTATION = 10;
     private static final long MAX_FILE_BYTES = 50L * 1024 * 1024; // 50 MB
     private static final String PPTX_CONTENT_TYPE =
             "application/vnd.openxmlformats-officedocument.presentationml.presentation";
@@ -40,9 +44,13 @@ public class PresentationService {
     }
 
     public List<PresentationSummary> list() {
-        return repository.listSummaries().stream()
+        List<PresentationRepository.Summary> summaries = repository.listSummaries();
+        List<UUID> ids = summaries.stream().map(PresentationRepository.Summary::id).toList();
+        Map<UUID, List<PresentationFileSummary>> filesByPresentation = repository.listFilesGrouped(ids);
+        return summaries.stream()
                 .map(s -> new PresentationSummary(
-                        s.id(), s.title(), s.level(), s.hasFile(), s.originalFileName(),
+                        s.id(), s.title(), s.level(),
+                        filesByPresentation.getOrDefault(s.id(), List.of()),
                         s.sharedWithIds().stream().map(UUID::toString).toList(),
                         s.updatedAt()))
                 .toList();
@@ -71,21 +79,28 @@ public class PresentationService {
     }
 
     public void delete(UUID id) {
+        List<UUID> fileIds = repository.listFileIds(id);
         if (repository.delete(id) == 0) {
             throw new PresentationNotFoundException("Presentación no encontrada.");
         }
-        fileStore.deleteQuietly(id);
+        for (UUID fileId : fileIds) {
+            fileStore.deleteQuietly(fileId);
+        }
     }
 
     // --- file management -----------------------------------------------------
 
-    public PresentationDetail uploadFile(UUID id, MultipartFile file) {
-        requirePresentation(id);
+    public PresentationDetail uploadFile(UUID presentationId, MultipartFile file) {
+        requirePresentation(presentationId);
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("El archivo no puede estar vacío.");
         }
         if (file.getSize() > MAX_FILE_BYTES) {
             throw new IllegalArgumentException("El archivo no puede superar los 50 MB.");
+        }
+        if (repository.countFiles(presentationId) >= MAX_FILES_PER_PRESENTATION) {
+            throw new IllegalArgumentException(
+                    "No se pueden adjuntar más de " + MAX_FILES_PER_PRESENTATION + " archivos por presentación.");
         }
         String originalName = file.getOriginalFilename();
         String lowerName = originalName != null ? originalName.toLowerCase(Locale.ROOT) : "";
@@ -112,35 +127,41 @@ public class PresentationService {
                 name = (originalName != null && !originalName.isBlank()) ? originalName : "presentacion.pptx";
                 ct = PPTX_CONTENT_TYPE;
             }
+            String displayName = allocateDisplayName(presentationId, name);
+            UUID fileId = UUID.randomUUID();
             byte[] data = file.getBytes();
-            fileStore.write(id, data);
+            fileStore.write(fileId, data);
             try {
-                repository.upsertFile(id, name, ct, data.length);
+                repository.insertFile(fileId, presentationId, name, displayName, ct, data.length);
             } catch (RuntimeException e) {
-                fileStore.deleteQuietly(id);
+                fileStore.deleteQuietly(fileId);
                 throw e;
             }
-            repository.touch(id);
+            repository.touch(presentationId);
         } catch (IOException e) {
             throw new RuntimeException("Error al leer el archivo.", e);
         }
-        return detail(id);
+        return detail(presentationId);
     }
 
-    public void removeFile(UUID id) {
-        requirePresentation(id);
-        repository.deleteFile(id);
-        fileStore.deleteQuietly(id);
-        repository.touch(id);
+    public void removeFile(UUID presentationId, UUID fileId) {
+        requirePresentation(presentationId);
+        if (repository.deleteFile(presentationId, fileId) == 0) {
+            throw new PresentationNotFoundException("Archivo no encontrado.");
+        }
+        fileStore.deleteQuietly(fileId);
+        repository.touch(presentationId);
     }
 
-    public PresentationFile getFileData(UUID id) {
-        requirePresentation(id);
-        PresentationFile meta = repository.findFile(id)
-                .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
-        byte[] data = fileStore.read(id)
-                .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
-        return new PresentationFile(meta.presentationId(), meta.originalName(), meta.contentType(), meta.byteSize(), data);
+    public PresentationFile getFileData(UUID presentationId, UUID fileId) {
+        requirePresentation(presentationId);
+        PresentationFile meta = repository.findFile(presentationId, fileId)
+                .orElseThrow(() -> new PresentationNotFoundException("Archivo no encontrado."));
+        byte[] data = fileStore.read(fileId)
+                .orElseThrow(() -> new PresentationNotFoundException("Archivo no encontrado."));
+        return new PresentationFile(
+                meta.id(), meta.presentationId(), meta.originalName(), meta.displayName(),
+                meta.contentType(), meta.byteSize(), meta.createdAt(), data);
     }
 
     // --- slides --------------------------------------------------------------
@@ -178,6 +199,37 @@ public class PresentationService {
 
     // --- helpers -------------------------------------------------------------
 
+    /** Visible for tests. */
+    public static String allocateDisplayName(String originalName, Set<String> existingDisplayNames) {
+        Set<String> used = existingDisplayNames.stream()
+                .map(n -> n.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
+        if (!used.contains(originalName.toLowerCase(Locale.ROOT))) {
+            return originalName;
+        }
+        String base;
+        String ext;
+        int dot = originalName.lastIndexOf('.');
+        if (dot > 0) {
+            base = originalName.substring(0, dot);
+            ext = originalName.substring(dot);
+        } else {
+            base = originalName;
+            ext = "";
+        }
+        for (int n = 2; n < 10_000; n++) {
+            String candidate = base + " (" + n + ")" + ext;
+            if (!used.contains(candidate.toLowerCase(Locale.ROOT))) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("No se pudo asignar un nombre de archivo único.");
+    }
+
+    private String allocateDisplayName(UUID presentationId, String originalName) {
+        return allocateDisplayName(originalName, new HashSet<>(repository.listDisplayNames(presentationId)));
+    }
+
     private Presentation requirePresentation(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> new PresentationNotFoundException("Presentación no encontrada."));
@@ -195,12 +247,11 @@ public class PresentationService {
 
     private PresentationDetail detail(UUID id) {
         Presentation p = requirePresentation(id);
-        String originalFileName = repository.findOriginalFileName(id).orElse(null);
+        List<PresentationFileSummary> files = repository.listFiles(id);
         List<StudentResponse> sharedWith = repository.findSharedUsers(id).stream()
                 .map(u -> new StudentResponse(u.userId(), u.email(), u.firstName(), u.lastName(), u.username()))
                 .toList();
-        return new PresentationDetail(p.getId(), p.getTitle(), p.getLevel(),
-                originalFileName != null, originalFileName, sharedWith);
+        return new PresentationDetail(p.getId(), p.getTitle(), p.getLevel(), files, sharedWith);
     }
 
     private static final java.util.Set<String> VALID_LEVELS =

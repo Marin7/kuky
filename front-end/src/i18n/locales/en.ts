@@ -711,6 +711,8 @@ export const enDict = {
       replace: "Replace",
       remove: "Remove",
       upload: "Upload .pptx or .pdf file",
+      addFile: "Add another file",
+      fileLimitReached: "Maximum 10 files.",
       uploading: "Uploading…",
       noShares: "Not shared.",
       uploadError: "Error uploading file.",

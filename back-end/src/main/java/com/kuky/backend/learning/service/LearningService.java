@@ -80,32 +80,35 @@ public class LearningService {
                         unitByAssignment.get(a.getId())))
                 .toList();
 
-        List<SharedPresentationSummary> sharedPresentations =
-                presentationRepository.findSharedSummariesForUser(user.getId()).stream()
-                        .map(s -> new SharedPresentationSummary(
-                                s.id(),
-                                s.title(),
-                                s.hasFile(),
-                                s.originalFileName(),
-                                s.unit() == null ? null
-                                        : new UnitRef(
-                                                s.unit().level(), s.unit().subject(), s.unit().position())))
-                        .toList();
+        var sharedRows = presentationRepository.findSharedSummariesForUser(user.getId());
+        Map<UUID, List<com.kuky.backend.admin.dto.PresentationFileSummary>> filesByPresentation =
+                presentationRepository.listFilesGrouped(sharedRows.stream().map(s -> s.id()).toList());
+        List<SharedPresentationSummary> sharedPresentations = sharedRows.stream()
+                .map(s -> new SharedPresentationSummary(
+                        s.id(),
+                        s.title(),
+                        filesByPresentation.getOrDefault(s.id(), List.of()),
+                        s.unit() == null ? null
+                                : new UnitRef(
+                                        s.unit().level(), s.unit().subject(), s.unit().position())))
+                .toList();
 
         return new LearningResponse(presentation, pastClasses, homework, sharedPresentations);
     }
 
-    /** Downloads the file for a shared presentation (PPTX or PDF). Enforces share-gate. */
-    public PresentationFile getPresentationFile(String userEmail, UUID presentationId) {
+    /** Downloads one file for a shared presentation (PPTX or PDF). Enforces share-gate. */
+    public PresentationFile getPresentationFile(String userEmail, UUID presentationId, UUID fileId) {
         User user = requireUser(userEmail);
         if (!presentationRepository.isSharedWith(presentationId, user.getId())) {
             throw new PresentationNotFoundException("Presentación no encontrada.");
         }
-        PresentationFile meta = presentationRepository.findFile(presentationId)
-                .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
-        byte[] data = presentationFileStore.read(presentationId)
-                .orElseThrow(() -> new PresentationNotFoundException("No hay archivo para esta presentación."));
-        return new PresentationFile(meta.presentationId(), meta.originalName(), meta.contentType(), meta.byteSize(), data);
+        PresentationFile meta = presentationRepository.findFile(presentationId, fileId)
+                .orElseThrow(() -> new PresentationNotFoundException("Archivo no encontrado."));
+        byte[] data = presentationFileStore.read(fileId)
+                .orElseThrow(() -> new PresentationNotFoundException("Archivo no encontrado."));
+        return new PresentationFile(
+                meta.id(), meta.presentationId(), meta.originalName(), meta.displayName(),
+                meta.contentType(), meta.byteSize(), meta.createdAt(), data);
     }
 
     private User requireUser(String email) {

@@ -91,10 +91,11 @@ Set the unit's presentation membership. Body:
 Set the unit's homework membership. Body `{ "homeworkIds": ["uuid"] }`.
 Same move/detach semantics on `homework_assignments.unit_id`. **200** → `UnitDetail`. (FR-005)
 
-> Authoring presentations (file upload/replace/level) and homeworks (create/edit)
-> continues to use the existing `/api/v1/admin/presentations/*` and
-> `/api/v1/admin/homework/*` endpoints, now reached from inside a unit. New items
-> created via the Units UI pass the owning `unit_id` (FR-005b).
+> Authoring presentations (multi-file upload/remove/level) and homeworks (create/edit)
+> continues to use `/api/v1/admin/presentations/*` and `/api/v1/admin/homework/*`.
+> Presentation file endpoints are documented in
+> `specs/023-presentation-multi-files/contracts/presentation-files-api.md`
+> (collection `/files`, not singular `/file`).
 
 ---
 
@@ -127,13 +128,13 @@ by unit (FR-015). Access is the UNION of legacy shares and unit assignments.
     {
       "id": "uuid",
       "title": "Mi familia",
-      "hasFile": true,
+      "files": [{ "id": "uuid", "displayName": "deck.pptx", "originalName": "deck.pptx" }],
       "unit": { "level": "A1", "subject": "Family", "position": 1 }
     },
     {
       "id": "uuid",
       "title": "Legacy deck",
-      "hasFile": true,
+      "files": [],
       "unit": null
     }
   ],
@@ -142,11 +143,13 @@ by unit (FR-015). Access is the UNION of legacy shares and unit assignments.
 ```
 - `unit: null` → presentation reached via a legacy direct share; client renders it
   under an "Other" group.
+- `files` is oldest-first; empty when no attachments (replaces former `hasFile` / `originalFileName`).
 - No homework is ever added to this response by unit assignment (FR-012/FR-016).
 
-### `GET /api/v1/learning/presentations/{id}/file` (unchanged signature)
-Download gate updated: allowed if the presentation is shared (legacy) **or** reachable
-via an assigned unit. Otherwise **404** (PresentationNotFound). (FR-009/FR-010)
+### `GET /api/v1/learning/presentations/{id}/files/{fileId}`
+Download gate: allowed if the presentation is shared (legacy) **or** reachable
+via an assigned unit. Otherwise **404** (PresentationNotFound). See
+`specs/023-presentation-multi-files/contracts/presentation-files-api.md`. (FR-009/FR-010)
 
 ---
 

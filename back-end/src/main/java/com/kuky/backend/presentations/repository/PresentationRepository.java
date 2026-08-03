@@ -1,5 +1,6 @@
 package com.kuky.backend.presentations.repository;
 
+import com.kuky.backend.admin.dto.PresentationFileSummary;
 import com.kuky.backend.presentations.model.Presentation;
 import com.kuky.backend.presentations.model.PresentationFile;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -8,7 +9,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -23,7 +26,7 @@ public class PresentationRepository {
         this.jdbc = jdbc;
     }
 
-    public record Summary(UUID id, String title, String level, boolean hasFile, String originalFileName,
+    public record Summary(UUID id, String title, String level,
                           List<UUID> sharedWithIds, Instant updatedAt) {}
     public record SharedUser(UUID userId, String email, String firstName, String lastName, String username) {}
 
@@ -32,12 +35,10 @@ public class PresentationRepository {
     public List<Summary> listSummaries() {
         String sql = """
                 SELECT p.id, p.title, p.level, p.updated_at,
-                       pf.original_name,
                        COALESCE(ARRAY_AGG(sh.user_id::text) FILTER (WHERE sh.user_id IS NOT NULL), '{}') AS shared_with_ids
                 FROM presentations p
-                LEFT JOIN presentation_files pf ON pf.presentation_id = p.id
                 LEFT JOIN presentation_shares sh ON sh.presentation_id = p.id
-                GROUP BY p.id, p.title, p.level, p.updated_at, pf.original_name
+                GROUP BY p.id, p.title, p.level, p.updated_at
                 ORDER BY p.updated_at DESC
                 """;
         return jdbc.query(sql, Map.of(), (rs, n) -> {
@@ -50,8 +51,6 @@ public class PresentationRepository {
                     rs.getObject("id", UUID.class),
                     rs.getString("title"),
                     rs.getString("level"),
-                    rs.getString("original_name") != null,
-                    rs.getString("original_name"),
                     ids,
                     rs.getTimestamp("updated_at").toInstant());
         });
@@ -96,53 +95,123 @@ public class PresentationRepository {
 
     // --- files ---------------------------------------------------------------
 
-    /** Full record including bytes — for serving a download. */
-    public Optional<PresentationFile> findFile(UUID presentationId) {
-        return jdbc.query(
-                """
-                SELECT presentation_id, original_name, content_type, byte_size
-                FROM presentation_files WHERE presentation_id = :pid
-                """,
-                Map.of("pid", presentationId),
+    public List<PresentationFileSummary> listFiles(UUID presentationId) {
+        return jdbc.query("""
+                SELECT id, original_name, display_name, content_type, byte_size, created_at
+                FROM presentation_files
+                WHERE presentation_id = :pid
+                ORDER BY created_at ASC, id ASC
+                """, Map.of("pid", presentationId), this::mapFileSummary);
+    }
+
+    /** All file rows for migration / batch mapping, oldest-first per presentation. */
+    public List<PresentationFile> listAllFileRows() {
+        return jdbc.query("""
+                SELECT id, presentation_id, original_name, display_name, content_type, byte_size, created_at
+                FROM presentation_files
+                ORDER BY presentation_id, created_at ASC, id ASC
+                """, Map.of(), (rs, n) -> new PresentationFile(
+                rs.getObject("id", UUID.class),
+                rs.getObject("presentation_id", UUID.class),
+                rs.getString("original_name"),
+                rs.getString("display_name"),
+                rs.getString("content_type"),
+                rs.getInt("byte_size"),
+                rs.getTimestamp("created_at").toInstant(),
+                null));
+    }
+
+    public Map<UUID, List<PresentationFileSummary>> listFilesGrouped(List<UUID> presentationIds) {
+        Map<UUID, List<PresentationFileSummary>> result = new HashMap<>();
+        if (presentationIds == null || presentationIds.isEmpty()) {
+            return result;
+        }
+        for (UUID id : presentationIds) {
+            result.put(id, new ArrayList<>());
+        }
+        jdbc.query("""
+                SELECT id, presentation_id, original_name, display_name, content_type, byte_size, created_at
+                FROM presentation_files
+                WHERE presentation_id IN (:pids)
+                ORDER BY created_at ASC, id ASC
+                """, Map.of("pids", presentationIds), (rs, n) -> {
+            UUID pid = rs.getObject("presentation_id", UUID.class);
+            result.computeIfAbsent(pid, k -> new ArrayList<>()).add(mapFileSummary(rs, n));
+            return null;
+        });
+        return result;
+    }
+
+    public int countFiles(UUID presentationId) {
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(1) FROM presentation_files WHERE presentation_id = :pid",
+                Map.of("pid", presentationId), Integer.class);
+        return count == null ? 0 : count;
+    }
+
+    public List<String> listDisplayNames(UUID presentationId) {
+        return jdbc.query("""
+                SELECT display_name FROM presentation_files
+                WHERE presentation_id = :pid
+                """, Map.of("pid", presentationId),
+                (rs, n) -> rs.getString("display_name"));
+    }
+
+    public Optional<PresentationFile> findFile(UUID presentationId, UUID fileId) {
+        return jdbc.query("""
+                SELECT id, presentation_id, original_name, display_name, content_type, byte_size, created_at
+                FROM presentation_files
+                WHERE presentation_id = :pid AND id = :fid
+                """, Map.of("pid", presentationId, "fid", fileId),
                 (rs, n) -> new PresentationFile(
+                        rs.getObject("id", UUID.class),
                         rs.getObject("presentation_id", UUID.class),
                         rs.getString("original_name"),
+                        rs.getString("display_name"),
                         rs.getString("content_type"),
                         rs.getInt("byte_size"),
+                        rs.getTimestamp("created_at").toInstant(),
                         null))
                 .stream().findFirst();
     }
 
-    /** Metadata only (no bytes) — for building summary/detail responses. */
-    public Optional<String> findOriginalFileName(UUID presentationId) {
-        return jdbc.query(
-                "SELECT original_name FROM presentation_files WHERE presentation_id = :pid",
-                Map.of("pid", presentationId),
-                (rs, n) -> rs.getString("original_name"))
-                .stream().findFirst();
+    public List<UUID> listFileIds(UUID presentationId) {
+        return jdbc.query("""
+                SELECT id FROM presentation_files WHERE presentation_id = :pid
+                """, Map.of("pid", presentationId),
+                (rs, n) -> rs.getObject("id", UUID.class));
     }
 
-    public void upsertFile(UUID presentationId, String originalName,
-                           String contentType, int byteSize) {
+    public void insertFile(UUID fileId, UUID presentationId, String originalName,
+                           String displayName, String contentType, int byteSize) {
         jdbc.update("""
-                INSERT INTO presentation_files (presentation_id, original_name, content_type, byte_size)
-                VALUES (:pid, :name, :ct, :size)
-                ON CONFLICT (presentation_id) DO UPDATE SET
-                    original_name = EXCLUDED.original_name,
-                    content_type  = EXCLUDED.content_type,
-                    byte_size     = EXCLUDED.byte_size,
-                    created_at    = NOW()
+                INSERT INTO presentation_files
+                    (id, presentation_id, original_name, display_name, content_type, byte_size)
+                VALUES (:id, :pid, :name, :display, :ct, :size)
                 """,
                 new MapSqlParameterSource()
+                        .addValue("id", fileId)
                         .addValue("pid", presentationId)
                         .addValue("name", originalName)
+                        .addValue("display", displayName)
                         .addValue("ct", contentType)
                         .addValue("size", byteSize));
     }
 
-    public void deleteFile(UUID presentationId) {
-        jdbc.update("DELETE FROM presentation_files WHERE presentation_id = :pid",
-                Map.of("pid", presentationId));
+    public int deleteFile(UUID presentationId, UUID fileId) {
+        return jdbc.update(
+                "DELETE FROM presentation_files WHERE presentation_id = :pid AND id = :fid",
+                Map.of("pid", presentationId, "fid", fileId));
+    }
+
+    private PresentationFileSummary mapFileSummary(java.sql.ResultSet rs, int n) throws java.sql.SQLException {
+        return new PresentationFileSummary(
+                rs.getObject("id", UUID.class),
+                rs.getString("display_name"),
+                rs.getString("original_name"),
+                rs.getString("content_type"),
+                rs.getInt("byte_size"),
+                rs.getTimestamp("created_at").toInstant());
     }
 
     // --- shares --------------------------------------------------------------
@@ -242,16 +311,13 @@ public class PresentationRepository {
     }
 
     public record UnitRef(String level, String subject, int position) {}
-    public record SharedSummaryWithUnit(UUID id, String title, String level, boolean hasFile,
-                                        String originalFileName, UnitRef unit) {}
+    public record SharedSummaryWithUnit(UUID id, String title, String level, UnitRef unit) {}
 
     public List<SharedSummaryWithUnit> findSharedSummariesForUser(UUID userId) {
         String sql = """
                 SELECT p.id, p.title, p.level, p.updated_at,
-                       pf.original_name,
                        u.level AS unit_level, u.subject AS unit_subject, u.position AS unit_position
                 FROM presentations p
-                LEFT JOIN presentation_files pf ON pf.presentation_id = p.id
                 LEFT JOIN units u ON u.id = p.unit_id
                 WHERE
                     EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = p.id AND s.user_id = :uid)
@@ -267,8 +333,6 @@ public class PresentationRepository {
                     rs.getObject("id", UUID.class),
                     rs.getString("title"),
                     rs.getString("level"),
-                    rs.getString("original_name") != null,
-                    rs.getString("original_name"),
                     unitRef);
         });
     }

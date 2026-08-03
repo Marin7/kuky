@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,7 +59,8 @@ class LearningServiceTest {
         user.setEmail(EMAIL);
         user.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
         when(userRepository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.of(user));
-        when(presentationRepository.findSharedSummariesForUser(userId)).thenReturn(List.of());
+        lenient().when(presentationRepository.findSharedSummariesForUser(userId)).thenReturn(List.of());
+        lenient().when(presentationRepository.listFilesGrouped(any())).thenReturn(java.util.Map.of());
     }
 
     @Test
@@ -142,6 +144,34 @@ class LearningServiceTest {
         assertThat(overview.homework().get(0).response()).isEqualTo(response);
         // Past-due but submitted ⇒ not overdue
         assertThat(overview.homework().get(0).overdue()).isFalse();
+    }
+
+    @Test
+    void getPresentationFile_requiresShareAndFileId() {
+        UUID presentationId = UUID.randomUUID();
+        UUID fileId = UUID.randomUUID();
+        when(presentationRepository.isSharedWith(presentationId, userId)).thenReturn(true);
+        var meta = new com.kuky.backend.presentations.model.PresentationFile(
+                fileId, presentationId, "deck.pptx", "deck.pptx",
+                "application/pdf", 3, Instant.now(), null);
+        when(presentationRepository.findFile(presentationId, fileId)).thenReturn(Optional.of(meta));
+        when(presentationFileStore.read(fileId)).thenReturn(Optional.of(new byte[]{1, 2, 3}));
+
+        var file = service.getPresentationFile(EMAIL, presentationId, fileId);
+
+        assertThat(file.displayName()).isEqualTo("deck.pptx");
+        assertThat(file.data()).containsExactly(1, 2, 3);
+    }
+
+    @Test
+    void getPresentationFile_rejectsUnshared() {
+        UUID presentationId = UUID.randomUUID();
+        UUID fileId = UUID.randomUUID();
+        when(presentationRepository.isSharedWith(presentationId, userId)).thenReturn(false);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> service.getPresentationFile(EMAIL, presentationId, fileId))
+                .isInstanceOf(com.kuky.backend.presentations.exception.PresentationNotFoundException.class);
     }
 
     // ---- helpers ----

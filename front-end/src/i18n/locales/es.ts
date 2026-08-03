@@ -725,6 +725,8 @@ export const esDict = {
       replace: "Reemplazar",
       remove: "Quitar",
       upload: "Subir archivo .pptx o .pdf",
+      addFile: "Añadir otro archivo",
+      fileLimitReached: "Máximo 10 archivos.",
       uploading: "Subiendo…",
       noShares: "Sin compartir.",
       uploadError: "Error al subir el archivo.",

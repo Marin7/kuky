@@ -1,9 +1,12 @@
 package com.kuky.backend.units.service;
 
+import com.kuky.backend.admin.dto.PresentationFileSummary;
+import com.kuky.backend.admin.dto.PresentationSummary;
 import com.kuky.backend.admin.dto.StudentResponse;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.presentations.repository.PresentationRepository;
 import com.kuky.backend.units.dto.*;
 import com.kuky.backend.units.exception.UnitNotFoundException;
 import com.kuky.backend.units.model.Unit;
@@ -13,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,10 +28,14 @@ public class UnitService {
 
     private final UnitRepository repository;
     private final UserRepository userRepository;
+    private final PresentationRepository presentationRepository;
 
-    public UnitService(UnitRepository repository, UserRepository userRepository) {
+    public UnitService(UnitRepository repository,
+                       UserRepository userRepository,
+                       PresentationRepository presentationRepository) {
         this.repository = repository;
         this.userRepository = userRepository;
+        this.presentationRepository = presentationRepository;
     }
 
     public List<UnitSummary> list() {
@@ -103,12 +111,22 @@ public class UnitService {
 
     private UnitDetail detail(UUID id) {
         Unit u = requireUnit(id);
+        List<PresentationSummary> presentations = repository.findPresentations(id);
+        Map<UUID, List<PresentationFileSummary>> filesByPresentation =
+                presentationRepository.listFilesGrouped(
+                        presentations.stream().map(PresentationSummary::id).toList());
+        List<PresentationSummary> withFiles = presentations.stream()
+                .map(p -> new PresentationSummary(
+                        p.id(), p.title(), p.level(),
+                        filesByPresentation.getOrDefault(p.id(), List.of()),
+                        p.sharedWithIds(), p.updatedAt()))
+                .toList();
         return new UnitDetail(
                 u.getId(),
                 u.getLevel(),
                 u.getSubject(),
                 u.getPosition(),
-                repository.findPresentations(id),
+                withFiles,
                 repository.findHomeworks(id),
                 repository.findAssignedStudents(id));
     }

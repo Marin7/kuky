@@ -487,12 +487,20 @@ export const saveHomeworkFeedback = (
 // Presentations (User Story 3)
 // ---------------------------------------------------------------------------
 
+export interface PresentationFileSummary {
+  id: string;
+  displayName: string;
+  originalName: string;
+  contentType: string;
+  byteSize: number;
+  createdAt: string;
+}
+
 export interface PresentationSummary {
   id: string;
   title: string;
   level: HomeworkLevel | null;
-  hasFile: boolean;
-  originalFileName: string | null;
+  files: PresentationFileSummary[];
   sharedWithIds: string[];
   updatedAt: string;
 }
@@ -501,8 +509,7 @@ export interface PresentationDetail {
   id: string;
   title: string;
   level: HomeworkLevel | null;
-  hasFile: boolean;
-  originalFileName: string | null;
+  files: PresentationFileSummary[];
   sharedWith: Student[];
 }
 
@@ -546,7 +553,7 @@ export const uploadPresentationFile = async (
 ): Promise<PresentationDetail> => {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${API_BASE}/presentations/${id}/file`, {
+  const res = await fetch(`${API_BASE}/presentations/${id}/files`, {
     method: "POST",
     credentials: "include",
     body: form,
@@ -556,8 +563,8 @@ export const uploadPresentationFile = async (
   return data as PresentationDetail;
 };
 
-export const deletePresentationFile = (id: string) =>
-  apiCall<void>(`/presentations/${id}/file`, { method: "DELETE" });
+export const deletePresentationFile = (id: string, fileId: string) =>
+  apiCall<void>(`/presentations/${id}/files/${fileId}`, { method: "DELETE" });
 
 // ---------------------------------------------------------------------------
 // Units (Class Packages)

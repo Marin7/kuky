@@ -54,26 +54,26 @@ public class PresentationAdminController {
 
     // --- file management -----------------------------------------------------
 
-    @PostMapping(value = "/{id}/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public PresentationDetail uploadFile(@PathVariable UUID id,
                                          @RequestParam("file") MultipartFile file) {
         return service.uploadFile(id, file);
     }
 
-    @DeleteMapping("/{id}/file")
-    public ResponseEntity<Void> deleteFile(@PathVariable UUID id) {
-        service.removeFile(id);
+    @DeleteMapping("/{id}/files/{fileId}")
+    public ResponseEntity<Void> deleteFile(@PathVariable UUID id, @PathVariable UUID fileId) {
+        service.removeFile(id, fileId);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/file")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable UUID id) {
-        PresentationFile f = service.getFileData(id);
+    @GetMapping("/{id}/files/{fileId}")
+    public ResponseEntity<byte[]> downloadFile(@PathVariable UUID id, @PathVariable UUID fileId) {
+        PresentationFile f = service.getFileData(id, fileId);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(f.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()
-                                .filename(f.originalName(), StandardCharsets.UTF_8)
+                                .filename(f.displayName(), StandardCharsets.UTF_8)
                                 .build().toString())
                 .body(f.data());
     }

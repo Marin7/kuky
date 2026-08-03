@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { HomeworkItem, SharedPresentationSummary } from "@/lib/learning";
-import { downloadPresentation } from "@/lib/learning";
+import { downloadPresentationFile } from "@/lib/learning";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HomeworkItemCard } from "./HomeworkItemCard";
@@ -90,46 +90,52 @@ function PresentationDownloadCard({
   presentation: SharedPresentationSummary;
 }) {
   const { t } = useTranslation();
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleDownload = async () => {
-    setDownloading(true);
+  const handleDownload = async (fileId: string, displayName: string) => {
+    setDownloadingId(fileId);
     setError(null);
     try {
-      await downloadPresentation(
-        presentation.id,
-        presentation.originalFileName ?? `${presentation.title}.pptx`,
-      );
+      await downloadPresentationFile(presentation.id, fileId, displayName);
     } catch {
       setError(t("learning.presentations.loadError"));
     } finally {
-      setDownloading(false);
+      setDownloadingId(null);
     }
   };
 
   return (
     <Card>
-      <CardContent className="flex items-center justify-between pt-4">
+      <CardContent className="pt-4 space-y-2">
         <p className="font-medium truncate">{presentation.title}</p>
-        {presentation.hasFile ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0 ml-3"
-            disabled={downloading}
-            onClick={handleDownload}
-          >
-            {downloading
-              ? t("learning.presentations.downloading")
-              : t("learning.presentations.download")}
-          </Button>
+        {presentation.files.length > 0 ? (
+          <ul className="space-y-1">
+            {presentation.files.map((f) => (
+              <li key={f.id} className="flex items-center justify-between gap-2">
+                <span className="text-sm text-muted-foreground truncate">
+                  {f.displayName}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={downloadingId === f.id}
+                  onClick={() => handleDownload(f.id, f.displayName)}
+                >
+                  {downloadingId === f.id
+                    ? t("learning.presentations.downloading")
+                    : t("learning.presentations.download")}
+                </Button>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <span className="text-xs text-muted-foreground shrink-0 ml-3">
+          <span className="text-xs text-muted-foreground">
             {t("learning.presentations.noFile")}
           </span>
         )}
-        {error && <p className="w-full text-sm text-destructive">{error}</p>}
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>
     </Card>
   );

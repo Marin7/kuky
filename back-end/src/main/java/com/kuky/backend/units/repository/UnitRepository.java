@@ -157,13 +157,11 @@ public class UnitRepository {
     public List<PresentationSummary> findPresentations(UUID unitId) {
         String sql = """
                 SELECT p.id, p.title, p.level, p.updated_at,
-                       pf.original_name,
                        COALESCE(ARRAY_AGG(sh.user_id::text) FILTER (WHERE sh.user_id IS NOT NULL), '{}') AS shared_with_ids
                 FROM presentations p
-                LEFT JOIN presentation_files pf ON pf.presentation_id = p.id
                 LEFT JOIN presentation_shares sh ON sh.presentation_id = p.id
                 WHERE p.unit_id = :uid
-                GROUP BY p.id, p.title, p.level, p.updated_at, pf.original_name
+                GROUP BY p.id, p.title, p.level, p.updated_at
                 ORDER BY p.updated_at DESC
                 """;
         return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> {
@@ -174,8 +172,7 @@ public class UnitRepository {
                     rs.getObject("id", UUID.class),
                     rs.getString("title"),
                     rs.getString("level"),
-                    rs.getString("original_name") != null,
-                    rs.getString("original_name"),
+                    List.of(),
                     ids,
                     rs.getTimestamp("updated_at").toInstant());
         });
@@ -289,10 +286,9 @@ public class UnitRepository {
     public List<PresentationWithUnit> findAccessiblePresentationsForUser(UUID userId) {
         String sql = """
                 SELECT p.id, p.title, p.level AS p_level, p.updated_at,
-                       pf.original_name,
+                       EXISTS (SELECT 1 FROM presentation_files pf WHERE pf.presentation_id = p.id) AS has_file,
                        u.level AS unit_level, u.subject AS unit_subject, u.position AS unit_position
                 FROM presentations p
-                LEFT JOIN presentation_files pf ON pf.presentation_id = p.id
                 LEFT JOIN units u ON u.id = p.unit_id
                 WHERE
                     EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = p.id AND s.user_id = :uid)
@@ -307,7 +303,7 @@ public class UnitRepository {
             return new PresentationWithUnit(
                     rs.getObject("id", UUID.class),
                     rs.getString("title"),
-                    rs.getString("original_name") != null,
+                    rs.getBoolean("has_file"),
                     unitInfo);
         });
     }

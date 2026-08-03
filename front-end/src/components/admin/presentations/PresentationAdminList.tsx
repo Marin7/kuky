@@ -75,8 +75,7 @@ export function PresentationAdminList() {
           id: deck.id,
           title: deck.title,
           level: null,
-          hasFile: false,
-          originalFileName: null,
+          files: deck.files ?? [],
           sharedWithIds: [],
           updatedAt: new Date().toISOString(),
         },
@@ -234,8 +233,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
       const updated = await uploadPresentationFile(item.id, file);
       onUpdated({
         ...item,
-        hasFile: true,
-        originalFileName: updated.originalFileName,
+        files: updated.files,
       });
     } catch (err) {
       setError(
@@ -246,11 +244,14 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
     }
   };
 
-  const handleDeleteFile = async () => {
+  const handleDeleteFile = async (fileId: string) => {
     setError(null);
     try {
-      await deletePresentationFile(item.id);
-      onUpdated({ ...item, hasFile: false, originalFileName: null });
+      await deletePresentationFile(item.id, fileId);
+      onUpdated({
+        ...item,
+        files: item.files.filter((f) => f.id !== fileId),
+      });
     } catch (err) {
       setError(
         (err as ApiError).message ?? t("admin.presentations.deleteFileError"),
@@ -363,7 +364,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
         </div>
 
         {/* File area */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="space-y-2">
           <input
             type="file"
             accept=".pptx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -371,48 +372,54 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
             ref={fileInputRef}
             onChange={handleFileChange}
           />
-          {item.hasFile ? (
-            <>
-              <span className="text-sm text-muted-foreground truncate max-w-xs">
-                📎 {item.originalFileName}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                {t("admin.presentations.replace")}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs text-destructive"
-                onClick={handleDeleteFile}
-                disabled={uploading}
-              >
-                {t("admin.presentations.remove")}
-              </Button>
-            </>
-          ) : (
+          {item.files.length > 0 && (
+            <ul className="space-y-1">
+              {item.files.map((f) => (
+                <li
+                  key={f.id}
+                  className="flex items-center gap-2 flex-wrap text-sm"
+                >
+                  <span className="text-muted-foreground truncate max-w-xs">
+                    📎 {f.displayName}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-destructive"
+                    onClick={() => handleDeleteFile(f.id)}
+                    disabled={uploading}
+                  >
+                    {t("admin.presentations.remove")}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               className="text-xs"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={uploading || item.files.length >= 10}
             >
               {uploading
                 ? t("admin.presentations.uploading")
-                : t("admin.presentations.upload")}
+                : item.files.length > 0
+                  ? t("admin.presentations.addFile")
+                  : t("admin.presentations.upload")}
             </Button>
-          )}
-          {uploading && (
-            <span className="text-xs text-muted-foreground animate-pulse">
-              {t("admin.presentations.uploading")}
-            </span>
-          )}
+            {item.files.length >= 10 && (
+              <span className="text-xs text-muted-foreground">
+                {t("admin.presentations.fileLimitReached")}
+              </span>
+            )}
+            {uploading && (
+              <span className="text-xs text-muted-foreground animate-pulse">
+                {t("admin.presentations.uploading")}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Share info */}

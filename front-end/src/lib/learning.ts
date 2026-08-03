@@ -93,11 +93,19 @@ export interface UnitRef {
   position: number;
 }
 
+export interface PresentationFileSummary {
+  id: string;
+  displayName: string;
+  originalName: string;
+  contentType: string;
+  byteSize: number;
+  createdAt: string;
+}
+
 export interface SharedPresentationSummary {
   id: string;
   title: string;
-  hasFile: boolean;
-  originalFileName: string | null;
+  files: PresentationFileSummary[];
   unit: UnitRef | null;
 }
 
@@ -158,13 +166,17 @@ export const submitExercise = (
     body: JSON.stringify({ answers }),
   });
 
-export const downloadPresentation = async (
-  id: string,
+export const downloadPresentationFile = async (
+  presentationId: string,
+  fileId: string,
   fileName: string,
 ): Promise<void> => {
-  const res = await fetch(`${API_BASE}/learning/presentations/${id}/file`, {
-    credentials: "include",
-  });
+  const res = await fetch(
+    `${API_BASE}/learning/presentations/${presentationId}/files/${fileId}`,
+    {
+      credentials: "include",
+    },
+  );
   if (!res.ok) {
     const data = await res.json();
     throw data as ApiError;

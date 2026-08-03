@@ -260,8 +260,7 @@ function PresentationRow({
       const detail = await uploadPresentationFile(p.id, file);
       onUpdated({
         ...p,
-        hasFile: true,
-        originalFileName: detail.originalFileName,
+        files: detail.files,
       });
     } catch (err) {
       setRowError(
@@ -272,10 +271,13 @@ function PresentationRow({
     }
   };
 
-  const handleDeleteFile = async () => {
+  const handleDeleteFile = async (fileId: string) => {
     try {
-      await deletePresentationFile(p.id);
-      onUpdated({ ...p, hasFile: false, originalFileName: null });
+      await deletePresentationFile(p.id, fileId);
+      onUpdated({
+        ...p,
+        files: p.files.filter((f) => f.id !== fileId),
+      });
     } catch {
       setRowError(t("admin.units.contents.deleteFileError"));
     }
@@ -318,30 +320,35 @@ function PresentationRow({
         </SelectContent>
       </Select>
 
-      {p.hasFile ? (
-        <>
-          <span className="text-muted-foreground truncate max-w-[12rem]">
-            📎 {p.originalFileName}
-          </span>
+      {p.files.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1 w-full">
+          {p.files.map((f) => (
+            <span
+              key={f.id}
+              className="inline-flex items-center gap-1 text-muted-foreground"
+            >
+              <span className="truncate max-w-[10rem]">📎 {f.displayName}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs px-1 text-destructive"
+                onClick={() => handleDeleteFile(f.id)}
+                disabled={uploading}
+              >
+                {t("admin.units.contents.deleteFile")}
+              </Button>
+            </span>
+          ))}
           <Button
             variant="ghost"
             size="sm"
             className="h-6 text-xs px-1"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
+            disabled={uploading || p.files.length >= 10}
           >
             {t("admin.units.contents.uploadFile")}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 text-xs px-1 text-destructive"
-            onClick={handleDeleteFile}
-            disabled={uploading}
-          >
-            {t("admin.units.contents.deleteFile")}
-          </Button>
-        </>
+        </div>
       ) : (
         <Button
           variant="outline"

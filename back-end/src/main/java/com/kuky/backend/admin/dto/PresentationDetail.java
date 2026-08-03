@@ -7,7 +7,6 @@ public record PresentationDetail(
         UUID id,
         String title,
         String level,
-        boolean hasFile,
-        String originalFileName,
+        List<PresentationFileSummary> files,
         List<StudentResponse> sharedWith
 ) {}

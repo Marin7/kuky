@@ -8,8 +8,7 @@ public record PresentationSummary(
         UUID id,
         String title,
         String level,
-        boolean hasFile,
-        String originalFileName,
+        List<PresentationFileSummary> files,
         List<String> sharedWithIds,
         Instant updatedAt
 ) {}

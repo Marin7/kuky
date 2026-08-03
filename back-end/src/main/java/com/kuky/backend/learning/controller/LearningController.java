@@ -42,16 +42,17 @@ public class LearningController {
         return ResponseEntity.ok(learningService.getOverview(email));
     }
 
-    @GetMapping("/presentations/{id}/file")
+    @GetMapping("/presentations/{id}/files/{fileId}")
     public ResponseEntity<byte[]> downloadPresentation(
             @AuthenticationPrincipal String email,
-            @PathVariable UUID id) {
-        PresentationFile f = learningService.getPresentationFile(email, id);
+            @PathVariable UUID id,
+            @PathVariable UUID fileId) {
+        PresentationFile f = learningService.getPresentationFile(email, id, fileId);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(f.contentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()
-                                .filename(f.originalName(), StandardCharsets.UTF_8)
+                                .filename(f.displayName(), StandardCharsets.UTF_8)
                                 .build().toString())
                 .body(f.data());
     }

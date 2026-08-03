@@ -721,6 +721,8 @@ export const roDict = {
       replace: "Înlocuiește",
       remove: "Elimină",
       upload: "Încarcă fișier .pptx sau .pdf",
+      addFile: "Adaugă alt fișier",
+      fileLimitReached: "Maxim 10 fișiere.",
       uploading: "Se încarcă…",
       noShares: "Nedistribuită.",
       uploadError: "Eroare la încărcarea fișierului.",
