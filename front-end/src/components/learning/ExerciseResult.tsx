@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { ExerciseResult, StudentQuestion } from "@/lib/learning";
+import { TableFillResult } from "./TableFillResult";
 
 interface Props {
   questions: StudentQuestion[];
@@ -87,7 +88,14 @@ export function ExerciseResult({ questions, result, showAllAnswers = false }: Pr
                   {badge.text}
                 </span>
               </div>
-              {unitResults.length > 0 ? (
+              {unitResults.length > 0 &&
+              question?.kind === "TABLE_FILL" &&
+              question.structure ? (
+                <TableFillResult
+                  structure={question.structure}
+                  unitResults={unitResults}
+                />
+              ) : unitResults.length > 0 ? (
                 <div className="mt-2 space-y-1.5">
                   {unitResults.map((u) => (
                     <div
