@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { StudentBankItem } from "@/lib/learning";
 import { countBlanks, splitPromptSegments } from "@/lib/blankTokens";
 import { shuffle, cn } from "@/lib/utils";
+import { PassageText } from "./PassageText";
 
 interface Props {
   prompt: string;
@@ -139,10 +140,10 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
         <p className="mb-2 text-xs font-medium text-muted-foreground">
           {t("learning.exercisePage.dropTargets")}
         </p>
-        <p className="whitespace-pre-wrap text-sm leading-10">
+        <div className="text-sm leading-10">
           {segments.map((seg, i) =>
             seg.type === "text" ? (
-              <span key={i}>{seg.text}</span>
+              <PassageText key={i} text={seg.text} />
             ) : (
               <button
                 key={i}
@@ -160,7 +161,7 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
                 }
                 onDrop={(e) => onDrop(e, seg.index)}
                 className={cn(
-                  "mx-1 inline-flex h-9 min-w-28 items-center justify-center rounded-md border-2 border-dashed px-2 align-middle text-sm transition",
+                  "mx-1 inline-flex h-9 min-w-28 items-center justify-center rounded-md border-2 border-dashed px-2 align-baseline text-sm transition",
                   value[seg.index]
                     ? "cursor-pointer border-solid border-primary/50 bg-primary/10 font-medium text-foreground"
                     : "bg-muted/30 text-muted-foreground",
@@ -177,7 +178,7 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
               </button>
             ),
           )}
-        </p>
+        </div>
         {selected && (
           <p className="mt-2 text-xs text-primary">
             {t("learning.exercisePage.selectedHint", {

@@ -1,5 +1,6 @@
 import { splitPromptSegments } from "@/lib/blankTokens";
 import { Input } from "@/components/ui/input";
+import { PassageText } from "./PassageText";
 
 interface Props {
   prompt: string;
@@ -18,19 +19,19 @@ export function MultiBlankQuestion({ prompt, value, onChange }: Props) {
   };
 
   return (
-    <p className="whitespace-pre-wrap text-sm leading-9">
+    <div className="text-sm leading-9">
       {segments.map((seg, i) =>
         seg.type === "text" ? (
-          <span key={i}>{seg.text}</span>
+          <PassageText key={i} text={seg.text} />
         ) : (
           <Input
             key={i}
             value={value[seg.index] ?? ""}
             onChange={(e) => setBlank(seg.index, e.target.value)}
-            className="mx-1 inline-block h-8 w-28 align-middle"
+            className="mx-1 inline-block h-8 w-28 align-baseline"
           />
         ),
       )}
-    </p>
+    </div>
   );
 }
