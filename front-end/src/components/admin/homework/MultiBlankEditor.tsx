@@ -72,9 +72,9 @@ export function MultiBlankEditor({ prompt, structure, onChange }: Props) {
       <p className="text-xs text-muted-foreground">
         {t("admin.homework.questions.multiBlankHint")}
       </p>
-      {blankCount < 2 ? (
+      {blankCount < 1 ? (
         <p className="text-xs text-amber-700">
-          {t("admin.homework.questions.blankCountWarning")}
+          {t("admin.homework.questions.multiBlankCountWarning")}
         </p>
       ) : (
         blanks.map((blank, i) => (

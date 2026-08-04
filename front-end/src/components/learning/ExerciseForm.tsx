@@ -10,7 +10,6 @@ import {
 } from "@/lib/learning";
 import { countBlanks } from "@/lib/blankTokens";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -22,7 +21,6 @@ import { MatchingQuestion } from "./MatchingQuestion";
 
 interface AnswerState {
   selectedOptionIds: string[];
-  answerText: string;
   blanks: string[]; // MULTI_BLANK
   placements: (string | null)[]; // DRAG_DROP
   cells: Record<string, string>; // TABLE_FILL
@@ -42,7 +40,6 @@ function initialAnswerState(
 ): AnswerState {
   return {
     selectedOptionIds: [],
-    answerText: "",
     blanks:
       q.kind === "MULTI_BLANK" ? Array(countBlanks(q.prompt)).fill("") : [],
     placements:
@@ -88,12 +85,6 @@ export function ExerciseForm({ exercise }: Props) {
       return { ...prev, [qId]: { ...prev[qId], selectedOptionIds: next } };
     });
 
-  const setText = (qId: string, text: string) =>
-    setAnswers((prev) => ({
-      ...prev,
-      [qId]: { ...prev[qId], answerText: text },
-    }));
-
   const setBlanks = (qId: string, blanks: string[]) =>
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], blanks } }));
 
@@ -123,7 +114,7 @@ export function ExerciseForm({ exercise }: Props) {
         return {
           questionId: q.id,
           selectedOptionIds: a?.selectedOptionIds ?? [],
-          answerText: q.kind === "FILL_BLANK" ? (a?.answerText ?? "") : null,
+          answerText: null,
           answerJson,
         };
       });
@@ -185,15 +176,6 @@ export function ExerciseForm({ exercise }: Props) {
                 </label>
               ))}
             </div>
-          )}
-
-          {q.kind === "FILL_BLANK" && (
-            <Input
-              value={answers[q.id]?.answerText ?? ""}
-              onChange={(e) => setText(q.id, e.target.value)}
-              placeholder={t("learning.exercisePage.yourAnswer")}
-              className="max-w-sm"
-            />
           )}
 
           {q.kind === "MULTI_BLANK" && (

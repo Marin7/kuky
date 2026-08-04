@@ -281,8 +281,7 @@ public class HomeworkAdminService {
                     }
                     QuestionOption om = new QuestionOption();
                     om.setLabel(o.label().strip());
-                    // Fill-blank accepted answers are always part of the key.
-                    om.setCorrect(kind == QuestionKind.FILL_BLANK || o.correct());
+                    om.setCorrect(o.correct());
                     optionModels.add(om);
                 }
                 model.setOptions(optionModels);
@@ -310,11 +309,6 @@ public class HomeworkAdminService {
                 long correct = opts.stream().filter(HomeworkQuestionDto.OptionDto::correct).count();
                 if (correct < 1) {
                     throw new IllegalArgumentException("Marca al menos una opción correcta en la pregunta de opción múltiple.");
-                }
-            }
-            case FILL_BLANK -> {
-                if (opts.isEmpty()) {
-                    throw new IllegalArgumentException("Una pregunta de rellenar el hueco necesita al menos una respuesta aceptada.");
                 }
             }
             default -> { /* structured kinds are validated via validateStructure */ }
@@ -359,8 +353,8 @@ public class HomeworkAdminService {
 
     private JsonNode validateMultiBlank(String prompt, JsonNode structure) {
         int blankCount = BlankPassageParser.countBlanks(prompt);
-        if (blankCount < 2 || blankCount > 20) {
-            throw new IllegalArgumentException("El enunciado debe tener entre 2 y 20 huecos (___).");
+        if (blankCount < 1 || blankCount > 20) {
+            throw new IllegalArgumentException("El enunciado debe tener entre 1 y 20 huecos (___).");
         }
         JsonNode blanksNode = structure.get("blanks");
         if (blanksNode == null || !blanksNode.isArray() || blanksNode.size() != blankCount) {

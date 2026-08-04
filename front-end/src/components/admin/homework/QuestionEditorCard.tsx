@@ -34,7 +34,6 @@ import { MatchingEditor } from "./MatchingEditor";
 const KINDS: QuestionKind[] = [
   "SINGLE_CHOICE",
   "MULTI_CHOICE",
-  "FILL_BLANK",
   "MULTI_BLANK",
   "DRAG_DROP",
   "TABLE_FILL",
@@ -100,7 +99,6 @@ export function QuestionEditorCard({
       options: question.options.filter((_, idx) => idx !== i),
     });
 
-  const isFillBlank = question.kind === "FILL_BLANK";
   const structured = isStructuredKind(question.kind);
   const isPassageKind =
     question.kind === "MULTI_BLANK" || question.kind === "DRAG_DROP";
@@ -226,47 +224,7 @@ export function QuestionEditorCard({
         />
       )}
 
-      {!structured &&
-        (isFillBlank ? (
-          <div className="space-y-2">
-            <Label>{t("admin.homework.questions.acceptedAnswers")}</Label>
-            <p className="text-xs text-muted-foreground">
-              {t("admin.homework.questions.acceptedAnswersHint")}
-            </p>
-            {question.options.map((o, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input
-                  value={o.label}
-                  onChange={(e) =>
-                    setOption(i, { label: e.target.value, correct: true })
-                  }
-                  placeholder={t(
-                    "admin.homework.questions.acceptedAnswerPlaceholder",
-                  )}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-xs text-destructive"
-                  disabled={question.options.length === 1}
-                  onClick={() => removeOption(i)}
-                >
-                  ✕
-                </Button>
-              </div>
-            ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={addOption}
-            >
-              {t("admin.homework.questions.addAnswer")}
-            </Button>
-          </div>
-        ) : (
+      {!structured && (
           <div className="space-y-2">
             <Label>{t("admin.homework.questions.optionsLabel")}</Label>
             <p className="text-xs text-muted-foreground">
@@ -339,7 +297,7 @@ export function QuestionEditorCard({
               {t("admin.homework.questions.addOption")}
             </Button>
           </div>
-        ))}
+        )}
     </div>
   );
 }

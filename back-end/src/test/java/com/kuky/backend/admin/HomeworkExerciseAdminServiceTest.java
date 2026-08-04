@@ -1,6 +1,7 @@
 package com.kuky.backend.admin;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.kuky.backend.admin.dto.CreateHomeworkRequest;
 import com.kuky.backend.admin.dto.HomeworkQuestionDto;
 import com.kuky.backend.admin.dto.HomeworkQuestionDto.OptionDto;
@@ -40,6 +41,7 @@ class HomeworkExerciseAdminServiceTest {
     private UserRepository userRepository;
     private HomeworkSubmissionRepository submissionRepository;
     private HomeworkAdminService service;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final UUID ASSIGNMENT_ID = UUID.randomUUID();
 
@@ -53,7 +55,7 @@ class HomeworkExerciseAdminServiceTest {
         submissionRepository = mock(HomeworkSubmissionRepository.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
-                new ObjectMapper());
+                objectMapper);
 
         // For the happy path: insert returns an id and the re-fetch returns an assignment.
         when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
@@ -75,6 +77,14 @@ class HomeworkExerciseAdminServiceTest {
 
     private static HomeworkQuestionDto q(String kind, OptionDto... options) {
         return new HomeworkQuestionDto(null, kind, "¿…?", List.of(options), null);
+    }
+
+    private HomeworkQuestionDto multiBlank(String prompt, String... accepted) throws Exception {
+        ObjectNode blank = objectMapper.createObjectNode();
+        blank.set("acceptedAnswers", objectMapper.valueToTree(List.of(accepted)));
+        ObjectNode structure = objectMapper.createObjectNode();
+        structure.set("blanks", objectMapper.createArrayNode().add(blank));
+        return new HomeworkQuestionDto(null, "MULTI_BLANK", prompt, List.of(), structure);
     }
 
     @Test
@@ -106,23 +116,31 @@ class HomeworkExerciseAdminServiceTest {
     }
 
     @Test
-    void fillBlankWithoutAcceptedAnswerIsRejected() {
-        var req = exercise(List.of(q("FILL_BLANK")));
+    void multiBlankWithoutBlanksIsRejected() throws Exception {
+        var req = exercise(List.of(multiBlank("Sin huecos", "x")));
         assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void multiBlankWithSingleBlankIsAccepted() throws Exception {
+        var req = exercise(List.of(multiBlank("Completa: Ella ___ en Madrid.", "vive")));
+        assertThatNoException().isThrownBy(() -> service.create(req));
+        verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
     }
 
     @Test
     void manualWithQuestionsIsRejected() {
         var req = new CreateHomeworkRequest("Título", "Instrucciones", null, null, null,
-                "MANUAL", List.of(q("FILL_BLANK", new OptionDto(null, "fui", true))), null, null, List.of());
+                "MANUAL", List.of(q("SINGLE_CHOICE", new OptionDto(null, "a", true), new OptionDto(null, "b", false))),
+                null, null, List.of());
         assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    void validExercisePersistsQuestions() {
+    void validExercisePersistsQuestions() throws Exception {
         var req = exercise(List.of(
                 q("SINGLE_CHOICE", new OptionDto(null, "a", false), new OptionDto(null, "b", true)),
-                q("FILL_BLANK", new OptionDto(null, "fui", true))));
+                multiBlank("Completa: Ella ___ en Madrid.", "vive")));
         assertThatNoException().isThrownBy(() -> service.create(req));
         verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
     }

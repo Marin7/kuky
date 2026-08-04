@@ -53,7 +53,6 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>{@code SINGLE_CHOICE} — 0/1 (selected set must equal the correct option).</li>
  *   <li>{@code MULTI_CHOICE} — partial credit over all options.</li>
- *   <li>{@code FILL_BLANK} — trim + case-insensitive + accent-exact.</li>
  *   <li>{@code MULTI_BLANK} / {@code TABLE_FILL} — each blank/cell trim + case-insensitive
  *       + accent-exact; question score = mean of unit scores.</li>
  *   <li>{@code DRAG_DROP} — each blank correct iff the placed bank item id matches the
@@ -170,7 +169,7 @@ public class ExerciseGradingService {
 
             questionResults.add(new ExerciseResultResponse.QuestionResultDto(
                     q.getId(), graded.score(), graded.score() >= 1.0,
-                    correctOptionIds(q), acceptedAnswers(q), graded.unitResults(),
+                    correctOptionIds(q), List.of(), graded.unitResults(),
                     graded.selectedOptionIds(), graded.answerText()));
         }
 
@@ -208,7 +207,6 @@ public class ExerciseGradingService {
         return switch (q.getKind()) {
             case SINGLE_CHOICE -> gradeSingleChoice(q, given);
             case MULTI_CHOICE -> gradeMultiChoice(q, given);
-            case FILL_BLANK -> gradeFillBlank(q, given);
             case MULTI_BLANK -> gradeMultiBlank(q, given);
             case DRAG_DROP -> gradeDragDrop(q, given);
             case TABLE_FILL -> gradeTableFill(q, given);
@@ -237,17 +235,6 @@ public class ExerciseGradingService {
         }
         double score = (double) rightDecisions / n;
         return new GradedAnswer(score, null, new ArrayList<>(selected), null, List.of());
-    }
-
-    private GradedAnswer gradeFillBlank(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {
-        String raw = given == null ? null : given.answerText();
-        if (raw == null || raw.isBlank()) {
-            return new GradedAnswer(0.0, raw, List.of(), null, List.of());
-        }
-        String normalized = normalize(raw);
-        boolean matches = q.getOptions().stream()
-                .anyMatch(o -> normalize(o.getLabel()).equals(normalized));
-        return new GradedAnswer(matches ? 1.0 : 0.0, raw, List.of(), null, List.of());
     }
 
     /** {@code structure.blanks[].acceptedAnswers} vs. student {@code answerJson.blanks[]}. */
@@ -376,11 +363,6 @@ public class ExerciseGradingService {
         return q.getOptions().stream().filter(QuestionOption::isCorrect).map(QuestionOption::getId).toList();
     }
 
-    private static List<String> acceptedAnswers(HomeworkQuestion q) {
-        if (q.getKind() != QuestionKind.FILL_BLANK) return List.of();
-        return q.getOptions().stream().map(QuestionOption::getLabel).toList();
-    }
-
     // --- JSON helpers -----------------------------------------------------------
 
     /** Parses a question's {@code structure_json}; empty object on missing/invalid JSON. */
@@ -480,7 +462,7 @@ public class ExerciseGradingService {
             List<UUID> selected = a == null ? List.of() : a.getSelectedOptionIds();
             String answerText = a == null ? null : a.getAnswerText();
             results.add(new ExerciseResultResponse.QuestionResultDto(
-                    q.getId(), score, correct, correctOptionIds(q), acceptedAnswers(q), unitResults,
+                    q.getId(), score, correct, correctOptionIds(q), List.of(), unitResults,
                     selected, answerText));
         }
         int scorePercent = submission.getScorePercent() == null ? 0 : submission.getScorePercent();

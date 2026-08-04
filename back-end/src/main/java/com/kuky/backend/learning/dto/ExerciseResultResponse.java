@@ -18,10 +18,10 @@ public record ExerciseResultResponse(
             double score,                 // 0..1 (fractional for MULTI_CHOICE / multi-unit)
             boolean correct,              // score == 1
             List<UUID> correctOptionIds,  // for choice — revealed post-submit
-            List<String> acceptedAnswers, // for FILL_BLANK — revealed post-submit
-            List<UnitResultDto> unitResults, // structured multi-unit kinds; empty for legacy
+            List<String> acceptedAnswers, // unused (kept for API shape); structured kinds use unitResults
+            List<UnitResultDto> unitResults, // structured multi-unit kinds; empty for choice
             List<UUID> selectedOptionIds, // student's choice picks (empty otherwise)
-            String answerText             // student's FILL_BLANK text; null otherwise
+            String answerText             // unused for current kinds; null
     ) {}
 
     public record UnitResultDto(

@@ -318,7 +318,6 @@ export type HomeworkFormat = "MANUAL" | "EXERCISE";
 export type QuestionKind =
   | "SINGLE_CHOICE"
   | "MULTI_CHOICE"
-  | "FILL_BLANK"
   | "MULTI_BLANK"
   | "DRAG_DROP"
   | "TABLE_FILL"

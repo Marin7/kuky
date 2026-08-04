@@ -151,50 +151,64 @@ class ExerciseGradingServiceTest {
         assertThat(r.questions().get(0).correct()).isFalse();
     }
 
-    // --- fill blank ----------------------------------------------------------
+    // --- multi blank (single gap) --------------------------------------------
 
     @Test
-    void fillBlankCaseInsensitiveMatch() {
-        HomeworkQuestion q = question(QuestionKind.FILL_BLANK, List.of(option("fui", true)));
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), "Fui", null));
+    void multiBlankCaseInsensitiveMatch() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK, "Ayer yo ___ al cine.",
+                "{\"blanks\":[{\"acceptedAnswers\":[\"fui\"]}]}");
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null,
+                mapper.readTree("{\"blanks\":[\"Fui\"]}")));
         assertThat(scoreOf(r)).isEqualTo(1.0);
     }
 
     @Test
-    void fillBlankTrimsWhitespace() {
-        HomeworkQuestion q = question(QuestionKind.FILL_BLANK, List.of(option("fui", true)));
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), "  fui  ", null));
+    void multiBlankTrimsWhitespace() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK, "Ayer yo ___ al cine.",
+                "{\"blanks\":[{\"acceptedAnswers\":[\"fui\"]}]}");
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null,
+                mapper.readTree("{\"blanks\":[\"  fui  \"]}")));
         assertThat(scoreOf(r)).isEqualTo(1.0);
     }
 
     @Test
-    void fillBlankAccentMismatchIsWrong() {
-        HomeworkQuestion q = question(QuestionKind.FILL_BLANK, List.of(option("compré", true)));
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), "compre", null));
+    void multiBlankAccentMismatchIsWrong() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK, "Yo ___ pan.",
+                "{\"blanks\":[{\"acceptedAnswers\":[\"compré\"]}]}");
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null,
+                mapper.readTree("{\"blanks\":[\"compre\"]}")));
         assertThat(scoreOf(r)).isEqualTo(0.0);
     }
 
     @Test
-    void unansweredQuestionScoresZero() {
-        HomeworkQuestion q = question(QuestionKind.FILL_BLANK, List.of(option("fui", true)));
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null, null));
+    void unansweredQuestionScoresZero() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK, "Ayer yo ___ al cine.",
+                "{\"blanks\":[{\"acceptedAnswers\":[\"fui\"]}]}");
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null,
+                mapper.readTree("{\"blanks\":[\"\"]}")));
         assertThat(scoreOf(r)).isEqualTo(0.0);
     }
 
     // --- overall -------------------------------------------------------------
 
     @Test
-    void overallPercentAndFullyCorrectCount() {
+    void overallPercentAndFullyCorrectCount() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
         QuestionOption a = option("mal", false);
         QuestionOption b = option("bien", true);
         HomeworkQuestion q1 = question(QuestionKind.SINGLE_CHOICE, List.of(a, b));
-        HomeworkQuestion q2 = question(QuestionKind.FILL_BLANK, List.of(option("fui", true)));
+        HomeworkQuestion q2 = structured(QuestionKind.MULTI_BLANK, "Ayer yo ___ al cine.",
+                "{\"blanks\":[{\"acceptedAnswers\":[\"fui\"]}]}");
         when(questionRepository.findByAssignment(ASSIGNMENT_ID)).thenReturn(List.of(q1, q2));
 
         // q1 correct, q2 wrong → 1 of 2 fully correct, 50%
         ExerciseResultResponse r = service.submit(EMAIL, ASSIGNMENT_ID, new SubmitExerciseRequest(List.of(
                 new AnswerDto(q1.getId(), List.of(b.getId()), null, null),
-                new AnswerDto(q2.getId(), List.of(), "no", null))));
+                new AnswerDto(q2.getId(), List.of(), null, mapper.readTree("{\"blanks\":[\"no\"]}")))));
 
         assertThat(r.totalQuestions()).isEqualTo(2);
         assertThat(r.fullyCorrectCount()).isEqualTo(1);

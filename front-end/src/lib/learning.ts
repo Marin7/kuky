@@ -9,7 +9,6 @@ export type HomeworkFormat = "MANUAL" | "EXERCISE";
 export type QuestionKind =
   | "SINGLE_CHOICE"
   | "MULTI_CHOICE"
-  | "FILL_BLANK"
   | "MULTI_BLANK"
   | "DRAG_DROP"
   | "TABLE_FILL"
@@ -124,9 +123,9 @@ export interface QuestionResult {
   correct: boolean;
   correctOptionIds: string[];
   acceptedAnswers: string[];
-  unitResults?: UnitResult[]; // structured multi-unit kinds; empty/omitted for legacy
+  unitResults?: UnitResult[]; // structured multi-unit kinds; empty/omitted for choice
   selectedOptionIds?: string[]; // student's choice picks
-  answerText?: string | null; // student's FILL_BLANK text
+  answerText?: string | null;
 }
 
 export interface ExerciseResult {

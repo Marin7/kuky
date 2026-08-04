@@ -3,9 +3,8 @@ package com.kuky.backend.learning.model;
 import java.util.UUID;
 
 /**
- * A question option. For choice questions it is a selectable option (with
- * {@code isCorrect} marking the answer key). For fill-blank questions it is an
- * accepted answer ({@code label} = accepted text, {@code isCorrect} always true).
+ * A question option for choice questions — a selectable label with
+ * {@code isCorrect} marking the answer key.
  */
 public class QuestionOption {
 

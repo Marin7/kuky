@@ -7,7 +7,7 @@ import java.util.UUID;
 
 /**
  * Teacher-facing question shape — includes the answer key ({@code correct} flags
- * and, for fill-blank, the accepted answers as options). Never sent to students.
+ * on choice options). Never sent to students.
  * Structured kinds carry their payload in {@code structure} and use an empty options list.
  */
 public record HomeworkQuestionDto(

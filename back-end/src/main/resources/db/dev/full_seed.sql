@@ -82,11 +82,11 @@ BEGIN
         (gen_random_uuid(), q1, 1, 'eres', false),
         (gen_random_uuid(), q1, 2, 'es', false);
 
-    INSERT INTO homework_questions (id, assignment_id, position, kind, prompt)
-    VALUES (gen_random_uuid(), hw_exercise, 1, 'FILL_BLANK', 'Completa: "Ella ___ (vivir) en Madrid."')
+    INSERT INTO homework_questions (id, assignment_id, position, kind, prompt, structure_json)
+    VALUES (gen_random_uuid(), hw_exercise, 1, 'MULTI_BLANK',
+            'Completa: "Ella ___ (vivir) en Madrid."',
+            '{"blanks":[{"acceptedAnswers":["vive"]}]}'::jsonb)
     RETURNING id INTO q2;
-    INSERT INTO homework_question_options (id, question_id, position, label, is_correct)
-    VALUES (gen_random_uuid(), q2, 0, 'vive', true);
 
     -- Manual homework: SUBMITTED, awaiting teacher review
     -- response_text is a JSON-encoded FormattedText segment array (018-homework-rich-text-annotations)
@@ -105,8 +105,8 @@ BEGIN
     INSERT INTO homework_answer_options (answer_id, option_id)
     SELECT ans_id, id FROM homework_question_options WHERE question_id = q1 AND label = 'eres';
 
-    INSERT INTO homework_answers (id, submission_id, question_id, answer_text, score)
-    VALUES (gen_random_uuid(), sub_id, q2, 'vive', 1);
+    INSERT INTO homework_answers (id, submission_id, question_id, answer_json, score)
+    VALUES (gen_random_uuid(), sub_id, q2, '{"blanks":["vive"]}'::jsonb, 1);
 
     -- Bookings: one completed, one cancelled, one upcoming
     INSERT INTO bookings (id, user_id, slot_start, slot_end, duration_minutes, status, created_at)

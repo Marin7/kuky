@@ -31,7 +31,7 @@ function cellAt(cells: TableFillCell[], r: number, c: number): TableFillCell {
 /**
  * Authoring UI for TABLE_FILL — editable row/column headers plus a grid of
  * fixed/blank cells. Blank cells carry their own accepted-answer list (same
- * matching rule as FILL_BLANK); fixed cells carry static text.
+ * matching rule as MULTI_BLANK); fixed cells carry static text.
  */
 export function TableFillEditor({ structure, onChange }: Props) {
   const { t } = useTranslation();

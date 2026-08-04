@@ -7,9 +7,9 @@ import java.util.UUID;
 
 /**
  * Student-facing question — the answer key is intentionally absent. Choice
- * questions carry their selectable options (without a correct flag); fill-blank
- * questions carry an empty options list (the student types a free answer).
- * Structured kinds expose a stripped {@code structure} (no accepted answers / pairs).
+ * questions carry their selectable options (without a correct flag).
+ * Structured kinds expose a stripped {@code structure} (no accepted answers / pairs)
+ * and an empty options list.
  */
 public record ExerciseQuestionDto(
         UUID id,
