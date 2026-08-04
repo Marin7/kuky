@@ -46,17 +46,12 @@ public class HomeworkAnswerRepository {
                     .addValue("sid", submissionId)
                     .addValue("qid", a.getQuestionId())
                     .addValue("answerText", a.getAnswerText())
+                    // VARCHAR (incl. null) + CAST — avoids untyped CASE WHEN ? IS NULL (PSQLException)
+                    .addValue("answerJson", a.getAnswerJson(), Types.VARCHAR)
                     .addValue("score", a.getScore());
-            if (a.getAnswerJson() == null) {
-                params.addValue("answerJson", null, Types.NULL);
-            } else {
-                params.addValue("answerJson", a.getAnswerJson(), Types.VARCHAR);
-            }
             jdbc.update("""
                     INSERT INTO homework_answers (id, submission_id, question_id, answer_text, answer_json, score)
-                    VALUES (:id, :sid, :qid, :answerText,
-                            CASE WHEN :answerJson IS NULL THEN NULL ELSE CAST(:answerJson AS jsonb) END,
-                            :score)
+                    VALUES (:id, :sid, :qid, :answerText, CAST(:answerJson AS jsonb), :score)
                     """, params);
             for (UUID optionId : a.getSelectedOptionIds()) {
                 jdbc.update("""
