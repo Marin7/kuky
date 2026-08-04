@@ -692,18 +692,19 @@ export const enDict = {
         kind: {
           SINGLE_CHOICE: "Single choice",
           MULTI_CHOICE: "Multiple choice",
-          FILL_BLANK: "Fill in the blank",
-          MULTI_BLANK: "Multiple blanks",
+          MULTI_BLANK: "Fill in the blank",
           DRAG_DROP: "Drag and drop",
           TABLE_FILL: "Table fill",
           MATCHING: "Matching",
         },
         promptBlanksHint:
-          "Type ___ (three underscores) where you want a blank. You need between 2 and 20.",
+          "Type ___ (three underscores) where you want a blank. You need between 1 and 20.",
         promptOptionalHint: "Short instruction or title (optional).",
         blankLabel: "Blank {{index}}",
         blankCountWarning:
           "Add at least two blanks (___) to the prompt to configure the answers.",
+        multiBlankCountWarning:
+          "Add at least one blank (___) to the prompt to configure the answers.",
         multiBlankHint:
           "Set the accepted answers for each blank in the prompt (the student types).",
         dragDropHint:

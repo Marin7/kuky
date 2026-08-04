@@ -702,18 +702,19 @@ export const roDict = {
         kind: {
           SINGLE_CHOICE: "Alegere unică",
           MULTI_CHOICE: "Alegere multiplă",
-          FILL_BLANK: "Completează spațiul",
-          MULTI_BLANK: "Mai multe spații",
+          MULTI_BLANK: "Completează spațiile",
           DRAG_DROP: "Trage și plasează",
           TABLE_FILL: "Completează tabelul",
           MATCHING: "Potrivire",
         },
         promptBlanksHint:
-          "Scrie ___ (trei liniuțe de subliniere) unde vrei un spațiu liber. Ai nevoie de 2 până la 20.",
+          "Scrie ___ (trei liniuțe de subliniere) unde vrei un spațiu liber. Ai nevoie de 1 până la 20.",
         promptOptionalHint: "Enunț sau titlu scurt (opțional).",
         blankLabel: "Spațiul {{index}}",
         blankCountWarning:
           "Adaugă cel puțin două spații libere (___) în enunț pentru a configura răspunsurile.",
+        multiBlankCountWarning:
+          "Adaugă cel puțin un spațiu liber (___) în enunț pentru a configura răspunsurile.",
         multiBlankHint:
           "Definește răspunsurile acceptate pentru fiecare spațiu liber din enunț (elevul scrie).",
         dragDropHint:

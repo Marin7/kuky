@@ -705,18 +705,19 @@ export const esDict = {
         kind: {
           SINGLE_CHOICE: "Opción única",
           MULTI_CHOICE: "Opción múltiple",
-          FILL_BLANK: "Rellenar el hueco",
-          MULTI_BLANK: "Varios huecos",
+          MULTI_BLANK: "Rellenar huecos",
           DRAG_DROP: "Arrastrar y soltar",
           TABLE_FILL: "Rellenar tabla",
           MATCHING: "Emparejar",
         },
         promptBlanksHint:
-          "Escribe ___ (tres guiones bajos) donde quieras un hueco. Necesitas entre 2 y 20.",
+          "Escribe ___ (tres guiones bajos) donde quieras un hueco. Necesitas entre 1 y 20.",
         promptOptionalHint: "Enunciado o título breve (opcional).",
         blankLabel: "Hueco {{index}}",
         blankCountWarning:
           "Añade al menos dos huecos (___) en el enunciado para poder configurar las respuestas.",
+        multiBlankCountWarning:
+          "Añade al menos un hueco (___) en el enunciado para poder configurar las respuestas.",
         multiBlankHint:
           "Define las respuestas aceptadas para cada hueco del enunciado (el alumno escribe).",
         dragDropHint:
