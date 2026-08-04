@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.kuky.backend.admin.dto.AssigneeDto;
 import com.kuky.backend.admin.dto.CreateHomeworkRequest;
+import com.kuky.backend.admin.dto.ExerciseSubmissionResultAdminDto;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.HomeworkQuestionDto;
 import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
@@ -25,6 +26,7 @@ import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkLevel;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
+import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.model.QuestionOption;
@@ -34,6 +36,7 @@ import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.learning.service.BlankPassageParser;
+import com.kuky.backend.learning.service.ExerciseGradingService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,6 +61,7 @@ public class HomeworkAdminService {
     private final AudioFileRepository audioFileRepository;
     private final UserRepository userRepository;
     private final HomeworkSubmissionRepository submissionRepository;
+    private final ExerciseGradingService exerciseGradingService;
     private final ObjectMapper objectMapper;
 
     public HomeworkAdminService(ContentRepository contentRepository,
@@ -66,6 +70,7 @@ public class HomeworkAdminService {
                                 AudioFileRepository audioFileRepository,
                                 UserRepository userRepository,
                                 HomeworkSubmissionRepository submissionRepository,
+                                ExerciseGradingService exerciseGradingService,
                                 ObjectMapper objectMapper) {
         this.contentRepository = contentRepository;
         this.targetRepository = targetRepository;
@@ -73,6 +78,7 @@ public class HomeworkAdminService {
         this.audioFileRepository = audioFileRepository;
         this.userRepository = userRepository;
         this.submissionRepository = submissionRepository;
+        this.exerciseGradingService = exerciseGradingService;
         this.objectMapper = objectMapper;
     }
 
@@ -90,6 +96,37 @@ public class HomeworkAdminService {
         var row = submissionRepository.findDetailById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
         return toSubmissionAdminDto(row);
+    }
+
+    /**
+     * Graded exercise detail for the teacher: questions + the student's answers
+     * and automatic score breakdown. Only valid for {@code GRADED} exercise submissions.
+     */
+    public ExerciseSubmissionResultAdminDto getExerciseResult(UUID submissionId) {
+        HomeworkSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
+        if (!HomeworkStatus.GRADED.name().equals(submission.getStatus())) {
+            throw new NotSubmittedException("Esta entrega todavía no ha sido calificada automáticamente.");
+        }
+        HomeworkAssignment assignment = requireAssignment(submission.getAssignmentId());
+        if (assignment.getFormat() != HomeworkFormat.EXERCISE) {
+            throw new AssignmentNotFoundException("Esta entrega no es un ejercicio auto-corregible.");
+        }
+        User student = userRepository.findById(submission.getUserId())
+                .orElseThrow(() -> new StudentNotFoundException("Alumno no encontrado."));
+        ExerciseGradingService.GradedExerciseView view =
+                exerciseGradingService.viewGradedSubmission(submission);
+        return new ExerciseSubmissionResultAdminDto(
+                submission.getId(),
+                assignment.getId(),
+                assignment.getTitle(),
+                student.getId(),
+                student.getEmail(),
+                student.getFirstName(),
+                student.getLastName(),
+                student.getUsername(),
+                view.questions(),
+                view.result());
     }
 
     /**
@@ -580,7 +617,7 @@ public class HomeworkAdminService {
     private HomeworkAdminItem toItem(HomeworkAssignment a) {
         List<AssigneeDto> assignees = targetRepository.findAssigneesWithSubmissions(a.getId()).stream()
                 .map(v -> new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
-                        v.status(), v.responseText(), v.submittedAt(), v.scorePercent()))
+                        v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId()))
                 .toList();
         String type = a.getHomeworkType() == null ? null : a.getHomeworkType().name();
         String level = a.getLevel() == null ? null : a.getLevel().name();

@@ -139,7 +139,7 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
         <p className="mb-2 text-xs font-medium text-muted-foreground">
           {t("learning.exercisePage.dropTargets")}
         </p>
-        <p className="text-sm leading-10">
+        <p className="whitespace-pre-wrap text-sm leading-10">
           {segments.map((seg, i) =>
             seg.type === "text" ? (
               <span key={i}>{seg.text}</span>

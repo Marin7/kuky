@@ -9,5 +9,6 @@ public record StudentProfileHomeworkDto(
         String status,
         Instant submittedAt,
         boolean needsReview,
-        UUID submissionId
+        UUID submissionId,
+        Integer scorePercent  // set for GRADED exercises; null otherwise
 ) {}

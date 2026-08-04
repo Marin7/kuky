@@ -1,6 +1,7 @@
 package com.kuky.backend.admin.controller;
 
 import com.kuky.backend.admin.dto.CreateHomeworkRequest;
+import com.kuky.backend.admin.dto.ExerciseSubmissionResultAdminDto;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
 import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
@@ -69,6 +70,11 @@ public class HomeworkAdminController {
     @GetMapping("/submissions/{submissionId}")
     public HomeworkSubmissionAdminDto submissionDetail(@PathVariable UUID submissionId) {
         return service.getSubmissionDetail(submissionId);
+    }
+
+    @GetMapping("/submissions/{submissionId}/exercise-result")
+    public ExerciseSubmissionResultAdminDto exerciseResult(@PathVariable UUID submissionId) {
+        return service.getExerciseResult(submissionId);
     }
 
     @PutMapping("/submissions/{submissionId}/feedback")

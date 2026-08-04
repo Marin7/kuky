@@ -13,6 +13,7 @@ import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.learning.service.ExerciseGradingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -51,7 +52,8 @@ class HomeworkExerciseAdminServiceTest {
         userRepository = mock(UserRepository.class);
         submissionRepository = mock(HomeworkSubmissionRepository.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
-                audioFileRepository, userRepository, submissionRepository, new ObjectMapper());
+                audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
+                new ObjectMapper());
 
         // For the happy path: insert returns an id and the re-fetch returns an assignment.
         when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any()))

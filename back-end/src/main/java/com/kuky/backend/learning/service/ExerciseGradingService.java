@@ -170,7 +170,8 @@ public class ExerciseGradingService {
 
             questionResults.add(new ExerciseResultResponse.QuestionResultDto(
                     q.getId(), graded.score(), graded.score() >= 1.0,
-                    correctOptionIds(q), acceptedAnswers(q), graded.unitResults()));
+                    correctOptionIds(q), acceptedAnswers(q), graded.unitResults(),
+                    graded.selectedOptionIds(), graded.answerText()));
         }
 
         int total = questions.size();
@@ -181,6 +182,17 @@ public class ExerciseGradingService {
         answerRepository.saveAll(saved.getId(), answers);
 
         return new ExerciseResultResponse(scorePercent, fullyCorrect, total, questionResults);
+    }
+
+    /**
+     * Reconstructs the graded result (and student-facing question list) for a
+     * locked submission — used by the teacher review UI.
+     */
+    public record GradedExerciseView(List<ExerciseQuestionDto> questions, ExerciseResultResponse result) {}
+
+    public GradedExerciseView viewGradedSubmission(HomeworkSubmission submission) {
+        List<HomeworkQuestion> questions = questionRepository.findByAssignment(submission.getAssignmentId());
+        return new GradedExerciseView(buildStudentQuestions(questions), buildStoredResult(questions, submission));
     }
 
     // --- grading --------------------------------------------------------------
@@ -465,8 +477,11 @@ public class ExerciseGradingService {
             if (correct) fullyCorrect++;
             List<ExerciseResultResponse.UnitResultDto> unitResults =
                     q.getKind().isStructured() ? recomputeUnitResults(q, a) : List.of();
+            List<UUID> selected = a == null ? List.of() : a.getSelectedOptionIds();
+            String answerText = a == null ? null : a.getAnswerText();
             results.add(new ExerciseResultResponse.QuestionResultDto(
-                    q.getId(), score, correct, correctOptionIds(q), acceptedAnswers(q), unitResults));
+                    q.getId(), score, correct, correctOptionIds(q), acceptedAnswers(q), unitResults,
+                    selected, answerText));
         }
         int scorePercent = submission.getScorePercent() == null ? 0 : submission.getScorePercent();
         return new ExerciseResultResponse(scorePercent, fullyCorrect, questions.size(), results);

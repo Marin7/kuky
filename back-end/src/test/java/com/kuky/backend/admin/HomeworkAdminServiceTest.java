@@ -20,6 +20,7 @@ import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.learning.service.ExerciseGradingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -56,7 +57,8 @@ class HomeworkAdminServiceTest {
         userRepository = mock(UserRepository.class);
         submissionRepository = mock(HomeworkSubmissionRepository.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
-                audioFileRepository, userRepository, submissionRepository, new ObjectMapper());
+                audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
+                new ObjectMapper());
 
         User student = new User();
         student.setId(studentId);
@@ -81,7 +83,7 @@ class HomeworkAdminServiceTest {
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of(
                 new HomeworkTargetRepository.AssigneeView(studentId, "ana@example.com",
-                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null)));
+                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null)));
 
         HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
                 "Tarea", "Hazla", LocalDate.of(2026, 6, 20), null, null, "MANUAL", List.of(), null, null, List.of(studentId)));

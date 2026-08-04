@@ -4,6 +4,7 @@
 
 import { API_ORIGIN } from "@/lib/api";
 import type { FormattedText } from "@/components/learning/richtext/types";
+import type { ExerciseResult, StudentQuestion } from "@/lib/learning";
 const API_BASE = `${API_ORIGIN}/api/v1/admin`;
 
 export interface ApiError {
@@ -238,6 +239,7 @@ export interface Assignee {
   responseText: string | null;
   submittedAt: string | null;
   scorePercent: number | null;
+  submissionId: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -261,6 +263,7 @@ export interface StudentProfileHomework {
   submittedAt: string | null;
   needsReview: boolean;
   submissionId: string | null;
+  scorePercent: number | null;
 }
 
 export interface StudentProfilePresentation {
@@ -534,6 +537,24 @@ export const getHomeworkReviewQueue = () =>
 
 export const getHomeworkSubmission = (submissionId: string) =>
   apiCall<HomeworkSubmissionAdmin>(`/homework/submissions/${submissionId}`);
+
+export interface ExerciseSubmissionResultAdmin {
+  submissionId: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  studentId: string;
+  studentEmail: string;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studentUsername: string | null;
+  questions: StudentQuestion[];
+  result: ExerciseResult;
+}
+
+export const getExerciseSubmissionResult = (submissionId: string) =>
+  apiCall<ExerciseSubmissionResultAdmin>(
+    `/homework/submissions/${submissionId}/exercise-result`,
+  );
 
 export const saveHomeworkFeedback = (
   submissionId: string,

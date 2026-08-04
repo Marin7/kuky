@@ -400,7 +400,9 @@ export const enDict = {
       questionCorrect: "Correct",
       questionIncorrect: "Incorrect",
       questionPartial: "Partial",
+      yourAnswer: "Your answer:",
       correctAnswer: "Correct answer:",
+      noAnswer: "(no answer)",
       unitCorrect: "Correct",
       unitIncorrect: "Incorrect",
       unitExpected: "Expected:",
@@ -748,6 +750,13 @@ export const enDict = {
       notSubmittedError:
         "This submission hasn't been submitted by the student yet.",
       genericError: "Could not save feedback. Please try again.",
+    },
+    exerciseResult: {
+      dialogTitle: "Exercise result",
+      viewAction: "View result",
+      loading: "Loading…",
+      loadError: "Could not load the exercise result.",
+      close: "Close",
     },
     presentations: {
       allLevels: "All levels",

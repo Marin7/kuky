@@ -22,7 +22,8 @@ public class HomeworkTargetRepository {
 
     /** An assignee of an assignment, with their submission status (PENDING if no row). */
     public record AssigneeView(UUID userId, String email, String firstName, String lastName, String username,
-                               String status, String responseText, Instant submittedAt, Integer scorePercent) {}
+                               String status, String responseText, Instant submittedAt, Integer scorePercent,
+                               UUID submissionId) {}
 
     @Transactional
     public void replaceTargets(UUID assignmentId, List<UUID> userIds) {
@@ -46,7 +47,8 @@ public class HomeworkTargetRepository {
                        COALESCE(s.status, 'PENDING') AS status,
                        s.response_text,
                        s.submitted_at,
-                       s.score_percent
+                       s.score_percent,
+                       s.id AS submission_id
                 FROM homework_targets t
                 JOIN users u ON u.id = t.user_id
                 LEFT JOIN homework_submissions s
@@ -66,7 +68,8 @@ public class HomeworkTargetRepository {
                     rs.getString("status"),
                     rs.getString("response_text"),
                     submittedAt == null ? null : submittedAt.toInstant(),
-                    scorePercent);
+                    scorePercent,
+                    rs.getObject("submission_id", UUID.class));
         });
     }
 
@@ -80,13 +83,13 @@ public class HomeworkTargetRepository {
     }
 
     public record StudentAssignmentView(UUID assignmentId, String title, String status, Instant submittedAt,
-                                        String format, UUID submissionId) {}
+                                        String format, UUID submissionId, Integer scorePercent) {}
 
     public List<StudentAssignmentView> findAssignmentsForStudent(UUID userId) {
         String sql = """
                 SELECT ha.id AS assignment_id, ha.title,
                        COALESCE(s.status, 'PENDING') AS status,
-                       s.submitted_at, ha.format, s.id AS submission_id
+                       s.submitted_at, ha.format, s.id AS submission_id, s.score_percent
                 FROM homework_targets t
                 JOIN homework_assignments ha ON ha.id = t.assignment_id
                 LEFT JOIN homework_submissions s
@@ -102,7 +105,8 @@ public class HomeworkTargetRepository {
                     rs.getString("status"),
                     submittedAt == null ? null : submittedAt.toInstant(),
                     rs.getString("format"),
-                    rs.getObject("submission_id", UUID.class));
+                    rs.getObject("submission_id", UUID.class),
+                    rs.getObject("score_percent", Integer.class));
         });
     }
 }

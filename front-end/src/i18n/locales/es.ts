@@ -410,7 +410,9 @@ export const esDict = {
       questionCorrect: "Correcta",
       questionIncorrect: "Incorrecta",
       questionPartial: "Parcial",
+      yourAnswer: "Tu respuesta:",
       correctAnswer: "Respuesta correcta:",
+      noAnswer: "(sin respuesta)",
       unitCorrect: "Correcto",
       unitIncorrect: "Incorrecto",
       unitExpected: "Esperado:",
@@ -760,6 +762,13 @@ export const esDict = {
       alreadyReviewedError: "Esta entrega ya ha sido corregida.",
       notSubmittedError: "El alumno todavía no ha enviado esta entrega.",
       genericError: "No se pudo guardar la corrección. Inténtalo de nuevo.",
+    },
+    exerciseResult: {
+      dialogTitle: "Resultado del ejercicio",
+      viewAction: "Ver resultado",
+      loading: "Cargando…",
+      loadError: "No se pudo cargar el resultado del ejercicio.",
+      close: "Cerrar",
     },
     presentations: {
       allLevels: "Todos los niveles",

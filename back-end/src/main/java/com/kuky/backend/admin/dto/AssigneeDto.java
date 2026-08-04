@@ -12,5 +12,6 @@ public record AssigneeDto(
         String status,
         String responseText,
         Instant submittedAt,
-        Integer scorePercent   // set for GRADED exercise submissions; null otherwise
+        Integer scorePercent,  // set for GRADED exercise submissions; null otherwise
+        UUID submissionId      // null when the student has not submitted yet
 ) {}

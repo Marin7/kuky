@@ -9,6 +9,7 @@ import {
   type HomeworkLevel,
 } from "@/lib/admin";
 import { StudentLink } from "@/components/admin/students/StudentLink";
+import { ExerciseResultDialog } from "@/components/admin/homework/ExerciseResultDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -50,6 +51,7 @@ export function HomeworkAdminList() {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<HomeworkType | "ALL">("ALL");
   const [filterLevel, setFilterLevel] = useState<HomeworkLevel | "ALL">("ALL");
+  const [openResultId, setOpenResultId] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -233,21 +235,32 @@ export function HomeworkAdminList() {
                           }}
                           showEmail
                         />
-                        <span
-                          className={[
-                            "rounded-full px-2 py-0.5 text-xs font-medium",
-                            a.status === "SUBMITTED" ||
-                            a.status === "REVIEWED" ||
-                            a.status === "GRADED"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-muted text-muted-foreground",
-                          ].join(" ")}
-                        >
-                          {t(`admin.homework.status.${a.status}`) ?? a.status}
-                          {a.status === "GRADED" &&
-                            a.scorePercent !== null &&
-                            ` — ${a.scorePercent}%`}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={[
+                              "rounded-full px-2 py-0.5 text-xs font-medium",
+                              a.status === "SUBMITTED" ||
+                              a.status === "REVIEWED" ||
+                              a.status === "GRADED"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-muted text-muted-foreground",
+                            ].join(" ")}
+                          >
+                            {t(`admin.homework.status.${a.status}`) ?? a.status}
+                            {a.status === "GRADED" &&
+                              a.scorePercent !== null &&
+                              ` — ${a.scorePercent}%`}
+                          </span>
+                          {a.status === "GRADED" && a.submissionId && (
+                            <button
+                              type="button"
+                              onClick={() => setOpenResultId(a.submissionId)}
+                              className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
+                            >
+                              {t("admin.exerciseResult.viewAction")}
+                            </button>
+                          )}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -285,6 +298,12 @@ export function HomeworkAdminList() {
             </CardContent>
           </Card>
         ))
+      )}
+      {openResultId && (
+        <ExerciseResultDialog
+          submissionId={openResultId}
+          onClose={() => setOpenResultId(null)}
+        />
       )}
     </div>
   );

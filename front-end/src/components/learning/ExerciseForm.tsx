@@ -153,7 +153,7 @@ export function ExerciseForm({ exercise }: Props) {
     <div className="mt-8 space-y-6">
       {exercise.questions.map((q, i) => (
         <div key={q.id} className="space-y-2">
-          <Label className="text-sm font-medium">
+          <Label className="block whitespace-pre-wrap text-sm font-medium">
             {RENDERS_OWN_PASSAGE.has(q.kind)
               ? `${i + 1}.`
               : `${i + 1}. ${q.prompt}`}

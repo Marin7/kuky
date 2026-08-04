@@ -59,6 +59,11 @@ public class HomeworkSubmissionRepository {
                 SUBMISSION_MAPPER).stream().findFirst();
     }
 
+    public Optional<HomeworkSubmission> findById(UUID id) {
+        String sql = "SELECT * FROM homework_submissions WHERE id = :id";
+        return jdbc.query(sql, Map.of("id", id), SUBMISSION_MAPPER).stream().findFirst();
+    }
+
     /**
      * Insert or update the student's submission for an assignment. Keyed by the
      * UNIQUE (user_id, assignment_id) constraint.

@@ -125,6 +125,8 @@ export interface QuestionResult {
   correctOptionIds: string[];
   acceptedAnswers: string[];
   unitResults?: UnitResult[]; // structured multi-unit kinds; empty/omitted for legacy
+  selectedOptionIds?: string[]; // student's choice picks
+  answerText?: string | null; // student's FILL_BLANK text
 }
 
 export interface ExerciseResult {

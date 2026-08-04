@@ -19,7 +19,9 @@ public record ExerciseResultResponse(
             boolean correct,              // score == 1
             List<UUID> correctOptionIds,  // for choice — revealed post-submit
             List<String> acceptedAnswers, // for FILL_BLANK — revealed post-submit
-            List<UnitResultDto> unitResults // structured multi-unit kinds; empty for legacy
+            List<UnitResultDto> unitResults, // structured multi-unit kinds; empty for legacy
+            List<UUID> selectedOptionIds, // student's choice picks (empty otherwise)
+            String answerText             // student's FILL_BLANK text; null otherwise
     ) {}
 
     public record UnitResultDto(

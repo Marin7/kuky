@@ -18,7 +18,7 @@ export function MultiBlankQuestion({ prompt, value, onChange }: Props) {
   };
 
   return (
-    <p className="text-sm leading-9">
+    <p className="whitespace-pre-wrap text-sm leading-9">
       {segments.map((seg, i) =>
         seg.type === "text" ? (
           <span key={i}>{seg.text}</span>

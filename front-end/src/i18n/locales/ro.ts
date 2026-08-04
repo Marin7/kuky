@@ -408,7 +408,9 @@ export const roDict = {
       questionCorrect: "Corect",
       questionIncorrect: "Incorect",
       questionPartial: "Parțial",
+      yourAnswer: "Răspunsul tău:",
       correctAnswer: "Răspuns corect:",
+      noAnswer: "(fără răspuns)",
       unitCorrect: "Corect",
       unitIncorrect: "Incorect",
       unitExpected: "Așteptat:",
@@ -757,6 +759,13 @@ export const roDict = {
       alreadyReviewedError: "Această lucrare a fost deja corectată.",
       notSubmittedError: "Elevul nu a trimis încă această lucrare.",
       genericError: "Nu s-a putut salva feedback-ul. Încearcă din nou.",
+    },
+    exerciseResult: {
+      dialogTitle: "Rezultatul exercițiului",
+      viewAction: "Vezi rezultatul",
+      loading: "Se încarcă…",
+      loadError: "Nu s-a putut încărca rezultatul exercițiului.",
+      close: "Închide",
     },
     presentations: {
       allLevels: "Toate nivelurile",

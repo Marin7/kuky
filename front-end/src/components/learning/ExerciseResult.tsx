@@ -4,6 +4,8 @@ import type { ExerciseResult, StudentQuestion } from "@/lib/learning";
 interface Props {
   questions: StudentQuestion[];
   result: ExerciseResult;
+  /** When true (teacher view), always show the student's answer, not only on mistakes. */
+  showAllAnswers?: boolean;
 }
 
 function optionLabels(question: StudentQuestion, ids: string[]): string {
@@ -13,9 +15,15 @@ function optionLabels(question: StudentQuestion, ids: string[]): string {
     .join(", ");
 }
 
-export function ExerciseResult({ questions, result }: Props) {
+function displayOrDash(value: string | null | undefined, empty: string): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : empty;
+}
+
+export function ExerciseResult({ questions, result, showAllAnswers = false }: Props) {
   const { t } = useTranslation();
   const byId = new Map(questions.map((q) => [q.id, q]));
+  const noAnswer = t("learning.exerciseResult.noAnswer");
 
   return (
     <div className="space-y-5">
@@ -57,11 +65,20 @@ export function ExerciseResult({ questions, result }: Props) {
                 ? optionLabels(question, qr.correctOptionIds)
                 : "";
           const unitResults = qr.unitResults ?? [];
+          const studentChoiceText =
+            question && (qr.selectedOptionIds?.length ?? 0) > 0
+              ? optionLabels(question, qr.selectedOptionIds ?? [])
+              : "";
+          const studentFillText = qr.answerText;
+          const hasLegacyStudentAnswer =
+            studentChoiceText.length > 0 ||
+            (studentFillText != null && studentFillText !== "");
+          const showLegacyDetail = showAllAnswers || !qr.correct || partial;
 
           return (
             <div key={qr.questionId} className="rounded-lg border p-3 text-sm">
               <div className="flex items-start justify-between gap-3">
-                <p className="font-medium text-foreground">
+                <p className="whitespace-pre-wrap font-medium text-foreground">
                   {i + 1}. {question?.prompt}
                 </p>
                 <span
@@ -71,41 +88,61 @@ export function ExerciseResult({ questions, result }: Props) {
                 </span>
               </div>
               {unitResults.length > 0 ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-2 space-y-1.5">
                   {unitResults.map((u) => (
-                    <span
+                    <div
                       key={u.index}
-                      className={`rounded px-2 py-1 text-xs ${
+                      className={`rounded px-2 py-1.5 text-xs ${
                         u.correct
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {u.index + 1}.{" "}
-                      {u.correct
-                        ? t("learning.exerciseResult.unitCorrect")
-                        : t("learning.exerciseResult.unitIncorrect")}
-                      {!u.correct &&
-                        u.expectedDisplay &&
-                        u.expectedDisplay.length > 0 && (
-                          <>
-                            {" — "}
-                            {t("learning.exerciseResult.unitExpected")}{" "}
-                            {u.expectedDisplay.join(" / ")}
-                          </>
-                        )}
-                    </span>
+                      <span className="font-medium">
+                        {u.index + 1}.{" "}
+                        {u.correct
+                          ? t("learning.exerciseResult.unitCorrect")
+                          : t("learning.exerciseResult.unitIncorrect")}
+                      </span>
+                      {(showAllAnswers || !u.correct) && (
+                        <span className="mt-0.5 block text-[11px] opacity-90">
+                          {t("learning.exerciseResult.yourAnswer")}{" "}
+                          {displayOrDash(u.studentDisplay, noAnswer)}
+                          {!u.correct &&
+                            u.expectedDisplay &&
+                            u.expectedDisplay.length > 0 && (
+                              <>
+                                {" · "}
+                                {t("learning.exerciseResult.unitExpected")}{" "}
+                                {u.expectedDisplay.join(" / ")}
+                              </>
+                            )}
+                        </span>
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (
-                !qr.correct &&
-                correctText && (
-                  <p className="mt-2 text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {t("learning.exerciseResult.correctAnswer")}{" "}
-                    </span>
-                    {correctText}
-                  </p>
+                showLegacyDetail && (
+                  <div className="mt-2 space-y-1 text-muted-foreground">
+                    <p>
+                      <span className="font-medium text-foreground">
+                        {t("learning.exerciseResult.yourAnswer")}{" "}
+                      </span>
+                      {hasLegacyStudentAnswer
+                        ? studentChoiceText ||
+                          displayOrDash(studentFillText, noAnswer)
+                        : noAnswer}
+                    </p>
+                    {(!qr.correct || partial) && correctText && (
+                      <p>
+                        <span className="font-medium text-foreground">
+                          {t("learning.exerciseResult.correctAnswer")}{" "}
+                        </span>
+                        {correctText}
+                      </p>
+                    )}
+                  </div>
                 )
               )}
             </div>

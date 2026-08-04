@@ -14,6 +14,7 @@ import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
 import { Button } from "@/components/ui/button";
 import { StudentHomeworkBreakdown } from "@/components/admin/students/StudentHomeworkBreakdown";
 import { HomeworkReviewDialog } from "@/components/admin/homework/HomeworkReviewDialog";
+import { ExerciseResultDialog } from "@/components/admin/homework/ExerciseResultDialog";
 
 export const Route = createFileRoute("/panel_/alumnos/$studentId")({
   component: StudentProfilePage,
@@ -108,6 +109,7 @@ function StudentProfilePage() {
     null,
   );
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
+  const [openResultId, setOpenResultId] = useState<string | null>(null);
 
   useEffect(() => {
     getMe()
@@ -407,6 +409,12 @@ function StudentProfilePage() {
                           </span>
                         )}
                         <StatusBadge status={hw.status} />
+                        {hw.status === "GRADED" &&
+                          hw.scorePercent !== null && (
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {hw.scorePercent}%
+                            </span>
+                          )}
                         {hw.needsReview && hw.submissionId && (
                           <button
                             type="button"
@@ -414,6 +422,15 @@ function StudentProfilePage() {
                             className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:underline"
                           >
                             {t("admin.homeworkReview.needsReviewBadge")}
+                          </button>
+                        )}
+                        {hw.status === "GRADED" && hw.submissionId && (
+                          <button
+                            type="button"
+                            onClick={() => setOpenResultId(hw.submissionId)}
+                            className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
+                          >
+                            {t("admin.exerciseResult.viewAction")}
                           </button>
                         )}
                       </div>
@@ -511,6 +528,12 @@ function StudentProfilePage() {
             setOpenSubmissionId(null);
             getStudentProfile(studentId).then(setProfile);
           }}
+        />
+      )}
+      {openResultId && (
+        <ExerciseResultDialog
+          submissionId={openResultId}
+          onClose={() => setOpenResultId(null)}
         />
       )}
     </div>
