@@ -409,12 +409,11 @@ function StudentProfilePage() {
                           </span>
                         )}
                         <StatusBadge status={hw.status} />
-                        {hw.status === "GRADED" &&
-                          hw.scorePercent !== null && (
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {hw.scorePercent}%
-                            </span>
-                          )}
+                        {hw.status === "GRADED" && hw.scorePercent !== null && (
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {hw.scorePercent}%
+                          </span>
+                        )}
                         {hw.hasTeacherFeedback && (
                           <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
                             {t("admin.exerciseResult.hasFeedbackBadge")}
@@ -539,9 +538,7 @@ function StudentProfilePage() {
         <ExerciseResultDialog
           submissionId={openResultId}
           onClose={() => setOpenResultId(null)}
-          onFeedbackSaved={() =>
-            getStudentProfile(studentId).then(setProfile)
-          }
+          onFeedbackSaved={() => getStudentProfile(studentId).then(setProfile)}
         />
       )}
     </div>

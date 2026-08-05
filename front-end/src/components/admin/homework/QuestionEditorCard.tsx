@@ -225,50 +225,21 @@ export function QuestionEditorCard({
       )}
 
       {!structured && (
-          <div className="space-y-2">
-            <Label>{t("admin.homework.questions.optionsLabel")}</Label>
-            <p className="text-xs text-muted-foreground">
-              {question.kind === "SINGLE_CHOICE"
-                ? t("admin.homework.questions.singleHint")
-                : t("admin.homework.questions.multiHint")}
-            </p>
-            {question.kind === "SINGLE_CHOICE" ? (
-              <RadioGroup
-                value={
-                  singleCorrectIndex >= 0 ? String(singleCorrectIndex) : ""
-                }
-                onValueChange={(v) => setSingleCorrect(Number(v))}
-              >
-                {question.options.map((o, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <RadioGroupItem value={String(i)} id={`q${index}-o${i}`} />
-                    <Input
-                      value={o.label}
-                      onChange={(e) => setOption(i, { label: e.target.value })}
-                      placeholder={`Opción ${i + 1}`}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 text-xs text-destructive"
-                      disabled={question.options.length <= 2}
-                      onClick={() => removeOption(i)}
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
-              </RadioGroup>
-            ) : (
-              question.options.map((o, i) => (
+        <div className="space-y-2">
+          <Label>{t("admin.homework.questions.optionsLabel")}</Label>
+          <p className="text-xs text-muted-foreground">
+            {question.kind === "SINGLE_CHOICE"
+              ? t("admin.homework.questions.singleHint")
+              : t("admin.homework.questions.multiHint")}
+          </p>
+          {question.kind === "SINGLE_CHOICE" ? (
+            <RadioGroup
+              value={singleCorrectIndex >= 0 ? String(singleCorrectIndex) : ""}
+              onValueChange={(v) => setSingleCorrect(Number(v))}
+            >
+              {question.options.map((o, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <Checkbox
-                    checked={o.correct}
-                    onCheckedChange={(c) =>
-                      setOption(i, { correct: c === true })
-                    }
-                  />
+                  <RadioGroupItem value={String(i)} id={`q${index}-o${i}`} />
                   <Input
                     value={o.label}
                     onChange={(e) => setOption(i, { label: e.target.value })}
@@ -285,19 +256,44 @@ export function QuestionEditorCard({
                     ✕
                   </Button>
                 </div>
-              ))
-            )}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={addOption}
-            >
-              {t("admin.homework.questions.addOption")}
-            </Button>
-          </div>
-        )}
+              ))}
+            </RadioGroup>
+          ) : (
+            question.options.map((o, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Checkbox
+                  checked={o.correct}
+                  onCheckedChange={(c) => setOption(i, { correct: c === true })}
+                />
+                <Input
+                  value={o.label}
+                  onChange={(e) => setOption(i, { label: e.target.value })}
+                  placeholder={`Opción ${i + 1}`}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs text-destructive"
+                  disabled={question.options.length <= 2}
+                  onClick={() => removeOption(i)}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={addOption}
+          >
+            {t("admin.homework.questions.addOption")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

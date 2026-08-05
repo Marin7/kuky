@@ -47,9 +47,7 @@ export function SiteHeader() {
       ? []
       : [
           { to: "/sobre-mi", label: t("nav.about") },
-          ...(authed
-            ? [{ to: "/reservas", label: t("nav.schedule") }]
-            : []),
+          ...(authed ? [{ to: "/reservas", label: t("nav.schedule") }] : []),
         ]),
     ...(authed && !isAdmin
       ? [{ to: "/aprendizaje", label: t("nav.learning") }]
@@ -77,8 +75,7 @@ export function SiteHeader() {
               to={n.to}
               className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
               activeProps={{
-                className:
-                  "rounded-md px-3 py-1.5 text-foreground font-medium",
+                className: "rounded-md px-3 py-1.5 text-foreground font-medium",
               }}
               activeOptions={{ exact: n.to === "/" }}
             >

@@ -713,7 +713,8 @@ export const enDict = {
           "Enter the correct word for each blank, in order. The student will see these words shuffled in a bank and must drag them (not type).",
         wordBankTitle: "Word bank",
         bankWordLabel: "Word {{index}} (blank {{index}})",
-        bankPreview: "How the student will see the bank (in a different order):",
+        bankPreview:
+          "How the student will see the bank (in a different order):",
         bankItemPlaceholder: "Bank word or phrase",
         tableFillHint:
           "Set up the table's rows and columns and mark which cells the student fills in.",

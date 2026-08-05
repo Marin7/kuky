@@ -776,8 +776,7 @@ export const roDict = {
       feedbackSaving: "Se salvează…",
       feedbackValidationError:
         "Comentariul este prea lung (maximum 2000 de caractere).",
-      feedbackSaveError:
-        "Nu s-a putut salva comentariul. Încearcă din nou.",
+      feedbackSaveError: "Nu s-a putut salva comentariul. Încearcă din nou.",
     },
     presentations: {
       allLevels: "Toate nivelurile",

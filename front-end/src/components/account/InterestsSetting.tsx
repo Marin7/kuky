@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  updateInterests,
-  type UserResponse,
-  type ApiError,
-} from "@/lib/auth";
+import { updateInterests, type UserResponse, type ApiError } from "@/lib/auth";
 import {
   INTEREST_CODES,
   MAX_INTEREST_SELECTIONS,

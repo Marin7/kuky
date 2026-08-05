@@ -41,15 +41,34 @@ class BookingControllerIntegrationTest {
                 .apply(springSecurity())
                 .build();
         jdbcTemplate.execute("DELETE FROM bookings");
+        // CI starts with an empty calendar; WeekAvailabilityBootstrap may already have claimed the
+        // horizon weeks with zero windows. Seed the target Monday so validateBookable can succeed.
+        ensureDayAvailable(validFutureSlotDate());
+    }
+
+    private static LocalDate validFutureSlotDate() {
+        ZoneId zone = ZoneId.of("Europe/Bucharest");
+        LocalDate today = LocalDate.now(zone);
+        // Next week's Monday — at least ~25h out on typical weekdays, within the 2-week horizon
+        return today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusDays(7);
     }
 
     private Instant validFutureSlot() {
         ZoneId zone = ZoneId.of("Europe/Bucharest");
-        LocalDate today = LocalDate.now(zone);
-        // Find a slot at least 25h out, on the hour, within 09:00-18:00, within the 2-week horizon
-        LocalDate target = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusDays(7);
-        // Make sure it's in the next week portion of the horizon
-        return target.atTime(10, 0).atZone(zone).toInstant();
+        return validFutureSlotDate().atTime(10, 0).atZone(zone).toInstant();
+    }
+
+    /** Ensure {@code date} has a 09:00–18:00 window (covers 60/90-min slots and the +1h buffer case). */
+    private void ensureDayAvailable(LocalDate date) {
+        LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        jdbcTemplate.update(
+                "INSERT INTO materialized_weeks (week_start) VALUES (?) ON CONFLICT (week_start) DO NOTHING",
+                java.sql.Date.valueOf(weekStart));
+        jdbcTemplate.update("DELETE FROM week_availability WHERE slot_date = ?", java.sql.Date.valueOf(date));
+        jdbcTemplate.update("""
+                INSERT INTO week_availability (id, slot_date, start_time, end_time)
+                VALUES (gen_random_uuid(), ?, TIME '09:00', TIME '18:00')
+                """, java.sql.Date.valueOf(date));
     }
 
     @Test
