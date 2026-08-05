@@ -12,7 +12,6 @@ public record SubmitExerciseRequest(
     public record AnswerDto(
             UUID questionId,
             List<UUID> selectedOptionIds, // choice questions; [] otherwise
-            String answerText,            // fill-blank; null otherwise
             JsonNode answerJson           // structured kinds; null otherwise
     ) {}
 }

@@ -125,7 +125,6 @@ export interface QuestionResult {
   acceptedAnswers: string[];
   unitResults?: UnitResult[]; // structured multi-unit kinds; empty/omitted for choice
   selectedOptionIds?: string[]; // student's choice picks
-  answerText?: string | null;
 }
 
 export interface ExerciseResult {
@@ -151,8 +150,7 @@ export interface ExerciseResponse {
 export interface AnswerPayload {
   questionId: string;
   selectedOptionIds: string[];
-  answerText: string | null;
-  /** Structured kinds (MULTI_BLANK/DRAG_DROP/TABLE_FILL/MATCHING); null/omitted for legacy kinds. */
+  /** Structured kinds (MULTI_BLANK/DRAG_DROP/TABLE_FILL/MATCHING); null/omitted for choice. */
   answerJson?: unknown | null;
 }
 

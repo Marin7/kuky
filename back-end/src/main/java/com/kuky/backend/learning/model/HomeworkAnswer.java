@@ -11,8 +11,7 @@ public class HomeworkAnswer {
     private UUID id;
     private UUID submissionId;
     private UUID questionId;          // nullable after answer-key edits (ON DELETE SET NULL)
-    private String answerText;        // fill-blank response (raw); null for choice
-    private String answerJson;        // structured kinds; null for legacy
+    private String answerJson;        // structured kinds; null for choice
     private BigDecimal score;         // per-question score in [0,1]
     private List<UUID> selectedOptionIds = new ArrayList<>();
 
@@ -22,8 +21,6 @@ public class HomeworkAnswer {
     public void setSubmissionId(UUID submissionId) { this.submissionId = submissionId; }
     public UUID getQuestionId() { return questionId; }
     public void setQuestionId(UUID questionId) { this.questionId = questionId; }
-    public String getAnswerText() { return answerText; }
-    public void setAnswerText(String answerText) { this.answerText = answerText; }
     public String getAnswerJson() { return answerJson; }
     public void setAnswerJson(String answerJson) { this.answerJson = answerJson; }
     public BigDecimal getScore() { return score; }

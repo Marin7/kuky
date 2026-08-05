@@ -100,8 +100,8 @@ BEGIN
     VALUES (gen_random_uuid(), student_id, hw_exercise, 'GRADED', NOW() - INTERVAL '1 day', 50)
     RETURNING id INTO sub_id;
 
-    INSERT INTO homework_answers (id, submission_id, question_id, answer_text, score)
-    VALUES (gen_random_uuid(), sub_id, q1, 'eres', 0) RETURNING id INTO ans_id;
+    INSERT INTO homework_answers (id, submission_id, question_id, score)
+    VALUES (gen_random_uuid(), sub_id, q1, 0) RETURNING id INTO ans_id;
     INSERT INTO homework_answer_options (answer_id, option_id)
     SELECT ans_id, id FROM homework_question_options WHERE question_id = q1 AND label = 'eres';
 

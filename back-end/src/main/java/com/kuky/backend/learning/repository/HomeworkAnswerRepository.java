@@ -28,7 +28,6 @@ public class HomeworkAnswerRepository {
         a.setId(rs.getObject("id", UUID.class));
         a.setSubmissionId(rs.getObject("submission_id", UUID.class));
         a.setQuestionId(rs.getObject("question_id", UUID.class));
-        a.setAnswerText(rs.getString("answer_text"));
         a.setAnswerJson(rs.getString("answer_json"));
         a.setScore(rs.getBigDecimal("score"));
         return a;
@@ -45,13 +44,12 @@ public class HomeworkAnswerRepository {
                     .addValue("id", answerId)
                     .addValue("sid", submissionId)
                     .addValue("qid", a.getQuestionId())
-                    .addValue("answerText", a.getAnswerText())
                     // VARCHAR (incl. null) + CAST — avoids untyped CASE WHEN ? IS NULL (PSQLException)
                     .addValue("answerJson", a.getAnswerJson(), Types.VARCHAR)
                     .addValue("score", a.getScore());
             jdbc.update("""
-                    INSERT INTO homework_answers (id, submission_id, question_id, answer_text, answer_json, score)
-                    VALUES (:id, :sid, :qid, :answerText, CAST(:answerJson AS jsonb), :score)
+                    INSERT INTO homework_answers (id, submission_id, question_id, answer_json, score)
+                    VALUES (:id, :sid, :qid, CAST(:answerJson AS jsonb), :score)
                     """, params);
             for (UUID optionId : a.getSelectedOptionIds()) {
                 jdbc.update("""

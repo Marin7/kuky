@@ -20,8 +20,7 @@ public record ExerciseResultResponse(
             List<UUID> correctOptionIds,  // for choice — revealed post-submit
             List<String> acceptedAnswers, // unused (kept for API shape); structured kinds use unitResults
             List<UnitResultDto> unitResults, // structured multi-unit kinds; empty for choice
-            List<UUID> selectedOptionIds, // student's choice picks (empty otherwise)
-            String answerText             // unused for current kinds; null
+            List<UUID> selectedOptionIds  // student's choice picks (empty otherwise)
     ) {}
 
     public record UnitResultDto(

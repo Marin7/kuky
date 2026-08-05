@@ -161,7 +161,6 @@ public class ExerciseGradingService {
 
             HomeworkAnswer answer = new HomeworkAnswer();
             answer.setQuestionId(q.getId());
-            answer.setAnswerText(graded.answerText());
             answer.setAnswerJson(graded.answerJson());
             answer.setScore(BigDecimal.valueOf(graded.score()).setScale(3, RoundingMode.HALF_UP));
             answer.setSelectedOptionIds(graded.selectedOptionIds());
@@ -170,7 +169,7 @@ public class ExerciseGradingService {
             questionResults.add(new ExerciseResultResponse.QuestionResultDto(
                     q.getId(), graded.score(), graded.score() >= 1.0,
                     correctOptionIds(q), List.of(), graded.unitResults(),
-                    graded.selectedOptionIds(), graded.answerText()));
+                    graded.selectedOptionIds()));
         }
 
         int total = questions.size();
@@ -198,7 +197,6 @@ public class ExerciseGradingService {
 
     private record GradedAnswer(
             double score,
-            String answerText,
             List<UUID> selectedOptionIds,
             String answerJson,
             List<ExerciseResultResponse.UnitResultDto> unitResults) {}
@@ -220,13 +218,13 @@ public class ExerciseGradingService {
                 .filter(QuestionOption::isCorrect).map(QuestionOption::getId)
                 .collect(Collectors.toSet());
         double score = selected.equals(correct) ? 1.0 : 0.0;
-        return new GradedAnswer(score, null, new ArrayList<>(selected), null, List.of());
+        return new GradedAnswer(score, new ArrayList<>(selected), null, List.of());
     }
 
     private GradedAnswer gradeMultiChoice(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {
         Set<UUID> selected = selectedFor(q, given);
         int n = q.getOptions().size();
-        if (n == 0) return new GradedAnswer(0.0, null, new ArrayList<>(selected), null, List.of());
+        if (n == 0) return new GradedAnswer(0.0, new ArrayList<>(selected), null, List.of());
         int rightDecisions = 0;
         for (QuestionOption o : q.getOptions()) {
             boolean isSelected = selected.contains(o.getId());
@@ -234,7 +232,7 @@ public class ExerciseGradingService {
             else if (!o.isCorrect() && !isSelected) rightDecisions++;
         }
         double score = (double) rightDecisions / n;
-        return new GradedAnswer(score, null, new ArrayList<>(selected), null, List.of());
+        return new GradedAnswer(score, new ArrayList<>(selected), null, List.of());
     }
 
     /** {@code structure.blanks[].acceptedAnswers} vs. student {@code answerJson.blanks[]}. */
@@ -253,7 +251,7 @@ public class ExerciseGradingService {
             units.add(unit(i, correct, studentValue, correct ? List.of() : accepted));
         }
         double score = n == 0 ? 0.0 : sum / n;
-        return new GradedAnswer(score, null, List.of(), storedAnswerJson(given), units);
+        return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
     }
 
     /** {@code structure.bank[i]} is the correct placement for blank {@code i}. */
@@ -275,7 +273,7 @@ public class ExerciseGradingService {
             units.add(unit(i, correct, studentDisplay, correct ? List.of() : List.of(expectedLabel)));
         }
         double score = n == 0 ? 0.0 : sum / n;
-        return new GradedAnswer(score, null, List.of(), storedAnswerJson(given), units);
+        return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
     }
 
     /** Blank cells graded in {@code (r,c)} order; {@code answerJson.cells} keyed by {@code "r,c"}. */
@@ -296,7 +294,7 @@ public class ExerciseGradingService {
             units.add(unit(i, correct, studentValue, correct ? List.of() : accepted));
         }
         double score = blankCells.isEmpty() ? 0.0 : sum / blankCells.size();
-        return new GradedAnswer(score, null, List.of(), storedAnswerJson(given), units);
+        return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
     }
 
     /** Each authored {@code structure.pairs[]} entry is a unit; student pairs given in {@code answerJson.pairs}. */
@@ -330,7 +328,7 @@ public class ExerciseGradingService {
             units.add(unit(i, correct, studentDisplay, correct ? List.of() : List.of(expectedLabel)));
         }
         double score = n == 0 ? 0.0 : sum / n;
-        return new GradedAnswer(score, null, List.of(), storedAnswerJson(given), units);
+        return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
     }
 
     /** Trim + case-insensitive but accent-exact (no diacritic stripping). */
@@ -460,10 +458,9 @@ public class ExerciseGradingService {
             List<ExerciseResultResponse.UnitResultDto> unitResults =
                     q.getKind().isStructured() ? recomputeUnitResults(q, a) : List.of();
             List<UUID> selected = a == null ? List.of() : a.getSelectedOptionIds();
-            String answerText = a == null ? null : a.getAnswerText();
             results.add(new ExerciseResultResponse.QuestionResultDto(
                     q.getId(), score, correct, correctOptionIds(q), List.of(), unitResults,
-                    selected, answerText));
+                    selected));
         }
         int scorePercent = submission.getScorePercent() == null ? 0 : submission.getScorePercent();
         return new ExerciseResultResponse(scorePercent, fullyCorrect, questions.size(), results);
@@ -478,7 +475,7 @@ public class ExerciseGradingService {
      */
     private List<ExerciseResultResponse.UnitResultDto> recomputeUnitResults(HomeworkQuestion q, HomeworkAnswer a) {
         JsonNode answerJson = a == null ? null : parseAnswerJson(a.getAnswerJson());
-        SubmitExerciseRequest.AnswerDto given = new SubmitExerciseRequest.AnswerDto(q.getId(), List.of(), null, answerJson);
+        SubmitExerciseRequest.AnswerDto given = new SubmitExerciseRequest.AnswerDto(q.getId(), List.of(), answerJson);
         return gradeQuestion(q, given).unitResults();
     }
 

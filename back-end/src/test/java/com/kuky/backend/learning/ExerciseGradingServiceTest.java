@@ -111,7 +111,7 @@ class ExerciseGradingServiceTest {
         QuestionOption a = option("los lápizes", false);
         QuestionOption b = option("los lápices", true);
         HomeworkQuestion q = question(QuestionKind.SINGLE_CHOICE, List.of(a, b));
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(b.getId()), null, null));
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(b.getId()), null));
         assertThat(scoreOf(r)).isEqualTo(1.0);
         assertThat(r.questions().get(0).correct()).isTrue();
     }
@@ -121,7 +121,7 @@ class ExerciseGradingServiceTest {
         QuestionOption a = option("los lápizes", false);
         QuestionOption b = option("los lápices", true);
         HomeworkQuestion q = question(QuestionKind.SINGLE_CHOICE, List.of(a, b));
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(a.getId()), null, null));
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(a.getId()), null));
         assertThat(scoreOf(r)).isEqualTo(0.0);
     }
 
@@ -134,7 +134,7 @@ class ExerciseGradingServiceTest {
         QuestionOption o2 = option("c", false);
         QuestionOption o3 = option("d", false);
         HomeworkQuestion q = question(QuestionKind.MULTI_CHOICE, List.of(o0, o1, o2, o3));
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(o0.getId(), o1.getId()), null, null));
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(o0.getId(), o1.getId()), null));
         assertThat(scoreOf(r)).isEqualTo(1.0);
     }
 
@@ -146,7 +146,7 @@ class ExerciseGradingServiceTest {
         QuestionOption o3 = option("d", false);
         HomeworkQuestion q = question(QuestionKind.MULTI_CHOICE, List.of(o0, o1, o2, o3));
         // one correct selected (o0), one incorrect selected (o2): rightDecisions = o0 + o3 = 2/4
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(o0.getId(), o2.getId()), null, null));
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(o0.getId(), o2.getId()), null));
         assertThat(scoreOf(r)).isEqualTo(0.5);
         assertThat(r.questions().get(0).correct()).isFalse();
     }
@@ -158,7 +158,7 @@ class ExerciseGradingServiceTest {
         ObjectMapper mapper = new ObjectMapper();
         HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK, "Ayer yo ___ al cine.",
                 "{\"blanks\":[{\"acceptedAnswers\":[\"fui\"]}]}");
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("{\"blanks\":[\"Fui\"]}")));
         assertThat(scoreOf(r)).isEqualTo(1.0);
     }
@@ -168,7 +168,7 @@ class ExerciseGradingServiceTest {
         ObjectMapper mapper = new ObjectMapper();
         HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK, "Ayer yo ___ al cine.",
                 "{\"blanks\":[{\"acceptedAnswers\":[\"fui\"]}]}");
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("{\"blanks\":[\"  fui  \"]}")));
         assertThat(scoreOf(r)).isEqualTo(1.0);
     }
@@ -178,7 +178,7 @@ class ExerciseGradingServiceTest {
         ObjectMapper mapper = new ObjectMapper();
         HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK, "Yo ___ pan.",
                 "{\"blanks\":[{\"acceptedAnswers\":[\"compré\"]}]}");
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("{\"blanks\":[\"compre\"]}")));
         assertThat(scoreOf(r)).isEqualTo(0.0);
     }
@@ -188,7 +188,7 @@ class ExerciseGradingServiceTest {
         ObjectMapper mapper = new ObjectMapper();
         HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK, "Ayer yo ___ al cine.",
                 "{\"blanks\":[{\"acceptedAnswers\":[\"fui\"]}]}");
-        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("{\"blanks\":[\"\"]}")));
         assertThat(scoreOf(r)).isEqualTo(0.0);
     }
@@ -207,8 +207,8 @@ class ExerciseGradingServiceTest {
 
         // q1 correct, q2 wrong → 1 of 2 fully correct, 50%
         ExerciseResultResponse r = service.submit(EMAIL, ASSIGNMENT_ID, new SubmitExerciseRequest(List.of(
-                new AnswerDto(q1.getId(), List.of(b.getId()), null, null),
-                new AnswerDto(q2.getId(), List.of(), null, mapper.readTree("{\"blanks\":[\"no\"]}")))));
+                new AnswerDto(q1.getId(), List.of(b.getId()), null),
+                new AnswerDto(q2.getId(), List.of(), mapper.readTree("{\"blanks\":[\"no\"]}")))));
 
         assertThat(r.totalQuestions()).isEqualTo(2);
         assertThat(r.fullyCorrectCount()).isEqualTo(1);
@@ -225,7 +225,7 @@ class ExerciseGradingServiceTest {
                 """
                 {"blanks":[{"acceptedAnswers":["voy"]},{"acceptedAnswers":["fruta","Fruta"]}]}
                 """);
-        ExerciseResultResponse half = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse half = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("""
                 {"blanks":["voy","manzana"]}
                 """)));
@@ -245,13 +245,13 @@ class ExerciseGradingServiceTest {
                 """
                 {"bank":[{"id":"%s","label":"perro"},{"id":"%s","label":"casa"}]}
                 """.formatted(id1, id2));
-        ExerciseResultResponse ok = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse ok = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("""
                 {"placements":["%s","%s"]}
                 """.formatted(id1, id2))));
         assertThat(ok.scorePercent()).isEqualTo(100);
 
-        ExerciseResultResponse swapped = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse swapped = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("""
                 {"placements":["%s","%s"]}
                 """.formatted(id2, id1))));
@@ -269,7 +269,7 @@ class ExerciseGradingServiceTest {
                    {"r":1,"c":0,"type":"blank","acceptedAnswers":["hablas"]}
                  ]}
                 """);
-        ExerciseResultResponse ok = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse ok = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("""
                 {"cells":{"0,0":"Hablo","1,0":"hablas"}}
                 """)));
@@ -286,7 +286,7 @@ class ExerciseGradingServiceTest {
                  "right":[{"id":"R1","label":"perro"},{"id":"R2","label":"gato"},{"id":"R3","label":"casa"}],
                  "pairs":[{"leftId":"L1","rightId":"R1"},{"leftId":"L2","rightId":"R2"}]}
                 """);
-        ExerciseResultResponse half = grade(q, new AnswerDto(q.getId(), List.of(), null,
+        ExerciseResultResponse half = grade(q, new AnswerDto(q.getId(), List.of(),
                 mapper.readTree("""
                 {"pairs":[{"leftId":"L1","rightId":"R1"},{"leftId":"L2","rightId":"R3"}]}
                 """)));

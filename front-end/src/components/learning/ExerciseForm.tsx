@@ -114,7 +114,6 @@ export function ExerciseForm({ exercise }: Props) {
         return {
           questionId: q.id,
           selectedOptionIds: a?.selectedOptionIds ?? [],
-          answerText: null,
           answerJson,
         };
       });

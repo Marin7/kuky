@@ -70,11 +70,8 @@ export function ExerciseResult({ questions, result, showAllAnswers = false }: Pr
             question && (qr.selectedOptionIds?.length ?? 0) > 0
               ? optionLabels(question, qr.selectedOptionIds ?? [])
               : "";
-          const studentFillText = qr.answerText;
-          const hasLegacyStudentAnswer =
-            studentChoiceText.length > 0 ||
-            (studentFillText != null && studentFillText !== "");
-          const showLegacyDetail = showAllAnswers || !qr.correct || partial;
+          const hasStudentChoice = studentChoiceText.length > 0;
+          const showChoiceDetail = showAllAnswers || !qr.correct || partial;
 
           return (
             <div key={qr.questionId} className="rounded-lg border p-3 text-sm">
@@ -131,16 +128,13 @@ export function ExerciseResult({ questions, result, showAllAnswers = false }: Pr
                   ))}
                 </div>
               ) : (
-                showLegacyDetail && (
+                showChoiceDetail && (
                   <div className="mt-2 space-y-1 text-muted-foreground">
                     <p>
                       <span className="font-medium text-foreground">
                         {t("learning.exerciseResult.yourAnswer")}{" "}
                       </span>
-                      {hasLegacyStudentAnswer
-                        ? studentChoiceText ||
-                          displayOrDash(studentFillText, noAnswer)
-                        : noAnswer}
+                      {hasStudentChoice ? studentChoiceText : noAnswer}
                     </p>
                     {(!qr.correct || partial) && correctText && (
                       <p>
