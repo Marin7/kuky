@@ -34,30 +34,30 @@ export function HomeworkWritePage({ homeworkId }: Props) {
   }, [homeworkId]);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
       <Link
         to="/aprendizaje"
-        className="mb-8 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         {t("learning.writePage.back")}
       </Link>
 
       {loading && (
-        <p className="mt-6 animate-pulse text-sm text-muted-foreground">
+        <p className="mt-4 animate-pulse text-sm text-muted-foreground">
           {t("learning.writePage.loading")}
         </p>
       )}
 
       {loadError && !item && (
-        <p className="mt-6 text-sm text-destructive">{loadError}</p>
+        <p className="mt-4 text-sm text-destructive">{loadError}</p>
       )}
 
       {item && (
         <>
-          <h1 className="font-display text-3xl font-semibold text-primary">
+          <h1 className="font-display text-2xl font-semibold text-primary sm:text-3xl">
             {item.title}
           </h1>
-          <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
             {item.instructions}
           </p>
 
@@ -76,8 +76,8 @@ export function HomeworkWritePage({ homeworkId }: Props) {
           />
 
           {item.feedback && item.feedback.length > 0 && (
-            <div className="mt-8 space-y-2">
-              <p className="text-sm font-medium text-foreground">
+            <div className="mt-6 space-y-2">
+              <p className="text-base font-medium text-foreground">
                 {t("learning.writePage.teacherFeedback")}
               </p>
               <div className="rounded-md border bg-muted/20 p-3">

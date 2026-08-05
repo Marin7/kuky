@@ -22,30 +22,30 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
   }, [homeworkId]);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
       <Link
         to="/aprendizaje"
-        className="mb-8 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         {t("learning.exercisePage.back")}
       </Link>
 
       {loading && (
-        <p className="mt-6 animate-pulse text-sm text-muted-foreground">
+        <p className="mt-4 animate-pulse text-sm text-muted-foreground">
           {t("learning.exercisePage.loading")}
         </p>
       )}
 
       {error && !exercise && (
-        <p className="mt-6 text-sm text-destructive">{error}</p>
+        <p className="mt-4 text-sm text-destructive">{error}</p>
       )}
 
       {exercise && (
         <>
-          <h1 className="font-display text-3xl font-semibold text-primary">
+          <h1 className="font-display text-2xl font-semibold text-primary sm:text-3xl">
             {exercise.title}
           </h1>
-          <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
             {exercise.instructions}
           </p>
 

@@ -61,12 +61,12 @@ export function MatchingQuestion({ left, right, pairs, onChange }: Props) {
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         {t("learning.exercisePage.matchingInstructions")}
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">
             {t("learning.exercisePage.leftColumn")}
           </p>
           {shuffledLeft.map((item) => {
@@ -77,7 +77,7 @@ export function MatchingQuestion({ left, right, pairs, onChange }: Props) {
                 type="button"
                 onClick={() => clickLeft(item.id)}
                 className={cn(
-                  "block w-full rounded border px-3 py-1.5 text-left text-sm transition",
+                  "block w-full rounded border px-3 py-2 text-left text-base transition",
                   idx >= 0
                     ? colorFor(idx)
                     : selectedLeft === item.id
@@ -90,8 +90,8 @@ export function MatchingQuestion({ left, right, pairs, onChange }: Props) {
             );
           })}
         </div>
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">
             {t("learning.exercisePage.rightColumn")}
           </p>
           {shuffledRight.map((item) => {
@@ -102,7 +102,7 @@ export function MatchingQuestion({ left, right, pairs, onChange }: Props) {
                 type="button"
                 onClick={() => clickRight(item.id)}
                 className={cn(
-                  "block w-full rounded border px-3 py-1.5 text-left text-sm transition",
+                  "block w-full rounded border px-3 py-2 text-left text-base transition",
                   idx >= 0 ? colorFor(idx) : "hover:bg-muted",
                 )}
               >

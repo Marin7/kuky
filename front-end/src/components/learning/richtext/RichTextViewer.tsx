@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import type { FormattedText, HighlightColor, TextColor } from "./types";
 
 const TEXT_COLOR_CLASS: Record<TextColor, string> = {
@@ -28,7 +29,10 @@ interface Props {
 export function RichTextViewer({ segments, className }: Props) {
   return (
     <div
-      className={`whitespace-pre-wrap break-words text-sm ${className ?? ""}`}
+      className={cn(
+        "whitespace-pre-wrap break-words text-base leading-relaxed",
+        className,
+      )}
     >
       {segments.map((segment, index) => (
         <span

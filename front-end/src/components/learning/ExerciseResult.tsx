@@ -40,7 +40,7 @@ export function ExerciseResult({
         <p className="text-2xl font-semibold text-primary">
           {result.scorePercent}%
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {result.fullyCorrectCount} de {result.totalQuestions}{" "}
           {result.totalQuestions === 1
             ? t("learning.exerciseResult.correctSingular")
@@ -53,7 +53,7 @@ export function ExerciseResult({
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t("learning.exerciseResult.teacherFeedback")}
           </p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+          <p className="mt-1 whitespace-pre-wrap text-base leading-relaxed text-foreground">
             {feedbackText}
           </p>
         </div>
@@ -93,9 +93,9 @@ export function ExerciseResult({
           const showChoiceDetail = showAllAnswers || !qr.correct || partial;
 
           return (
-            <div key={qr.questionId} className="rounded-lg border p-3 text-sm">
+            <div key={qr.questionId} className="rounded-lg border p-3 text-base">
               <div className="flex items-start justify-between gap-3">
-                <p className="whitespace-pre-wrap font-medium text-foreground">
+                <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
                   {i + 1}. {question?.prompt}
                 </p>
                 <span

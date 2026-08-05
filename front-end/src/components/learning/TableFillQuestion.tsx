@@ -20,7 +20,7 @@ export function TableFillQuestion({ structure, value, onChange }: Props) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="border-collapse text-sm">
+      <table className="border-collapse text-base">
         <thead>
           <tr>
             <th className="p-2" />
@@ -46,7 +46,7 @@ export function TableFillQuestion({ structure, value, onChange }: Props) {
                       <Input
                         value={value[`${r},${c}`] ?? ""}
                         onChange={(e) => setCell(r, c, e.target.value)}
-                        className="h-8 w-28"
+                        className="h-9 w-32 text-base md:text-base"
                       />
                     )}
                   </td>

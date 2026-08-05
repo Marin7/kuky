@@ -101,8 +101,8 @@ export function ManualAnswerForm({
   };
 
   return (
-    <div className="mt-8 space-y-3">
-      <label className="text-sm font-medium text-foreground">
+    <div className="mt-6 space-y-3">
+      <label className="text-base font-medium text-foreground">
         {labels.yourAnswer}
       </label>
 
@@ -120,7 +120,7 @@ export function ManualAnswerForm({
       )}
 
       {!readOnly && (
-        <p className="text-xs text-muted-foreground">{labels.autosaveHint}</p>
+        <p className="text-sm text-muted-foreground">{labels.autosaveHint}</p>
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}

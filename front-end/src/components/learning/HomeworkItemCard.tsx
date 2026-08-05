@@ -130,7 +130,10 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
             <span className="font-medium text-foreground">
               {t("learning.homework.yourResponse")}{" "}
             </span>
-            <RichTextViewer segments={item.response} className="inline" />
+            <RichTextViewer
+              segments={item.response}
+              className="inline text-sm"
+            />
           </div>
         )}
 

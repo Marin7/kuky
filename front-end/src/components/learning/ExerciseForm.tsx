@@ -130,8 +130,8 @@ export function ExerciseForm({ exercise }: Props) {
 
   if (result) {
     return (
-      <div className="mt-8 space-y-4">
-        <p className="text-sm font-medium text-foreground">
+      <div className="mt-6 space-y-4">
+        <p className="text-base font-medium text-foreground">
           {t("learning.exercisePage.result")}
         </p>
         <ExerciseResult
@@ -144,10 +144,10 @@ export function ExerciseForm({ exercise }: Props) {
   }
 
   return (
-    <div className="mt-8 space-y-6">
+    <div className="mt-6 space-y-5">
       {exercise.questions.map((q, i) => (
-        <div key={q.id} className="space-y-2">
-          <Label className="block whitespace-pre-wrap text-sm font-medium">
+        <div key={q.id} className="space-y-2.5">
+          <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
             {RENDERS_OWN_PASSAGE.has(q.kind)
               ? `${i + 1}.`
               : `${i + 1}. ${q.prompt}`}
@@ -159,7 +159,10 @@ export function ExerciseForm({ exercise }: Props) {
               onValueChange={(v) => setSingle(q.id, v)}
             >
               {q.options.map((o) => (
-                <label key={o.id} className="flex items-center gap-2 text-sm">
+                <label
+                  key={o.id}
+                  className="flex items-center gap-2.5 text-base leading-snug"
+                >
                   <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
                   {o.label}
                 </label>
@@ -168,9 +171,12 @@ export function ExerciseForm({ exercise }: Props) {
           )}
 
           {q.kind === "MULTI_CHOICE" && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {q.options.map((o) => (
-                <label key={o.id} className="flex items-center gap-2 text-sm">
+                <label
+                  key={o.id}
+                  className="flex items-center gap-2.5 text-base leading-snug"
+                >
                   <Checkbox
                     checked={answers[q.id]?.selectedOptionIds.includes(o.id)}
                     onCheckedChange={(c) => toggleMulti(q.id, o.id, c === true)}

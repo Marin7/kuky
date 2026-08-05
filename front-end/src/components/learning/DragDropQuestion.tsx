@@ -97,12 +97,12 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
           {t("learning.exercisePage.wordBank")}
         </p>
-        <p className="mb-3 text-xs text-muted-foreground">
+        <p className="mb-3 text-sm text-muted-foreground">
           {t("learning.exercisePage.dragDropInstructions")}
         </p>
         <div className="flex min-h-10 flex-wrap gap-2">
           {shuffledBank.length === 0 ? (
-            <p className="text-sm text-destructive">
+            <p className="text-base text-destructive">
               {t("learning.exercisePage.wordBankMissing")}
             </p>
           ) : (
@@ -119,7 +119,7 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
                   disabled={placed}
                   aria-pressed={selected === item.id}
                   className={cn(
-                    "rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm transition",
+                    "rounded-md border px-3 py-2 text-base font-medium shadow-sm transition",
                     placed
                       ? "cursor-not-allowed border-dashed bg-muted/40 text-muted-foreground line-through opacity-40"
                       : selected === item.id
@@ -137,10 +137,10 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
 
       {/* Passage with drop targets — not text inputs */}
       <div className="rounded-lg border bg-card p-3">
-        <p className="mb-2 text-xs font-medium text-muted-foreground">
+        <p className="mb-2 text-sm font-medium text-muted-foreground">
           {t("learning.exercisePage.dropTargets")}
         </p>
-        <div className="text-sm leading-10">
+        <div className="text-base leading-10">
           {segments.map((seg, i) =>
             seg.type === "text" ? (
               <PassageText key={i} text={seg.text} />
@@ -161,7 +161,7 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
                 }
                 onDrop={(e) => onDrop(e, seg.index)}
                 className={cn(
-                  "mx-1 inline-flex h-9 min-w-28 items-center justify-center rounded-md border-2 border-dashed px-2 align-baseline text-sm transition",
+                  "mx-1 inline-flex h-10 min-w-32 items-center justify-center rounded-md border-2 border-dashed px-2 align-baseline text-base transition",
                   value[seg.index]
                     ? "cursor-pointer border-solid border-primary/50 bg-primary/10 font-medium text-foreground"
                     : "bg-muted/30 text-muted-foreground",

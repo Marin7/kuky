@@ -31,7 +31,7 @@ export function TableFillResult({ structure, unitResults }: Props) {
 
   return (
     <div className="mt-2 overflow-x-auto">
-      <table className="border-collapse text-sm">
+      <table className="border-collapse text-base">
         <thead>
           <tr>
             <th className="p-2" />

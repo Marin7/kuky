@@ -19,7 +19,7 @@ export function MultiBlankQuestion({ prompt, value, onChange }: Props) {
   };
 
   return (
-    <div className="text-sm leading-9">
+    <div className="text-base leading-9">
       {segments.map((seg, i) =>
         seg.type === "text" ? (
           <PassageText key={i} text={seg.text} />
@@ -28,7 +28,7 @@ export function MultiBlankQuestion({ prompt, value, onChange }: Props) {
             key={i}
             value={value[seg.index] ?? ""}
             onChange={(e) => setBlank(seg.index, e.target.value)}
-            className="mx-1 inline-block h-8 w-28 align-baseline"
+            className="mx-1 inline-block h-9 w-32 align-baseline text-base md:text-base"
           />
         ),
       )}
