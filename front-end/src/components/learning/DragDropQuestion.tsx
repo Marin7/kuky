@@ -6,6 +6,7 @@ import { shuffle, cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
 
 interface Props {
+  number: number;
   prompt: string;
   bank: StudentBankItem[];
   value: (string | null)[];
@@ -16,7 +17,13 @@ interface Props {
  * Word-bank → blanks. Bank chips are dragged (or click-selected then click a
  * blank). Visually distinct from MULTI_BLANK typed inputs.
  */
-export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
+export function DragDropQuestion({
+  number,
+  prompt,
+  bank,
+  value,
+  onChange,
+}: Props) {
   const { t } = useTranslation();
   const blankCount = Math.max(countBlanks(prompt), bank.length);
   const bankKey = bank.map((b) => b.id).join(",");
@@ -34,10 +41,7 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
   // Keep placements array length in sync with blank count.
   useEffect(() => {
     if (value.length === blankCount) return;
-    const next = Array.from(
-      { length: blankCount },
-      (_, i) => value[i] ?? null,
-    );
+    const next = Array.from({ length: blankCount }, (_, i) => value[i] ?? null);
     onChange(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blankCount]);
@@ -141,6 +145,7 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
           {t("learning.exercisePage.dropTargets")}
         </p>
         <div className="text-base leading-10">
+          <span className="font-medium">{number}. </span>
           {segments.map((seg, i) =>
             seg.type === "text" ? (
               <PassageText key={i} text={seg.text} />
@@ -155,9 +160,7 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
                   setDragOverBlank(seg.index);
                 }}
                 onDragLeave={() =>
-                  setDragOverBlank((cur) =>
-                    cur === seg.index ? null : cur,
-                  )
+                  setDragOverBlank((cur) => (cur === seg.index ? null : cur))
                 }
                 onDrop={(e) => onDrop(e, seg.index)}
                 className={cn(

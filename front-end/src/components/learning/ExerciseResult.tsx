@@ -18,7 +18,10 @@ function optionLabels(question: StudentQuestion, ids: string[]): string {
     .join(", ");
 }
 
-function displayOrDash(value: string | null | undefined, empty: string): string {
+function displayOrDash(
+  value: string | null | undefined,
+  empty: string,
+): string {
   const trimmed = value?.trim();
   return trimmed ? trimmed : empty;
 }
@@ -93,7 +96,10 @@ export function ExerciseResult({
           const showChoiceDetail = showAllAnswers || !qr.correct || partial;
 
           return (
-            <div key={qr.questionId} className="rounded-lg border p-3 text-base">
+            <div
+              key={qr.questionId}
+              className="rounded-lg border p-3 text-base"
+            >
               <div className="flex items-start justify-between gap-3">
                 <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
                   {i + 1}. {question?.prompt}

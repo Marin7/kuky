@@ -112,7 +112,10 @@ function PresentationDownloadCard({
         {presentation.files.length > 0 ? (
           <ul className="space-y-1">
             {presentation.files.map((f) => (
-              <li key={f.id} className="flex items-center justify-between gap-2">
+              <li
+                key={f.id}
+                className="flex items-center justify-between gap-2"
+              >
                 <span className="text-sm text-muted-foreground truncate">
                   {f.displayName}
                 </span>

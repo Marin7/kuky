@@ -31,8 +31,8 @@ interface Props {
   exercise: ExerciseResponse;
 }
 
-// The component's own kind renders the passage/title; the generic numbered
-// label above the question is skipped for these two.
+// Passage kinds render the number inline with the prompt; skip the separate
+// numbered label above the question.
 const RENDERS_OWN_PASSAGE = new Set(["MULTI_BLANK", "DRAG_DROP"]);
 
 function initialAnswerState(
@@ -147,11 +147,11 @@ export function ExerciseForm({ exercise }: Props) {
     <div className="mt-6 space-y-5">
       {exercise.questions.map((q, i) => (
         <div key={q.id} className="space-y-2.5">
-          <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
-            {RENDERS_OWN_PASSAGE.has(q.kind)
-              ? `${i + 1}.`
-              : `${i + 1}. ${q.prompt}`}
-          </Label>
+          {!RENDERS_OWN_PASSAGE.has(q.kind) && (
+            <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
+              {`${i + 1}. ${q.prompt}`}
+            </Label>
+          )}
 
           {q.kind === "SINGLE_CHOICE" && (
             <RadioGroup
@@ -189,6 +189,7 @@ export function ExerciseForm({ exercise }: Props) {
 
           {q.kind === "MULTI_BLANK" && (
             <MultiBlankQuestion
+              number={i + 1}
               prompt={q.prompt}
               value={answers[q.id]?.blanks ?? []}
               onChange={(blanks) => setBlanks(q.id, blanks)}
@@ -197,6 +198,7 @@ export function ExerciseForm({ exercise }: Props) {
 
           {q.kind === "DRAG_DROP" && (
             <DragDropQuestion
+              number={i + 1}
               prompt={q.prompt}
               bank={q.structure?.bank ?? []}
               value={answers[q.id]?.placements ?? []}

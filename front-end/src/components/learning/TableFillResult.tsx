@@ -6,7 +6,10 @@ interface Props {
   unitResults: UnitResult[];
 }
 
-function displayOrDash(value: string | null | undefined, empty: string): string {
+function displayOrDash(
+  value: string | null | undefined,
+  empty: string,
+): string {
   const trimmed = value?.trim();
   return trimmed ? trimmed : empty;
 }
