@@ -17,5 +17,6 @@ public record ExerciseResponse(
         String audioUrl,                     // listening homework external source (nullable)
         UUID audioFileId,                    // listening homework uploaded file (nullable)
         List<ExerciseQuestionDto> questions,
-        ExerciseResultResponse result        // null unless GRADED
+        ExerciseResultResponse result,       // null unless GRADED
+        String teacherFeedback               // plain teacher comment; null unless present
 ) {}

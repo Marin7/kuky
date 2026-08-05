@@ -203,4 +203,20 @@ public class HomeworkSubmissionRepository {
                 .addValue("updatedAt", Timestamp.from(Instant.now()))
                 .addValue("id", submissionId));
     }
+
+    /**
+     * Saves or clears plain exercise teacher feedback without changing status or reviewed_at.
+     * {@code feedbackJsonOrNull} is a single-segment FormattedText JSON, or {@code null} to clear.
+     */
+    public int updateExerciseFeedback(UUID submissionId, String feedbackJsonOrNull) {
+        String sql = """
+                UPDATE homework_submissions
+                SET feedback = :feedback, updated_at = :updatedAt
+                WHERE id = :id
+                """;
+        return jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("feedback", feedbackJsonOrNull)
+                .addValue("updatedAt", Timestamp.from(Instant.now()))
+                .addValue("id", submissionId));
+    }
 }

@@ -43,6 +43,8 @@ final class HomeworkItems {
         String level = a.getLevel() == null ? null : a.getLevel().name();
         String format = a.getFormat() == null ? HomeworkFormat.MANUAL.name() : a.getFormat().name();
         Integer scorePercent = submission != null ? submission.getScorePercent() : null;
+        boolean hasTeacherFeedback = submission != null
+                && FormattedTextSegment.hasTeacherFeedback(submission.getFeedback());
         return new HomeworkItemResponse(
                 a.getId(),
                 a.getTitle(),
@@ -59,7 +61,8 @@ final class HomeworkItems {
                 overdue,
                 a.getAudioUrl(),
                 a.getAudioFileId(),
-                unit
+                unit,
+                hasTeacherFeedback
         );
     }
 }

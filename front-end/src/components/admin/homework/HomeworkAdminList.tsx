@@ -251,6 +251,11 @@ export function HomeworkAdminList() {
                               a.scorePercent !== null &&
                               ` — ${a.scorePercent}%`}
                           </span>
+                          {a.hasTeacherFeedback && (
+                            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+                              {t("admin.exerciseResult.hasFeedbackBadge")}
+                            </span>
+                          )}
                           {a.status === "GRADED" && a.submissionId && (
                             <button
                               type="button"
@@ -303,6 +308,7 @@ export function HomeworkAdminList() {
         <ExerciseResultDialog
           submissionId={openResultId}
           onClose={() => setOpenResultId(null)}
+          onFeedbackSaved={load}
         />
       )}
     </div>

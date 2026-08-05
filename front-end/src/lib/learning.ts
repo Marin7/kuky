@@ -43,6 +43,7 @@ export interface HomeworkItem {
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
   unit: UnitRef | null; // owning unit for grouping (null for legacy/unattached)
+  hasTeacherFeedback: boolean;
 }
 
 // --- Self-correcting exercises ---------------------------------------------
@@ -145,6 +146,7 @@ export interface ExerciseResponse {
   audioFileId: string | null; // listening homework uploaded file
   questions: StudentQuestion[];
   result: ExerciseResult | null;
+  teacherFeedback: string | null;
 }
 
 export interface AnswerPayload {

@@ -317,6 +317,7 @@ export const esDict = {
       viewResult: "Ver resultado",
       submitHomework: "Entregar tarea",
       editResponse: "Editar respuesta",
+      hasTeacherFeedback: "Con comentario",
       status: {
         PENDING: "Pendiente",
         SUBMITTED: "Entregada",
@@ -416,6 +417,7 @@ export const esDict = {
       unitCorrect: "Correcto",
       unitIncorrect: "Incorrecto",
       unitExpected: "Esperado:",
+      teacherFeedback: "Comentario de la profesora",
     },
     pastClasses: {
       title: "Clases anteriores",
@@ -770,6 +772,15 @@ export const esDict = {
       loading: "Cargando…",
       loadError: "No se pudo cargar el resultado del ejercicio.",
       close: "Cerrar",
+      hasFeedbackBadge: "Con comentario",
+      feedbackLabel: "Comentario para el alumno",
+      feedbackPlaceholder: "Escribe un comentario opcional…",
+      feedbackSave: "Guardar comentario",
+      feedbackSaving: "Guardando…",
+      feedbackValidationError:
+        "El comentario es demasiado largo (máximo 2000 caracteres).",
+      feedbackSaveError:
+        "No se pudo guardar el comentario. Inténtalo de nuevo.",
     },
     presentations: {
       allLevels: "Todos los niveles",

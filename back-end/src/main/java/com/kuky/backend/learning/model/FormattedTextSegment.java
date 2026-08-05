@@ -66,4 +66,44 @@ public record FormattedTextSegment(String text, String color, String highlight, 
             throw new IllegalStateException("No se pudo leer el contenido.", e);
         }
     }
+
+    /**
+     * Encode plain exercise teacher feedback for {@code homework_submissions.feedback}.
+     * Stores a single unformatted FormattedText segment (or {@code null} when cleared).
+     * Whitespace-only input clears. Visible length must be ≤ {@link #MAX_VISIBLE_LENGTH}.
+     */
+    public static String encodePlainFeedback(String plain) {
+        if (plain == null) {
+            return null;
+        }
+        String text = plain.strip();
+        if (text.isEmpty()) {
+            return null;
+        }
+        if (text.length() > MAX_VISIBLE_LENGTH) {
+            throw new IllegalArgumentException("El contenido es demasiado largo (máximo 2000 caracteres).");
+        }
+        return toJson(List.of(new FormattedTextSegment(text, null, null, null)));
+    }
+
+    /** Decode stored feedback JSON to a plain string; {@code null} when absent/empty. */
+    public static String decodePlainFeedback(String json) {
+        List<FormattedTextSegment> segments = fromJson(json);
+        if (segments == null || segments.isEmpty()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (FormattedTextSegment segment : segments) {
+            if (segment.text() != null) {
+                sb.append(segment.text());
+            }
+        }
+        String joined = sb.toString();
+        return joined.isEmpty() ? null : joined;
+    }
+
+    /** Whether stored feedback JSON represents a non-empty teacher comment. */
+    public static boolean hasTeacherFeedback(String json) {
+        return decodePlainFeedback(json) != null;
+    }
 }

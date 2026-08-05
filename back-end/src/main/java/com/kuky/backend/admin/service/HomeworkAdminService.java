@@ -126,7 +126,27 @@ public class HomeworkAdminService {
                 student.getLastName(),
                 student.getUsername(),
                 view.questions(),
-                view.result());
+                view.result(),
+                FormattedTextSegment.decodePlainFeedback(submission.getFeedback()));
+    }
+
+    /**
+     * Saves, updates, or clears plain-text teacher feedback on a GRADED exercise
+     * submission without changing status or score.
+     */
+    public ExerciseSubmissionResultAdminDto saveExerciseFeedback(UUID submissionId, String feedback) {
+        HomeworkSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
+        if (!HomeworkStatus.GRADED.name().equals(submission.getStatus())) {
+            throw new NotSubmittedException("Esta entrega todavía no ha sido calificada automáticamente.");
+        }
+        HomeworkAssignment assignment = requireAssignment(submission.getAssignmentId());
+        if (assignment.getFormat() != HomeworkFormat.EXERCISE) {
+            throw new AssignmentNotFoundException("Esta entrega no es un ejercicio auto-corregible.");
+        }
+        String encoded = FormattedTextSegment.encodePlainFeedback(feedback);
+        submissionRepository.updateExerciseFeedback(submissionId, encoded);
+        return getExerciseResult(submissionId);
     }
 
     /**
@@ -611,7 +631,8 @@ public class HomeworkAdminService {
     private HomeworkAdminItem toItem(HomeworkAssignment a) {
         List<AssigneeDto> assignees = targetRepository.findAssigneesWithSubmissions(a.getId()).stream()
                 .map(v -> new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
-                        v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId()))
+                        v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId(),
+                        v.hasTeacherFeedback()))
                 .toList();
         String type = a.getHomeworkType() == null ? null : a.getHomeworkType().name();
         String level = a.getLevel() == null ? null : a.getLevel().name();

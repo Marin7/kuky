@@ -99,6 +99,11 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
                 item.scorePercent !== null &&
                 ` — ${item.scorePercent}%`}
             </span>
+            {item.hasTeacherFeedback && (
+              <span className="inline-block rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+                {t("learning.homework.hasTeacherFeedback")}
+              </span>
+            )}
           </div>
         </div>
 

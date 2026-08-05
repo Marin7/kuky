@@ -317,6 +317,7 @@ export const roDict = {
       viewResult: "Vezi rezultatul",
       submitHomework: "Predă tema",
       editResponse: "Editează răspunsul",
+      hasTeacherFeedback: "Cu comentariu",
       status: {
         PENDING: "În așteptare",
         SUBMITTED: "Predată",
@@ -414,6 +415,7 @@ export const roDict = {
       unitCorrect: "Corect",
       unitIncorrect: "Incorect",
       unitExpected: "Așteptat:",
+      teacherFeedback: "Comentariul profesoarei",
     },
     pastClasses: {
       title: "Cursuri anterioare",
@@ -767,6 +769,15 @@ export const roDict = {
       loading: "Se încarcă…",
       loadError: "Nu s-a putut încărca rezultatul exercițiului.",
       close: "Închide",
+      hasFeedbackBadge: "Cu comentariu",
+      feedbackLabel: "Comentariu pentru elev",
+      feedbackPlaceholder: "Scrie un comentariu opțional…",
+      feedbackSave: "Salvează comentariul",
+      feedbackSaving: "Se salvează…",
+      feedbackValidationError:
+        "Comentariul este prea lung (maximum 2000 de caractere).",
+      feedbackSaveError:
+        "Nu s-a putut salva comentariul. Încearcă din nou.",
     },
     presentations: {
       allLevels: "Toate nivelurile",

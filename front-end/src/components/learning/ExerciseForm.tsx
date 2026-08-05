@@ -134,7 +134,11 @@ export function ExerciseForm({ exercise }: Props) {
         <p className="text-sm font-medium text-foreground">
           {t("learning.exercisePage.result")}
         </p>
-        <ExerciseResult questions={exercise.questions} result={result} />
+        <ExerciseResult
+          questions={exercise.questions}
+          result={result}
+          teacherFeedback={exercise.teacherFeedback}
+        />
       </div>
     );
   }

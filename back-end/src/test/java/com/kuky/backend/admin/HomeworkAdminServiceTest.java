@@ -14,6 +14,8 @@ import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.NotSubmittedException;
 import com.kuky.backend.learning.exception.SubmissionNotFoundException;
 import com.kuky.backend.learning.model.FormattedTextSegment;
+import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
@@ -83,7 +85,7 @@ class HomeworkAdminServiceTest {
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of(
                 new HomeworkTargetRepository.AssigneeView(studentId, "ana@example.com",
-                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null)));
+                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null, false)));
 
         HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
                 "Tarea", "Hazla", LocalDate.of(2026, 6, 20), null, null, "MANUAL", List.of(), null, null, List.of(studentId)));
@@ -259,6 +261,126 @@ class HomeworkAdminServiceTest {
 
         assertThat(result.status()).isEqualTo("REVIEWED");
         verify(submissionRepository).updateFeedback(eq(submissionId), any(), any());
+    }
+
+    // --- Plain-text feedback on GRADED exercises -----------------------------
+
+    @Test
+    void saveExerciseFeedback_savesOnGradedExercise() {
+        UUID submissionId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        HomeworkSubmission graded = gradedSubmission(submissionId, assignmentId, null);
+        HomeworkSubmission afterSave = gradedSubmission(submissionId, assignmentId, "Muy bien");
+        HomeworkAssignment exercise = exerciseAssignment(assignmentId);
+        when(submissionRepository.findById(submissionId))
+                .thenReturn(Optional.of(graded))
+                .thenReturn(Optional.of(afterSave));
+        when(contentRepository.findAssignmentById(assignmentId)).thenReturn(Optional.of(exercise));
+        when(userRepository.findById(studentId)).thenReturn(Optional.of(studentUser()));
+        ExerciseGradingService grading = mock(ExerciseGradingService.class);
+        when(grading.viewGradedSubmission(any())).thenReturn(
+                new ExerciseGradingService.GradedExerciseView(List.of(),
+                        new com.kuky.backend.learning.dto.ExerciseResultResponse(100, 1, 1, List.of())));
+        service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper());
+
+        var result = service.saveExerciseFeedback(submissionId, "  Muy bien  ");
+
+        verify(submissionRepository).updateExerciseFeedback(eq(submissionId),
+                eq(FormattedTextSegment.encodePlainFeedback("Muy bien")));
+        assertThat(result.teacherFeedback()).isEqualTo("Muy bien");
+    }
+
+    @Test
+    void saveExerciseFeedback_clearSetsNull() {
+        UUID submissionId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        HomeworkSubmission graded = gradedSubmission(submissionId, assignmentId, "Old");
+        HomeworkSubmission cleared = gradedSubmission(submissionId, assignmentId, null);
+        when(submissionRepository.findById(submissionId))
+                .thenReturn(Optional.of(graded))
+                .thenReturn(Optional.of(cleared));
+        when(contentRepository.findAssignmentById(assignmentId))
+                .thenReturn(Optional.of(exerciseAssignment(assignmentId)));
+        when(userRepository.findById(studentId)).thenReturn(Optional.of(studentUser()));
+        ExerciseGradingService grading = mock(ExerciseGradingService.class);
+        when(grading.viewGradedSubmission(any())).thenReturn(
+                new ExerciseGradingService.GradedExerciseView(List.of(),
+                        new com.kuky.backend.learning.dto.ExerciseResultResponse(80, 0, 1, List.of())));
+        service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper());
+
+        var result = service.saveExerciseFeedback(submissionId, "   ");
+
+        verify(submissionRepository).updateExerciseFeedback(submissionId, null);
+        assertThat(result.teacherFeedback()).isNull();
+    }
+
+    @Test
+    void saveExerciseFeedback_rejectsOverLengthWithoutUpdating() {
+        UUID submissionId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        when(submissionRepository.findById(submissionId))
+                .thenReturn(Optional.of(gradedSubmission(submissionId, assignmentId, null)));
+        when(contentRepository.findAssignmentById(assignmentId))
+                .thenReturn(Optional.of(exerciseAssignment(assignmentId)));
+
+        assertThatThrownBy(() -> service.saveExerciseFeedback(submissionId,
+                "a".repeat(FormattedTextSegment.MAX_VISIBLE_LENGTH + 1)))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(submissionRepository, never()).updateExerciseFeedback(any(), any());
+    }
+
+    @Test
+    void saveExerciseFeedback_rejectsNonGraded() {
+        UUID submissionId = UUID.randomUUID();
+        HomeworkSubmission pending = gradedSubmission(submissionId, UUID.randomUUID(), null);
+        pending.setStatus("PENDING");
+        when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(pending));
+
+        assertThatThrownBy(() -> service.saveExerciseFeedback(submissionId, "ok"))
+                .isInstanceOf(NotSubmittedException.class);
+        verify(submissionRepository, never()).updateExerciseFeedback(any(), any());
+    }
+
+    @Test
+    void saveExerciseFeedback_rejectsManualAssignment() {
+        UUID submissionId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        when(submissionRepository.findById(submissionId))
+                .thenReturn(Optional.of(gradedSubmission(submissionId, assignmentId, null)));
+        HomeworkAssignment manual = exerciseAssignment(assignmentId);
+        manual.setFormat(com.kuky.backend.learning.model.HomeworkFormat.MANUAL);
+        when(contentRepository.findAssignmentById(assignmentId)).thenReturn(Optional.of(manual));
+
+        assertThatThrownBy(() -> service.saveExerciseFeedback(submissionId, "ok"))
+                .isInstanceOf(AssignmentNotFoundException.class);
+        verify(submissionRepository, never()).updateExerciseFeedback(any(), any());
+    }
+
+    private User studentUser() {
+        User student = new User();
+        student.setId(studentId);
+        student.setEmail("ana@example.com");
+        student.setRole("STUDENT");
+        return student;
+    }
+
+    private HomeworkSubmission gradedSubmission(UUID submissionId, UUID assignmentId, String feedbackPlain) {
+        HomeworkSubmission s = new HomeworkSubmission();
+        s.setId(submissionId);
+        s.setAssignmentId(assignmentId);
+        s.setUserId(studentId);
+        s.setStatus("GRADED");
+        s.setScorePercent(100);
+        s.setFeedback(feedbackPlain == null ? null : FormattedTextSegment.encodePlainFeedback(feedbackPlain));
+        return s;
+    }
+
+    private HomeworkAssignment exerciseAssignment(UUID id) {
+        HomeworkAssignment a = assignment(id);
+        a.setFormat(com.kuky.backend.learning.model.HomeworkFormat.EXERCISE);
+        return a;
     }
 
     private HomeworkSubmissionRepository.SubmissionDetailRow detailRow(UUID submissionId, String status,

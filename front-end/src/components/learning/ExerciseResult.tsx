@@ -7,6 +7,8 @@ interface Props {
   result: ExerciseResult;
   /** When true (teacher view), always show the student's answer, not only on mistakes. */
   showAllAnswers?: boolean;
+  /** Optional plain-text teacher comment (shown only when non-empty). */
+  teacherFeedback?: string | null;
 }
 
 function optionLabels(question: StudentQuestion, ids: string[]): string {
@@ -21,10 +23,16 @@ function displayOrDash(value: string | null | undefined, empty: string): string 
   return trimmed ? trimmed : empty;
 }
 
-export function ExerciseResult({ questions, result, showAllAnswers = false }: Props) {
+export function ExerciseResult({
+  questions,
+  result,
+  showAllAnswers = false,
+  teacherFeedback = null,
+}: Props) {
   const { t } = useTranslation();
   const byId = new Map(questions.map((q) => [q.id, q]));
   const noAnswer = t("learning.exerciseResult.noAnswer");
+  const feedbackText = teacherFeedback?.trim() || null;
 
   return (
     <div className="space-y-5">
@@ -39,6 +47,17 @@ export function ExerciseResult({ questions, result, showAllAnswers = false }: Pr
             : t("learning.exerciseResult.correctPlural")}
         </p>
       </div>
+
+      {feedbackText && (
+        <div className="rounded-lg border bg-muted/40 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("learning.exerciseResult.teacherFeedback")}
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">
+            {feedbackText}
+          </p>
+        </div>
+      )}
 
       <div className="space-y-3">
         {result.questions.map((qr, i) => {

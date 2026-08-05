@@ -5,6 +5,7 @@ import com.kuky.backend.admin.dto.ExerciseSubmissionResultAdminDto;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
 import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
+import com.kuky.backend.admin.dto.SaveExerciseFeedbackRequest;
 import com.kuky.backend.admin.dto.SaveHomeworkFeedbackRequest;
 import com.kuky.backend.admin.dto.SetAssigneesRequest;
 import com.kuky.backend.admin.dto.UpdateHomeworkRequest;
@@ -75,6 +76,13 @@ public class HomeworkAdminController {
     @GetMapping("/submissions/{submissionId}/exercise-result")
     public ExerciseSubmissionResultAdminDto exerciseResult(@PathVariable UUID submissionId) {
         return service.getExerciseResult(submissionId);
+    }
+
+    @PutMapping("/submissions/{submissionId}/exercise-feedback")
+    public ExerciseSubmissionResultAdminDto saveExerciseFeedback(
+            @PathVariable UUID submissionId,
+            @Valid @RequestBody SaveExerciseFeedbackRequest request) {
+        return service.saveExerciseFeedback(submissionId, request.feedback());
     }
 
     @PutMapping("/submissions/{submissionId}/feedback")

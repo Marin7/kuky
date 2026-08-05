@@ -13,6 +13,7 @@ import com.kuky.backend.learning.dto.ExerciseResultResponse;
 import com.kuky.backend.learning.dto.SubmitExerciseRequest;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
+import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
@@ -105,9 +106,11 @@ public class ExerciseGradingService {
 
         ExerciseResultResponse result = null;
         String status = HomeworkStatus.PENDING.name();
+        String teacherFeedback = null;
         if (existing.isPresent() && HomeworkStatus.GRADED.name().equals(existing.get().getStatus())) {
             status = HomeworkStatus.GRADED.name();
             result = buildStoredResult(questions, existing.get());
+            teacherFeedback = FormattedTextSegment.decodePlainFeedback(existing.get().getFeedback());
         }
 
         return new ExerciseResponse(
@@ -120,7 +123,8 @@ public class ExerciseGradingService {
                 assignment.getAudioUrl(),
                 assignment.getAudioFileId(),
                 buildStudentQuestions(questions),
-                result);
+                result,
+                teacherFeedback);
     }
 
     /** Submit answers, auto-grade, persist, and return the result. Single submission only. */

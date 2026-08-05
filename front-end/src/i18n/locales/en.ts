@@ -309,6 +309,7 @@ export const enDict = {
       viewResult: "View result",
       submitHomework: "Submit homework",
       editResponse: "Edit response",
+      hasTeacherFeedback: "Has feedback",
       status: {
         PENDING: "Pending",
         SUBMITTED: "Submitted",
@@ -406,6 +407,7 @@ export const enDict = {
       unitCorrect: "Correct",
       unitIncorrect: "Incorrect",
       unitExpected: "Expected:",
+      teacherFeedback: "Teacher feedback",
     },
     pastClasses: {
       title: "Past classes",
@@ -758,6 +760,14 @@ export const enDict = {
       loading: "Loading…",
       loadError: "Could not load the exercise result.",
       close: "Close",
+      hasFeedbackBadge: "Has feedback",
+      feedbackLabel: "Comment for the student",
+      feedbackPlaceholder: "Write an optional comment…",
+      feedbackSave: "Save comment",
+      feedbackSaving: "Saving…",
+      feedbackValidationError:
+        "The comment is too long (maximum 2000 characters).",
+      feedbackSaveError: "Could not save the comment. Please try again.",
     },
     presentations: {
       allLevels: "All levels",

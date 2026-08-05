@@ -415,6 +415,11 @@ function StudentProfilePage() {
                               {hw.scorePercent}%
                             </span>
                           )}
+                        {hw.hasTeacherFeedback && (
+                          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+                            {t("admin.exerciseResult.hasFeedbackBadge")}
+                          </span>
+                        )}
                         {hw.needsReview && hw.submissionId && (
                           <button
                             type="button"
@@ -534,6 +539,9 @@ function StudentProfilePage() {
         <ExerciseResultDialog
           submissionId={openResultId}
           onClose={() => setOpenResultId(null)}
+          onFeedbackSaved={() =>
+            getStudentProfile(studentId).then(setProfile)
+          }
         />
       )}
     </div>

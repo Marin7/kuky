@@ -240,6 +240,7 @@ export interface Assignee {
   submittedAt: string | null;
   scorePercent: number | null;
   submissionId: string | null;
+  hasTeacherFeedback: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -264,6 +265,7 @@ export interface StudentProfileHomework {
   needsReview: boolean;
   submissionId: string | null;
   scorePercent: number | null;
+  hasTeacherFeedback: boolean;
 }
 
 export interface StudentProfilePresentation {
@@ -548,11 +550,21 @@ export interface ExerciseSubmissionResultAdmin {
   studentUsername: string | null;
   questions: StudentQuestion[];
   result: ExerciseResult;
+  teacherFeedback: string | null;
 }
 
 export const getExerciseSubmissionResult = (submissionId: string) =>
   apiCall<ExerciseSubmissionResultAdmin>(
     `/homework/submissions/${submissionId}/exercise-result`,
+  );
+
+export const saveExerciseFeedback = (submissionId: string, feedback: string) =>
+  apiCall<ExerciseSubmissionResultAdmin>(
+    `/homework/submissions/${submissionId}/exercise-feedback`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ feedback }),
+    },
   );
 
 export const saveHomeworkFeedback = (

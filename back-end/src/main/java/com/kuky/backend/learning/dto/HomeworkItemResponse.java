@@ -23,5 +23,6 @@ public record HomeworkItemResponse(
         boolean overdue,
         String audioUrl,          // listening homework external source (nullable)
         UUID audioFileId,         // listening homework uploaded file (nullable)
-        UnitRef unit              // owning unit for grouping (nullable for legacy/unattached)
+        UnitRef unit,             // owning unit for grouping (nullable for legacy/unattached)
+        boolean hasTeacherFeedback
 ) {}

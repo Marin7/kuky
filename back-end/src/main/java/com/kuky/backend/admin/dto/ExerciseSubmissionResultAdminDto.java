@@ -17,5 +17,6 @@ public record ExerciseSubmissionResultAdminDto(
         String studentLastName,
         String studentUsername,
         List<ExerciseQuestionDto> questions,
-        ExerciseResultResponse result
+        ExerciseResultResponse result,
+        String teacherFeedback
 ) {}
