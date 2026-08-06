@@ -113,7 +113,9 @@ export function ExerciseResult({
               : "";
           const hasStudentChoice = studentChoiceText.length > 0;
           const isTrueFalse = question?.kind === "TRUE_FALSE";
-          const isMultiBlank = question?.kind === "MULTI_BLANK";
+          // MULTI_BLANK + DRAG_DROP: render filled passage instead of a unit list.
+          const isBlankPassage =
+            question?.kind === "MULTI_BLANK" || question?.kind === "DRAG_DROP";
           // TRUE_FALSE always shows the student's pick; never the answer key line.
           const showChoiceDetail =
             showAllAnswers || !qr.correct || partial || isTrueFalse;
@@ -124,7 +126,7 @@ export function ExerciseResult({
               className="rounded-lg border p-3 text-base"
             >
               <div className="flex items-start justify-between gap-3">
-                {isMultiBlank && unitResults.length > 0 && question ? (
+                {isBlankPassage && unitResults.length > 0 && question ? (
                   <MultiBlankResult
                     number={i + 1}
                     prompt={question.prompt}
@@ -148,7 +150,7 @@ export function ExerciseResult({
                   structure={question.structure}
                   unitResults={unitResults}
                 />
-              ) : unitResults.length > 0 && !isMultiBlank ? (
+              ) : unitResults.length > 0 && !isBlankPassage ? (
                 <div className="mt-2 space-y-1.5">
                   {unitResults.map((u) => (
                     <div
@@ -184,7 +186,7 @@ export function ExerciseResult({
                   ))}
                 </div>
               ) : (
-                !isMultiBlank &&
+                !isBlankPassage &&
                 showChoiceDetail && (
                   <div className="mt-2 space-y-1 text-muted-foreground">
                     <p>

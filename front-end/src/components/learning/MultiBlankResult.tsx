@@ -17,7 +17,7 @@ function displayOrDash(
   return trimmed ? trimmed : empty;
 }
 
-/** Graded MULTI_BLANK review: passage with filled blanks and per-blank feedback. */
+/** Graded MULTI_BLANK / DRAG_DROP review: passage with filled blanks and per-blank feedback. */
 export function MultiBlankResult({ number, prompt, unitResults }: Props) {
   const { t } = useTranslation();
   const noAnswer = t("learning.exerciseResult.noAnswer");
