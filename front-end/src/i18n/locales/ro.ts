@@ -424,10 +424,16 @@ export const roDict = {
     presentations: {
       title: "Prezentări",
       empty: "Profesoara ta nu a distribuit încă nicio prezentare.",
+      open: "Deschide",
       download: "Descarcă",
       downloading: "Se descarcă…",
       noFile: "Fără fișier",
       loadError: "Nu s-a putut încărca prezentarea.",
+      backToLearning: "Înapoi la materiale",
+      viewing: "Se încarcă prezentarea…",
+      notViewable:
+        "Acest fișier nu poate fi vizualizat pe site. Revino și descarcă-l.",
+      viewerTitle: "Prezentare",
     },
     classPresentation: {
       title: "Cursurile tale de spaniolă",

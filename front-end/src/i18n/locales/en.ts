@@ -416,10 +416,16 @@ export const enDict = {
     presentations: {
       title: "Presentations",
       empty: "Your teacher hasn't shared any presentations with you yet.",
+      open: "Open",
       download: "Download",
       downloading: "Downloading…",
       noFile: "No file",
       loadError: "Could not load the presentation.",
+      backToLearning: "Back to learning materials",
+      viewing: "Loading presentation…",
+      notViewable:
+        "This file cannot be viewed on the site. Go back and download it instead.",
+      viewerTitle: "Presentation",
     },
     classPresentation: {
       title: "Your Spanish classes",

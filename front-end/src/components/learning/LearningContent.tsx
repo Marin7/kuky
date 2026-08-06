@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import type { HomeworkItem, SharedPresentationSummary } from "@/lib/learning";
-import { downloadPresentationFile } from "@/lib/learning";
+import { downloadPresentationFile, isPresentationPdf } from "@/lib/learning";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { HomeworkItemCard } from "./HomeworkItemCard";
@@ -90,6 +91,7 @@ function PresentationDownloadCard({
   presentation: SharedPresentationSummary;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,33 +107,56 @@ function PresentationDownloadCard({
     }
   };
 
+  const handleOpen = (fileId: string) => {
+    navigate({
+      to: "/aprendizaje/presentacion/$presentationId/archivo/$fileId",
+      params: {
+        presentationId: presentation.id,
+        fileId,
+      },
+    });
+  };
+
   return (
     <Card>
-      <CardContent className="pt-4 space-y-2">
-        <p className="font-medium truncate">{presentation.title}</p>
+      <CardContent className="space-y-2 pt-4">
+        <p className="truncate font-medium">{presentation.title}</p>
         {presentation.files.length > 0 ? (
           <ul className="space-y-1">
-            {presentation.files.map((f) => (
-              <li
-                key={f.id}
-                className="flex items-center justify-between gap-2"
-              >
-                <span className="text-sm text-muted-foreground truncate">
-                  {f.displayName}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0"
-                  disabled={downloadingId === f.id}
-                  onClick={() => handleDownload(f.id, f.displayName)}
+            {presentation.files.map((f) => {
+              const canView = isPresentationPdf(f.contentType);
+              return (
+                <li
+                  key={f.id}
+                  className="flex items-center justify-between gap-2"
                 >
-                  {downloadingId === f.id
-                    ? t("learning.presentations.downloading")
-                    : t("learning.presentations.download")}
-                </Button>
-              </li>
-            ))}
+                  <span className="truncate text-sm text-muted-foreground">
+                    {f.displayName}
+                  </span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {canView && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleOpen(f.id)}
+                      >
+                        {t("learning.presentations.open")}
+                      </Button>
+                    )}
+                    <Button
+                      variant={canView ? "outline" : "default"}
+                      size="sm"
+                      disabled={downloadingId === f.id}
+                      onClick={() => handleDownload(f.id, f.displayName)}
+                    >
+                      {downloadingId === f.id
+                        ? t("learning.presentations.downloading")
+                        : t("learning.presentations.download")}
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <span className="text-xs text-muted-foreground">

@@ -235,11 +235,14 @@ export const submitExercise = (
     body: JSON.stringify({ answers }),
   });
 
-export const downloadPresentationFile = async (
+/** On-site view eligibility: only application/pdf (PPTX stays download-only). */
+export const isPresentationPdf = (contentType: string): boolean =>
+  contentType === "application/pdf";
+
+export const fetchPresentationFileBlob = async (
   presentationId: string,
   fileId: string,
-  fileName: string,
-): Promise<void> => {
+): Promise<Blob> => {
   const res = await fetch(
     `${API_BASE}/learning/presentations/${presentationId}/files/${fileId}`,
     {
@@ -250,7 +253,15 @@ export const downloadPresentationFile = async (
     const data = await res.json();
     throw data as ApiError;
   }
-  const blob = await res.blob();
+  return res.blob();
+};
+
+export const downloadPresentationFile = async (
+  presentationId: string,
+  fileId: string,
+  fileName: string,
+): Promise<void> => {
+  const blob = await fetchPresentationFileBlob(presentationId, fileId);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

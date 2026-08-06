@@ -26,6 +26,7 @@ import { Route as AprendizajeTareaHomeworkIdRouteImport } from './routes/aprendi
 import { Route as AprendizajeRedaccionHomeworkIdRouteImport } from './routes/aprendizaje_.redaccion.$homeworkId'
 import { Route as AprendizajeLecturaHomeworkIdRouteImport } from './routes/aprendizaje_.lectura.$homeworkId'
 import { Route as AprendizajeEscuchaHomeworkIdRouteImport } from './routes/aprendizaje_.escucha.$homeworkId'
+import { Route as AprendizajePresentacionPresentationIdArchivoFileIdRouteImport } from './routes/aprendizaje_.presentacion.$presentationId.archivo.$fileId'
 
 const SobreMiRoute = SobreMiRouteImport.update({
   id: '/sobre-mi',
@@ -116,6 +117,12 @@ const AprendizajeEscuchaHomeworkIdRoute =
     path: '/aprendizaje/escucha/$homeworkId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AprendizajePresentacionPresentationIdArchivoFileIdRoute =
+  AprendizajePresentacionPresentationIdArchivoFileIdRouteImport.update({
+    id: '/aprendizaje_/presentacion/$presentationId/archivo/$fileId',
+    path: '/aprendizaje/presentacion/$presentationId/archivo/$fileId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
+  '/aprendizaje/presentacion/$presentationId/archivo/$fileId': typeof AprendizajePresentacionPresentationIdArchivoFileIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
+  '/aprendizaje/presentacion/$presentationId/archivo/$fileId': typeof AprendizajePresentacionPresentationIdArchivoFileIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -174,6 +183,7 @@ export interface FileRoutesById {
   '/panel_/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel_/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel_/tareas/nueva': typeof PanelTareasNuevaRoute
+  '/aprendizaje_/presentacion/$presentationId/archivo/$fileId': typeof AprendizajePresentacionPresentationIdArchivoFileIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/panel/alumnos/$studentId'
     | '/panel/tareas/$homeworkId'
     | '/panel/tareas/nueva'
+    | '/aprendizaje/presentacion/$presentationId/archivo/$fileId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/panel/alumnos/$studentId'
     | '/panel/tareas/$homeworkId'
     | '/panel/tareas/nueva'
+    | '/aprendizaje/presentacion/$presentationId/archivo/$fileId'
   id:
     | '__root__'
     | '/'
@@ -233,6 +245,7 @@ export interface FileRouteTypes {
     | '/panel_/alumnos/$studentId'
     | '/panel_/tareas/$homeworkId'
     | '/panel_/tareas/nueva'
+    | '/aprendizaje_/presentacion/$presentationId/archivo/$fileId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -253,6 +266,7 @@ export interface RootRouteChildren {
   PanelAlumnosStudentIdRoute: typeof PanelAlumnosStudentIdRoute
   PanelTareasHomeworkIdRoute: typeof PanelTareasHomeworkIdRoute
   PanelTareasNuevaRoute: typeof PanelTareasNuevaRoute
+  AprendizajePresentacionPresentationIdArchivoFileIdRoute: typeof AprendizajePresentacionPresentationIdArchivoFileIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -376,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AprendizajeEscuchaHomeworkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aprendizaje_/presentacion/$presentationId/archivo/$fileId': {
+      id: '/aprendizaje_/presentacion/$presentationId/archivo/$fileId'
+      path: '/aprendizaje/presentacion/$presentationId/archivo/$fileId'
+      fullPath: '/aprendizaje/presentacion/$presentationId/archivo/$fileId'
+      preLoaderRoute: typeof AprendizajePresentacionPresentationIdArchivoFileIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -397,6 +418,8 @@ const rootRouteChildren: RootRouteChildren = {
   PanelAlumnosStudentIdRoute: PanelAlumnosStudentIdRoute,
   PanelTareasHomeworkIdRoute: PanelTareasHomeworkIdRoute,
   PanelTareasNuevaRoute: PanelTareasNuevaRoute,
+  AprendizajePresentacionPresentationIdArchivoFileIdRoute:
+    AprendizajePresentacionPresentationIdArchivoFileIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -426,10 +426,16 @@ export const esDict = {
     presentations: {
       title: "Presentaciones",
       empty: "Tu profesora aún no ha compartido ninguna presentación contigo.",
+      open: "Abrir",
       download: "Descargar",
       downloading: "Descargando…",
       noFile: "Sin archivo",
       loadError: "No se pudo cargar la presentación.",
+      backToLearning: "Volver al aprendizaje",
+      viewing: "Cargando presentación…",
+      notViewable:
+        "Este archivo no se puede ver en el sitio. Vuelve atrás y descárgalo.",
+      viewerTitle: "Presentación",
     },
     classPresentation: {
       title: "Tus clases de español",
