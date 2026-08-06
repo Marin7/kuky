@@ -128,7 +128,7 @@ export function PresentationPdfViewer({
 
   useEffect(() => {
     let cancelled = false;
-    let pdf: PDFDocumentProxy | null = null;
+    let loadingTask: ReturnType<typeof getDocument> | null = null;
 
     setState({ status: "loading" });
 
@@ -145,9 +145,10 @@ export function PresentationPdfViewer({
         const data = await blob.arrayBuffer();
         if (cancelled) return;
 
-        pdf = await getDocument({ data }).promise;
+        loadingTask = getDocument({ data });
+        const pdf = await loadingTask.promise;
         if (cancelled) {
-          void pdf.destroy();
+          void loadingTask.destroy();
           return;
         }
         setState({ status: "ready", pdf });
@@ -158,7 +159,7 @@ export function PresentationPdfViewer({
 
     return () => {
       cancelled = true;
-      if (pdf) void pdf.destroy();
+      void loadingTask?.destroy();
     };
   }, [presentationId, fileId]);
 
