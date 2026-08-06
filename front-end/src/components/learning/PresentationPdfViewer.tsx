@@ -2,16 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
+  AnnotationLayer,
   getDocument,
   GlobalWorkerOptions,
+  TextLayer,
   type PDFDocumentProxy,
   type RenderTask,
 } from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import { LinkTarget, SimpleLinkService } from "pdfjs-dist/web/pdf_viewer.mjs";
+import "@/components/learning/pdf-layers.css";
 import { fetchPresentationFileBlob, isPresentationPdf } from "@/lib/learning";
 import { Button } from "@/components/ui/button";
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
+
+const linkService = new SimpleLinkService({
+  externalLinkTarget: LinkTarget.BLANK,
+  externalLinkRel: "noopener noreferrer nofollow",
+});
 
 interface PresentationPdfViewerProps {
   presentationId: string;
@@ -35,13 +44,19 @@ function PdfPage({
   pageNumber: number;
   width: number;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textLayerRef = useRef<HTMLDivElement>(null);
+  const annotationLayerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (width <= 0) return;
 
     let cancelled = false;
     let renderTask: RenderTask | null = null;
+    let textLayer: TextLayer | null = null;
+    let annotationLayer: AnnotationLayer | null = null;
+    let cleanupSelection: (() => void) | null = null;
 
     (async () => {
       const page = await pdf.getPage(pageNumber);
@@ -50,8 +65,15 @@ function PdfPage({
       const baseViewport = page.getViewport({ scale: 1 });
       const scale = width / baseViewport.width;
       const viewport = page.getViewport({ scale });
+
+      const container = containerRef.current;
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      const textLayerDiv = textLayerRef.current;
+      const annotationLayerDiv = annotationLayerRef.current;
+      if (!container || !canvas || !textLayerDiv || !annotationLayerDiv) return;
+
+      container.style.width = `${Math.floor(viewport.width)}px`;
+      container.style.height = `${Math.floor(viewport.height)}px`;
 
       const context = canvas.getContext("2d");
       if (!context) return;
@@ -71,22 +93,77 @@ function PdfPage({
       try {
         await renderTask.promise;
       } catch {
-        // Cancelled renders throw; ignore when unmounting / resizing.
+        return;
       }
+      if (cancelled) return;
+
+      const textViewport = viewport.clone({ dontFlip: true });
+
+      textLayerDiv.replaceChildren();
+      textLayerDiv.style.setProperty("--total-scale-factor", `${scale}`);
+      textLayer = new TextLayer({
+        textContentSource: page.streamTextContent({
+          includeMarkedContent: true,
+          disableNormalization: true,
+        }),
+        container: textLayerDiv,
+        viewport: textViewport,
+      });
+      await textLayer.render();
+      if (cancelled) return;
+
+      // Same guard PDF.js's TextLayerBuilder uses so selection can't spill
+      // past the last line into text below (or the next page).
+      const endOfContent = document.createElement("div");
+      endOfContent.className = "endOfContent";
+      textLayerDiv.append(endOfContent);
+      const onMouseDown = () => textLayerDiv.classList.add("selecting");
+      const onMouseUp = () => textLayerDiv.classList.remove("selecting");
+      textLayerDiv.addEventListener("mousedown", onMouseDown);
+      document.addEventListener("mouseup", onMouseUp);
+      cleanupSelection = () => {
+        textLayerDiv.removeEventListener("mousedown", onMouseDown);
+        document.removeEventListener("mouseup", onMouseUp);
+        textLayerDiv.classList.remove("selecting");
+      };
+
+      annotationLayerDiv.replaceChildren();
+      const annotations = await page.getAnnotations({ intent: "display" });
+      if (cancelled) return;
+
+      annotationLayer = new AnnotationLayer({
+        div: annotationLayerDiv,
+        page,
+        viewport: textViewport,
+        linkService,
+      });
+      await annotationLayer.render({
+        annotations,
+        viewport: textViewport,
+        linkService,
+        renderForms: false,
+      });
     })();
 
     return () => {
       cancelled = true;
+      cleanupSelection?.();
       renderTask?.cancel();
+      textLayer?.cancel();
+      annotationLayer?.destroy();
     };
   }, [pdf, pageNumber, width]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="mx-auto max-w-full border border-border bg-white shadow-sm"
+    <div
+      ref={containerRef}
+      className="relative mx-auto max-w-full overflow-hidden border border-border bg-white shadow-sm"
       aria-label={`Page ${pageNumber}`}
-    />
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 block" />
+      <div ref={textLayerRef} className="textLayer" />
+      <div ref={annotationLayerRef} className="annotationLayer" />
+    </div>
   );
 }
 
@@ -105,6 +182,13 @@ function PdfPageStack({ pdf }: { pdf: PDFDocumentProxy }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    linkService.setDocument(pdf);
+    return () => {
+      linkService.setDocument(null);
+    };
+  }, [pdf]);
 
   return (
     <div ref={containerRef} className="flex flex-col gap-6 pb-10">
