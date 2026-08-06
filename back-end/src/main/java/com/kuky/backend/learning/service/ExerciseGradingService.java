@@ -207,7 +207,7 @@ public class ExerciseGradingService {
 
     private GradedAnswer gradeQuestion(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {
         return switch (q.getKind()) {
-            case SINGLE_CHOICE -> gradeSingleChoice(q, given);
+            case SINGLE_CHOICE, TRUE_FALSE -> gradeSingleChoice(q, given);
             case MULTI_CHOICE -> gradeMultiChoice(q, given);
             case MULTI_BLANK -> gradeMultiBlank(q, given);
             case DRAG_DROP -> gradeDragDrop(q, given);
@@ -361,7 +361,11 @@ public class ExerciseGradingService {
     }
 
     private static List<UUID> correctOptionIds(HomeworkQuestion q) {
-        if (q.getKind() != QuestionKind.SINGLE_CHOICE && q.getKind() != QuestionKind.MULTI_CHOICE) return List.of();
+        if (q.getKind() != QuestionKind.SINGLE_CHOICE
+                && q.getKind() != QuestionKind.MULTI_CHOICE
+                && q.getKind() != QuestionKind.TRUE_FALSE) {
+            return List.of();
+        }
         return q.getOptions().stream().filter(QuestionOption::isCorrect).map(QuestionOption::getId).toList();
     }
 
@@ -485,7 +489,9 @@ public class ExerciseGradingService {
 
     private List<ExerciseQuestionDto> buildStudentQuestions(List<HomeworkQuestion> questions) {
         return questions.stream().map(q -> {
-            boolean hasOptions = q.getKind() == QuestionKind.SINGLE_CHOICE || q.getKind() == QuestionKind.MULTI_CHOICE;
+            boolean hasOptions = q.getKind() == QuestionKind.SINGLE_CHOICE
+                    || q.getKind() == QuestionKind.MULTI_CHOICE
+                    || q.getKind() == QuestionKind.TRUE_FALSE;
             List<ExerciseQuestionDto.StudentOptionDto> options = hasOptions
                     ? q.getOptions().stream()
                         .map(o -> new ExerciseQuestionDto.StudentOptionDto(o.getId(), o.getLabel()))

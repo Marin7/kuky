@@ -144,4 +144,48 @@ class HomeworkExerciseAdminServiceTest {
         assertThatNoException().isThrownBy(() -> service.create(req));
         verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
     }
+
+    // --- TRUE_FALSE ----------------------------------------------------------
+
+    private static HomeworkQuestionDto trueFalse(boolean correctIsTrue) {
+        return new HomeworkQuestionDto(null, "TRUE_FALSE", "El verbo «ser» se usa para nacionalidad.",
+                List.of(
+                        new OptionDto(null, "true", correctIsTrue),
+                        new OptionDto(null, "false", !correctIsTrue)),
+                null);
+    }
+
+    @Test
+    void trueFalseWithoutCorrectOptionIsRejected() {
+        var req = exercise(List.of(new HomeworkQuestionDto(null, "TRUE_FALSE", "¿…?",
+                List.of(new OptionDto(null, "true", false), new OptionDto(null, "false", false)), null)));
+        assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void trueFalseWithWrongLabelsIsRejected() {
+        var req = exercise(List.of(new HomeworkQuestionDto(null, "TRUE_FALSE", "¿…?",
+                List.of(new OptionDto(null, "Verdadero", true), new OptionDto(null, "Falso", false)), null)));
+        assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void trueFalseWithWrongOptionCountIsRejected() {
+        var req = exercise(List.of(new HomeworkQuestionDto(null, "TRUE_FALSE", "¿…?",
+                List.of(new OptionDto(null, "true", true)), null)));
+        assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void trueFalseWithEmptyPromptIsRejected() {
+        var req = exercise(List.of(new HomeworkQuestionDto(null, "TRUE_FALSE", "  ",
+                List.of(new OptionDto(null, "true", true), new OptionDto(null, "false", false)), null)));
+        assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void validTrueFalsePersists() {
+        assertThatNoException().isThrownBy(() -> service.create(exercise(List.of(trueFalse(true)))));
+        verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
+    }
 }

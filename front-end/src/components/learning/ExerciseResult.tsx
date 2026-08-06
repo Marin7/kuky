@@ -11,10 +11,18 @@ interface Props {
   teacherFeedback?: string | null;
 }
 
-function optionLabels(question: StudentQuestion, ids: string[]): string {
+function optionLabels(
+  question: StudentQuestion,
+  ids: string[],
+  localizeTrueFalse?: (label: string) => string,
+): string {
   return question.options
     .filter((o) => ids.includes(o.id))
-    .map((o) => o.label)
+    .map((o) =>
+      question.kind === "TRUE_FALSE" && localizeTrueFalse
+        ? localizeTrueFalse(o.label)
+        : o.label,
+    )
     .join(", ");
 }
 
@@ -36,6 +44,12 @@ export function ExerciseResult({
   const byId = new Map(questions.map((q) => [q.id, q]));
   const noAnswer = t("learning.exerciseResult.noAnswer");
   const feedbackText = teacherFeedback?.trim() || null;
+  const localizeTrueFalse = (label: string) =>
+    t(
+      label === "false"
+        ? "learning.trueFalse.false"
+        : "learning.trueFalse.true",
+    );
 
   return (
     <div className="space-y-5">
@@ -85,12 +99,16 @@ export function ExerciseResult({
             qr.acceptedAnswers.length > 0
               ? qr.acceptedAnswers.join(" / ")
               : question
-                ? optionLabels(question, qr.correctOptionIds)
+                ? optionLabels(question, qr.correctOptionIds, localizeTrueFalse)
                 : "";
           const unitResults = qr.unitResults ?? [];
           const studentChoiceText =
             question && (qr.selectedOptionIds?.length ?? 0) > 0
-              ? optionLabels(question, qr.selectedOptionIds ?? [])
+              ? optionLabels(
+                  question,
+                  qr.selectedOptionIds ?? [],
+                  localizeTrueFalse,
+                )
               : "";
           const hasStudentChoice = studentChoiceText.length > 0;
           const showChoiceDetail = showAllAnswers || !qr.correct || partial;

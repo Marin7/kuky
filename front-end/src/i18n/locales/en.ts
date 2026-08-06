@@ -409,6 +409,10 @@ export const enDict = {
       unitExpected: "Expected:",
       teacherFeedback: "Teacher feedback",
     },
+    trueFalse: {
+      true: "True",
+      false: "False",
+    },
     pastClasses: {
       title: "Past classes",
       empty: "You don't have any past classes yet.",
@@ -704,7 +708,11 @@ export const enDict = {
           DRAG_DROP: "Drag and drop",
           TABLE_FILL: "Table fill",
           MATCHING: "Matching",
+          TRUE_FALSE: "True / False",
         },
+        trueFalseHint: "Mark whether the statement is true or false.",
+        trueLabel: "True",
+        falseLabel: "False",
         promptBlanksHint:
           "Type ___ (three underscores) where you want a blank. You need between 1 and 20.",
         promptOptionalHint: "Short instruction or title (optional).",

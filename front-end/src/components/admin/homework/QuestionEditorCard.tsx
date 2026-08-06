@@ -34,6 +34,7 @@ import { MatchingEditor } from "./MatchingEditor";
 const KINDS: QuestionKind[] = [
   "SINGLE_CHOICE",
   "MULTI_CHOICE",
+  "TRUE_FALSE",
   "MULTI_BLANK",
   "DRAG_DROP",
   "TABLE_FILL",
@@ -85,6 +86,24 @@ export function QuestionEditorCard({
       correct: idx === i,
     }));
     onChange({ ...question, options });
+  };
+
+  const setTrueFalseCorrect = (i: number) => {
+    onChange({
+      ...question,
+      options: [
+        {
+          ...(question.options[0] ?? { label: "true", correct: false }),
+          label: "true",
+          correct: i === 0,
+        },
+        {
+          ...(question.options[1] ?? { label: "false", correct: false }),
+          label: "false",
+          correct: i === 1,
+        },
+      ],
+    });
   };
 
   const addOption = () =>
@@ -224,7 +243,34 @@ export function QuestionEditorCard({
         />
       )}
 
-      {!structured && (
+      {question.kind === "TRUE_FALSE" && (
+        <div className="space-y-2">
+          <Label>{t("admin.homework.questions.optionsLabel")}</Label>
+          <p className="text-xs text-muted-foreground">
+            {t("admin.homework.questions.trueFalseHint")}
+          </p>
+          <RadioGroup
+            value={singleCorrectIndex >= 0 ? String(singleCorrectIndex) : ""}
+            onValueChange={(v) => setTrueFalseCorrect(Number(v))}
+          >
+            {[0, 1].map((i) => (
+              <div key={i} className="flex items-center gap-2">
+                <RadioGroupItem value={String(i)} id={`q${index}-tf${i}`} />
+                <Label
+                  htmlFor={`q${index}-tf${i}`}
+                  className="cursor-pointer font-normal"
+                >
+                  {i === 0
+                    ? t("admin.homework.questions.trueLabel")
+                    : t("admin.homework.questions.falseLabel")}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+      )}
+
+      {!structured && question.kind !== "TRUE_FALSE" && (
         <div className="space-y-2">
           <Label>{t("admin.homework.questions.optionsLabel")}</Label>
           <p className="text-xs text-muted-foreground">

@@ -417,6 +417,10 @@ export const roDict = {
       unitExpected: "Așteptat:",
       teacherFeedback: "Comentariul profesoarei",
     },
+    trueFalse: {
+      true: "Adevărat",
+      false: "Fals",
+    },
     pastClasses: {
       title: "Cursuri anterioare",
       empty: "Nu ai încă cursuri anterioare.",
@@ -714,7 +718,11 @@ export const roDict = {
           DRAG_DROP: "Trage și plasează",
           TABLE_FILL: "Completează tabelul",
           MATCHING: "Potrivire",
+          TRUE_FALSE: "Adevărat / Fals",
         },
+        trueFalseHint: "Marchează dacă enunțul este adevărat sau fals.",
+        trueLabel: "Adevărat",
+        falseLabel: "Fals",
         promptBlanksHint:
           "Scrie ___ (trei liniuțe de subliniere) unde vrei un spațiu liber. Ai nevoie de 1 până la 20.",
         promptOptionalHint: "Enunț sau titlu scurt (opțional).",

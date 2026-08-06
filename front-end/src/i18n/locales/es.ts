@@ -419,6 +419,10 @@ export const esDict = {
       unitExpected: "Esperado:",
       teacherFeedback: "Comentario de la profesora",
     },
+    trueFalse: {
+      true: "Verdadero",
+      false: "Falso",
+    },
     pastClasses: {
       title: "Clases anteriores",
       empty: "Aún no tienes clases anteriores.",
@@ -717,7 +721,11 @@ export const esDict = {
           DRAG_DROP: "Arrastrar y soltar",
           TABLE_FILL: "Rellenar tabla",
           MATCHING: "Emparejar",
+          TRUE_FALSE: "Verdadero / Falso",
         },
+        trueFalseHint: "Marca si el enunciado es verdadero o falso.",
+        trueLabel: "Verdadero",
+        falseLabel: "Falso",
         promptBlanksHint:
           "Escribe ___ (tres guiones bajos) donde quieras un hueco. Necesitas entre 1 y 20.",
         promptOptionalHint: "Enunciado o título breve (opcional).",

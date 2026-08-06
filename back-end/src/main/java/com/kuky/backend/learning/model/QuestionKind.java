@@ -9,6 +9,7 @@ package com.kuky.backend.learning.model;
  *   <li>{@code DRAG_DROP} — passage with ≥2 blanks; word bank placed by id (bank order = correct order).</li>
  *   <li>{@code TABLE_FILL} — grid of fixed/blank cells; typed blank cells.</li>
  *   <li>{@code MATCHING} — left↔right pairs with optional distractors.</li>
+ *   <li>{@code TRUE_FALSE} — fixed true/false options; scored 0/1 like single choice.</li>
  * </ul>
  */
 public enum QuestionKind {
@@ -17,7 +18,8 @@ public enum QuestionKind {
     MULTI_BLANK,
     DRAG_DROP,
     TABLE_FILL,
-    MATCHING;
+    MATCHING,
+    TRUE_FALSE;
 
     /** Kinds that store answer keys in {@code structure_json} rather than options rows. */
     public boolean isStructured() {

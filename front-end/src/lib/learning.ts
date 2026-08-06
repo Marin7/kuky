@@ -12,7 +12,8 @@ export type QuestionKind =
   | "MULTI_BLANK"
   | "DRAG_DROP"
   | "TABLE_FILL"
-  | "MATCHING";
+  | "MATCHING"
+  | "TRUE_FALSE";
 
 export interface PresentationBlock {
   heading: string;

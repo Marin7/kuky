@@ -331,6 +331,22 @@ public class HomeworkAdminService {
                     throw new IllegalArgumentException("Marca al menos una opción correcta en la pregunta de opción múltiple.");
                 }
             }
+            case TRUE_FALSE -> {
+                if (opts.size() != 2) {
+                    throw new IllegalArgumentException("Una pregunta de verdadero/falso necesita exactamente dos opciones.");
+                }
+                String label0 = opts.get(0).label() == null ? "" : opts.get(0).label().strip();
+                String label1 = opts.get(1).label() == null ? "" : opts.get(1).label().strip();
+                if (!"true".equals(label0) || !"false".equals(label1)) {
+                    throw new IllegalArgumentException(
+                            "Las opciones de verdadero/falso deben ser «true» y «false», en ese orden.");
+                }
+                long correct = opts.stream().filter(HomeworkQuestionDto.OptionDto::correct).count();
+                if (correct != 1) {
+                    throw new IllegalArgumentException(
+                            "Marca exactamente una opción correcta en la pregunta de verdadero/falso.");
+                }
+            }
             default -> { /* structured kinds are validated via validateStructure */ }
         }
     }

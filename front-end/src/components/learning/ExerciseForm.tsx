@@ -153,7 +153,7 @@ export function ExerciseForm({ exercise }: Props) {
             </Label>
           )}
 
-          {q.kind === "SINGLE_CHOICE" && (
+          {(q.kind === "SINGLE_CHOICE" || q.kind === "TRUE_FALSE") && (
             <RadioGroup
               value={answers[q.id]?.selectedOptionIds[0] ?? ""}
               onValueChange={(v) => setSingle(q.id, v)}
@@ -164,7 +164,13 @@ export function ExerciseForm({ exercise }: Props) {
                   className="flex items-center gap-2.5 text-base leading-snug"
                 >
                   <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
-                  {o.label}
+                  {q.kind === "TRUE_FALSE"
+                    ? t(
+                        o.label === "false"
+                          ? "learning.trueFalse.false"
+                          : "learning.trueFalse.true",
+                      )
+                    : o.label}
                 </label>
               ))}
             </RadioGroup>

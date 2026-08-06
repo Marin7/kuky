@@ -125,6 +125,38 @@ class ExerciseGradingServiceTest {
         assertThat(scoreOf(r)).isEqualTo(0.0);
     }
 
+    // --- true / false --------------------------------------------------------
+
+    @Test
+    void trueFalseCorrect() {
+        QuestionOption t = option("true", true);
+        QuestionOption f = option("false", false);
+        HomeworkQuestion q = question(QuestionKind.TRUE_FALSE, List.of(t, f));
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(t.getId()), null));
+        assertThat(scoreOf(r)).isEqualTo(1.0);
+        assertThat(r.questions().get(0).correct()).isTrue();
+    }
+
+    @Test
+    void trueFalseWrongRevealsCorrectOption() {
+        QuestionOption t = option("true", true);
+        QuestionOption f = option("false", false);
+        HomeworkQuestion q = question(QuestionKind.TRUE_FALSE, List.of(t, f));
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(f.getId()), null));
+        assertThat(scoreOf(r)).isEqualTo(0.0);
+        assertThat(r.questions().get(0).correctOptionIds()).containsExactly(t.getId());
+    }
+
+    @Test
+    void trueFalseUnansweredScoresZero() {
+        QuestionOption t = option("true", false);
+        QuestionOption f = option("false", true);
+        HomeworkQuestion q = question(QuestionKind.TRUE_FALSE, List.of(t, f));
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), null));
+        assertThat(scoreOf(r)).isEqualTo(0.0);
+        assertThat(r.questions().get(0).correctOptionIds()).containsExactly(f.getId());
+    }
+
     // --- multi choice (partial credit) --------------------------------------
 
     @Test
