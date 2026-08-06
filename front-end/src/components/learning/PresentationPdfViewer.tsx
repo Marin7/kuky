@@ -1,8 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import {
+  getDocument,
+  GlobalWorkerOptions,
+  type PDFDocumentProxy,
+  type RenderTask,
+} from "pdfjs-dist";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { fetchPresentationFileBlob, isPresentationPdf } from "@/lib/learning";
 import { Button } from "@/components/ui/button";
+
+GlobalWorkerOptions.workerSrc = pdfWorker;
 
 interface PresentationPdfViewerProps {
   presentationId: string;
@@ -13,9 +22,99 @@ interface PresentationPdfViewerProps {
 
 type ViewerState =
   | { status: "loading" }
-  | { status: "ready"; url: string }
+  | { status: "ready"; pdf: PDFDocumentProxy }
   | { status: "error" }
   | { status: "notViewable" };
+
+function PdfPage({
+  pdf,
+  pageNumber,
+  width,
+}: {
+  pdf: PDFDocumentProxy;
+  pageNumber: number;
+  width: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (width <= 0) return;
+
+    let cancelled = false;
+    let renderTask: RenderTask | null = null;
+
+    (async () => {
+      const page = await pdf.getPage(pageNumber);
+      if (cancelled) return;
+
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = width / baseViewport.width;
+      const viewport = page.getViewport({ scale });
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const context = canvas.getContext("2d");
+      if (!context) return;
+
+      const outputScale = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = `${viewport.width}px`;
+      canvas.style.height = `${viewport.height}px`;
+      context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+
+      renderTask = page.render({
+        canvas,
+        canvasContext: context,
+        viewport,
+      });
+      try {
+        await renderTask.promise;
+      } catch {
+        // Cancelled renders throw; ignore when unmounting / resizing.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+    };
+  }, [pdf, pageNumber, width]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="mx-auto max-w-full border border-border bg-white shadow-sm"
+      aria-label={`Page ${pageNumber}`}
+    />
+  );
+}
+
+function PdfPageStack({ pdf }: { pdf: PDFDocumentProxy }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = () => setWidth(el.clientWidth);
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} className="flex flex-col gap-6 pb-10">
+      {width > 0 &&
+        Array.from({ length: pdf.numPages }, (_, i) => (
+          <PdfPage key={i + 1} pdf={pdf} pageNumber={i + 1} width={width} />
+        ))}
+    </div>
+  );
+}
 
 export function PresentationPdfViewer({
   presentationId,
@@ -29,30 +128,37 @@ export function PresentationPdfViewer({
 
   useEffect(() => {
     let cancelled = false;
-    let objectUrl: string | null = null;
+    let pdf: PDFDocumentProxy | null = null;
 
     setState({ status: "loading" });
 
-    fetchPresentationFileBlob(presentationId, fileId)
-      .then((blob) => {
+    (async () => {
+      try {
+        const blob = await fetchPresentationFileBlob(presentationId, fileId);
         if (cancelled) return;
-        // Non-empty Content-Type that is not PDF → download-only file opened via URL.
+
         if (blob.type && !isPresentationPdf(blob.type)) {
           setState({ status: "notViewable" });
           return;
         }
-        objectUrl = URL.createObjectURL(
-          blob.type ? blob : new Blob([blob], { type: "application/pdf" }),
-        );
-        setState({ status: "ready", url: objectUrl });
-      })
-      .catch(() => {
+
+        const data = await blob.arrayBuffer();
+        if (cancelled) return;
+
+        pdf = await getDocument({ data }).promise;
+        if (cancelled) {
+          void pdf.destroy();
+          return;
+        }
+        setState({ status: "ready", pdf });
+      } catch {
         if (!cancelled) setState({ status: "error" });
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      if (pdf) void pdf.destroy();
     };
   }, [presentationId, fileId]);
 
@@ -64,8 +170,8 @@ export function PresentationPdfViewer({
     displayName || title || t("learning.presentations.viewerTitle");
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-5xl flex-col gap-4 px-4 py-6 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+      <div className="sticky top-0 z-10 -mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <h1 className="font-display truncate text-lg font-semibold text-foreground">
           {heading}
         </h1>
@@ -92,13 +198,7 @@ export function PresentationPdfViewer({
         </p>
       )}
 
-      {state.status === "ready" && (
-        <iframe
-          title={heading}
-          src={state.url}
-          className="min-h-[65vh] w-full flex-1 rounded-md border border-border bg-background"
-        />
-      )}
+      {state.status === "ready" && <PdfPageStack pdf={state.pdf} />}
     </div>
   );
 }
