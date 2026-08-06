@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { ExerciseResult, StudentQuestion } from "@/lib/learning";
+import { MultiBlankResult } from "./MultiBlankResult";
 import { TableFillResult } from "./TableFillResult";
 
 interface Props {
@@ -111,7 +112,11 @@ export function ExerciseResult({
                 )
               : "";
           const hasStudentChoice = studentChoiceText.length > 0;
-          const showChoiceDetail = showAllAnswers || !qr.correct || partial;
+          const isTrueFalse = question?.kind === "TRUE_FALSE";
+          const isMultiBlank = question?.kind === "MULTI_BLANK";
+          // TRUE_FALSE always shows the student's pick; never the answer key line.
+          const showChoiceDetail =
+            showAllAnswers || !qr.correct || partial || isTrueFalse;
 
           return (
             <div
@@ -119,9 +124,17 @@ export function ExerciseResult({
               className="rounded-lg border p-3 text-base"
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
-                  {i + 1}. {question?.prompt}
-                </p>
+                {isMultiBlank && unitResults.length > 0 && question ? (
+                  <MultiBlankResult
+                    number={i + 1}
+                    prompt={question.prompt}
+                    unitResults={unitResults}
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
+                    {i + 1}. {question?.prompt}
+                  </p>
+                )}
                 <span
                   className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${badge.cls}`}
                 >
@@ -135,7 +148,7 @@ export function ExerciseResult({
                   structure={question.structure}
                   unitResults={unitResults}
                 />
-              ) : unitResults.length > 0 ? (
+              ) : unitResults.length > 0 && !isMultiBlank ? (
                 <div className="mt-2 space-y-1.5">
                   {unitResults.map((u) => (
                     <div
@@ -171,6 +184,7 @@ export function ExerciseResult({
                   ))}
                 </div>
               ) : (
+                !isMultiBlank &&
                 showChoiceDetail && (
                   <div className="mt-2 space-y-1 text-muted-foreground">
                     <p>
@@ -179,14 +193,16 @@ export function ExerciseResult({
                       </span>
                       {hasStudentChoice ? studentChoiceText : noAnswer}
                     </p>
-                    {(!qr.correct || partial) && correctText && (
-                      <p>
-                        <span className="font-medium text-foreground">
-                          {t("learning.exerciseResult.correctAnswer")}{" "}
-                        </span>
-                        {correctText}
-                      </p>
-                    )}
+                    {!isTrueFalse &&
+                      (!qr.correct || partial) &&
+                      correctText && (
+                        <p>
+                          <span className="font-medium text-foreground">
+                            {t("learning.exerciseResult.correctAnswer")}{" "}
+                          </span>
+                          {correctText}
+                        </p>
+                      )}
                   </div>
                 )
               )}
