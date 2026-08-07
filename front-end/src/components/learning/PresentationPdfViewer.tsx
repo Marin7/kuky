@@ -27,8 +27,6 @@ interface PresentationPdfViewerProps {
   fileId: string;
   title?: string;
   displayName?: string;
-  /** When true, omit page chrome (back button / sticky header) for inline expand. */
-  embedded?: boolean;
 }
 
 type ViewerState =
@@ -207,7 +205,6 @@ export function PresentationPdfViewer({
   fileId,
   title,
   displayName,
-  embedded = false,
 }: PresentationPdfViewerProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -257,8 +254,17 @@ export function PresentationPdfViewer({
   const heading =
     displayName || title || t("learning.presentations.viewerTitle");
 
-  const body = (
-    <>
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+      <div className="sticky top-0 z-10 -mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+        <h1 className="font-display truncate text-lg font-semibold text-foreground">
+          {heading}
+        </h1>
+        <Button variant="outline" size="sm" onClick={goBackToLearning}>
+          {t("learning.presentations.backToLearning")}
+        </Button>
+      </div>
+
       {state.status === "loading" && (
         <p className="animate-pulse text-sm text-muted-foreground">
           {t("learning.presentations.viewing")}
@@ -278,24 +284,6 @@ export function PresentationPdfViewer({
       )}
 
       {state.status === "ready" && <PdfPageStack pdf={state.pdf} />}
-    </>
-  );
-
-  if (embedded) {
-    return <div className="w-full">{body}</div>;
-  }
-
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
-      <div className="sticky top-0 z-10 -mx-4 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-        <h1 className="font-display truncate text-lg font-semibold text-foreground">
-          {heading}
-        </h1>
-        <Button variant="outline" size="sm" onClick={goBackToLearning}>
-          {t("learning.presentations.backToLearning")}
-        </Button>
-      </div>
-      {body}
     </div>
   );
 }

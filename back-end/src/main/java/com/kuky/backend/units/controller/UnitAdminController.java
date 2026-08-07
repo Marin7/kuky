@@ -51,12 +51,6 @@ public class UnitAdminController {
         return service.reorder(req.level(), req.orderedIds());
     }
 
-    @PutMapping("/{id}/contents/reorder")
-    public UnitDetail reorderContents(@PathVariable UUID id,
-                                      @Valid @RequestBody ReorderUnitContentsRequest req) {
-        return service.reorderContents(id, req.items());
-    }
-
     @PutMapping("/{id}/presentations")
     public UnitDetail setPresentations(@PathVariable UUID id,
                                        @Valid @RequestBody SetUnitPresentationsRequest req) {

@@ -50,15 +50,12 @@ interface HomeworkItemCardProps {
   item: HomeworkItem;
   onOpen: (item: HomeworkItem) => void;
   onViewResult: (item: HomeworkItem) => void;
-  /** Optional eyebrow above the title (e.g. singular "Tarea" on unit pages). */
-  typeLabel?: string;
 }
 
 export function HomeworkItemCard({
   item,
   onOpen,
   onViewResult,
-  typeLabel,
 }: HomeworkItemCardProps) {
   const { t } = useTranslation();
 
@@ -77,11 +74,6 @@ export function HomeworkItemCard({
   return (
     <Card className="text-sm">
       <CardContent className="space-y-2 pt-4">
-        {typeLabel && (
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {typeLabel}
-          </p>
-        )}
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="font-medium text-foreground">{item.title}</p>

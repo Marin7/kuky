@@ -94,13 +94,11 @@ public class ContentRepository {
     }
 
     /** Maps each of the student's assigned homeworks to its owning unit (only those in a unit). */
-    public record AssignmentUnit(UUID assignmentId, UUID unitId, String level, String subject,
-                                 int position, int unitPosition) {}
+    public record AssignmentUnit(UUID assignmentId, UUID unitId, String level, String subject, int position) {}
 
     public List<AssignmentUnit> findAssignmentUnitsForUser(UUID userId) {
         String sql = """
-                SELECT a.id AS assignment_id, u.id AS unit_id, u.level, u.subject, u.position,
-                       a.unit_position AS content_position
+                SELECT a.id AS assignment_id, u.id AS unit_id, u.level, u.subject, u.position
                 FROM homework_assignments a
                 JOIN homework_targets t ON t.assignment_id = a.id
                 JOIN units u ON u.id = a.unit_id
@@ -111,8 +109,7 @@ public class ContentRepository {
                 rs.getObject("unit_id", UUID.class),
                 rs.getString("level"),
                 rs.getString("subject"),
-                rs.getInt("position"),
-                rs.getInt("content_position")));
+                rs.getInt("position")));
     }
 
     public Optional<HomeworkAssignment> findPublishedAssignmentById(UUID id) {

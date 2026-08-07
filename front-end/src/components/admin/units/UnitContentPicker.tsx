@@ -7,17 +7,17 @@ import {
   getHomework,
   setUnitPresentations,
   setUnitHomeworks,
+  setAssignees,
   uploadPresentationFile,
   deletePresentationFile,
   setPresentationLevel,
-  reorderUnitContents,
   type UnitDetail,
-  type UnitContentItem,
   type PresentationSummary,
   type HomeworkAdminItem,
   type HomeworkLevel,
   type ApiError,
 } from "@/lib/admin";
+import { StudentLink } from "@/components/admin/students/StudentLink";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -28,23 +28,10 @@ import {
 } from "@/components/ui/select";
 import { LEVELS } from "./UnitsTab";
 import { AddContentCombobox } from "./AddContentCombobox";
-import { UnitContentSortableList } from "./UnitContentSortableList";
 
 interface Props {
   unitId: string;
   onUpdated: (detail: UnitDetail) => void;
-}
-
-function presentationIds(detail: UnitDetail): string[] {
-  return detail.contents
-    .filter((c) => c.type === "PRESENTATION" && c.presentation)
-    .map((c) => c.presentation!.id.toString());
-}
-
-function homeworkIds(detail: UnitDetail): string[] {
-  return detail.contents
-    .filter((c) => c.type === "HOMEWORK" && c.homework)
-    .map((c) => c.homework!.id.toString());
 }
 
 export function UnitContentPicker({ unitId, onUpdated }: Props) {
@@ -81,21 +68,17 @@ export function UnitContentPicker({ unitId, onUpdated }: Props) {
     );
   if (!detail) return <p className="text-xs text-destructive">{error}</p>;
 
-  const unitPresentationIds = new Set(presentationIds(detail));
-  const unitHomeworkIds = new Set(homeworkIds(detail));
+  const unitPresentationIds = new Set(
+    detail.presentations.map((p) => p.id.toString()),
+  );
+  const unitHomeworkIds = new Set(detail.homeworks.map((h) => h.id.toString()));
 
-  const availablePresentations = allPresentations.filter(
-    (p) => !unitPresentationIds.has(String(p.id)),
-  );
-  const availableHomeworks = allHomeworks.filter(
-    (h) => !unitHomeworkIds.has(String(h.id)),
-  );
   const detachPresentation = async (pid: string) => {
+    const newIds = detail.presentations
+      .map((p) => p.id.toString())
+      .filter((id) => id !== pid);
     try {
-      const updated = await setUnitPresentations(
-        unitId,
-        presentationIds(detail).filter((id) => id !== pid),
-      );
+      const updated = await setUnitPresentations(unitId, newIds);
       setDetail(updated);
       onUpdated(updated);
     } catch {
@@ -104,11 +87,9 @@ export function UnitContentPicker({ unitId, onUpdated }: Props) {
   };
 
   const attachPresentation = async (pid: string) => {
+    const newIds = [...detail.presentations.map((p) => p.id.toString()), pid];
     try {
-      const updated = await setUnitPresentations(unitId, [
-        ...presentationIds(detail),
-        pid,
-      ]);
+      const updated = await setUnitPresentations(unitId, newIds);
       setDetail(updated);
       onUpdated(updated);
     } catch {
@@ -117,11 +98,11 @@ export function UnitContentPicker({ unitId, onUpdated }: Props) {
   };
 
   const detachHomework = async (hid: string) => {
+    const newIds = detail.homeworks
+      .map((h) => h.id.toString())
+      .filter((id) => id !== hid);
     try {
-      const updated = await setUnitHomeworks(
-        unitId,
-        homeworkIds(detail).filter((id) => id !== hid),
-      );
+      const updated = await setUnitHomeworks(unitId, newIds);
       setDetail(updated);
       onUpdated(updated);
     } catch {
@@ -130,11 +111,9 @@ export function UnitContentPicker({ unitId, onUpdated }: Props) {
   };
 
   const attachHomework = async (hid: string) => {
+    const newIds = [...detail.homeworks.map((h) => h.id.toString()), hid];
     try {
-      const updated = await setUnitHomeworks(unitId, [
-        ...homeworkIds(detail),
-        hid,
-      ]);
+      const updated = await setUnitHomeworks(unitId, newIds);
       setDetail(updated);
       onUpdated(updated);
     } catch {
@@ -142,120 +121,112 @@ export function UnitContentPicker({ unitId, onUpdated }: Props) {
     }
   };
 
-  const handleReorder = async (items: UnitContentItem[]) => {
-    try {
-      const updated = await reorderUnitContents(
-        unitId,
-        items.map((c) => ({
-          type: c.type,
-          id:
-            c.type === "PRESENTATION"
-              ? c.presentation!.id.toString()
-              : c.homework!.id.toString(),
-        })),
-      );
-      setDetail(updated);
-      onUpdated(updated);
-    } catch {
-      setError(t("admin.units.contents.reorderError"));
-      load();
-    }
-  };
-
-  const patchPresentation = (updated: PresentationSummary) => {
-    setDetail((prev) =>
-      prev
-        ? {
-            ...prev,
-            contents: prev.contents.map((c) =>
-              c.type === "PRESENTATION" &&
-              c.presentation?.id === updated.id
-                ? { ...c, presentation: updated }
-                : c,
-            ),
-          }
-        : prev,
-    );
-  };
+  const availablePresentations = allPresentations.filter(
+    (p) => !unitPresentationIds.has(p.id),
+  );
+  const availableHomeworks = allHomeworks.filter(
+    (h) => !unitHomeworkIds.has(h.id.toString()),
+  );
 
   return (
     <div className="space-y-4 border-t pt-4">
       {error && <p className="text-xs text-destructive">{error}</p>}
 
+      {/* Presentations section */}
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t("admin.units.contents.sequence")}
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+          {t("admin.units.contents.presentations")}
         </p>
 
-        {detail.contents.length === 0 ? (
+        {detail.presentations.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            {t("admin.units.contents.empty")}
+            {t("admin.units.contents.emptyPresentations")}
           </p>
         ) : (
-          <UnitContentSortableList
-            items={detail.contents}
-            onReorder={handleReorder}
-            moveUpLabel={t("admin.units.contents.moveUp")}
-            moveDownLabel={t("admin.units.contents.moveDown")}
-            renderItem={(item) =>
-              item.type === "PRESENTATION" && item.presentation ? (
-                <PresentationRow
-                  presentation={item.presentation}
-                  typeLabel={t("admin.units.contents.typePresentation")}
-                  onDetach={() =>
-                    detachPresentation(item.presentation!.id.toString())
-                  }
-                  onUpdated={patchPresentation}
-                />
-              ) : item.homework ? (
-                <HomeworkRow
-                  homework={item.homework}
-                  typeLabel={t("admin.units.contents.typeHomework")}
-                  onDetach={() =>
-                    detachHomework(item.homework!.id.toString())
-                  }
-                  onEditClick={() =>
-                    navigate({
-                      to: "/panel/tareas/$homeworkId",
-                      params: {
-                        homeworkId: item.homework!.id.toString(),
-                      },
-                    })
-                  }
-                />
-              ) : null
-            }
-          />
+          <div className="space-y-2">
+            {detail.presentations.map((p) => (
+              <PresentationRow
+                key={p.id.toString()}
+                presentation={p}
+                onDetach={() => detachPresentation(p.id.toString())}
+                onUpdated={(updated) => {
+                  setDetail((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          presentations: prev.presentations.map((pp) =>
+                            pp.id === updated.id ? updated : pp,
+                          ),
+                        }
+                      : prev,
+                  );
+                }}
+              />
+            ))}
+          </div>
         )}
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {availablePresentations.length > 0 && (
+        {availablePresentations.length > 0 && (
+          <div className="mt-2">
             <AddContentCombobox
               triggerLabel={t("admin.units.contents.addPresentation")}
               searchPlaceholder={t("admin.units.contents.searchPresentations")}
               emptyLabel={t("admin.units.contents.noMatches")}
               options={availablePresentations.map((p) => ({
-                id: String(p.id),
+                id: p.id,
                 title: p.title,
                 level: p.level,
               }))}
               onSelect={attachPresentation}
             />
-          )}
-          {availableHomeworks.length > 0 && (
+          </div>
+        )}
+      </div>
+
+      {/* Homework section */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+          {t("admin.units.contents.homeworks")}
+        </p>
+
+        {detail.homeworks.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            {t("admin.units.contents.emptyHomeworks")}
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {detail.homeworks.map((h) => (
+              <HomeworkRow
+                key={h.id.toString()}
+                homework={h}
+                assignedStudents={detail.assignedStudents}
+                onDetach={() => detachHomework(h.id.toString())}
+                onEditClick={() =>
+                  navigate({
+                    to: "/panel/tareas/$homeworkId",
+                    params: { homeworkId: h.id.toString() },
+                  })
+                }
+              />
+            ))}
+          </div>
+        )}
+
+        {availableHomeworks.length > 0 && (
+          <div className="mt-2">
             <AddContentCombobox
               triggerLabel={t("admin.units.contents.addHomework")}
               searchPlaceholder={t("admin.units.contents.searchHomeworks")}
               emptyLabel={t("admin.units.contents.noMatches")}
               options={availableHomeworks.map((h) => ({
-                id: String(h.id),
+                id: h.id.toString(),
                 title: h.title,
                 level: h.level,
               }))}
               onSelect={attachHomework}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -265,14 +236,12 @@ export function UnitContentPicker({ unitId, onUpdated }: Props) {
 
 interface PresentationRowProps {
   presentation: PresentationSummary;
-  typeLabel: string;
   onDetach: () => void;
   onUpdated: (updated: PresentationSummary) => void;
 }
 
 function PresentationRow({
   presentation: p,
-  typeLabel,
   onDetach,
   onUpdated,
 }: PresentationRowProps) {
@@ -325,7 +294,7 @@ function PresentationRow({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-2 py-1.5 text-xs">
+    <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 px-2 py-1.5 text-xs">
       <input
         type="file"
         accept=".pptx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -333,9 +302,6 @@ function PresentationRow({
         ref={fileInputRef}
         onChange={handleFileChange}
       />
-      <span className="rounded bg-background px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-        {typeLabel}
-      </span>
       <span className="flex-1 truncate font-medium">{p.title}</span>
 
       <Select value={p.level ?? "NONE"} onValueChange={handleLevelChange}>
@@ -355,17 +321,17 @@ function PresentationRow({
       </Select>
 
       {p.files.length > 0 ? (
-        <div className="flex w-full flex-wrap items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1 w-full">
           {p.files.map((f) => (
             <span
               key={f.id}
               className="inline-flex items-center gap-1 text-muted-foreground"
             >
-              <span className="max-w-[10rem] truncate">📎 {f.displayName}</span>
+              <span className="truncate max-w-[10rem]">📎 {f.displayName}</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-1 text-xs text-destructive"
+                className="h-6 text-xs px-1 text-destructive"
                 onClick={() => handleDeleteFile(f.id)}
                 disabled={uploading}
               >
@@ -376,7 +342,7 @@ function PresentationRow({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-1 text-xs"
+            className="h-6 text-xs px-1"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading || p.files.length >= 10}
           >
@@ -387,7 +353,7 @@ function PresentationRow({
         <Button
           variant="outline"
           size="sm"
-          className="h-6 px-1 text-xs"
+          className="h-6 text-xs px-1"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
@@ -400,7 +366,7 @@ function PresentationRow({
       <Button
         variant="ghost"
         size="sm"
-        className="h-6 px-1 text-xs text-destructive"
+        className="h-6 text-xs px-1 text-destructive"
         onClick={onDetach}
       >
         {t("admin.units.contents.detach")}
@@ -415,41 +381,97 @@ function PresentationRow({
 
 interface HomeworkRowProps {
   homework: HomeworkAdminItem;
-  typeLabel: string;
+  assignedStudents: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    username: string | null;
+  }[];
   onDetach: () => void;
   onEditClick: () => void;
 }
 
 function HomeworkRow({
   homework: h,
-  typeLabel,
+  assignedStudents,
   onDetach,
   onEditClick,
 }: HomeworkRowProps) {
   const { t } = useTranslation();
+  const [assigning, setAssigning] = useState(false);
+  const [rowError, setRowError] = useState<string | null>(null);
+  const [currentAssigneeIds, setCurrentAssigneeIds] = useState<string[]>(
+    h.assignees.map((a) => a.userId.toString()),
+  );
+
+  const toggleStudent = async (studentId: string) => {
+    const next = currentAssigneeIds.includes(studentId)
+      ? currentAssigneeIds.filter((id) => id !== studentId)
+      : [...currentAssigneeIds, studentId];
+    setAssigning(true);
+    try {
+      await setAssignees(h.id.toString(), next);
+      setCurrentAssigneeIds(next);
+    } catch {
+      setRowError(t("admin.units.homework.assignError"));
+    } finally {
+      setAssigning(false);
+    }
+  };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-2 py-1.5 text-xs">
-      <span className="rounded bg-background px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-        {typeLabel}
-      </span>
-      <span className="flex-1 truncate font-medium">{h.title}</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 px-1 text-xs"
-        onClick={onEditClick}
-      >
-        {t("admin.units.contents.editHomework")}
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 px-1 text-xs text-destructive"
-        onClick={onDetach}
-      >
-        {t("admin.units.contents.detach")}
-      </Button>
+    <div className="rounded-md bg-muted/40 px-2 py-1.5 text-xs space-y-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex-1 truncate font-medium">{h.title}</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 text-xs px-1"
+          onClick={onEditClick}
+        >
+          {t("admin.units.contents.editHomework")}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 text-xs px-1 text-destructive"
+          onClick={onDetach}
+        >
+          {t("admin.units.contents.detach")}
+        </Button>
+      </div>
+
+      {/* Per-student assignment toggles */}
+      {assignedStudents.length > 0 && (
+        <div>
+          <p className="text-muted-foreground mb-1">
+            {t("admin.units.homework.assignedTo")}:
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {assignedStudents.map((s) => {
+              const assigned = currentAssigneeIds.includes(s.id);
+              return (
+                <button
+                  key={s.id}
+                  disabled={assigning}
+                  onClick={() => toggleStudent(s.id)}
+                  className={[
+                    "rounded-full px-2 py-0.5 text-xs border transition-colors",
+                    assigned
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-dashed text-muted-foreground hover:border-foreground",
+                  ].join(" ")}
+                >
+                  <StudentLink student={s} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {rowError && <p className="text-destructive">{rowError}</p>}
     </div>
   );
 }

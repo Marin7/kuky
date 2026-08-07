@@ -73,11 +73,8 @@ export function UnitsTab() {
           level: detail.level,
           subject: detail.subject,
           position: detail.position,
-          presentationCount: detail.contents.filter(
-            (c) => c.type === "PRESENTATION",
-          ).length,
-          homeworkCount: detail.contents.filter((c) => c.type === "HOMEWORK")
-            .length,
+          presentationCount: detail.presentations.length,
+          homeworkCount: detail.homeworks.length,
           assignedStudentIds: detail.assignedStudents.map((s) => s.id),
         },
       ]);
