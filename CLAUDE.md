@@ -82,12 +82,12 @@ npm run lint && npm run format
 | `/sobre-mi` | Paula's bio |
 | `/cuenta` | Register / login / forgot+reset password |
 | `/reservas` | Public schedule, book 1-on-1 with Zoom, manage bookings |
-| `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise), submit/view own testimonial |
+| `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise), submit/view own testimonial. Unit assignment grants the unit's presentations and homeworks (mixed sequence on the unit page). |
 | `/prueba-de-nivel` | Login-gated placement test: 3 timed auto-graded sections (Reading/Audio/Grammar, per-skill CEFR) + full evaluation (offline bank transfer, Writing submission, book appointment via `/reservas`) |
-| `/panel` | Admin: availability editor, Units tab (create/reorder units, attach presentations & homeworks, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Prueba de nivel tab (author placement questions/config, view student results), Testimonios tab (review/approve/reject/edit/reorder/unpublish student testimonials), student profile (curriculum/homework/attendance progress summary, mark/unmark class no-shows) |
+| `/panel` | Admin: availability editor, Units tab (create/reorder units, mixed ordered presentations & homeworks via drag-and-drop, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Prueba de nivel tab (author placement questions/config, view student results), Testimonios tab (review/approve/reject/edit/reorder/unpublish student testimonials), student profile (curriculum/homework/attendance progress summary, mark/unmark class no-shows) |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/027-true-false-homework/plan.md`
+`specs/028-unit-content-ordering/plan.md`
 <!-- SPECKIT END -->

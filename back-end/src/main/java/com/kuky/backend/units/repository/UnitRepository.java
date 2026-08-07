@@ -3,6 +3,8 @@ package com.kuky.backend.units.repository;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.PresentationSummary;
 import com.kuky.backend.admin.dto.StudentResponse;
+import com.kuky.backend.units.dto.UnitContentItem;
+import com.kuky.backend.units.dto.UnitContentRef;
 import com.kuky.backend.units.model.Unit;
 import com.kuky.backend.units.dto.UnitSummary;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -129,40 +131,197 @@ public class UnitRepository {
 
     // --- Content membership --------------------------------------------------
 
+    /** Ordered mixed content refs for a unit (presentations + homeworks by unit_position). */
+    public record ContentMember(String type, UUID id, int unitPosition) {}
+
+    public List<ContentMember> findContentMembers(UUID unitId) {
+        String sql = """
+                SELECT type, id, unit_position FROM (
+                    SELECT 'PRESENTATION' AS type, id, unit_position
+                    FROM presentations WHERE unit_id = :uid
+                    UNION ALL
+                    SELECT 'HOMEWORK' AS type, id, unit_position
+                    FROM homework_assignments WHERE unit_id = :uid
+                ) c
+                ORDER BY unit_position, type, id
+                """;
+        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> new ContentMember(
+                rs.getString("type"),
+                rs.getObject("id", UUID.class),
+                rs.getInt("unit_position")));
+    }
+
     @Transactional
-    public void setPresentations(UUID unitId, List<UUID> presentationIds) {
-        // Clear unit_id for presentations currently in this unit but not in the new list
-        jdbc.update("UPDATE presentations SET unit_id = NULL WHERE unit_id = :uid",
-                Map.of("uid", unitId));
-        if (!presentationIds.isEmpty()) {
-            jdbc.update("UPDATE presentations SET unit_id = :uid WHERE id IN (:ids)",
-                    Map.of("uid", unitId, "ids", presentationIds));
+    public void reorderContents(UUID unitId, List<UnitContentRef> items) {
+        for (int i = 0; i < items.size(); i++) {
+            UnitContentRef ref = items.get(i);
+            String type = ref.type() == null ? "" : ref.type().toUpperCase(java.util.Locale.ROOT);
+            if (UnitContentItem.PRESENTATION.equals(type)) {
+                jdbc.update("""
+                        UPDATE presentations SET unit_position = :pos, updated_at = NOW()
+                        WHERE id = :id AND unit_id = :uid
+                        """, new MapSqlParameterSource()
+                        .addValue("pos", i)
+                        .addValue("id", ref.id())
+                        .addValue("uid", unitId));
+            } else if (UnitContentItem.HOMEWORK.equals(type)) {
+                jdbc.update("""
+                        UPDATE homework_assignments SET unit_position = :pos
+                        WHERE id = :id AND unit_id = :uid
+                        """, new MapSqlParameterSource()
+                        .addValue("pos", i)
+                        .addValue("id", ref.id())
+                        .addValue("uid", unitId));
+            }
         }
         touch(unitId);
     }
 
+    private void rewritePositions(UUID unitId, List<ContentMember> ordered) {
+        for (int i = 0; i < ordered.size(); i++) {
+            ContentMember m = ordered.get(i);
+            if (UnitContentItem.PRESENTATION.equals(m.type())) {
+                jdbc.update("""
+                        UPDATE presentations SET unit_position = :pos, updated_at = NOW()
+                        WHERE id = :id AND unit_id = :uid
+                        """, new MapSqlParameterSource()
+                        .addValue("pos", i)
+                        .addValue("id", m.id())
+                        .addValue("uid", unitId));
+            } else {
+                jdbc.update("""
+                        UPDATE homework_assignments SET unit_position = :pos
+                        WHERE id = :id AND unit_id = :uid
+                        """, new MapSqlParameterSource()
+                        .addValue("pos", i)
+                        .addValue("id", m.id())
+                        .addValue("uid", unitId));
+            }
+        }
+    }
+
+    @Transactional
+    public void setPresentations(UUID unitId, List<UUID> presentationIds) {
+        applyMembership(unitId, UnitContentItem.PRESENTATION, presentationIds);
+    }
+
     @Transactional
     public void setHomeworks(UUID unitId, List<UUID> homeworkIds) {
-        jdbc.update("UPDATE homework_assignments SET unit_id = NULL WHERE unit_id = :uid",
-                Map.of("uid", unitId));
-        if (!homeworkIds.isEmpty()) {
-            jdbc.update("UPDATE homework_assignments SET unit_id = :uid WHERE id IN (:ids)",
-                    Map.of("uid", unitId, "ids", homeworkIds));
+        applyMembership(unitId, UnitContentItem.HOMEWORK, homeworkIds == null ? List.of() : homeworkIds);
+    }
+
+    private void applyMembership(UUID unitId, String memberType, List<UUID> desiredIds) {
+        List<UUID> desired = desiredIds == null ? List.of() : desiredIds;
+        java.util.LinkedHashSet<UUID> desiredSet = new java.util.LinkedHashSet<>(desired);
+
+        List<ContentMember> current = findContentMembers(unitId);
+
+        for (ContentMember m : current) {
+            if (memberType.equals(m.type()) && !desiredSet.contains(m.id())) {
+                detachMember(m);
+            }
         }
+
+        for (UUID id : desired) {
+            compactAfterMoveFromOtherUnit(memberType, id, unitId);
+        }
+
+        List<ContentMember> next = new java.util.ArrayList<>();
+        java.util.HashSet<UUID> retained = new java.util.HashSet<>();
+        for (ContentMember m : current) {
+            if (!memberType.equals(m.type())) {
+                next.add(m);
+            } else if (desiredSet.contains(m.id())) {
+                next.add(m);
+                retained.add(m.id());
+            }
+        }
+        for (UUID id : desired) {
+            if (!retained.contains(id)) {
+                attachMember(memberType, id, unitId);
+                next.add(new ContentMember(memberType, id, next.size()));
+            }
+        }
+
+        for (UUID id : desired) {
+            if (retained.contains(id)) {
+                attachMember(memberType, id, unitId);
+            }
+        }
+
+        rewritePositions(unitId, next);
         touch(unitId);
+    }
+
+    private void detachMember(ContentMember m) {
+        if (UnitContentItem.PRESENTATION.equals(m.type())) {
+            jdbc.update("""
+                    UPDATE presentations SET unit_id = NULL, unit_position = 0, updated_at = NOW()
+                    WHERE id = :id
+                    """, Map.of("id", m.id()));
+        } else {
+            jdbc.update("""
+                    UPDATE homework_assignments SET unit_id = NULL, unit_position = 0
+                    WHERE id = :id
+                    """, Map.of("id", m.id()));
+        }
+    }
+
+    /** If the item belongs to another unit, detach it and compact that unit's remaining sequence. */
+    private void compactAfterMoveFromOtherUnit(String type, UUID id, UUID keepUnitId) {
+        UUID previousUnitId = null;
+        if (UnitContentItem.PRESENTATION.equals(type)) {
+            previousUnitId = jdbc.query("""
+                    SELECT unit_id FROM presentations
+                    WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
+                    """, Map.of("id", id, "uid", keepUnitId),
+                    (rs, n) -> rs.getObject("unit_id", UUID.class)).stream().findFirst().orElse(null);
+            jdbc.update("""
+                    UPDATE presentations SET unit_id = NULL, unit_position = 0, updated_at = NOW()
+                    WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
+                    """, Map.of("id", id, "uid", keepUnitId));
+        } else {
+            previousUnitId = jdbc.query("""
+                    SELECT unit_id FROM homework_assignments
+                    WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
+                    """, Map.of("id", id, "uid", keepUnitId),
+                    (rs, n) -> rs.getObject("unit_id", UUID.class)).stream().findFirst().orElse(null);
+            jdbc.update("""
+                    UPDATE homework_assignments SET unit_id = NULL, unit_position = 0
+                    WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
+                    """, Map.of("id", id, "uid", keepUnitId));
+        }
+        if (previousUnitId != null) {
+            rewritePositions(previousUnitId, findContentMembers(previousUnitId));
+            touch(previousUnitId);
+        }
+    }
+
+    private void attachMember(String type, UUID id, UUID unitId) {
+        if (UnitContentItem.PRESENTATION.equals(type)) {
+            jdbc.update("""
+                    UPDATE presentations SET unit_id = :uid, updated_at = NOW()
+                    WHERE id = :id
+                    """, Map.of("uid", unitId, "id", id));
+        } else {
+            jdbc.update("""
+                    UPDATE homework_assignments SET unit_id = :uid
+                    WHERE id = :id
+                    """, Map.of("uid", unitId, "id", id));
+        }
     }
 
     // --- Detail loaders ------------------------------------------------------
 
     public List<PresentationSummary> findPresentations(UUID unitId) {
         String sql = """
-                SELECT p.id, p.title, p.level, p.updated_at,
+                SELECT p.id, p.title, p.level, p.updated_at, p.unit_position,
                        COALESCE(ARRAY_AGG(sh.user_id::text) FILTER (WHERE sh.user_id IS NOT NULL), '{}') AS shared_with_ids
                 FROM presentations p
                 LEFT JOIN presentation_shares sh ON sh.presentation_id = p.id
                 WHERE p.unit_id = :uid
-                GROUP BY p.id, p.title, p.level, p.updated_at
-                ORDER BY p.updated_at DESC
+                GROUP BY p.id, p.title, p.level, p.updated_at, p.unit_position
+                ORDER BY p.unit_position
                 """;
         return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> {
             java.sql.Array arr = rs.getArray("shared_with_ids");
@@ -181,10 +340,10 @@ public class UnitRepository {
     public List<HomeworkAdminItem> findHomeworks(UUID unitId) {
         String sql = """
                 SELECT ha.id, ha.title, ha.instructions, ha.due_on, ha.homework_type,
-                       ha.level, ha.format, ha.audio_url, ha.audio_file_id
+                       ha.level, ha.format, ha.audio_url, ha.audio_file_id, ha.unit_position
                 FROM homework_assignments ha
                 WHERE ha.unit_id = :uid
-                ORDER BY ha.created_at DESC
+                ORDER BY ha.unit_position
                 """;
         return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> new HomeworkAdminItem(
                 rs.getObject("id", UUID.class),
@@ -217,6 +376,25 @@ public class UnitRepository {
 
     // --- Assignees -----------------------------------------------------------
 
+    public List<UUID> findAssigneeIds(UUID unitId) {
+        return jdbc.query("""
+                SELECT user_id FROM unit_assignments WHERE unit_id = :uid ORDER BY user_id
+                """, Map.of("uid", unitId), (rs, n) -> rs.getObject("user_id", UUID.class));
+    }
+
+    public List<UUID> findHomeworkIds(UUID unitId) {
+        return jdbc.query("""
+                SELECT id FROM homework_assignments WHERE unit_id = :uid ORDER BY unit_position, id
+                """, Map.of("uid", unitId), (rs, n) -> rs.getObject("id", UUID.class));
+    }
+
+    public java.util.Optional<UUID> findUnitIdForHomework(UUID homeworkId) {
+        return jdbc.query("""
+                SELECT unit_id FROM homework_assignments WHERE id = :id AND unit_id IS NOT NULL
+                """, Map.of("id", homeworkId), (rs, n) -> rs.getObject("unit_id", UUID.class))
+                .stream().findFirst();
+    }
+
     @Transactional
     public void replaceAssignees(UUID unitId, List<UUID> studentIds) {
         jdbc.update("DELETE FROM unit_assignments WHERE unit_id = :uid", Map.of("uid", unitId));
@@ -236,10 +414,9 @@ public class UnitRepository {
     // --- Student progress ------------------------------------------------------
 
     /**
-     * Homework totals are counted via {@code homework_targets}, not
-     * {@code homework_assignments.unit_id} alone — a homework filed under a unit
-     * is only "the student's" if they were actually targeted for it ({@code unit_id}
-     * is organisational-only, never authoritative for student access).
+     * Homework totals for a student on an assigned unit: homeworks in the unit that
+     * are targeted at the student ({@code homework_targets}). Unit assignment now
+     * auto-targets unit homeworks; targets remain the access source of truth.
      */
     public record UnitProgressView(UUID unitId, String subject, String level,
                                    int totalHomeworks, int completedHomeworks) {}

@@ -677,13 +677,19 @@ export interface UnitSummary {
   assignedStudentIds: string[];
 }
 
+export interface UnitContentItem {
+  type: "PRESENTATION" | "HOMEWORK";
+  unitPosition: number;
+  presentation: PresentationSummary | null;
+  homework: HomeworkAdminItem | null;
+}
+
 export interface UnitDetail {
   id: string;
   level: HomeworkLevel;
   subject: string;
   position: number;
-  presentations: PresentationSummary[];
-  homeworks: HomeworkAdminItem[];
+  contents: UnitContentItem[];
   assignedStudents: Student[];
 }
 
@@ -710,6 +716,15 @@ export const reorderUnits = (level: HomeworkLevel, orderedIds: string[]) =>
   apiCall<UnitSummary[]>("/units/reorder", {
     method: "PUT",
     body: JSON.stringify({ level, orderedIds }),
+  });
+
+export const reorderUnitContents = (
+  id: string,
+  items: { type: "PRESENTATION" | "HOMEWORK"; id: string }[],
+) =>
+  apiCall<UnitDetail>(`/units/${id}/contents/reorder`, {
+    method: "PUT",
+    body: JSON.stringify({ items }),
   });
 
 export const setUnitPresentations = (id: string, presentationIds: string[]) =>

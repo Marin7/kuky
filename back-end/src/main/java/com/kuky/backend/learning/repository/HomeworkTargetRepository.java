@@ -30,6 +30,15 @@ public class HomeworkTargetRepository {
     public void replaceTargets(UUID assignmentId, List<UUID> userIds) {
         jdbc.update("DELETE FROM homework_targets WHERE assignment_id = :aid",
                 Map.of("aid", assignmentId));
+        addTargets(assignmentId, userIds);
+    }
+
+    /** Idempotent: adds targets for each user (skips existing). */
+    @Transactional
+    public void addTargets(UUID assignmentId, List<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
         for (UUID userId : userIds) {
             jdbc.update("""
                     INSERT INTO homework_targets (id, assignment_id, user_id)
@@ -40,6 +49,18 @@ public class HomeworkTargetRepository {
                     .addValue("aid", assignmentId)
                     .addValue("uid", userId));
         }
+    }
+
+    /** Removes targets for the given users only (leaves other assignees intact). */
+    @Transactional
+    public void removeTargets(UUID assignmentId, List<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return;
+        }
+        jdbc.update("""
+                DELETE FROM homework_targets
+                WHERE assignment_id = :aid AND user_id IN (:uids)
+                """, Map.of("aid", assignmentId, "uids", userIds));
     }
 
     public List<AssigneeView> findAssigneesWithSubmissions(UUID assignmentId) {
