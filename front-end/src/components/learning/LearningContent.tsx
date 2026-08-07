@@ -1,184 +1,96 @@
-import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
+import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { HomeworkItem, SharedPresentationSummary } from "@/lib/learning";
-import { downloadPresentationFile, isPresentationPdf } from "@/lib/learning";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { HomeworkItemCard } from "./HomeworkItemCard";
+import { buildGroups, type UnitGroup } from "./unitGroups";
 
 interface Props {
   presentations: SharedPresentationSummary[];
   homework: HomeworkItem[];
-  onOpenHomework: (item: HomeworkItem) => void;
 }
 
-interface UnitGroup {
-  key: string;
-  level: string | null;
-  label: string | null; // null → "Other" bucket
-  position: number;
-  presentations: SharedPresentationSummary[];
-  homework: HomeworkItem[];
-}
-
-const STATUS_ORDER: Record<string, number> = {
-  PENDING: 0,
-  SUBMITTED: 1,
-  REVIEWED: 2,
-  GRADED: 3,
-};
-
-const OTHER_KEY = "__other__";
-
-function buildGroups(
-  presentations: SharedPresentationSummary[],
-  homework: HomeworkItem[],
-): UnitGroup[] {
-  const map = new Map<string, UnitGroup>();
-  const other: UnitGroup = {
-    key: OTHER_KEY,
-    level: null,
-    label: null,
-    position: Number.MAX_SAFE_INTEGER,
-    presentations: [],
-    homework: [],
-  };
-
-  const ensure = (unit: {
-    level: string;
-    subject: string;
-    position: number;
-  }) => {
-    const key = `${unit.level}::${unit.subject}::${unit.position}`;
-    let g = map.get(key);
-    if (!g) {
-      g = {
-        key,
-        level: unit.level,
-        label: `${unit.level} · ${unit.subject}`,
-        position: unit.position,
-        presentations: [],
-        homework: [],
-      };
-      map.set(key, g);
-    }
-    return g;
-  };
-
-  for (const p of presentations) {
-    if (p.unit) ensure(p.unit).presentations.push(p);
-    else other.presentations.push(p);
-  }
-  for (const h of homework) {
-    if (h.unit) ensure(h.unit).homework.push(h);
-    else other.homework.push(h);
-  }
-
-  const groups = [...map.values()].sort((a, b) => {
-    const lvl = (a.level ?? "").localeCompare(b.level ?? "");
-    return lvl !== 0 ? lvl : a.position - b.position;
-  });
-  if (other.presentations.length > 0 || other.homework.length > 0) {
-    groups.push(other);
-  }
-  return groups;
-}
-
-function PresentationDownloadCard({
-  presentation,
-}: {
-  presentation: SharedPresentationSummary;
-}) {
+function UnitCardBody({ group }: { group: UnitGroup }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleDownload = async (fileId: string, displayName: string) => {
-    setDownloadingId(fileId);
-    setError(null);
-    try {
-      await downloadPresentationFile(presentation.id, fileId, displayName);
-    } catch {
-      setError(t("learning.presentations.loadError"));
-    } finally {
-      setDownloadingId(null);
-    }
-  };
-
-  const handleOpen = (fileId: string) => {
-    navigate({
-      to: "/aprendizaje/presentacion/$presentationId/archivo/$fileId",
-      params: {
-        presentationId: presentation.id,
-        fileId,
-      },
-    });
-  };
+  const pendingCount = group.homework.filter(
+    (h) => h.status === "PENDING",
+  ).length;
+  const title = group.label ?? t("learning.units.other");
 
   return (
-    <Card>
-      <CardContent className="space-y-2 pt-4">
-        <p className="truncate font-medium">{presentation.title}</p>
-        {presentation.files.length > 0 ? (
-          <ul className="space-y-1">
-            {presentation.files.map((f) => {
-              const canView = isPresentationPdf(f.contentType);
-              return (
-                <li
-                  key={f.id}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <span className="truncate text-sm text-muted-foreground">
-                    {f.displayName}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {canView && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleOpen(f.id)}
-                      >
-                        {t("learning.presentations.open")}
-                      </Button>
-                    )}
-                    <Button
-                      variant={canView ? "outline" : "default"}
-                      size="sm"
-                      disabled={downloadingId === f.id}
-                      onClick={() => handleDownload(f.id, f.displayName)}
-                    >
-                      {downloadingId === f.id
-                        ? t("learning.presentations.downloading")
-                        : t("learning.presentations.download")}
-                    </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            {t("learning.presentations.noFile")}
-          </span>
-        )}
-        {error && <p className="text-sm text-destructive">{error}</p>}
+    <Card className="transition-colors hover:bg-muted/40">
+      <CardContent className="flex items-center justify-between gap-3 pt-4">
+        <div className="min-w-0 space-y-1.5">
+          <p className="truncate font-medium text-foreground">{title}</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            {group.presentations.length > 0 && (
+              <span>
+                {group.presentations.length === 1
+                  ? t("learning.units.presentationsCountSingular", {
+                      count: group.presentations.length,
+                    })
+                  : t("learning.units.presentationsCountPlural", {
+                      count: group.presentations.length,
+                    })}
+              </span>
+            )}
+            {group.homework.length > 0 && (
+              <span>
+                {group.homework.length === 1
+                  ? t("learning.units.homeworkCountSingular", {
+                      count: group.homework.length,
+                    })
+                  : t("learning.units.homeworkCountPlural", {
+                      count: group.homework.length,
+                    })}
+              </span>
+            )}
+            {pendingCount > 0 && (
+              <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                {t("learning.units.pendingBadge")}
+              </span>
+            )}
+          </div>
+        </div>
+        <ChevronRight
+          className="h-5 w-5 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
+        <span className="sr-only">{t("learning.units.openUnit")}</span>
       </CardContent>
     </Card>
   );
 }
 
-export function LearningContent({
-  presentations,
-  homework,
-  onOpenHomework,
-}: Props) {
+function UnitCard({ group }: { group: UnitGroup }) {
+  const linkClass =
+    "block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+  if (group.unitId === null) {
+    return (
+      <Link to="/aprendizaje/otros" className={linkClass}>
+        <UnitCardBody group={group} />
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      to="/aprendizaje/unidad/$unitId"
+      params={{ unitId: group.unitId }}
+      className={linkClass}
+    >
+      <UnitCardBody group={group} />
+    </Link>
+  );
+}
+
+export function LearningContent({ presentations, homework }: Props) {
   const { t } = useTranslation();
   const groups = buildGroups(presentations, homework);
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-4">
       <h2 className="font-display text-xl font-bold text-foreground">
         {t("learning.units.title")}
       </h2>
@@ -188,49 +100,11 @@ export function LearningContent({
           {t("learning.units.empty")}
         </p>
       ) : (
-        groups.map((group) => (
-          <div key={group.key} className="space-y-4">
-            <h3 className="text-base font-semibold text-foreground">
-              {group.label ?? t("learning.units.other")}
-            </h3>
-
-            {group.presentations.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t("learning.units.presentations")}
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {group.presentations.map((p) => (
-                    <PresentationDownloadCard key={p.id} presentation={p} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {group.homework.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t("learning.units.homework")}
-                </p>
-                <div className="space-y-3">
-                  {[...group.homework]
-                    .sort(
-                      (a, b) =>
-                        (STATUS_ORDER[a.status] ?? 9) -
-                        (STATUS_ORDER[b.status] ?? 9),
-                    )
-                    .map((item) => (
-                      <HomeworkItemCard
-                        key={item.id}
-                        item={item}
-                        onOpen={onOpenHomework}
-                      />
-                    ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ))
+        <div className="space-y-3">
+          {groups.map((group) => (
+            <UnitCard key={group.key} group={group} />
+          ))}
+        </div>
       )}
     </section>
   );

@@ -49,13 +49,31 @@ const LEVEL_CLASS: Record<HomeworkLevel, string> = {
 interface HomeworkItemCardProps {
   item: HomeworkItem;
   onOpen: (item: HomeworkItem) => void;
+  onViewResult: (item: HomeworkItem) => void;
 }
 
-export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
+export function HomeworkItemCard({
+  item,
+  onOpen,
+  onViewResult,
+}: HomeworkItemCardProps) {
   const { t } = useTranslation();
+
+  const gradedExerciseButton =
+    item.format === "EXERCISE" && item.status === "GRADED" ? (
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 text-xs"
+        onClick={() => onViewResult(item)}
+      >
+        {t("learning.homework.viewResult")}
+      </Button>
+    ) : null;
+
   return (
     <Card className="text-sm">
-      <CardContent className="pt-4 space-y-2">
+      <CardContent className="space-y-2 pt-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="font-medium text-foreground">{item.title}</p>
@@ -137,22 +155,17 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
           </div>
         )}
 
-        {item.homeworkType === "READ" ? (
+        {gradedExerciseButton ? (
+          gradedExerciseButton
+        ) : item.homeworkType === "READ" ? (
           item.format === "EXERCISE" ? (
-            <Button
-              asChild
-              variant={item.status === "GRADED" ? "outline" : "default"}
-              size="sm"
-              className="h-8 text-xs"
-            >
+            <Button asChild variant="default" size="sm" className="h-8 text-xs">
               <Link
                 to="/aprendizaje/lectura/$homeworkId"
                 params={{ homeworkId: item.id }}
                 search={{ format: item.format }}
               >
-                {item.status === "GRADED"
-                  ? t("learning.homework.viewResult")
-                  : t("learning.homework.startExercise")}
+                {t("learning.homework.startExercise")}
               </Link>
             </Button>
           ) : (
@@ -177,20 +190,13 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
           )
         ) : item.homeworkType === "AUDIO" ? (
           item.format === "EXERCISE" ? (
-            <Button
-              asChild
-              variant={item.status === "GRADED" ? "outline" : "default"}
-              size="sm"
-              className="h-8 text-xs"
-            >
+            <Button asChild variant="default" size="sm" className="h-8 text-xs">
               <Link
                 to="/aprendizaje/escucha/$homeworkId"
                 params={{ homeworkId: item.id }}
                 search={{ format: item.format }}
               >
-                {item.status === "GRADED"
-                  ? t("learning.homework.viewResult")
-                  : t("learning.homework.startExercise")}
+                {t("learning.homework.startExercise")}
               </Link>
             </Button>
           ) : (
@@ -214,19 +220,12 @@ export function HomeworkItemCard({ item, onOpen }: HomeworkItemCardProps) {
             )
           )
         ) : item.format === "EXERCISE" ? (
-          <Button
-            asChild
-            variant={item.status === "GRADED" ? "outline" : "default"}
-            size="sm"
-            className="h-8 text-xs"
-          >
+          <Button asChild variant="default" size="sm" className="h-8 text-xs">
             <Link
               to="/aprendizaje/tarea/$homeworkId"
               params={{ homeworkId: item.id }}
             >
-              {item.status === "GRADED"
-                ? t("learning.homework.viewResult")
-                : t("learning.homework.startExercise")}
+              {t("learning.homework.startExercise")}
             </Link>
           </Button>
         ) : item.homeworkType === "WRITE" ? (

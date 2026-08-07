@@ -94,11 +94,11 @@ public class ContentRepository {
     }
 
     /** Maps each of the student's assigned homeworks to its owning unit (only those in a unit). */
-    public record AssignmentUnit(UUID assignmentId, String level, String subject, int position) {}
+    public record AssignmentUnit(UUID assignmentId, UUID unitId, String level, String subject, int position) {}
 
     public List<AssignmentUnit> findAssignmentUnitsForUser(UUID userId) {
         String sql = """
-                SELECT a.id AS assignment_id, u.level, u.subject, u.position
+                SELECT a.id AS assignment_id, u.id AS unit_id, u.level, u.subject, u.position
                 FROM homework_assignments a
                 JOIN homework_targets t ON t.assignment_id = a.id
                 JOIN units u ON u.id = a.unit_id
@@ -106,6 +106,7 @@ public class ContentRepository {
                 """;
         return jdbc.query(sql, Map.of("userId", userId), (rs, n) -> new AssignmentUnit(
                 rs.getObject("assignment_id", UUID.class),
+                rs.getObject("unit_id", UUID.class),
                 rs.getString("level"),
                 rs.getString("subject"),
                 rs.getInt("position")));

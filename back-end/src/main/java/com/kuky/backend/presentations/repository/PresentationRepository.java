@@ -310,13 +310,14 @@ public class PresentationRepository {
         return count != null && count > 0;
     }
 
-    public record UnitRef(String level, String subject, int position) {}
+    public record UnitRef(UUID id, String level, String subject, int position) {}
     public record SharedSummaryWithUnit(UUID id, String title, String level, UnitRef unit) {}
 
     public List<SharedSummaryWithUnit> findSharedSummariesForUser(UUID userId) {
         String sql = """
                 SELECT p.id, p.title, p.level, p.updated_at,
-                       u.level AS unit_level, u.subject AS unit_subject, u.position AS unit_position
+                       u.id AS unit_id, u.level AS unit_level, u.subject AS unit_subject,
+                       u.position AS unit_position
                 FROM presentations p
                 LEFT JOIN units u ON u.id = p.unit_id
                 WHERE
@@ -326,9 +327,10 @@ public class PresentationRepository {
                 ORDER BY COALESCE(u.level, 'ZZ'), COALESCE(u.position, 999), p.updated_at DESC
                 """;
         return jdbc.query(sql, Map.of("uid", userId), (rs, n) -> {
-            String unitLevel = rs.getString("unit_level");
-            UnitRef unitRef = unitLevel == null ? null
-                    : new UnitRef(unitLevel, rs.getString("unit_subject"), rs.getInt("unit_position"));
+            UUID unitId = rs.getObject("unit_id", UUID.class);
+            UnitRef unitRef = unitId == null ? null
+                    : new UnitRef(unitId, rs.getString("unit_level"), rs.getString("unit_subject"),
+                            rs.getInt("unit_position"));
             return new SharedSummaryWithUnit(
                     rs.getObject("id", UUID.class),
                     rs.getString("title"),

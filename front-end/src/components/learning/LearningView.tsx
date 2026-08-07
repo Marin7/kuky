@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  getLearning,
-  type LearningResponse,
-  type HomeworkItem,
-} from "@/lib/learning";
+import { getLearning, type LearningResponse } from "@/lib/learning";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PastClassesList } from "./PastClassesList";
-import { HomeworkSubmitDialog } from "./HomeworkSubmitDialog";
 import { LearningContent } from "./LearningContent";
 import { MyTestimonial } from "./MyTestimonial";
 
@@ -34,36 +29,18 @@ export function LearningView() {
   const [data, setData] = useState<LearningResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dialogItem, setDialogItem] = useState<HomeworkItem | null>(null);
 
-  const load = () => {
+  useEffect(() => {
     setLoading(true);
     setError(null);
     getLearning()
       .then(setData)
       .catch(() => setError(t("learning.loadError")))
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  const handleSubmitted = (updated: HomeworkItem) => {
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            homework: prev.homework.map((h) =>
-              h.id === updated.id ? updated : h,
-            ),
-          }
-        : prev,
-    );
-  };
+  }, [t]);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10 space-y-10">
+    <div className="mx-auto max-w-5xl space-y-10 px-6 py-10">
       {loading && <LearningSkeleton />}
 
       {error && <p className="text-destructive">{error}</p>}
@@ -73,18 +50,11 @@ export function LearningView() {
           <LearningContent
             presentations={data.sharedPresentations}
             homework={data.homework}
-            onOpenHomework={setDialogItem}
           />
           <PastClassesList classes={data.pastClasses} />
           <MyTestimonial />
         </>
       )}
-
-      <HomeworkSubmitDialog
-        item={dialogItem}
-        onClose={() => setDialogItem(null)}
-        onSubmitted={handleSubmitted}
-      />
     </div>
   );
 }

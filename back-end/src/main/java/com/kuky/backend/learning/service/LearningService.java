@@ -73,7 +73,7 @@ public class LearningService {
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
                         ContentRepository.AssignmentUnit::assignmentId,
-                        au -> new UnitRef(au.level(), au.subject(), au.position())));
+                        au -> new UnitRef(au.unitId(), au.level(), au.subject(), au.position())));
 
         List<HomeworkItemResponse> homework = contentRepository.findAssignmentsForUser(user.getId()).stream()
                 .map(a -> HomeworkItems.toResponse(a, submissionsByAssignment.get(a.getId()), today,
@@ -90,7 +90,8 @@ public class LearningService {
                         filesByPresentation.getOrDefault(s.id(), List.of()),
                         s.unit() == null ? null
                                 : new UnitRef(
-                                        s.unit().level(), s.unit().subject(), s.unit().position())))
+                                        s.unit().id(), s.unit().level(), s.unit().subject(),
+                                        s.unit().position())))
                 .toList();
 
         return new LearningResponse(presentation, pastClasses, homework, sharedPresentations);
