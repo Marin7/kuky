@@ -31,6 +31,11 @@ interface Props {
   exercise: ExerciseResponse;
   /** Called after a successful grade so parents can refresh list badges. */
   onGraded?: () => void;
+  /** Override default homework submit (e.g. presentation activities). */
+  submitAnswers?: (
+    id: string,
+    answers: AnswerPayload[],
+  ) => Promise<ExerciseResultData>;
 }
 
 // Passage kinds render the number inline with the prompt; skip the separate
@@ -59,7 +64,7 @@ function initialAnswerState(
  * Renders the answerable questions of an auto-graded exercise (or its result
  * once graded). Shared by the grammar exercise page and the reading page.
  */
-export function ExerciseForm({ exercise, onGraded }: Props) {
+export function ExerciseForm({ exercise, onGraded, submitAnswers }: Props) {
   const { t } = useTranslation();
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(() =>
     Object.fromEntries(
@@ -119,7 +124,8 @@ export function ExerciseForm({ exercise, onGraded }: Props) {
           answerJson,
         };
       });
-      const res = await submitExercise(exercise.id, payload);
+      const submit = submitAnswers ?? submitExercise;
+      const res = await submit(exercise.id, payload);
       setResult(res);
       onGraded?.();
     } catch (e) {

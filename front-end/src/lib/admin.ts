@@ -289,9 +289,16 @@ export interface HomeworkBreakdown {
   completed: number;
 }
 
+export interface ActivityBreakdown {
+  pending: number;
+  submitted: number;
+  completed: number;
+}
+
 export interface StudentProgress {
   units: UnitProgress[];
   homeworkBreakdown: HomeworkBreakdown;
+  activityBreakdown?: ActivityBreakdown;
   attendedClasses: number;
 }
 
@@ -662,6 +669,164 @@ export const uploadPresentationFile = async (
 
 export const deletePresentationFile = (id: string, fileId: string) =>
   apiCall<void>(`/presentations/${id}/files/${fileId}`, { method: "DELETE" });
+
+// ---------------------------------------------------------------------------
+// Presentation Activities
+// ---------------------------------------------------------------------------
+
+export interface ActivityInstructionsMeta {
+  id: string;
+  originalName: string;
+  contentType: string;
+  byteSize: number;
+}
+
+export interface ActivityAdminItem {
+  id: string;
+  title: string;
+  format: HomeworkFormat;
+  level: HomeworkLevel | null;
+  homeworkType: HomeworkType | null;
+  presentationId: string;
+  presentationTitle: string;
+  position: number;
+  triggerFileId: string | null;
+  triggerPage: number | null;
+  instructionsText: string;
+  youtubeUrl: string | null;
+  imageId: string | null;
+  hasInstructions: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ActivityAdminDetail extends ActivityAdminItem {
+  questions: AdminQuestion[];
+  instructions: ActivityInstructionsMeta | null;
+}
+
+export interface ActivityWriteFields {
+  title: string;
+  presentationId: string;
+  format: HomeworkFormat;
+  level?: HomeworkLevel | null;
+  homeworkType?: HomeworkType | null;
+  triggerFileId: string;
+  triggerPage: number;
+  instructionsText: string;
+  youtubeUrl?: string | null;
+  imageId?: string | null;
+  questions?: AdminQuestion[];
+}
+
+export const listActivities = (presentationId?: string) => {
+  const qs = presentationId
+    ? `?presentationId=${encodeURIComponent(presentationId)}`
+    : "";
+  return apiCall<ActivityAdminItem[]>(`/activities${qs}`);
+};
+
+export const getActivityAdmin = (id: string) =>
+  apiCall<ActivityAdminDetail>(`/activities/${id}`);
+
+export const uploadAdminImage = async (
+  file: File,
+): Promise<{ id: string; contentType: string; byteSize: number }> => {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_BASE}/images`, {
+    method: "POST",
+    credentials: "include",
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw data as ApiError;
+  return data as { id: string; contentType: string; byteSize: number };
+};
+
+export const createActivity = (fields: ActivityWriteFields) =>
+  apiCall<ActivityAdminDetail>("/activities", {
+    method: "POST",
+    body: JSON.stringify({
+      title: fields.title,
+      presentationId: fields.presentationId,
+      format: fields.format,
+      level: fields.level ?? null,
+      homeworkType: fields.homeworkType ?? null,
+      triggerFileId: fields.triggerFileId,
+      triggerPage: fields.triggerPage,
+      instructionsText: fields.instructionsText,
+      youtubeUrl: fields.youtubeUrl ?? null,
+      imageId: fields.imageId ?? null,
+      questions: fields.questions ?? [],
+    }),
+  });
+
+export const updateActivity = (id: string, fields: ActivityWriteFields) =>
+  apiCall<ActivityAdminDetail>(`/activities/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      title: fields.title,
+      presentationId: fields.presentationId,
+      format: fields.format,
+      level: fields.level ?? null,
+      homeworkType: fields.homeworkType ?? null,
+      triggerFileId: fields.triggerFileId,
+      triggerPage: fields.triggerPage,
+      instructionsText: fields.instructionsText,
+      youtubeUrl: fields.youtubeUrl ?? null,
+      imageId: fields.imageId ?? null,
+      questions: fields.questions ?? [],
+    }),
+  });
+
+
+export const deleteActivity = (id: string) =>
+  apiCall<void>(`/activities/${id}`, { method: "DELETE" });
+
+export const reorderActivities = (
+  presentationId: string,
+  activityIds: string[],
+) =>
+  apiCall<void>(`/presentations/${presentationId}/activities/reorder`, {
+    method: "PUT",
+    body: JSON.stringify({ activityIds }),
+  });
+
+export const getActivityReviewQueue = () =>
+  apiCall<HomeworkReviewQueueItem[]>("/activities/submissions");
+
+export const getActivitySubmission = (submissionId: string) =>
+  apiCall<HomeworkSubmissionAdmin>(`/activities/submissions/${submissionId}`);
+
+export const getActivityExerciseSubmissionResult = (submissionId: string) =>
+  apiCall<ExerciseSubmissionResultAdmin>(
+    `/activities/submissions/${submissionId}/exercise-result`,
+  );
+
+export const saveActivityFeedback = (
+  submissionId: string,
+  feedback: FormattedText,
+) =>
+  apiCall<HomeworkSubmissionAdmin>(
+    `/activities/submissions/${submissionId}/feedback`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ feedback }),
+    },
+  );
+
+export const saveActivityExerciseFeedback = (
+  submissionId: string,
+  feedback: string,
+) =>
+  apiCall<ExerciseSubmissionResultAdmin>(
+    `/activities/submissions/${submissionId}/exercise-feedback`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ feedback }),
+    },
+  );
 
 // ---------------------------------------------------------------------------
 // Units (Class Packages)

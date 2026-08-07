@@ -1,8 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getMe, type UserResponse } from "@/lib/auth";
-import { PresentationPdfViewer } from "@/components/learning/PresentationPdfViewer";
+import {
+  getLearning,
+  type ActivitySummary,
+} from "@/lib/learning";
+import { ActivityViewerPrompts } from "@/components/learning/ActivityViewerPrompts";
 import { StudentOnlyNotice } from "@/components/StudentOnlyNotice";
 import { seo } from "@/lib/seo";
 
@@ -24,7 +28,23 @@ function PresentationViewerPage() {
   const { presentationId, fileId } = Route.useParams();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [activities, setActivities] = useState<ActivitySummary[]>([]);
+  const [title, setTitle] = useState<string | undefined>();
   const navigate = useNavigate();
+
+  const loadActivities = useCallback(() => {
+    getLearning()
+      .then((data) => {
+        const pres = data.sharedPresentations.find(
+          (p) => p.id === presentationId,
+        );
+        setTitle(pres?.title);
+        setActivities(pres?.activities ?? []);
+      })
+      .catch(() => {
+        setActivities([]);
+      });
+  }, [presentationId]);
 
   useEffect(() => {
     getMe()
@@ -35,6 +55,12 @@ function PresentationViewerPage() {
       })
       .finally(() => setAuthLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== "STUDENT" && user.role !== "ADMIN") return;
+    loadActivities();
+  }, [user, loadActivities]);
 
   if (authLoading) {
     return (
@@ -57,6 +83,12 @@ function PresentationViewerPage() {
   }
 
   return (
-    <PresentationPdfViewer presentationId={presentationId} fileId={fileId} />
+    <ActivityViewerPrompts
+      presentationId={presentationId}
+      fileId={fileId}
+      activities={activities}
+      title={title}
+      onActivitiesChanged={loadActivities}
+    />
   );
 }

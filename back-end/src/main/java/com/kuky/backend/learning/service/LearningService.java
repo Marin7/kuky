@@ -3,6 +3,7 @@ package com.kuky.backend.learning.service;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.config.SchedulingProperties;
+import com.kuky.backend.learning.dto.ActivitySummary;
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
 import com.kuky.backend.learning.dto.LearningResponse;
 import com.kuky.backend.learning.dto.PastClassResponse;
@@ -34,6 +35,7 @@ public class LearningService {
     private final UserRepository userRepository;
     private final PresentationRepository presentationRepository;
     private final PresentationFileStore presentationFileStore;
+    private final ActivityStudentService activityStudentService;
     private final SchedulingProperties props;
 
     public LearningService(ContentRepository contentRepository,
@@ -41,12 +43,14 @@ public class LearningService {
                            UserRepository userRepository,
                            PresentationRepository presentationRepository,
                            PresentationFileStore presentationFileStore,
+                           ActivityStudentService activityStudentService,
                            SchedulingProperties props) {
         this.contentRepository = contentRepository;
         this.submissionRepository = submissionRepository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
         this.presentationFileStore = presentationFileStore;
+        this.activityStudentService = activityStudentService;
         this.props = props;
     }
 
@@ -88,8 +92,11 @@ public class LearningService {
                 .toList();
 
         var sharedRows = presentationRepository.findSharedSummariesForUser(user.getId());
+        List<UUID> presentationIds = sharedRows.stream().map(s -> s.id()).toList();
         Map<UUID, List<com.kuky.backend.admin.dto.PresentationFileSummary>> filesByPresentation =
-                presentationRepository.listFilesGrouped(sharedRows.stream().map(s -> s.id()).toList());
+                presentationRepository.listFilesGrouped(presentationIds);
+        Map<UUID, List<ActivitySummary>> activitiesByPresentation =
+                activityStudentService.summariesForPresentations(user.getId(), presentationIds);
         List<SharedPresentationSummary> sharedPresentations = sharedRows.stream()
                 .map(s -> new SharedPresentationSummary(
                         s.id(),
@@ -99,7 +106,8 @@ public class LearningService {
                                 : new UnitRef(
                                         s.unit().id(), s.unit().level(), s.unit().subject(),
                                         s.unit().position()),
-                        s.contentUnitPosition()))
+                        s.contentUnitPosition(),
+                        activitiesByPresentation.getOrDefault(s.id(), List.of())))
                 .toList();
 
         return new LearningResponse(presentation, pastClasses, homework, sharedPresentations);

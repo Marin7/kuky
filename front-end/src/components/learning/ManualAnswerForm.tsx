@@ -25,6 +25,11 @@ interface Props {
   readOnly: boolean;
   labels: Labels;
   onSubmitted: () => void;
+  /** Override default homework submit (e.g. presentation activities). */
+  submitAnswer?: (
+    id: string,
+    response?: FormattedText | null,
+  ) => Promise<unknown>;
 }
 
 function loadDraft(homeworkId: string): FormattedText | null {
@@ -50,6 +55,7 @@ export function ManualAnswerForm({
   readOnly,
   labels,
   onSubmitted,
+  submitAnswer,
 }: Props) {
   const { t } = useTranslation();
   const [answer, setAnswer] = useState<FormattedText>(() => {
@@ -79,7 +85,8 @@ export function ManualAnswerForm({
     setError(null);
     try {
       const hasContent = plainText(answer).trim().length > 0;
-      await submitHomework(homeworkId, hasContent ? answer : undefined);
+      const submit = submitAnswer ?? submitHomework;
+      await submit(homeworkId, hasContent ? answer : undefined);
       try {
         localStorage.removeItem(draftKey(homeworkId));
       } catch {

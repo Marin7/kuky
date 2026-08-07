@@ -251,11 +251,10 @@ public class HomeworkAdminService {
     }
 
     /**
-     * Validates the authored questions against the format rules and maps the
-     * teacher DTOs to persistence models. Throws {@link IllegalArgumentException}
-     * (→ VALIDATION_ERROR) on any rule violation.
+     * Public entry for activity authoring (and tests) to reuse homework question rules.
+     * Throws {@link IllegalArgumentException} (→ VALIDATION_ERROR) on any rule violation.
      */
-    private List<HomeworkQuestion> validateAndMapQuestions(HomeworkFormat format, List<HomeworkQuestionDto> dtos) {
+    public List<HomeworkQuestion> validateAndMapQuestions(HomeworkFormat format, List<HomeworkQuestionDto> dtos) {
         List<HomeworkQuestionDto> questions = dtos == null ? List.of() : dtos;
 
         if (format == HomeworkFormat.MANUAL) {

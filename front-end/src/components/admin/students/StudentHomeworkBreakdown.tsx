@@ -4,26 +4,37 @@ interface StudentHomeworkBreakdownProps {
   pending: number;
   submitted: number;
   completed: number;
+  pendingLabel?: string;
+  submittedLabel?: string;
+  completedLabel?: string;
 }
 
 export function StudentHomeworkBreakdown({
   pending,
   submitted,
   completed,
+  pendingLabel,
+  submittedLabel,
+  completedLabel,
 }: StudentHomeworkBreakdownProps) {
   const { t } = useTranslation();
 
   const groups = [
     {
-      label: t("admin.studentProfile.progress.homeworkPending"),
+      label:
+        pendingLabel ?? t("admin.studentProfile.progress.homeworkPending"),
       value: pending,
     },
     {
-      label: t("admin.studentProfile.progress.homeworkSubmitted"),
+      label:
+        submittedLabel ??
+        t("admin.studentProfile.progress.homeworkSubmitted"),
       value: submitted,
     },
     {
-      label: t("admin.studentProfile.progress.homeworkCompleted"),
+      label:
+        completedLabel ??
+        t("admin.studentProfile.progress.homeworkCompleted"),
       value: completed,
     },
   ];

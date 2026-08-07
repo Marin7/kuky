@@ -1,5 +1,6 @@
 package com.kuky.backend;
 
+import com.kuky.backend.config.ActivityInstructionsProperties;
 import com.kuky.backend.config.ImageProperties;
 import com.kuky.backend.config.PresentationFileProperties;
 import com.kuky.backend.config.SchedulingProperties;
@@ -12,7 +13,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties({
         SchedulingProperties.class,
         ImageProperties.class,
-        PresentationFileProperties.class
+        PresentationFileProperties.class,
+        ActivityInstructionsProperties.class
 })
 @EnableScheduling
 public class BackEndApplication {

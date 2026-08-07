@@ -5,6 +5,7 @@ import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.InterestCatalogue;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.presentations.repository.PresentationRepository;
 import com.kuky.backend.scheduling.model.Booking;
@@ -27,17 +28,20 @@ public class StudentProfileAdminService {
     private final HomeworkTargetRepository homeworkTargetRepository;
     private final PresentationRepository presentationRepository;
     private final UnitRepository unitRepository;
+    private final ActivitySubmissionRepository activitySubmissionRepository;
 
     public StudentProfileAdminService(UserRepository userRepository,
                                       BookingRepository bookingRepository,
                                       HomeworkTargetRepository homeworkTargetRepository,
                                       PresentationRepository presentationRepository,
-                                      UnitRepository unitRepository) {
+                                      UnitRepository unitRepository,
+                                      ActivitySubmissionRepository activitySubmissionRepository) {
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;
         this.homeworkTargetRepository = homeworkTargetRepository;
         this.presentationRepository = presentationRepository;
         this.unitRepository = unitRepository;
+        this.activitySubmissionRepository = activitySubmissionRepository;
     }
 
     public StudentProfileResponse getProfile(UUID studentId) {
@@ -63,6 +67,7 @@ public class StudentProfileAdminService {
         StudentProgressDto progress = new StudentProgressDto(
                 computeUnitProgress(studentId),
                 computeHomeworkBreakdown(homeworks),
+                computeActivityBreakdown(studentId),
                 computeAttendedClasses(bookings));
 
         return new StudentProfileResponse(
@@ -104,6 +109,11 @@ public class StudentProfileAdminService {
             }
         }
         return new HomeworkBreakdownDto(pending, submitted, completed);
+    }
+
+    private ActivityBreakdownDto computeActivityBreakdown(UUID studentId) {
+        var counts = activitySubmissionRepository.countBreakdownForStudent(studentId);
+        return new ActivityBreakdownDto(counts.pending(), counts.submitted(), counts.completed());
     }
 
     private int computeAttendedClasses(List<StudentProfileBookingDto> bookings) {

@@ -11,6 +11,10 @@ import com.kuky.backend.auth.exception.InvalidTokenException;
 import com.kuky.backend.auth.exception.RateLimitException;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.admin.exception.UserNotFoundException;
+import com.kuky.backend.learning.exception.ActivityAlreadySubmittedException;
+import com.kuky.backend.learning.exception.ActivityNotFoundException;
+import com.kuky.backend.learning.exception.ActivityReorderInvalidException;
+import com.kuky.backend.learning.exception.ActivityValidationException;
 import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.InvalidAudioException;
@@ -180,6 +184,30 @@ public class GlobalExceptionHandler {
     }
 
     // Learning exceptions
+
+    @ExceptionHandler(ActivityNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleActivityNotFound(ActivityNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "ACTIVITY_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ActivityValidationException.class)
+    public ResponseEntity<Map<String, String>> handleActivityValidation(ActivityValidationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", "ACTIVITY_VALIDATION", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ActivityReorderInvalidException.class)
+    public ResponseEntity<Map<String, String>> handleActivityReorder(ActivityReorderInvalidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", "ACTIVITY_REORDER_INVALID", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ActivityAlreadySubmittedException.class)
+    public ResponseEntity<Map<String, String>> handleActivityAlreadySubmitted(ActivityAlreadySubmittedException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", "ACTIVITY_ALREADY_SUBMITTED", "message", ex.getMessage()));
+    }
 
     @ExceptionHandler(AssignmentNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleAssignmentNotFound(AssignmentNotFoundException ex) {

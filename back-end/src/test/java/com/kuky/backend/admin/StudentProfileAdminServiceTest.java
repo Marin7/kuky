@@ -4,6 +4,7 @@ import com.kuky.backend.admin.dto.StudentProfileResponse;
 import com.kuky.backend.admin.service.StudentProfileAdminService;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.presentations.repository.PresentationRepository;
 import com.kuky.backend.scheduling.model.Booking;
@@ -29,6 +30,7 @@ class StudentProfileAdminServiceTest {
     private HomeworkTargetRepository homeworkTargetRepository;
     private PresentationRepository presentationRepository;
     private UnitRepository unitRepository;
+    private ActivitySubmissionRepository activitySubmissionRepository;
     private StudentProfileAdminService service;
 
     private final UUID studentId = UUID.randomUUID();
@@ -40,8 +42,10 @@ class StudentProfileAdminServiceTest {
         homeworkTargetRepository = mock(HomeworkTargetRepository.class);
         presentationRepository = mock(PresentationRepository.class);
         unitRepository = mock(UnitRepository.class);
+        activitySubmissionRepository = mock(ActivitySubmissionRepository.class);
         service = new StudentProfileAdminService(userRepository, bookingRepository,
-                homeworkTargetRepository, presentationRepository, unitRepository);
+                homeworkTargetRepository, presentationRepository, unitRepository,
+                activitySubmissionRepository);
 
         User student = new User();
         student.setId(studentId);
@@ -52,6 +56,8 @@ class StudentProfileAdminServiceTest {
         when(unitRepository.findProgressForStudent(studentId)).thenReturn(List.of());
         when(bookingRepository.findByUserId(studentId)).thenReturn(List.of());
         when(homeworkTargetRepository.findAssignmentsForStudent(studentId)).thenReturn(List.of());
+        when(activitySubmissionRepository.countBreakdownForStudent(studentId))
+                .thenReturn(new ActivitySubmissionRepository.Breakdown(0, 0, 0));
     }
 
     private Booking booking(String status, Instant slotStart) {

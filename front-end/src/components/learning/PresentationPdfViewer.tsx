@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -12,8 +12,13 @@ import {
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { LinkTarget, SimpleLinkService } from "pdfjs-dist/web/pdf_viewer.mjs";
 import "@/components/learning/pdf-layers.css";
-import { fetchPresentationFileBlob, isPresentationPdf } from "@/lib/learning";
+import {
+  fetchPresentationFileBlob,
+  isPresentationPdf,
+  type ActivitySummary,
+} from "@/lib/learning";
 import { Button } from "@/components/ui/button";
+import { ActivityPageSlot } from "./ActivityPageSlot";
 
 GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -29,6 +34,11 @@ interface PresentationPdfViewerProps {
   displayName?: string;
   /** When true, omit page chrome (back button / sticky header) for inline expand. */
   embedded?: boolean;
+  /** Fires when a page becomes substantially visible (IntersectionObserver). */
+  onPageVisible?: (page: number) => void;
+  /** Activities whose trigger page means “insert after this PDF page”. */
+  activities?: ActivitySummary[];
+  onActivityChanged?: (activityId: string) => void;
 }
 
 type ViewerState =
@@ -41,15 +51,36 @@ function PdfPage({
   pdf,
   pageNumber,
   width,
+  onPageVisible,
 }: {
   pdf: PDFDocumentProxy;
   pageNumber: number;
   width: number;
+  onPageVisible?: (page: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const annotationLayerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!onPageVisible) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.45) {
+            onPageVisible(pageNumber);
+          }
+        }
+      },
+      { threshold: [0.45, 0.6] },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [onPageVisible, pageNumber]);
 
   useEffect(() => {
     if (width <= 0) return;
@@ -161,6 +192,7 @@ function PdfPage({
       ref={containerRef}
       className="relative mx-auto max-w-full overflow-hidden border border-border bg-white shadow-sm"
       aria-label={`Page ${pageNumber}`}
+      data-page={pageNumber}
     >
       <canvas ref={canvasRef} className="absolute inset-0 block" />
       <div ref={textLayerRef} className="textLayer" />
@@ -169,7 +201,17 @@ function PdfPage({
   );
 }
 
-function PdfPageStack({ pdf }: { pdf: PDFDocumentProxy }) {
+function PdfPageStack({
+  pdf,
+  onPageVisible,
+  activitiesByPage,
+  onActivityChanged,
+}: {
+  pdf: PDFDocumentProxy;
+  onPageVisible?: (page: number) => void;
+  activitiesByPage: Map<number, ActivitySummary[]>;
+  onActivityChanged?: (activityId: string) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
@@ -195,9 +237,27 @@ function PdfPageStack({ pdf }: { pdf: PDFDocumentProxy }) {
   return (
     <div ref={containerRef} className="flex flex-col gap-6 pb-10">
       {width > 0 &&
-        Array.from({ length: pdf.numPages }, (_, i) => (
-          <PdfPage key={i + 1} pdf={pdf} pageNumber={i + 1} width={width} />
-        ))}
+        Array.from({ length: pdf.numPages }, (_, i) => {
+          const pageNumber = i + 1;
+          const afterPage = activitiesByPage.get(pageNumber) ?? [];
+          return (
+            <div key={pageNumber} className="flex flex-col gap-3">
+              <PdfPage
+                pdf={pdf}
+                pageNumber={pageNumber}
+                width={width}
+                onPageVisible={onPageVisible}
+              />
+              {afterPage.map((activity) => (
+                <ActivityPageSlot
+                  key={activity.id}
+                  activity={activity}
+                  onChanged={() => onActivityChanged?.(activity.id)}
+                />
+              ))}
+            </div>
+          );
+        })}
     </div>
   );
 }
@@ -208,10 +268,27 @@ export function PresentationPdfViewer({
   title,
   displayName,
   embedded = false,
+  onPageVisible,
+  activities = [],
+  onActivityChanged,
 }: PresentationPdfViewerProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [state, setState] = useState<ViewerState>({ status: "loading" });
+
+  const activitiesByPage = useMemo(() => {
+    const map = new Map<number, ActivitySummary[]>();
+    for (const a of activities) {
+      if (a.triggerPage == null) continue;
+      const list = map.get(a.triggerPage) ?? [];
+      list.push(a);
+      map.set(a.triggerPage, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.position - b.position);
+    }
+    return map;
+  }, [activities]);
 
   useEffect(() => {
     let cancelled = false;
@@ -277,7 +354,14 @@ export function PresentationPdfViewer({
         </p>
       )}
 
-      {state.status === "ready" && <PdfPageStack pdf={state.pdf} />}
+      {state.status === "ready" && (
+        <PdfPageStack
+          pdf={state.pdf}
+          onPageVisible={onPageVisible}
+          activitiesByPage={activitiesByPage}
+          onActivityChanged={onActivityChanged}
+        />
+      )}
     </>
   );
 

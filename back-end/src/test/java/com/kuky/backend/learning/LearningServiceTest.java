@@ -12,6 +12,7 @@ import com.kuky.backend.learning.model.PastClass;
 import com.kuky.backend.learning.model.PresentationBlock;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
+import com.kuky.backend.learning.service.ActivityStudentService;
 import com.kuky.backend.learning.service.LearningService;
 import com.kuky.backend.presentations.repository.PresentationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,8 +54,10 @@ class LearningServiceTest {
 
     @BeforeEach
     void setUp() {
+        ActivityStudentService activityStudentService = mock(ActivityStudentService.class);
+        lenient().when(activityStudentService.summariesForPresentations(any(), any())).thenReturn(java.util.Map.of());
         service = new LearningService(contentRepository, submissionRepository, userRepository,
-                presentationRepository, presentationFileStore, new SchedulingProperties());
+                presentationRepository, presentationFileStore, activityStudentService, new SchedulingProperties());
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);

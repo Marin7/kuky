@@ -65,3 +65,5 @@ app:
     storage-dir: ${IMAGES_STORAGE_DIR:./data/images}
   presentation-files:
     storage-dir: ${PRESENTATION_FILES_STORAGE_DIR:./data/presentation-files}
+  activity-instructions:
+    storage-dir: ${ACTIVITY_INSTRUCTIONS_STORAGE_DIR:./data/activity-instructions}

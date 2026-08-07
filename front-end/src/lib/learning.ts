@@ -174,12 +174,28 @@ export interface PresentationFileSummary {
   createdAt: string;
 }
 
+export interface ActivitySummary {
+  id: string;
+  title: string;
+  format: "MANUAL" | "EXERCISE";
+  position: number;
+  status: HomeworkItem["status"];
+  scorePercent: number | null;
+  triggerFileId: string | null;
+  /** Insert the activity after this PDF page (between N and N+1). */
+  triggerPage: number | null;
+  instructionsText: string;
+  youtubeUrl: string | null;
+  imageId: string | null;
+}
+
 export interface SharedPresentationSummary {
   id: string;
   title: string;
   files: PresentationFileSummary[];
   unit: UnitRef | null;
   unitPosition?: number | null;
+  activities?: ActivitySummary[];
 }
 
 export interface LearningResponse {
@@ -275,3 +291,45 @@ export const downloadPresentationFile = async (
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
+
+// ---------------------------------------------------------------------------
+// Presentation Activities (student)
+// ---------------------------------------------------------------------------
+
+export interface ActivityItem {
+  id: string;
+  title: string;
+  format: HomeworkFormat;
+  status: HomeworkStatus;
+  level: HomeworkLevel | null;
+  homeworkType: HomeworkType | null;
+  triggerFileId: string | null;
+  triggerPage: number | null;
+  instructionsText: string;
+  youtubeUrl: string | null;
+  imageId: string | null;
+  response: FormattedText | null;
+  feedback: FormattedText | null;
+  scorePercent: number | null;
+  questions: StudentQuestion[];
+  result: ExerciseResult | null;
+  teacherFeedback: string | null;
+}
+
+export const getActivity = (id: string) =>
+  apiCall<ActivityItem>(`/learning/activities/${id}`);
+
+export const submitActivity = (
+  id: string,
+  response?: FormattedText | null,
+) =>
+  apiCall<ActivityItem>(`/learning/activities/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ response: response ?? null }),
+  });
+
+export const submitActivityAnswers = (id: string, answers: AnswerPayload[]) =>
+  apiCall<ExerciseResult>(`/learning/activities/${id}/answers`, {
+    method: "PUT",
+    body: JSON.stringify({ answers }),
+  });

@@ -231,6 +231,9 @@ function StudentProfilePage() {
               profile.progress.homeworkBreakdown.pending === 0 &&
               profile.progress.homeworkBreakdown.submitted === 0 &&
               profile.progress.homeworkBreakdown.completed === 0 &&
+              (profile.progress.activityBreakdown?.pending ?? 0) === 0 &&
+              (profile.progress.activityBreakdown?.submitted ?? 0) === 0 &&
+              (profile.progress.activityBreakdown?.completed ?? 0) === 0 &&
               profile.progress.attendedClasses === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   {t("admin.studentProfile.progress.empty")}
@@ -300,11 +303,42 @@ function StudentProfilePage() {
                     </div>
                   )}
 
-                  <StudentHomeworkBreakdown
-                    pending={profile.progress.homeworkBreakdown.pending}
-                    submitted={profile.progress.homeworkBreakdown.submitted}
-                    completed={profile.progress.homeworkBreakdown.completed}
-                  />
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {t("admin.studentProfile.progress.homeworkSection")}
+                    </p>
+                    <StudentHomeworkBreakdown
+                      pending={profile.progress.homeworkBreakdown.pending}
+                      submitted={profile.progress.homeworkBreakdown.submitted}
+                      completed={profile.progress.homeworkBreakdown.completed}
+                    />
+                  </div>
+
+                  {profile.progress.activityBreakdown && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {t("admin.studentProfile.progress.activitiesSection")}
+                      </p>
+                      <StudentHomeworkBreakdown
+                        pending={profile.progress.activityBreakdown.pending}
+                        submitted={
+                          profile.progress.activityBreakdown.submitted
+                        }
+                        completed={
+                          profile.progress.activityBreakdown.completed
+                        }
+                        pendingLabel={t(
+                          "admin.studentProfile.progress.activityPending",
+                        )}
+                        submittedLabel={t(
+                          "admin.studentProfile.progress.activitySubmitted",
+                        )}
+                        completedLabel={t(
+                          "admin.studentProfile.progress.activityCompleted",
+                        )}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </Section>

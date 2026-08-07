@@ -4,6 +4,8 @@ import com.kuky.backend.admin.dto.*;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.learning.repository.ActivityRepository;
+import com.kuky.backend.learning.service.ActivityInstructionsFileStore;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.presentations.model.Presentation;
 import com.kuky.backend.presentations.model.PresentationFile;
@@ -34,13 +36,19 @@ public class PresentationService {
     private final PresentationRepository repository;
     private final UserRepository userRepository;
     private final PresentationFileStore fileStore;
+    private final ActivityRepository activityRepository;
+    private final ActivityInstructionsFileStore activityInstructionsFileStore;
 
     public PresentationService(PresentationRepository repository,
                                UserRepository userRepository,
-                               PresentationFileStore fileStore) {
+                               PresentationFileStore fileStore,
+                               ActivityRepository activityRepository,
+                               ActivityInstructionsFileStore activityInstructionsFileStore) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.fileStore = fileStore;
+        this.activityRepository = activityRepository;
+        this.activityInstructionsFileStore = activityInstructionsFileStore;
     }
 
     public List<PresentationSummary> list() {
@@ -80,11 +88,15 @@ public class PresentationService {
 
     public void delete(UUID id) {
         List<UUID> fileIds = repository.listFileIds(id);
+        List<UUID> instructionFileIds = activityRepository.findInstructionFileIdsByPresentationId(id);
         if (repository.delete(id) == 0) {
             throw new PresentationNotFoundException("Presentación no encontrada.");
         }
         for (UUID fileId : fileIds) {
             fileStore.deleteQuietly(fileId);
+        }
+        for (UUID instructionFileId : instructionFileIds) {
+            activityInstructionsFileStore.deleteQuietly(instructionFileId);
         }
     }
 
@@ -149,6 +161,7 @@ public class PresentationService {
         if (repository.deleteFile(presentationId, fileId) == 0) {
             throw new PresentationNotFoundException("Archivo no encontrado.");
         }
+        activityRepository.clearTriggerForFile(fileId);
         fileStore.deleteQuietly(fileId);
         repository.touch(presentationId);
     }

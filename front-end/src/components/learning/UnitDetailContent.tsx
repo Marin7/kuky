@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { HomeworkItem, HomeworkLevel, HomeworkType, SharedPresentationSummary } from "@/lib/learning";
+import type {
+  HomeworkItem,
+  HomeworkLevel,
+  HomeworkType,
+  SharedPresentationSummary,
+} from "@/lib/learning";
 import { downloadPresentationFile, isPresentationPdf } from "@/lib/learning";
 import {
   Accordion,
@@ -9,7 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { PresentationPdfViewer } from "./PresentationPdfViewer";
+import { ActivityViewerPrompts } from "./ActivityViewerPrompts";
 import { HomeworkInlinePanel } from "./HomeworkInlinePanel";
 
 type UnitListItem =
@@ -41,8 +46,10 @@ const LEVEL_CLASS: Record<HomeworkLevel, string> = {
 
 function PresentationExpandBody({
   presentation,
+  onActivitiesChanged,
 }: {
   presentation: SharedPresentationSummary;
+  onActivitiesChanged: () => void;
 }) {
   const { t } = useTranslation();
   const pdfFiles = presentation.files.filter((f) =>
@@ -53,6 +60,7 @@ function PresentationExpandBody({
   );
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const activities = presentation.activities ?? [];
 
   const handleDownload = async (fileId: string, displayName: string) => {
     setDownloadingId(fileId);
@@ -120,12 +128,14 @@ function PresentationExpandBody({
       {error && <p className="text-sm text-destructive">{error}</p>}
       {viewingFile && isPresentationPdf(viewingFile.contentType) && (
         <div className="overflow-x-auto rounded-md border bg-background p-2">
-          <PresentationPdfViewer
+          <ActivityViewerPrompts
             presentationId={presentation.id}
             fileId={viewingFile.id}
+            activities={activities}
             title={presentation.title}
             displayName={viewingFile.displayName}
             embedded
+            onActivitiesChanged={onActivitiesChanged}
           />
         </div>
       )}
@@ -248,7 +258,10 @@ export function UnitDetailContent({
               </div>
             </AccordionTrigger>
             <AccordionContent className="overflow-visible">
-              <PresentationExpandBody presentation={item.presentation} />
+              <PresentationExpandBody
+                presentation={item.presentation}
+                onActivitiesChanged={onHomeworkChanged}
+              />
             </AccordionContent>
           </AccordionItem>
         ) : (

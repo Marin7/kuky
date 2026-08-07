@@ -5,5 +5,6 @@ import java.util.List;
 public record StudentProgressDto(
         List<UnitProgressDto> units,
         HomeworkBreakdownDto homeworkBreakdown,
+        ActivityBreakdownDto activityBreakdown,
         int attendedClasses
 ) {}

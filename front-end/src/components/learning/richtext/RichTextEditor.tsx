@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import { useTranslation } from "react-i18next";
 import {
   applyFormat,
   MAX_VISIBLE_LENGTH,
@@ -12,7 +11,6 @@ import {
   type TextColor,
 } from "./types";
 import { FormattingToolbar } from "./FormattingToolbar";
-import { RichTextViewer } from "./RichTextViewer";
 
 interface Props {
   value: FormattedText;
@@ -27,9 +25,7 @@ interface Props {
  * A selection-based rich-text editor: a plain `<textarea>` (native selection
  * APIs, no contentEditable) drives the visible text, while the
  * FormattingToolbar applies color/highlight/strike to whatever range is
- * currently selected. Because a textarea can't render per-character styling
- * itself, a read-only RichTextViewer beneath it mirrors the current value so
- * applied formatting is immediately visible.
+ * currently selected.
  */
 export function RichTextEditor({
   value,
@@ -39,7 +35,6 @@ export function RichTextEditor({
   id,
   rows = 14,
 }: Props) {
-  const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const text = plainText(value);
 
@@ -115,17 +110,9 @@ export function RichTextEditor({
         className="min-h-[14rem] w-full resize-none overflow-hidden rounded-md border border-input bg-transparent px-3 py-2 text-base leading-relaxed shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       />
 
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-xs font-medium text-muted-foreground">
-          {t("richText.preview")}
-        </span>
-        <span className="text-xs text-muted-foreground tabular-nums">
-          {visibleLength(value)} / {MAX_VISIBLE_LENGTH}
-        </span>
-      </div>
-      <div className="rounded-md border bg-muted/20 p-3">
-        <RichTextViewer segments={value} />
-      </div>
+      <p className="text-right text-xs text-muted-foreground tabular-nums">
+        {visibleLength(value)} / {MAX_VISIBLE_LENGTH}
+      </p>
     </div>
   );
 }

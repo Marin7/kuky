@@ -10,5 +10,6 @@ public record SharedPresentationSummary(
         String title,
         List<PresentationFileSummary> files,
         UnitRef unit,
-        Integer unitPosition
+        Integer unitPosition,
+        List<ActivitySummary> activities
 ) {}

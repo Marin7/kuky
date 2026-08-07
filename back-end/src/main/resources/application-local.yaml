@@ -47,3 +47,5 @@ app:
     storage-dir: ./data/images
   presentation-files:
     storage-dir: ./data/presentation-files
+  activity-instructions:
+    storage-dir: ./data/activity-instructions

@@ -23,11 +23,14 @@ import { Route as AprendizajeOtrosRouteImport } from './routes/aprendizaje_.otro
 import { Route as PanelTareasNuevaRouteImport } from './routes/panel_.tareas.nueva'
 import { Route as PanelTareasHomeworkIdRouteImport } from './routes/panel_.tareas.$homeworkId'
 import { Route as PanelAlumnosStudentIdRouteImport } from './routes/panel_.alumnos.$studentId'
+import { Route as PanelActividadesNuevaRouteImport } from './routes/panel_.actividades.nueva'
+import { Route as PanelActividadesActivityIdRouteImport } from './routes/panel_.actividades.$activityId'
 import { Route as AprendizajeUnidadUnitIdRouteImport } from './routes/aprendizaje_.unidad.$unitId'
 import { Route as AprendizajeTareaHomeworkIdRouteImport } from './routes/aprendizaje_.tarea.$homeworkId'
 import { Route as AprendizajeRedaccionHomeworkIdRouteImport } from './routes/aprendizaje_.redaccion.$homeworkId'
 import { Route as AprendizajeLecturaHomeworkIdRouteImport } from './routes/aprendizaje_.lectura.$homeworkId'
 import { Route as AprendizajeEscuchaHomeworkIdRouteImport } from './routes/aprendizaje_.escucha.$homeworkId'
+import { Route as AprendizajeActividadActivityIdRouteImport } from './routes/aprendizaje_.actividad.$activityId'
 import { Route as AprendizajePresentacionPresentationIdArchivoFileIdRouteImport } from './routes/aprendizaje_.presentacion.$presentationId.archivo.$fileId'
 
 const SobreMiRoute = SobreMiRouteImport.update({
@@ -100,6 +103,17 @@ const PanelAlumnosStudentIdRoute = PanelAlumnosStudentIdRouteImport.update({
   path: '/panel/alumnos/$studentId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PanelActividadesNuevaRoute = PanelActividadesNuevaRouteImport.update({
+  id: '/panel_/actividades/nueva',
+  path: '/panel/actividades/nueva',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelActividadesActivityIdRoute =
+  PanelActividadesActivityIdRouteImport.update({
+    id: '/panel_/actividades/$activityId',
+    path: '/panel/actividades/$activityId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AprendizajeUnidadUnitIdRoute = AprendizajeUnidadUnitIdRouteImport.update({
   id: '/aprendizaje_/unidad/$unitId',
   path: '/aprendizaje/unidad/$unitId',
@@ -129,6 +143,12 @@ const AprendizajeEscuchaHomeworkIdRoute =
     path: '/aprendizaje/escucha/$homeworkId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AprendizajeActividadActivityIdRoute =
+  AprendizajeActividadActivityIdRouteImport.update({
+    id: '/aprendizaje_/actividad/$activityId',
+    path: '/aprendizaje/actividad/$activityId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AprendizajePresentacionPresentationIdArchivoFileIdRoute =
   AprendizajePresentacionPresentationIdArchivoFileIdRouteImport.update({
     id: '/aprendizaje_/presentacion/$presentationId/archivo/$fileId',
@@ -148,11 +168,14 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje/otros': typeof AprendizajeOtrosRoute
+  '/aprendizaje/actividad/$activityId': typeof AprendizajeActividadActivityIdRoute
   '/aprendizaje/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
   '/aprendizaje/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/aprendizaje/unidad/$unitId': typeof AprendizajeUnidadUnitIdRoute
+  '/panel/actividades/$activityId': typeof PanelActividadesActivityIdRoute
+  '/panel/actividades/nueva': typeof PanelActividadesNuevaRoute
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
@@ -170,11 +193,14 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje/otros': typeof AprendizajeOtrosRoute
+  '/aprendizaje/actividad/$activityId': typeof AprendizajeActividadActivityIdRoute
   '/aprendizaje/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
   '/aprendizaje/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/aprendizaje/unidad/$unitId': typeof AprendizajeUnidadUnitIdRoute
+  '/panel/actividades/$activityId': typeof PanelActividadesActivityIdRoute
+  '/panel/actividades/nueva': typeof PanelActividadesNuevaRoute
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
@@ -193,11 +219,14 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje_/otros': typeof AprendizajeOtrosRoute
+  '/aprendizaje_/actividad/$activityId': typeof AprendizajeActividadActivityIdRoute
   '/aprendizaje_/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje_/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
   '/aprendizaje_/redaccion/$homeworkId': typeof AprendizajeRedaccionHomeworkIdRoute
   '/aprendizaje_/tarea/$homeworkId': typeof AprendizajeTareaHomeworkIdRoute
   '/aprendizaje_/unidad/$unitId': typeof AprendizajeUnidadUnitIdRoute
+  '/panel_/actividades/$activityId': typeof PanelActividadesActivityIdRoute
+  '/panel_/actividades/nueva': typeof PanelActividadesNuevaRoute
   '/panel_/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
   '/panel_/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel_/tareas/nueva': typeof PanelTareasNuevaRoute
@@ -217,11 +246,14 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje/otros'
+    | '/aprendizaje/actividad/$activityId'
     | '/aprendizaje/escucha/$homeworkId'
     | '/aprendizaje/lectura/$homeworkId'
     | '/aprendizaje/redaccion/$homeworkId'
     | '/aprendizaje/tarea/$homeworkId'
     | '/aprendizaje/unidad/$unitId'
+    | '/panel/actividades/$activityId'
+    | '/panel/actividades/nueva'
     | '/panel/alumnos/$studentId'
     | '/panel/tareas/$homeworkId'
     | '/panel/tareas/nueva'
@@ -239,11 +271,14 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje/otros'
+    | '/aprendizaje/actividad/$activityId'
     | '/aprendizaje/escucha/$homeworkId'
     | '/aprendizaje/lectura/$homeworkId'
     | '/aprendizaje/redaccion/$homeworkId'
     | '/aprendizaje/tarea/$homeworkId'
     | '/aprendizaje/unidad/$unitId'
+    | '/panel/actividades/$activityId'
+    | '/panel/actividades/nueva'
     | '/panel/alumnos/$studentId'
     | '/panel/tareas/$homeworkId'
     | '/panel/tareas/nueva'
@@ -261,11 +296,14 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje_/otros'
+    | '/aprendizaje_/actividad/$activityId'
     | '/aprendizaje_/escucha/$homeworkId'
     | '/aprendizaje_/lectura/$homeworkId'
     | '/aprendizaje_/redaccion/$homeworkId'
     | '/aprendizaje_/tarea/$homeworkId'
     | '/aprendizaje_/unidad/$unitId'
+    | '/panel_/actividades/$activityId'
+    | '/panel_/actividades/nueva'
     | '/panel_/alumnos/$studentId'
     | '/panel_/tareas/$homeworkId'
     | '/panel_/tareas/nueva'
@@ -284,11 +322,14 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreMiRoute: typeof SobreMiRoute
   AprendizajeOtrosRoute: typeof AprendizajeOtrosRoute
+  AprendizajeActividadActivityIdRoute: typeof AprendizajeActividadActivityIdRoute
   AprendizajeEscuchaHomeworkIdRoute: typeof AprendizajeEscuchaHomeworkIdRoute
   AprendizajeLecturaHomeworkIdRoute: typeof AprendizajeLecturaHomeworkIdRoute
   AprendizajeRedaccionHomeworkIdRoute: typeof AprendizajeRedaccionHomeworkIdRoute
   AprendizajeTareaHomeworkIdRoute: typeof AprendizajeTareaHomeworkIdRoute
   AprendizajeUnidadUnitIdRoute: typeof AprendizajeUnidadUnitIdRoute
+  PanelActividadesActivityIdRoute: typeof PanelActividadesActivityIdRoute
+  PanelActividadesNuevaRoute: typeof PanelActividadesNuevaRoute
   PanelAlumnosStudentIdRoute: typeof PanelAlumnosStudentIdRoute
   PanelTareasHomeworkIdRoute: typeof PanelTareasHomeworkIdRoute
   PanelTareasNuevaRoute: typeof PanelTareasNuevaRoute
@@ -395,6 +436,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelAlumnosStudentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel_/actividades/nueva': {
+      id: '/panel_/actividades/nueva'
+      path: '/panel/actividades/nueva'
+      fullPath: '/panel/actividades/nueva'
+      preLoaderRoute: typeof PanelActividadesNuevaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panel_/actividades/$activityId': {
+      id: '/panel_/actividades/$activityId'
+      path: '/panel/actividades/$activityId'
+      fullPath: '/panel/actividades/$activityId'
+      preLoaderRoute: typeof PanelActividadesActivityIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/aprendizaje_/unidad/$unitId': {
       id: '/aprendizaje_/unidad/$unitId'
       path: '/aprendizaje/unidad/$unitId'
@@ -430,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AprendizajeEscuchaHomeworkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aprendizaje_/actividad/$activityId': {
+      id: '/aprendizaje_/actividad/$activityId'
+      path: '/aprendizaje/actividad/$activityId'
+      fullPath: '/aprendizaje/actividad/$activityId'
+      preLoaderRoute: typeof AprendizajeActividadActivityIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/aprendizaje_/presentacion/$presentationId/archivo/$fileId': {
       id: '/aprendizaje_/presentacion/$presentationId/archivo/$fileId'
       path: '/aprendizaje/presentacion/$presentationId/archivo/$fileId'
@@ -452,11 +514,14 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
   AprendizajeOtrosRoute: AprendizajeOtrosRoute,
+  AprendizajeActividadActivityIdRoute: AprendizajeActividadActivityIdRoute,
   AprendizajeEscuchaHomeworkIdRoute: AprendizajeEscuchaHomeworkIdRoute,
   AprendizajeLecturaHomeworkIdRoute: AprendizajeLecturaHomeworkIdRoute,
   AprendizajeRedaccionHomeworkIdRoute: AprendizajeRedaccionHomeworkIdRoute,
   AprendizajeTareaHomeworkIdRoute: AprendizajeTareaHomeworkIdRoute,
   AprendizajeUnidadUnitIdRoute: AprendizajeUnidadUnitIdRoute,
+  PanelActividadesActivityIdRoute: PanelActividadesActivityIdRoute,
+  PanelActividadesNuevaRoute: PanelActividadesNuevaRoute,
   PanelAlumnosStudentIdRoute: PanelAlumnosStudentIdRoute,
   PanelTareasHomeworkIdRoute: PanelTareasHomeworkIdRoute,
   PanelTareasNuevaRoute: PanelTareasNuevaRoute,
