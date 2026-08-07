@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import {
-  getLearning,
-  type LearningResponse,
-  type HomeworkItem,
-} from "@/lib/learning";
+import { getLearning, type LearningResponse } from "@/lib/learning";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HomeworkSubmitDialog } from "./HomeworkSubmitDialog";
-import { ExerciseResultDialog } from "./ExerciseResultDialog";
 import { UnitDetailContent } from "./UnitDetailContent";
 import { buildGroups, findUnitGroup } from "./unitGroups";
 
@@ -36,8 +30,12 @@ export function UnitLearningView({ unitId }: Props) {
   const [data, setData] = useState<LearningResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dialogItem, setDialogItem] = useState<HomeworkItem | null>(null);
-  const [resultHomeworkId, setResultHomeworkId] = useState<string | null>(null);
+
+  const reload = () => {
+    getLearning()
+      .then(setData)
+      .catch(() => setError(t("learning.loadError")));
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -47,19 +45,6 @@ export function UnitLearningView({ unitId }: Props) {
       .catch(() => setError(t("learning.loadError")))
       .finally(() => setLoading(false));
   }, [t]);
-
-  const handleSubmitted = (updated: HomeworkItem) => {
-    setData((prev) =>
-      prev
-        ? {
-            ...prev,
-            homework: prev.homework.map((h) =>
-              h.id === updated.id ? updated : h,
-            ),
-          }
-        : prev,
-    );
-  };
 
   const groups = data
     ? buildGroups(data.sharedPresentations, data.homework)
@@ -97,23 +82,11 @@ export function UnitLearningView({ unitId }: Props) {
             <UnitDetailContent
               presentations={group.presentations}
               homework={group.homework}
-              onOpenHomework={setDialogItem}
-              onViewResult={(item) => setResultHomeworkId(item.id)}
+              onHomeworkChanged={reload}
             />
           )}
         </>
       )}
-
-      <HomeworkSubmitDialog
-        item={dialogItem}
-        onClose={() => setDialogItem(null)}
-        onSubmitted={handleSubmitted}
-      />
-
-      <ExerciseResultDialog
-        homeworkId={resultHomeworkId}
-        onClose={() => setResultHomeworkId(null)}
-      />
     </div>
   );
 }

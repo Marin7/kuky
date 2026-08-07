@@ -25,12 +25,12 @@ final class HomeworkItems {
      * @param today      the current date in the teacher's timezone, for overdue derivation
      */
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission, LocalDate today) {
-        return toResponse(a, submission, today, null);
+        return toResponse(a, submission, today, null, null);
     }
 
     /** Variant that attaches the owning unit, for the student's unit-grouped learning view. */
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
-                                           LocalDate today, UnitRef unit) {
+                                           LocalDate today, UnitRef unit, Integer unitPosition) {
         String status = submission != null ? submission.getStatus() : HomeworkStatus.PENDING.name();
         List<FormattedTextSegment> response =
                 submission != null ? FormattedTextSegment.fromJson(submission.getResponseText()) : null;
@@ -62,6 +62,7 @@ final class HomeworkItems {
                 a.getAudioUrl(),
                 a.getAudioFileId(),
                 unit,
+                unitPosition,
                 hasTeacherFeedback
         );
     }

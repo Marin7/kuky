@@ -238,12 +238,7 @@ export function UnitCard({
               className="h-7 text-xs shrink-0"
               onClick={() => setExpanded((e) => !e)}
             >
-              {expanded ? "▲" : "▼"}{" "}
-              {t(
-                expanded
-                  ? "admin.units.presentations"
-                  : "admin.units.contents.presentations",
-              )}
+              {expanded ? "▲" : "▼"} {t("admin.units.contents.sequence")}
             </Button>
           </div>
         )}
@@ -269,8 +264,12 @@ export function UnitCard({
             onUpdated={(detail) =>
               onUpdated({
                 ...unit,
-                presentationCount: detail.presentations.length,
-                homeworkCount: detail.homeworks.length,
+                presentationCount: detail.contents.filter(
+                  (c) => c.type === "PRESENTATION",
+                ).length,
+                homeworkCount: detail.contents.filter(
+                  (c) => c.type === "HOMEWORK",
+                ).length,
               })
             }
           />

@@ -44,6 +44,7 @@ export interface HomeworkItem {
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
   unit: UnitRef | null; // owning unit for grouping (null for legacy/unattached)
+  unitPosition?: number | null; // rank within unit mixed sequence
   hasTeacherFeedback: boolean;
 }
 
@@ -178,6 +179,7 @@ export interface SharedPresentationSummary {
   title: string;
   files: PresentationFileSummary[];
   unit: UnitRef | null;
+  unitPosition?: number | null;
 }
 
 export interface LearningResponse {

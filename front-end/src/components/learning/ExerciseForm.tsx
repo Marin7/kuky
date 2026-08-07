@@ -29,6 +29,8 @@ interface AnswerState {
 
 interface Props {
   exercise: ExerciseResponse;
+  /** Called after a successful grade so parents can refresh list badges. */
+  onGraded?: () => void;
 }
 
 // Passage kinds render the number inline with the prompt; skip the separate
@@ -57,7 +59,7 @@ function initialAnswerState(
  * Renders the answerable questions of an auto-graded exercise (or its result
  * once graded). Shared by the grammar exercise page and the reading page.
  */
-export function ExerciseForm({ exercise }: Props) {
+export function ExerciseForm({ exercise, onGraded }: Props) {
   const { t } = useTranslation();
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(() =>
     Object.fromEntries(
@@ -119,6 +121,7 @@ export function ExerciseForm({ exercise }: Props) {
       });
       const res = await submitExercise(exercise.id, payload);
       setResult(res);
+      onGraded?.();
     } catch (e) {
       setError(
         (e as ApiError).message ?? t("learning.exercisePage.submitError"),
