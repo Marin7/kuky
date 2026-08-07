@@ -10,6 +10,11 @@ interface Props {
   showAllAnswers?: boolean;
   /** Optional plain-text teacher comment (shown only when non-empty). */
   teacherFeedback?: string | null;
+  /**
+   * Source text / instructions the questions are based on (e.g. reading
+   * passage for Lectura true/false). Shown above the score when non-empty.
+   */
+  instructions?: string | null;
 }
 
 function optionLabels(
@@ -40,11 +45,13 @@ export function ExerciseResult({
   result,
   showAllAnswers = false,
   teacherFeedback = null,
+  instructions = null,
 }: Props) {
   const { t } = useTranslation();
   const byId = new Map(questions.map((q) => [q.id, q]));
   const noAnswer = t("learning.exerciseResult.noAnswer");
   const feedbackText = teacherFeedback?.trim() || null;
+  const passageText = instructions?.trim() || null;
   const localizeTrueFalse = (label: string) =>
     t(
       label === "false"
@@ -54,6 +61,12 @@ export function ExerciseResult({
 
   return (
     <div className="space-y-5">
+      {passageText && (
+        <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
+          {passageText}
+        </div>
+      )}
+
       <div className="rounded-lg border bg-card p-4">
         <p className="text-2xl font-semibold text-primary">
           {result.scorePercent}%

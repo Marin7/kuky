@@ -73,6 +73,9 @@ export function ExerciseResultDialog({ homeworkId, onClose }: Props) {
             questions={exercise.questions}
             result={exercise.result}
             teacherFeedback={exercise.teacherFeedback}
+            instructions={
+              exercise.homeworkType === "READ" ? exercise.instructions : null
+            }
           />
         )}
 
