@@ -12,6 +12,14 @@ ARG VITE_SITE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_SITE_URL=$VITE_SITE_URL
 
+# Vite SSR builds peak well above Node's default ~0.5–1 GB heap. Cap the V8
+# heap just under a typical 2 GB VM so the build can finish without the host
+# OOM-killer, and keep libuv concurrency low to shrink the peak further.
+# On a 2 GB host, stop other compose services first (`docker compose stop`)
+# so this stage is not competing with postgres/back-end mem_limits.
+ENV NODE_OPTIONS="--max-old-space-size=1536"
+ENV UV_THREADPOOL_SIZE=2
+
 COPY . .
 RUN npm run build
 

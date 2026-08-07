@@ -70,6 +70,9 @@ services:
     ports:
       # Upcloud default firewall allows 80, not 8080.
       - "80:8080"
+    # Runtime only (~256m is enough for the Node SSR server). Image *build*
+    # needs ~1.5 GB heap — on a 2 GB VM run `docker compose stop` first so
+    # postgres/back-end are not holding their mem_limits during the build.
     mem_limit: 200m
 
 volumes:

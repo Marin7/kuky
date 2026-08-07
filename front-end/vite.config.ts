@@ -15,4 +15,14 @@ export default defineConfig({
   // Outside the Lovable sandbox this forces nitro to run (it otherwise no-ops)
   // and targets a plain Node server, since prod runs on a VM, not Cloudflare.
   nitro: { preset: "node-server" },
+  // Keep peak RSS down for 2 GB VMs (Docker image build). Gzip size reporting
+  // and high parallel file ops are the usual heap spikes on TanStack SSR builds.
+  vite: {
+    build: {
+      reportCompressedSize: false,
+      rollupOptions: {
+        maxParallelFileOps: 2,
+      },
+    },
+  },
 });
