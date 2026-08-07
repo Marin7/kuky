@@ -22,7 +22,6 @@ import com.kuky.backend.placement.exception.SectionAlreadySubmittedException;
 import com.kuky.backend.placement.exception.SectionNotStartedException;
 import com.kuky.backend.presentations.exception.InvalidImageException;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
-import com.kuky.backend.units.exception.InvalidContentOrderException;
 import com.kuky.backend.units.exception.UnitNotFoundException;
 import com.kuky.backend.scheduling.exception.BookingNotAllowedException;
 import com.kuky.backend.scheduling.exception.BookingNotFoundException;
@@ -235,12 +234,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleUnitNotFound(UnitNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "UNIT_NOT_FOUND", "message", ex.getMessage()));
-    }
-
-    @ExceptionHandler(InvalidContentOrderException.class)
-    public ResponseEntity<Map<String, String>> handleInvalidContentOrder(InvalidContentOrderException ex) {
-        return ResponseEntity.badRequest()
-                .body(Map.of("error", "INVALID_CONTENT_ORDER", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(InvalidImageException.class)

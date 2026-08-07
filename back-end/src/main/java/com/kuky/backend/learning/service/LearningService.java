@@ -69,22 +69,15 @@ public class LearningService {
 
         LocalDate today = LocalDate.now(teacherZone());
 
-        Map<UUID, ContentRepository.AssignmentUnit> assignmentUnits = contentRepository
-                .findAssignmentUnitsForUser(user.getId())
+        Map<UUID, UnitRef> unitByAssignment = contentRepository.findAssignmentUnitsForUser(user.getId())
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
                         ContentRepository.AssignmentUnit::assignmentId,
-                        au -> au));
+                        au -> new UnitRef(au.unitId(), au.level(), au.subject(), au.position())));
 
         List<HomeworkItemResponse> homework = contentRepository.findAssignmentsForUser(user.getId()).stream()
-                .map(a -> {
-                    ContentRepository.AssignmentUnit au = assignmentUnits.get(a.getId());
-                    UnitRef unit = au == null ? null
-                            : new UnitRef(au.unitId(), au.level(), au.subject(), au.position());
-                    Integer unitPosition = au == null ? null : au.unitPosition();
-                    return HomeworkItems.toResponse(a, submissionsByAssignment.get(a.getId()), today,
-                            unit, unitPosition);
-                })
+                .map(a -> HomeworkItems.toResponse(a, submissionsByAssignment.get(a.getId()), today,
+                        unitByAssignment.get(a.getId())))
                 .toList();
 
         var sharedRows = presentationRepository.findSharedSummariesForUser(user.getId());
@@ -98,8 +91,7 @@ public class LearningService {
                         s.unit() == null ? null
                                 : new UnitRef(
                                         s.unit().id(), s.unit().level(), s.unit().subject(),
-                                        s.unit().position()),
-                        s.contentUnitPosition()))
+                                        s.unit().position())))
                 .toList();
 
         return new LearningResponse(presentation, pastClasses, homework, sharedPresentations);

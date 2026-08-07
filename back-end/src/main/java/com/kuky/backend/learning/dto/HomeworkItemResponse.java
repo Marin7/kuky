@@ -24,6 +24,5 @@ public record HomeworkItemResponse(
         String audioUrl,          // listening homework external source (nullable)
         UUID audioFileId,         // listening homework uploaded file (nullable)
         UnitRef unit,             // owning unit for grouping (nullable for legacy/unattached)
-        Integer unitPosition,     // rank within unit mixed sequence (nullable when unattached)
         boolean hasTeacherFeedback
 ) {}

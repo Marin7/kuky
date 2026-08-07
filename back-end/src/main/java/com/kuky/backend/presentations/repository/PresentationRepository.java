@@ -311,35 +311,31 @@ public class PresentationRepository {
     }
 
     public record UnitRef(UUID id, String level, String subject, int position) {}
-    public record SharedSummaryWithUnit(UUID id, String title, String level, UnitRef unit,
-                                        Integer contentUnitPosition) {}
+    public record SharedSummaryWithUnit(UUID id, String title, String level, UnitRef unit) {}
 
     public List<SharedSummaryWithUnit> findSharedSummariesForUser(UUID userId) {
         String sql = """
-                SELECT p.id, p.title, p.level, p.updated_at, p.unit_position AS content_position,
+                SELECT p.id, p.title, p.level, p.updated_at,
                        u.id AS unit_id, u.level AS unit_level, u.subject AS unit_subject,
-                       u.position AS unit_level_position
+                       u.position AS unit_position
                 FROM presentations p
                 LEFT JOIN units u ON u.id = p.unit_id
                 WHERE
                     EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = p.id AND s.user_id = :uid)
                     OR
                     EXISTS (SELECT 1 FROM unit_assignments ua WHERE ua.unit_id = p.unit_id AND ua.user_id = :uid)
-                ORDER BY COALESCE(u.level, 'ZZ'), COALESCE(u.position, 999),
-                         COALESCE(p.unit_position, 999), p.updated_at DESC
+                ORDER BY COALESCE(u.level, 'ZZ'), COALESCE(u.position, 999), p.updated_at DESC
                 """;
         return jdbc.query(sql, Map.of("uid", userId), (rs, n) -> {
             UUID unitId = rs.getObject("unit_id", UUID.class);
             UnitRef unitRef = unitId == null ? null
                     : new UnitRef(unitId, rs.getString("unit_level"), rs.getString("unit_subject"),
-                            rs.getInt("unit_level_position"));
-            Integer contentPos = unitId == null ? null : rs.getInt("content_position");
+                            rs.getInt("unit_position"));
             return new SharedSummaryWithUnit(
                     rs.getObject("id", UUID.class),
                     rs.getString("title"),
                     rs.getString("level"),
-                    unitRef,
-                    contentPos);
+                    unitRef);
         });
     }
 }

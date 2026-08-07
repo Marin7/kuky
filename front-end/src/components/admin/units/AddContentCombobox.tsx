@@ -41,75 +41,50 @@ export function AddContentCombobox({
   const [open, setOpen] = useState(false);
 
   return (
-    // Stop DnD pointer sensors on the unit list from stealing clicks/taps.
-    <div
-      className="inline-flex"
-      onPointerDown={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
-    >
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-7 text-xs">
-            <Plus className="mr-1 h-3 w-3" />
-            {triggerLabel}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          className="z-[100] w-72 p-0"
-          align="start"
-          // Keep focus inside the search field; avoid outside-dismiss fighting cmdk.
-          onOpenAutoFocus={(e) => e.preventDefault()}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-7 text-xs">
+          <Plus className="mr-1 h-3 w-3" />
+          {triggerLabel}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start">
+        <Command
+          filter={(value, search) =>
+            value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+          }
         >
-          <Command
-            filter={(value, search) => {
-              if (!search.trim()) return 1;
-              return value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0;
-            }}
-          >
-            <CommandInput
-              placeholder={searchPlaceholder}
-              className="text-xs"
-              autoFocus
-            />
-            <CommandList>
-              <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
-                {emptyLabel}
-              </CommandEmpty>
-              <CommandGroup>
-                {options.map((o) => {
-                  const id = String(o.id);
-                  // Include id so duplicate titles stay distinct in cmdk.
-                  const value = `${o.title} ${o.level ?? ""} ${id}`;
-                  return (
-                    <CommandItem
-                      key={id}
-                      value={value}
-                      onSelect={() => {
-                        setOpen(false);
-                        onSelect(id);
-                      }}
-                      className="text-xs"
+          <CommandInput placeholder={searchPlaceholder} className="text-xs" />
+          <CommandList>
+            <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
+              {emptyLabel}
+            </CommandEmpty>
+            <CommandGroup>
+              {options.map((o) => (
+                <CommandItem
+                  key={o.id}
+                  value={`${o.title} ${o.level ?? ""}`}
+                  onSelect={() => onSelect(o.id)}
+                  className="text-xs"
+                >
+                  <Check className="mr-2 h-3 w-3 opacity-0" />
+                  <span className="flex-1 truncate">{o.title}</span>
+                  {o.level && (
+                    <span
+                      className={[
+                        "ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                        LEVEL_CLASS[o.level],
+                      ].join(" ")}
                     >
-                      <Check className="mr-2 h-3 w-3 opacity-0" />
-                      <span className="flex-1 truncate">{o.title}</span>
-                      {o.level && (
-                        <span
-                          className={[
-                            "ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                            LEVEL_CLASS[o.level],
-                          ].join(" ")}
-                        >
-                          {o.level}
-                        </span>
-                      )}
-                    </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </div>
+                      {o.level}
+                    </span>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
