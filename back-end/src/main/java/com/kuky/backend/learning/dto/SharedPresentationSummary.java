@@ -9,5 +9,6 @@ public record SharedPresentationSummary(
         UUID id,
         String title,
         List<PresentationFileSummary> files,
-        UnitRef unit
+        UnitRef unit,
+        Integer unitPosition
 ) {}
