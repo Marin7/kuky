@@ -430,7 +430,21 @@ function StudentProfilePage() {
                 </p>
               ) : (
                 <div className="divide-y rounded-lg border">
-                  {profile.homeworks.map((hw) => (
+                  {[...profile.homeworks]
+                    .sort((a, b) => {
+                      const aPending = a.status === "PENDING";
+                      const bPending = b.status === "PENDING";
+                      if (aPending !== bPending) return aPending ? -1 : 1;
+                      if (aPending) return 0;
+                      const aTime = a.submittedAt
+                        ? Date.parse(a.submittedAt)
+                        : 0;
+                      const bTime = b.submittedAt
+                        ? Date.parse(b.submittedAt)
+                        : 0;
+                      return bTime - aTime;
+                    })
+                    .map((hw) => (
                     <div
                       key={hw.id}
                       className="flex items-center justify-between px-4 py-3 text-sm"

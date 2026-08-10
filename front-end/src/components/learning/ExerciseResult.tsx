@@ -90,7 +90,9 @@ export function ExerciseResult({
         </div>
       )}
 
-      <div className="space-y-3">
+      <div
+        className={result.questions.length > 1 ? "space-y-8" : "space-y-3"}
+      >
         {result.questions.map((qr, i) => {
           const question = byId.get(qr.questionId);
           const partial = qr.score > 0 && qr.score < 1;

@@ -154,6 +154,11 @@ export function ExerciseForm({ exercise, onGraded, submitAnswers }: Props) {
 
   return (
     <div className="mt-6 space-y-5">
+      <div
+        className={
+          exercise.questions.length > 1 ? "space-y-8" : "space-y-5"
+        }
+      >
       {exercise.questions.map((q, i) => (
         <div key={q.id} className="space-y-2.5">
           {!RENDERS_OWN_PASSAGE.has(q.kind) && (
@@ -239,6 +244,7 @@ export function ExerciseForm({ exercise, onGraded, submitAnswers }: Props) {
           )}
         </div>
       ))}
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

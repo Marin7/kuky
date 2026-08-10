@@ -123,6 +123,9 @@ export function ManualMultiAnswerForm({
         {t("learning.manualMulti.title")}
       </p>
 
+      <div
+        className={questions.length > 1 ? "space-y-8" : "space-y-4"}
+      >
       {questions.map((q, i) => {
         const answerText = texts[q.id] ?? "";
         const readOnlyAnswer =
@@ -180,6 +183,7 @@ export function ManualMultiAnswerForm({
           </div>
         );
       })}
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

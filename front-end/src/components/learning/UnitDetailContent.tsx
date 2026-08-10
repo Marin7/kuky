@@ -205,6 +205,12 @@ interface Props {
   onHomeworkChanged: () => void;
 }
 
+function submittedAtDesc(a: HomeworkItem, b: HomeworkItem): number {
+  const aTime = a.submittedAt ? Date.parse(a.submittedAt) : 0;
+  const bTime = b.submittedAt ? Date.parse(b.submittedAt) : 0;
+  return bTime - aTime;
+}
+
 export function UnitDetailContent({
   presentations,
   homework,
@@ -219,18 +225,44 @@ export function UnitDetailContent({
     onHomeworkChanged();
   };
 
+  const byUnitPosition = (a: number, b: number) => a - b;
+
+  const pendingHomework = homework
+    .filter((h) => h.status === "PENDING")
+    .sort((a, b) =>
+      byUnitPosition(
+        a.unitPosition ?? Number.MAX_SAFE_INTEGER,
+        b.unitPosition ?? Number.MAX_SAFE_INTEGER,
+      ),
+    );
+  const submittedHomework = homework
+    .filter((h) => h.status !== "PENDING")
+    .sort(submittedAtDesc);
+  const sortedPresentations = [...presentations].sort((a, b) =>
+    byUnitPosition(
+      a.unitPosition ?? Number.MAX_SAFE_INTEGER,
+      b.unitPosition ?? Number.MAX_SAFE_INTEGER,
+    ),
+  );
+
+  // Pending homework on top, then submitted by date desc, then presentations (unit order).
   const items: UnitListItem[] = [
-    ...presentations.map((p) => ({
-      kind: "presentation" as const,
-      position: p.unitPosition ?? Number.MAX_SAFE_INTEGER,
-      presentation: p,
-    })),
-    ...homework.map((h) => ({
+    ...pendingHomework.map((h) => ({
       kind: "homework" as const,
       position: h.unitPosition ?? Number.MAX_SAFE_INTEGER,
       homework: h,
     })),
-  ].sort((a, b) => a.position - b.position);
+    ...submittedHomework.map((h) => ({
+      kind: "homework" as const,
+      position: h.unitPosition ?? Number.MAX_SAFE_INTEGER,
+      homework: h,
+    })),
+    ...sortedPresentations.map((p) => ({
+      kind: "presentation" as const,
+      position: p.unitPosition ?? Number.MAX_SAFE_INTEGER,
+      presentation: p,
+    })),
+  ];
 
   if (items.length === 0) {
     return (

@@ -10,8 +10,6 @@ import {
   type HomeworkLevel,
   type Student,
 } from "@/lib/admin";
-import { StudentLink } from "@/components/admin/students/StudentLink";
-import { ExerciseResultDialog } from "@/components/admin/homework/ExerciseResultDialog";
 import { HomeworkAssignDialog } from "@/components/admin/homework/HomeworkAssignDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +53,6 @@ export function HomeworkAdminList() {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<HomeworkType | "ALL">("ALL");
   const [filterLevel, setFilterLevel] = useState<HomeworkLevel | "ALL">("ALL");
-  const [openResultId, setOpenResultId] = useState<string | null>(null);
   const [assignItem, setAssignItem] = useState<HomeworkAdminItem | null>(null);
 
   const load = () => {
@@ -160,13 +157,15 @@ export function HomeworkAdminList() {
             : t("admin.homework.noTasksFiltered")}
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((item) => (
-            <Card key={item.id} className="flex flex-col">
-              <CardHeader className="pb-2">
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <CardTitle className="text-base">{item.title}</CardTitle>
+            <Card key={item.id} className="flex flex-col gap-0 py-3">
+              <CardHeader className="px-3 pb-1.5 pt-0">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <CardTitle className="text-sm leading-snug">
+                      {item.title}
+                    </CardTitle>
                     {item.homeworkType && (
                       <span
                         className={[
@@ -228,8 +227,8 @@ export function HomeworkAdminList() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <p className="line-clamp-3 whitespace-pre-wrap text-muted-foreground">
+              <CardContent className="space-y-1.5 px-3 pt-0 text-sm">
+                <p className="line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">
                   {item.instructions}
                 </p>
                 {item.dueOn && (
@@ -237,79 +236,10 @@ export function HomeworkAdminList() {
                     {t("admin.homework.dueOn")} {formatDate(item.dueOn)}
                   </p>
                 )}
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("admin.homework.assignedTo")}
-                  </p>
-                  {item.assignees.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      {t("admin.homework.unassigned")}
-                    </p>
-                  ) : (
-                    <ul className="mt-1 space-y-1">
-                      {item.assignees.map((a) => (
-                        <li
-                          key={a.userId}
-                          className="flex flex-wrap items-center justify-between gap-1"
-                        >
-                          <StudentLink
-                            student={{
-                              id: a.userId,
-                              email: a.email,
-                              firstName: a.firstName,
-                              lastName: a.lastName,
-                              username: a.username,
-                            }}
-                            showEmail
-                          />
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={[
-                                "rounded-full px-2 py-0.5 text-xs font-medium",
-                                a.status === "SUBMITTED" ||
-                                a.status === "REVIEWED" ||
-                                a.status === "GRADED"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-muted text-muted-foreground",
-                              ].join(" ")}
-                            >
-                              {t(`admin.homework.status.${a.status}`) ??
-                                a.status}
-                              {a.status === "GRADED" &&
-                                a.scorePercent !== null &&
-                                ` — ${a.scorePercent}%`}
-                            </span>
-                            {a.hasTeacherFeedback && (
-                              <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
-                                {t("admin.exerciseResult.hasFeedbackBadge")}
-                              </span>
-                            )}
-                            {a.status === "GRADED" && a.submissionId && (
-                              <button
-                                type="button"
-                                onClick={() => setOpenResultId(a.submissionId)}
-                                className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
-                              >
-                                {t("admin.exerciseResult.viewAction")}
-                              </button>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      )}
-      {openResultId && (
-        <ExerciseResultDialog
-          submissionId={openResultId}
-          onClose={() => setOpenResultId(null)}
-          onFeedbackSaved={load}
-        />
       )}
       {assignItem && (
         <HomeworkAssignDialog

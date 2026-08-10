@@ -325,6 +325,11 @@ export function MixedHomeworkForm({
 
   return (
     <div className="mt-6 space-y-5">
+      <div
+        className={
+          assignment.questions.length > 1 ? "space-y-8" : "space-y-5"
+        }
+      >
       {assignment.questions.map((q, i) => (
         <div key={q.id} className="space-y-2.5">
           {isFreeText(q.kind) ? (
@@ -436,6 +441,7 @@ export function MixedHomeworkForm({
           )}
         </div>
       ))}
+      </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

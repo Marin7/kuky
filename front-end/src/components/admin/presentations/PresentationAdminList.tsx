@@ -17,7 +17,6 @@ import {
   type Student,
   type ApiError,
 } from "@/lib/admin";
-import { StudentLink } from "@/components/admin/students/StudentLink";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -106,7 +105,7 @@ export function PresentationAdminList() {
           value={filterLevel}
           onValueChange={(v) => setFilterLevel(v as HomeworkLevel | "ALL")}
         >
-          <SelectTrigger className="h-9 w-36 text-xs">
+          <SelectTrigger className="h-9 w-40 text-xs">
             <SelectValue placeholder={t("admin.presentations.allLevels")} />
           </SelectTrigger>
           <SelectContent>
@@ -167,15 +166,16 @@ export function PresentationAdminList() {
             : t("admin.presentations.emptyFiltered")}
         </p>
       ) : (
-        filtered.map((item) => (
-          <PresentationCard
-            key={item.id}
-            item={item}
-            students={students}
-            onDeleted={() => handleDeleted(item.id)}
-            onUpdated={handleUpdated}
-          />
-        ))
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((item) => (
+            <PresentationCard
+              key={item.id}
+              item={item}
+              onDeleted={() => handleDeleted(item.id)}
+              onUpdated={handleUpdated}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -185,12 +185,11 @@ export function PresentationAdminList() {
 
 interface CardProps {
   item: PresentationSummary;
-  students: Student[];
   onDeleted: () => void;
   onUpdated: (updated: PresentationSummary) => void;
 }
 
-function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
+function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -282,10 +281,10 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
   };
 
   return (
-    <Card>
-      <CardContent className="pt-4 space-y-3">
-        {/* Title + level row */}
-        <div className="flex items-center gap-2">
+    <Card className="flex flex-col gap-0 py-3">
+      <CardContent className="space-y-2 px-3 pt-0">
+        {/* Title + level */}
+        <div className="flex flex-wrap items-center gap-1.5">
           {editingTitle ? (
             <Input
               autoFocus
@@ -299,13 +298,13 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
                   setEditingTitle(false);
                 }
               }}
-              className="flex-1"
+              className="h-8 text-sm"
               maxLength={200}
             />
           ) : (
-            <div className="flex flex-1 items-center gap-2 min-w-0">
+            <>
               <button
-                className="text-left font-medium hover:underline truncate"
+                className="text-left text-sm font-medium leading-snug hover:underline"
                 onClick={() => {
                   setTitleValue(item.title);
                   setEditingTitle(true);
@@ -323,14 +322,16 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
                   {item.level}
                 </span>
               )}
-            </div>
+            </>
           )}
+        </div>
 
+        <div className="flex flex-wrap gap-1">
           <Select
             value={item.level ?? "NONE"}
             onValueChange={handleLevelChange}
           >
-            <SelectTrigger className="h-8 w-24 shrink-0 text-xs">
+            <SelectTrigger className="h-7 w-24 text-xs">
               <SelectValue placeholder={t("admin.presentations.noLevel")} />
             </SelectTrigger>
             <SelectContent>
@@ -348,7 +349,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs shrink-0"
+            className="h-7 text-xs"
             onClick={handleShare}
           >
             {t("admin.presentations.share")}
@@ -356,7 +357,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 text-xs text-destructive shrink-0"
+            className="h-7 text-xs text-destructive"
             onClick={handleDelete}
           >
             {t("admin.presentations.delete")}
@@ -364,7 +365,7 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
         </div>
 
         {/* File area */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <input
             type="file"
             accept=".pptx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -377,15 +378,15 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
               {item.files.map((f) => (
                 <li
                   key={f.id}
-                  className="flex items-center gap-2 flex-wrap text-sm"
+                  className="flex flex-wrap items-center gap-1 text-xs"
                 >
-                  <span className="text-muted-foreground truncate max-w-xs">
+                  <span className="truncate text-muted-foreground">
                     📎 {f.displayName}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs text-destructive"
+                    className="h-6 px-1.5 text-xs text-destructive"
                     onClick={() => handleDeleteFile(f.id)}
                     disabled={uploading}
                   >
@@ -395,11 +396,11 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
               ))}
             </ul>
           )}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
-              className="text-xs"
+              className="h-7 text-xs"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || item.files.length >= 10}
             >
@@ -415,34 +416,12 @@ function PresentationCard({ item, students, onDeleted, onUpdated }: CardProps) {
               </span>
             )}
             {uploading && (
-              <span className="text-xs text-muted-foreground animate-pulse">
+              <span className="animate-pulse text-xs text-muted-foreground">
                 {t("admin.presentations.uploading")}
               </span>
             )}
           </div>
         </div>
-
-        {/* Share info */}
-        {item.sharedWithIds.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {t("admin.presentations.noShares")}
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-1">
-            {item.sharedWithIds.map((id) => {
-              const student = students.find((s) => s.id === id);
-              if (!student) return null;
-              return (
-                <span
-                  key={id}
-                  className="rounded-full bg-muted px-2 py-0.5 text-xs"
-                >
-                  <StudentLink student={student} />
-                </span>
-              );
-            })}
-          </div>
-        )}
 
         {error && <p className="text-xs text-destructive">{error}</p>}
       </CardContent>
