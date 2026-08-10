@@ -127,7 +127,7 @@ export function HomeworkAdminList() {
             value={filterLevel}
             onValueChange={(v) => setFilterLevel(v as HomeworkLevel | "ALL")}
           >
-            <SelectTrigger className="h-8 w-28 text-xs">
+            <SelectTrigger className="h-8 w-40 text-xs">
               <SelectValue placeholder={t("admin.homework.allLevels")} />
             </SelectTrigger>
             <SelectContent>
@@ -160,146 +160,149 @@ export function HomeworkAdminList() {
             : t("admin.homework.noTasksFiltered")}
         </p>
       ) : (
-        filtered.map((item) => (
-          <Card key={item.id}>
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <CardTitle className="text-base">{item.title}</CardTitle>
-                  {item.homeworkType && (
-                    <span
-                      className={[
-                        "rounded-full px-2 py-0.5 text-xs font-medium",
-                        TYPE_CLASS[item.homeworkType],
-                      ].join(" ")}
-                    >
-                      {t(`admin.homework.type.${item.homeworkType}`)}
-                    </span>
-                  )}
-                  {item.level && (
-                    <span
-                      className={[
-                        "rounded-full px-2 py-0.5 text-xs font-medium",
-                        LEVEL_CLASS[item.level],
-                      ].join(" ")}
-                    >
-                      {item.level}
-                    </span>
-                  )}
-                  {(item.format === "EXERCISE" ||
-                    item.composition === "ALL_AUTO") && (
-                    <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
-                      {t("admin.homework.exercise")}
-                    </span>
-                  )}
-                  {(item.format === "MIXED" ||
-                    item.composition === "MIXED") && (
-                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
-                      {t("admin.homework.mixed")}
-                    </span>
-                  )}
-                </div>
-                <div className="flex shrink-0 gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setAssignItem(item)}
-                  >
-                    {t("admin.homework.assign")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => openEdit(item)}
-                  >
-                    {t("admin.homework.edit")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-destructive"
-                    onClick={() => remove(item)}
-                  >
-                    {t("admin.homework.delete")}
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <p className="whitespace-pre-wrap text-muted-foreground">
-                {item.instructions}
-              </p>
-              {item.dueOn && (
-                <p className="text-xs text-muted-foreground">
-                  {t("admin.homework.dueOn")} {formatDate(item.dueOn)}
-                </p>
-              )}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t("admin.homework.assignedTo")}
-                </p>
-                {item.assignees.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">
-                    {t("admin.homework.unassigned")}
-                  </p>
-                ) : (
-                  <ul className="mt-1 space-y-1">
-                    {item.assignees.map((a) => (
-                      <li
-                        key={a.userId}
-                        className="flex items-center justify-between"
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {filtered.map((item) => (
+            <Card key={item.id} className="flex flex-col">
+              <CardHeader className="pb-2">
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <CardTitle className="text-base">{item.title}</CardTitle>
+                    {item.homeworkType && (
+                      <span
+                        className={[
+                          "rounded-full px-2 py-0.5 text-xs font-medium",
+                          TYPE_CLASS[item.homeworkType],
+                        ].join(" ")}
                       >
-                        <StudentLink
-                          student={{
-                            id: a.userId,
-                            email: a.email,
-                            firstName: a.firstName,
-                            lastName: a.lastName,
-                            username: a.username,
-                          }}
-                          showEmail
-                        />
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={[
-                              "rounded-full px-2 py-0.5 text-xs font-medium",
-                              a.status === "SUBMITTED" ||
-                              a.status === "REVIEWED" ||
-                              a.status === "GRADED"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-muted text-muted-foreground",
-                            ].join(" ")}
-                          >
-                            {t(`admin.homework.status.${a.status}`) ?? a.status}
-                            {a.status === "GRADED" &&
-                              a.scorePercent !== null &&
-                              ` — ${a.scorePercent}%`}
-                          </span>
-                          {a.hasTeacherFeedback && (
-                            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
-                              {t("admin.exerciseResult.hasFeedbackBadge")}
-                            </span>
-                          )}
-                          {a.status === "GRADED" && a.submissionId && (
-                            <button
-                              type="button"
-                              onClick={() => setOpenResultId(a.submissionId)}
-                              className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
-                            >
-                              {t("admin.exerciseResult.viewAction")}
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                        {t(`admin.homework.type.${item.homeworkType}`)}
+                      </span>
+                    )}
+                    {item.level && (
+                      <span
+                        className={[
+                          "rounded-full px-2 py-0.5 text-xs font-medium",
+                          LEVEL_CLASS[item.level],
+                        ].join(" ")}
+                      >
+                        {item.level}
+                      </span>
+                    )}
+                    {(item.format === "EXERCISE" ||
+                      item.composition === "ALL_AUTO") && (
+                      <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
+                        {t("admin.homework.exercise")}
+                      </span>
+                    )}
+                    {(item.format === "MIXED" ||
+                      item.composition === "MIXED") && (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                        {t("admin.homework.mixed")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setAssignItem(item)}
+                    >
+                      {t("admin.homework.assign")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => openEdit(item)}
+                    >
+                      {t("admin.homework.edit")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs text-destructive"
+                      onClick={() => remove(item)}
+                    >
+                      {t("admin.homework.delete")}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p className="line-clamp-3 whitespace-pre-wrap text-muted-foreground">
+                  {item.instructions}
+                </p>
+                {item.dueOn && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("admin.homework.dueOn")} {formatDate(item.dueOn)}
+                  </p>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        ))
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t("admin.homework.assignedTo")}
+                  </p>
+                  {item.assignees.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t("admin.homework.unassigned")}
+                    </p>
+                  ) : (
+                    <ul className="mt-1 space-y-1">
+                      {item.assignees.map((a) => (
+                        <li
+                          key={a.userId}
+                          className="flex flex-wrap items-center justify-between gap-1"
+                        >
+                          <StudentLink
+                            student={{
+                              id: a.userId,
+                              email: a.email,
+                              firstName: a.firstName,
+                              lastName: a.lastName,
+                              username: a.username,
+                            }}
+                            showEmail
+                          />
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={[
+                                "rounded-full px-2 py-0.5 text-xs font-medium",
+                                a.status === "SUBMITTED" ||
+                                a.status === "REVIEWED" ||
+                                a.status === "GRADED"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-muted text-muted-foreground",
+                              ].join(" ")}
+                            >
+                              {t(`admin.homework.status.${a.status}`) ??
+                                a.status}
+                              {a.status === "GRADED" &&
+                                a.scorePercent !== null &&
+                                ` — ${a.scorePercent}%`}
+                            </span>
+                            {a.hasTeacherFeedback && (
+                              <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+                                {t("admin.exerciseResult.hasFeedbackBadge")}
+                              </span>
+                            )}
+                            {a.status === "GRADED" && a.submissionId && (
+                              <button
+                                type="button"
+                                onClick={() => setOpenResultId(a.submissionId)}
+                                className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
+                              >
+                                {t("admin.exerciseResult.viewAction")}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
       {openResultId && (
         <ExerciseResultDialog
