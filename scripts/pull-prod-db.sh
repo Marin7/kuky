@@ -29,7 +29,8 @@ DUMP_FILE="${DUMP_DIR}/prod_$(date +%Y-%m-%d_%H%M%S).sql.gz"
 mkdir -p "${DUMP_DIR}"
 
 echo "==> dumping ${SSH_HOST}:${REMOTE_DIR} → ${DUMP_FILE}"
-ssh -o BatchMode=yes "${SSH_HOST}" \
+# accept-new: trust unknown hosts on first connect; still fail if a known key changes
+ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new "${SSH_HOST}" \
   "cd '${REMOTE_DIR}' && docker compose exec -T postgres \
      pg_dump -U kuky -d kuky --clean --if-exists --no-owner --no-acl" \
   | gzip -c > "${DUMP_FILE}"
