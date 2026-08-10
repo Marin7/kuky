@@ -271,35 +271,6 @@ export function HomeworkAdminList() {
                   </ul>
                 )}
               </div>
-              {item.assignees.some((a) => a.responseText) && (
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("admin.homework.responses")}
-                  </p>
-                  {item.assignees
-                    .filter((a) => a.responseText)
-                    .map((a) => (
-                      <div
-                        key={a.userId}
-                        className="rounded-md bg-muted/50 p-2 text-xs"
-                      >
-                        <span className="font-medium">
-                          <StudentLink
-                            student={{
-                              id: a.userId,
-                              email: a.email,
-                              firstName: a.firstName,
-                              lastName: a.lastName,
-                              username: a.username,
-                            }}
-                          />
-                          :
-                        </span>{" "}
-                        {a.responseText}
-                      </div>
-                    ))}
-                </div>
-              )}
             </CardContent>
           </Card>
         ))
