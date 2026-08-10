@@ -91,7 +91,14 @@ export function applyFormat(
     pos += seg.text.length;
     const segEnd = pos;
     if (segStart >= start && segEnd <= end) {
-      return { ...seg, ...patch };
+      const next: Segment = { ...seg, ...patch };
+      // Explicit `undefined` from clear buttons must drop the attribute,
+      // otherwise spreads leave a sticky `color: undefined` / etc.
+      if ("color" in patch && patch.color === undefined) delete next.color;
+      if ("highlight" in patch && patch.highlight === undefined)
+        delete next.highlight;
+      if ("strike" in patch && !patch.strike) delete next.strike;
+      return next;
     }
     return seg;
   });

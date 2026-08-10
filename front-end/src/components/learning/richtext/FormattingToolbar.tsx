@@ -23,10 +23,15 @@ interface Props {
   onToggleStrike: () => void;
 }
 
+/** Keep textarea focus/selection when pressing a toolbar control. */
+function keepSelection(e: React.PointerEvent | React.MouseEvent) {
+  e.preventDefault();
+}
+
 /**
  * A selection-based formatting bar: buttons apply to whatever text is
- * currently selected in the paired RichTextEditor. `onMouseDown` calls
- * preventDefault() on every button so clicking a button never steals focus
+ * currently selected in the paired RichTextEditor. Pointer/mouse down
+ * preventDefault on every button so activating a control never steals focus
  * from the textarea and collapses the selection before the click fires.
  */
 export function FormattingToolbar({
@@ -48,7 +53,8 @@ export function FormattingToolbar({
             key={color}
             type="button"
             disabled={disabled}
-            onMouseDown={(e) => e.preventDefault()}
+            onPointerDown={keepSelection}
+            onMouseDown={keepSelection}
             onClick={() => onApplyColor(color)}
             title={t(`richText.colors.${color}` as never)}
             aria-label={t(`richText.colors.${color}` as never)}
@@ -60,7 +66,8 @@ export function FormattingToolbar({
         <button
           type="button"
           disabled={disabled}
-          onMouseDown={(e) => e.preventDefault()}
+          onPointerDown={keepSelection}
+          onMouseDown={keepSelection}
           onClick={() => onApplyColor(undefined)}
           title={t("richText.clearColor")}
           aria-label={t("richText.clearColor")}
@@ -79,7 +86,8 @@ export function FormattingToolbar({
             key={highlight}
             type="button"
             disabled={disabled}
-            onMouseDown={(e) => e.preventDefault()}
+            onPointerDown={keepSelection}
+            onMouseDown={keepSelection}
             onClick={() => onApplyHighlight(highlight)}
             title={t(`richText.highlights.${highlight}` as never)}
             aria-label={t(`richText.highlights.${highlight}` as never)}
@@ -89,7 +97,8 @@ export function FormattingToolbar({
         <button
           type="button"
           disabled={disabled}
-          onMouseDown={(e) => e.preventDefault()}
+          onPointerDown={keepSelection}
+          onMouseDown={keepSelection}
           onClick={() => onApplyHighlight(undefined)}
           title={t("richText.clearHighlight")}
           aria-label={t("richText.clearHighlight")}
@@ -102,7 +111,8 @@ export function FormattingToolbar({
       <button
         type="button"
         disabled={disabled}
-        onMouseDown={(e) => e.preventDefault()}
+        onPointerDown={keepSelection}
+        onMouseDown={keepSelection}
         onClick={() => onToggleStrike()}
         title={t("richText.strike")}
         aria-label={t("richText.strike")}
