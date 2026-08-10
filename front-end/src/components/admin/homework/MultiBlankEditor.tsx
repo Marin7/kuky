@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { MultiBlankStructure } from "@/lib/admin";
 import { countBlanks } from "@/lib/blankTokens";
+import { MAX_ACCEPTED_PER_BLANK } from "@/lib/exerciseLimits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,9 +50,11 @@ export function MultiBlankEditor({ prompt, structure, onChange }: Props) {
 
   const addAnswer = (blankIndex: number) =>
     onChange({
-      blanks: blanks.map((b, i) =>
-        i === blankIndex ? { acceptedAnswers: [...b.acceptedAnswers, ""] } : b,
-      ),
+      blanks: blanks.map((b, i) => {
+        if (i !== blankIndex) return b;
+        if (b.acceptedAnswers.length >= MAX_ACCEPTED_PER_BLANK) return b;
+        return { acceptedAnswers: [...b.acceptedAnswers, ""] };
+      }),
     });
 
   const removeAnswer = (blankIndex: number, answerIndex: number) =>
@@ -108,10 +111,18 @@ export function MultiBlankEditor({ prompt, structure, onChange }: Props) {
               variant="outline"
               size="sm"
               className="h-7 text-xs"
+              disabled={blank.acceptedAnswers.length >= MAX_ACCEPTED_PER_BLANK}
               onClick={() => addAnswer(i)}
             >
               {t("admin.homework.questions.addAnswer")}
             </Button>
+            {blank.acceptedAnswers.length >= MAX_ACCEPTED_PER_BLANK && (
+              <p className="text-[11px] text-muted-foreground">
+                {t("admin.homework.questions.maxAcceptedAnswers", {
+                  max: MAX_ACCEPTED_PER_BLANK,
+                })}
+              </p>
+            )}
           </div>
         ))
       )}

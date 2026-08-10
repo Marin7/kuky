@@ -17,6 +17,7 @@ import com.kuky.backend.admin.dto.UpdateHomeworkRequest;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.learning.ExerciseStructureLimits;
 import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.NotSubmittedException;
@@ -578,7 +579,8 @@ public class HomeworkAdminService {
         ArrayNode blanks = objectMapper.createArrayNode();
         for (JsonNode blankNode : blanksNode) {
             ObjectNode entry = objectMapper.createObjectNode();
-            entry.set("acceptedAnswers", normalizeAnswerList(blankNode == null ? null : blankNode.get("acceptedAnswers")));
+            entry.set("acceptedAnswers", normalizeMultiBlankAnswerList(
+                    blankNode == null ? null : blankNode.get("acceptedAnswers")));
             blanks.add(entry);
         }
         return objectMapper.createObjectNode().set("blanks", blanks);
@@ -590,11 +592,18 @@ public class HomeworkAdminService {
             throw new IllegalArgumentException("El enunciado debe tener entre 2 y 20 huecos (___).");
         }
         JsonNode bankNode = structure.get("bank");
-        if (bankNode == null || !bankNode.isArray() || bankNode.size() != blankCount) {
-            throw new IllegalArgumentException("El banco de palabras debe tener el mismo número de elementos que huecos.");
+        if (bankNode == null || !bankNode.isArray()) {
+            throw new IllegalArgumentException("El banco de palabras es obligatorio.");
         }
+        if (bankNode.size() < blankCount || bankNode.size() > ExerciseStructureLimits.MAX_BANK_ITEMS) {
+            throw new IllegalArgumentException(
+                    "El banco de palabras debe tener entre " + blankCount + " y "
+                            + ExerciseStructureLimits.MAX_BANK_ITEMS + " elementos.");
+        }
+
         ArrayNode bank = objectMapper.createArrayNode();
         Set<String> seenIds = new HashSet<>();
+        Map<String, String> idToLabel = new LinkedHashMap<>();
         for (JsonNode item : bankNode) {
             String label = textOrNull(item, "label");
             if (label == null || label.isBlank()) {
@@ -608,8 +617,74 @@ public class HomeworkAdminService {
             entry.put("id", id);
             entry.put("label", label.strip());
             bank.add(entry);
+            idToLabel.put(id, label.strip());
         }
-        return objectMapper.createObjectNode().set("bank", bank);
+
+        JsonNode blanksNode = structure.get("blanks");
+        boolean legacy = blanksNode == null || !blanksNode.isArray() || blanksNode.isEmpty();
+        if (legacy) {
+            if (bank.size() != blankCount) {
+                throw new IllegalArgumentException(
+                        "El banco de palabras debe tener el mismo número de elementos que huecos.");
+            }
+            ArrayNode blanks = objectMapper.createArrayNode();
+            for (JsonNode item : bank) {
+                ObjectNode blank = objectMapper.createObjectNode();
+                ArrayNode ids = objectMapper.createArrayNode();
+                ids.add(item.path("id").asText());
+                blank.set("correctBankIds", ids);
+                blanks.add(blank);
+            }
+            ObjectNode result = objectMapper.createObjectNode();
+            result.set("bank", bank);
+            result.set("blanks", blanks);
+            return result;
+        }
+
+        if (blanksNode.size() != blankCount) {
+            throw new IllegalArgumentException(
+                    "El número de respuestas no coincide con el número de huecos del enunciado.");
+        }
+
+        ArrayNode blanks = objectMapper.createArrayNode();
+        for (JsonNode blankNode : blanksNode) {
+            JsonNode idsNode = blankNode == null ? null : blankNode.get("correctBankIds");
+            if (idsNode == null || !idsNode.isArray() || idsNode.isEmpty()) {
+                throw new IllegalArgumentException("Cada hueco necesita al menos una palabra correcta del banco.");
+            }
+            if (idsNode.size() > ExerciseStructureLimits.MAX_ACCEPTED_PER_BLANK) {
+                throw new IllegalArgumentException(
+                        "Cada hueco puede tener como máximo "
+                                + ExerciseStructureLimits.MAX_ACCEPTED_PER_BLANK
+                                + " palabras correctas.");
+            }
+            ArrayNode ids = objectMapper.createArrayNode();
+            Set<String> seenInBlank = new HashSet<>();
+            for (JsonNode idNode : idsNode) {
+                String id = idNode != null && idNode.isTextual() ? idNode.asText().strip() : null;
+                if (id == null || id.isBlank()) {
+                    throw new IllegalArgumentException("Los identificadores correctos del banco no pueden estar vacíos.");
+                }
+                if (!idToLabel.containsKey(id)) {
+                    throw new IllegalArgumentException("Hay una palabra correcta que no está en el banco.");
+                }
+                if (!seenInBlank.add(id)) {
+                    continue; // silent dedupe within blank
+                }
+                ids.add(id);
+            }
+            if (ids.isEmpty()) {
+                throw new IllegalArgumentException("Cada hueco necesita al menos una palabra correcta del banco.");
+            }
+            ObjectNode blank = objectMapper.createObjectNode();
+            blank.set("correctBankIds", ids);
+            blanks.add(blank);
+        }
+
+        ObjectNode result = objectMapper.createObjectNode();
+        result.set("bank", bank);
+        result.set("blanks", blanks);
+        return result;
     }
 
     private JsonNode validateTableFill(JsonNode structure) {
@@ -746,7 +821,42 @@ public class HomeworkAdminService {
         return byId;
     }
 
-    /** Non-empty (after trim) accepted-answer list, normalized to trimmed strings. */
+    /**
+     * MULTI_BLANK accepted answers: trim, silent dedupe by accent-exact normalize key,
+     * enforce 1–{@link ExerciseStructureLimits#MAX_ACCEPTED_PER_BLANK}.
+     * TABLE_FILL keeps {@link #normalizeAnswerList} without the cap.
+     */
+    private ArrayNode normalizeMultiBlankAnswerList(JsonNode node) {
+        if (node == null || !node.isArray() || node.isEmpty()) {
+            throw new IllegalArgumentException("Cada hueco necesita al menos una respuesta aceptada.");
+        }
+        ArrayNode result = objectMapper.createArrayNode();
+        Set<String> seenNormalized = new HashSet<>();
+        for (JsonNode item : node) {
+            String value = item != null && item.isTextual() ? item.asText() : null;
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException("Las respuestas aceptadas no pueden estar vacías.");
+            }
+            String stripped = value.strip();
+            String key = stripped.toLowerCase(Locale.ROOT);
+            if (!seenNormalized.add(key)) {
+                continue;
+            }
+            result.add(stripped);
+        }
+        if (result.isEmpty()) {
+            throw new IllegalArgumentException("Cada hueco necesita al menos una respuesta aceptada.");
+        }
+        if (result.size() > ExerciseStructureLimits.MAX_ACCEPTED_PER_BLANK) {
+            throw new IllegalArgumentException(
+                    "Cada hueco puede tener como máximo "
+                            + ExerciseStructureLimits.MAX_ACCEPTED_PER_BLANK
+                            + " respuestas aceptadas.");
+        }
+        return result;
+    }
+
+    /** Non-empty (after trim) accepted-answer list, normalized to trimmed strings (TABLE_FILL). */
     private ArrayNode normalizeAnswerList(JsonNode node) {
         if (node == null || !node.isArray() || node.isEmpty()) {
             throw new IllegalArgumentException("Cada hueco necesita al menos una respuesta aceptada.");

@@ -56,8 +56,8 @@ import java.util.stream.Collectors;
  *   <li>{@code MULTI_CHOICE} — partial credit over all options.</li>
  *   <li>{@code MULTI_BLANK} / {@code TABLE_FILL} — each blank/cell trim + case-insensitive
  *       + accent-exact; question score = mean of unit scores.</li>
- *   <li>{@code DRAG_DROP} — each blank correct iff the placed bank item id matches the
- *       bank item at that index.</li>
+ *   <li>{@code DRAG_DROP} — each blank correct iff the placed bank item id is in
+ *       that blank's {@code correctBankIds} (legacy: bank[i] for blank i).</li>
  *   <li>{@code MATCHING} — each authored pair is a unit; correct iff the student paired
  *       the same leftId ↔ rightId.</li>
  * </ul>
@@ -327,32 +327,48 @@ public class ExerciseGradingService {
             String studentValue = textAt(studentBlanks, i);
             boolean correct = matchesAny(studentValue, accepted);
             sum += correct ? 1.0 : 0.0;
-            units.add(unit(i, correct, studentValue, correct ? List.of() : accepted));
+            List<String> expectedDisplay = expectedDisplayForMulti(accepted, correct);
+            units.add(unit(i, correct, studentValue, expectedDisplay));
         }
         double score = n == 0 ? 0.0 : sum / n;
         return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
     }
 
-    /** {@code structure.bank[i]} is the correct placement for blank {@code i}. */
+    /**
+     * Canonical {@code blanks[].correctBankIds} (any-of) or legacy {@code bank[i] → blank i}.
+     */
     private GradedAnswer gradeDragDrop(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {
-        JsonNode bank = readStructure(q).path("bank");
-        int n = bank.isArray() ? bank.size() : 0;
+        JsonNode structure = readStructure(q);
+        DragDropStructureSupport.Resolved resolved = DragDropStructureSupport.resolve(structure);
+        JsonNode bank = resolved.bank();
+        int n = resolved.blankCount();
         JsonNode placements = answerJsonOf(given).path("placements");
 
         List<ExerciseResultResponse.UnitResultDto> units = new ArrayList<>();
         double sum = 0;
         for (int i = 0; i < n; i++) {
-            JsonNode bankItem = bank.get(i);
-            String expectedId = bankItem.path("id").asText(null);
-            String expectedLabel = bankItem.path("label").asText(null);
+            List<String> correctIds = resolved.blanks().get(i).correctBankIds();
             String placedId = textAt(placements, i);
-            boolean correct = placedId != null && placedId.equals(expectedId);
+            boolean correct = placedId != null && correctIds.contains(placedId);
             sum += correct ? 1.0 : 0.0;
-            String studentDisplay = correct ? expectedLabel : labelForId(bank, placedId);
-            units.add(unit(i, correct, studentDisplay, correct ? List.of() : List.of(expectedLabel)));
+            List<String> expectedLabels = DragDropStructureSupport.labelsForIds(bank, correctIds);
+            // Drop null labels from missing ids
+            expectedLabels = expectedLabels.stream().filter(l -> l != null && !l.isBlank()).toList();
+            String studentDisplay = correct
+                    ? DragDropStructureSupport.labelForId(bank, placedId)
+                    : labelForId(bank, placedId);
+            List<String> expectedDisplay = expectedDisplayForMulti(expectedLabels, correct);
+            units.add(unit(i, correct, studentDisplay, expectedDisplay));
         }
         double score = n == 0 ? 0.0 : sum / n;
         return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
+    }
+
+    /** When multiple accepted answers, always reveal the full set; otherwise reveal only if wrong. */
+    private static List<String> expectedDisplayForMulti(List<String> accepted, boolean correct) {
+        if (accepted == null || accepted.isEmpty()) return List.of();
+        if (accepted.size() > 1) return accepted;
+        return correct ? List.of() : accepted;
     }
 
     /** Blank cells graded in {@code (r,c)} order; {@code answerJson.cells} keyed by {@code "r,c"}. */

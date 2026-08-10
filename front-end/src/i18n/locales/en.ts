@@ -427,7 +427,7 @@ export const enDict = {
       noAnswer: "(no answer)",
       unitCorrect: "Correct",
       unitIncorrect: "Incorrect",
-      unitExpected: "Expected:",
+      unitExpected: "Accepted:",
       teacherFeedback: "Teacher feedback",
     },
     trueFalse: {
@@ -856,11 +856,20 @@ export const enDict = {
         multiBlankCountWarning:
           "Add at least one blank (___) to the prompt to configure the answers.",
         multiBlankHint:
-          "Set the accepted answers for each blank in the prompt (the student types).",
+          "Set the accepted answers for each blank in the prompt (the student types). You can add up to 10 per blank.",
+        maxAcceptedAnswers: "Maximum {{max}} accepted answers per blank.",
         dragDropHint:
-          "Enter the correct word for each blank, in order. The student will see these words shuffled in a bank and must drag them (not type).",
+          "Build the word bank (you may add extras as distractors or alternates), then mark which bank words are correct for each blank. Students see the bank shuffled and drag words into blanks.",
         wordBankTitle: "Word bank",
         bankWordLabel: "Word {{index}} (blank {{index}})",
+        bankItemLabel: "Word {{index}}",
+        bankItemUntitled: "Word {{index}}",
+        addBankItem: "Add bank word",
+        removeBankItem: "Remove from bank",
+        maxBankItems: "Maximum {{max}} words in the bank.",
+        correctBankPerBlank: "Correct words per blank",
+        correctBankPerBlankHint:
+          "Select one or more bank words that count as correct for each blank. The same word may be correct for several blanks (e.g. “___ and ___” with either order). Unselected words act as distractors.",
         bankPreview:
           "How the student will see the bank (in a different order):",
         bankItemPlaceholder: "Bank word or phrase",

@@ -89,5 +89,5 @@ npm run lint && npm run format
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/033-per-question-grading/plan.md`
+`specs/034-multi-correct-blanks/plan.md`
 <!-- SPECKIT END -->

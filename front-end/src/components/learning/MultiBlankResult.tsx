@@ -35,7 +35,7 @@ export function MultiBlankResult({ number, prompt, unitResults }: Props) {
         const correct = unit?.correct ?? false;
         const student = displayOrDash(unit?.studentDisplay, noAnswer);
         const expected =
-          !correct && unit?.expectedDisplay && unit.expectedDisplay.length > 0
+          unit?.expectedDisplay && unit.expectedDisplay.length > 0
             ? unit.expectedDisplay.join(" / ")
             : null;
 

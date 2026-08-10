@@ -437,7 +437,7 @@ export const esDict = {
       noAnswer: "(sin respuesta)",
       unitCorrect: "Correcto",
       unitIncorrect: "Incorrecto",
-      unitExpected: "Esperado:",
+      unitExpected: "Aceptado:",
       teacherFeedback: "Comentario de la profesora",
     },
     trueFalse: {
@@ -496,7 +496,8 @@ export const esDict = {
       instructions: "Instrucciones",
       instructionsOnPage:
         "Las instrucciones están en la página {{page}} de la presentación.",
-      insertAfterPage: "Se muestra después de la página {{page}} de la presentación.",
+      insertAfterPage:
+        "Se muestra después de la página {{page}} de la presentación.",
       submit: "Entregar actividad",
       overlayTitle: "Actividad",
       viewActivity: "Ver actividad «{{title}}»",
@@ -869,11 +870,20 @@ export const esDict = {
         multiBlankCountWarning:
           "Añade al menos un hueco (___) en el enunciado para poder configurar las respuestas.",
         multiBlankHint:
-          "Define las respuestas aceptadas para cada hueco del enunciado (el alumno escribe).",
+          "Define las respuestas aceptadas para cada hueco del enunciado (el alumno escribe). Puedes añadir hasta 10 por hueco.",
+        maxAcceptedAnswers: "Máximo {{max}} respuestas aceptadas por hueco.",
         dragDropHint:
-          "Escribe la palabra correcta para cada hueco, en orden. El alumno verá estas palabras mezcladas en un banco y deberá arrastrarlas (no escribir).",
+          "Construye el banco de palabras (puedes añadir extras como distractores o alternativas) y marca qué palabras son correctas para cada hueco. El alumno verá el banco mezclado y arrastrará las palabras a los huecos.",
         wordBankTitle: "Banco de palabras",
         bankWordLabel: "Palabra {{index}} (hueco {{index}})",
+        bankItemLabel: "Palabra {{index}}",
+        bankItemUntitled: "Palabra {{index}}",
+        addBankItem: "Añadir palabra al banco",
+        removeBankItem: "Quitar del banco",
+        maxBankItems: "Máximo {{max}} palabras en el banco.",
+        correctBankPerBlank: "Palabras correctas por hueco",
+        correctBankPerBlankHint:
+          "Marca una o más palabras del banco que cuenten como correctas en cada hueco. La misma palabra puede ser correcta en varios huecos (p. ej. «___ y ___» en cualquier orden). Las no marcadas actúan como distractores.",
         bankPreview: "Así verá el alumno el banco (en otro orden):",
         bankItemPlaceholder: "Palabra o frase del banco",
         tableFillHint:
@@ -920,8 +930,7 @@ export const esDict = {
       emptyAnswer: "(sin respuesta)",
       yourFeedback: "Tu corrección",
       feedbackPlaceholder: "Nota breve para el alumno (opcional, máx. 500)…",
-      feedbackTooLong:
-        "La nota es demasiado larga (máximo 500 caracteres).",
+      feedbackTooLong: "La nota es demasiado larga (máximo 500 caracteres).",
       legacyFrozen:
         "Esta corrección antigua es de solo lectura (modelo anterior).",
       mixedHint:

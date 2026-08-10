@@ -184,8 +184,7 @@ export function ExerciseResult({
                         <span className="mt-0.5 block text-[11px] opacity-90">
                           {t("learning.exerciseResult.yourAnswer")}{" "}
                           {displayOrDash(u.studentDisplay, noAnswer)}
-                          {!u.correct &&
-                            u.expectedDisplay &&
+                          {u.expectedDisplay &&
                             u.expectedDisplay.length > 0 && (
                               <>
                                 {" · "}

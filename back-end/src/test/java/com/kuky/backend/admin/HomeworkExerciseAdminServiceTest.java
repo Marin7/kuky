@@ -199,4 +199,103 @@ class HomeworkExerciseAdminServiceTest {
         assertThatNoException().isThrownBy(() -> service.create(exercise(List.of(trueFalse(true)))));
         verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
     }
+
+    // --- MULTI_BLANK caps / DRAG_DROP multi-correct (034) --------------------
+
+    @Test
+    void multiBlankRejectsMoreThanTenAcceptedAnswers() throws Exception {
+        String[] eleven = new String[11];
+        for (int i = 0; i < 11; i++) eleven[i] = "a" + i;
+        var req = exercise(List.of(multiBlank("Completa: Ella ___ en Madrid.", eleven)));
+        assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void multiBlankDedupesNormalizedAcceptedAnswers() throws Exception {
+        var req = exercise(List.of(multiBlank("Completa: Ella ___ en Madrid.", "vive", "Vive", " vive ")));
+        assertThatNoException().isThrownBy(() -> service.create(req));
+        verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
+    }
+
+    private HomeworkQuestionDto dragDrop(String prompt, ObjectNode structure) {
+        return new HomeworkQuestionDto(null, "DRAG_DROP", prompt, List.of(), structure);
+    }
+
+    @Test
+    void dragDropCanonicalMultiCorrectPersists() throws Exception {
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        String id2 = "22222222-2222-2222-2222-222222222222";
+        String id3 = "33333333-3333-3333-3333-333333333333";
+        ObjectNode structure = objectMapper.readValue("""
+                {"bank":[
+                  {"id":"%s","label":"manzana"},
+                  {"id":"%s","label":"pera"},
+                  {"id":"%s","label":"uva"}
+                ],
+                "blanks":[
+                  {"correctBankIds":["%s","%s"]},
+                  {"correctBankIds":["%s"]}
+                ]}
+                """.formatted(id1, id2, id3, id1, id2, id3), ObjectNode.class);
+        var req = exercise(List.of(dragDrop("Como ___ y ___.", structure)));
+        assertThatNoException().isThrownBy(() -> service.create(req));
+        verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
+    }
+
+    @Test
+    void dragDropAllowsSameBankIdOnTwoBlanks() throws Exception {
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        String id2 = "22222222-2222-2222-2222-222222222222";
+        ObjectNode structure = objectMapper.readValue("""
+                {"bank":[
+                  {"id":"%s","label":"manzana"},
+                  {"id":"%s","label":"pera"}
+                ],
+                "blanks":[
+                  {"correctBankIds":["%s","%s"]},
+                  {"correctBankIds":["%s","%s"]}
+                ]}
+                """.formatted(id1, id2, id1, id2, id1, id2), ObjectNode.class);
+        var req = exercise(List.of(dragDrop("Como ___ y ___.", structure)));
+        assertThatNoException().isThrownBy(() -> service.create(req));
+        verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
+    }
+
+    @Test
+    void dragDropLegacyPositionalStillAccepted() throws Exception {
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        String id2 = "22222222-2222-2222-2222-222222222222";
+        ObjectNode structure = objectMapper.readValue("""
+                {"bank":[
+                  {"id":"%s","label":"perro"},
+                  {"id":"%s","label":"casa"}
+                ]}
+                """.formatted(id1, id2), ObjectNode.class);
+        var req = exercise(List.of(dragDrop("El ___ y la ___.", structure)));
+        assertThatNoException().isThrownBy(() -> service.create(req));
+        verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
+    }
+
+    @Test
+    void dragDropRejectsBankOverThirty() throws Exception {
+        var bank = objectMapper.createArrayNode();
+        var blanks = objectMapper.createArrayNode();
+        for (int i = 0; i < 31; i++) {
+            String id = "00000000-0000-0000-0000-%012d".formatted(i);
+            ObjectNode item = objectMapper.createObjectNode();
+            item.put("id", id);
+            item.put("label", "w" + i);
+            bank.add(item);
+            if (i < 2) {
+                ObjectNode blank = objectMapper.createObjectNode();
+                blank.set("correctBankIds", objectMapper.createArrayNode().add(id));
+                blanks.add(blank);
+            }
+        }
+        ObjectNode structure = objectMapper.createObjectNode();
+        structure.set("bank", bank);
+        structure.set("blanks", blanks);
+        var req = exercise(List.of(dragDrop("El ___ y la ___.", structure)));
+        assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
+    }
 }

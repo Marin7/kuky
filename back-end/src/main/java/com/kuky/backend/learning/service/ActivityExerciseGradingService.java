@@ -292,30 +292,41 @@ public class ActivityExerciseGradingService {
             String studentValue = textAt(studentBlanks, i);
             boolean correct = matchesAny(studentValue, accepted);
             sum += correct ? 1.0 : 0.0;
-            units.add(unit(i, correct, studentValue, correct ? List.of() : accepted));
+            units.add(unit(i, correct, studentValue, expectedDisplayForMulti(accepted, correct)));
         }
         double score = n == 0 ? 0.0 : sum / n;
         return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
     }
 
     private GradedAnswer gradeDragDrop(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {
-        JsonNode bank = readStructure(q).path("bank");
-        int n = bank.isArray() ? bank.size() : 0;
+        JsonNode structure = readStructure(q);
+        DragDropStructureSupport.Resolved resolved = DragDropStructureSupport.resolve(structure);
+        JsonNode bank = resolved.bank();
+        int n = resolved.blankCount();
         JsonNode placements = answerJsonOf(given).path("placements");
         List<ExerciseResultResponse.UnitResultDto> units = new ArrayList<>();
         double sum = 0;
         for (int i = 0; i < n; i++) {
-            JsonNode bankItem = bank.get(i);
-            String expectedId = bankItem.path("id").asText(null);
-            String expectedLabel = bankItem.path("label").asText(null);
+            List<String> correctIds = resolved.blanks().get(i).correctBankIds();
             String placedId = textAt(placements, i);
-            boolean correct = placedId != null && placedId.equals(expectedId);
+            boolean correct = placedId != null && correctIds.contains(placedId);
             sum += correct ? 1.0 : 0.0;
-            String studentDisplay = correct ? expectedLabel : labelForId(bank, placedId);
-            units.add(unit(i, correct, studentDisplay, correct ? List.of() : List.of(expectedLabel)));
+            List<String> expectedLabels = DragDropStructureSupport.labelsForIds(bank, correctIds).stream()
+                    .filter(l -> l != null && !l.isBlank())
+                    .toList();
+            String studentDisplay = correct
+                    ? DragDropStructureSupport.labelForId(bank, placedId)
+                    : labelForId(bank, placedId);
+            units.add(unit(i, correct, studentDisplay, expectedDisplayForMulti(expectedLabels, correct)));
         }
         double score = n == 0 ? 0.0 : sum / n;
         return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
+    }
+
+    private static List<String> expectedDisplayForMulti(List<String> accepted, boolean correct) {
+        if (accepted == null || accepted.isEmpty()) return List.of();
+        if (accepted.size() > 1) return accepted;
+        return correct ? List.of() : accepted;
     }
 
     private GradedAnswer gradeTableFill(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {

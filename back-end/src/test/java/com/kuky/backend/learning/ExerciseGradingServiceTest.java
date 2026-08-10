@@ -291,6 +291,90 @@ class ExerciseGradingServiceTest {
     }
 
     @Test
+    void dragDrop_anyOfCorrectBankIds() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        String id2 = "22222222-2222-2222-2222-222222222222";
+        String id3 = "33333333-3333-3333-3333-333333333333";
+        HomeworkQuestion q = structured(QuestionKind.DRAG_DROP,
+                "Como ___ y ___.",
+                """
+                {"bank":[
+                  {"id":"%s","label":"manzana"},
+                  {"id":"%s","label":"pera"},
+                  {"id":"%s","label":"uva"}
+                ],
+                "blanks":[
+                  {"correctBankIds":["%s","%s"]},
+                  {"correctBankIds":["%s"]}
+                ]}
+                """.formatted(id1, id2, id3, id1, id2, id3));
+        ExerciseResultResponse withAlt = grade(q, new AnswerDto(q.getId(), List.of(),
+                mapper.readTree("""
+                {"placements":["%s","%s"]}
+                """.formatted(id2, id3))));
+        assertThat(withAlt.scorePercent()).isEqualTo(100);
+        assertThat(withAlt.questions().getFirst().unitResults().get(0).expectedDisplay())
+                .containsExactly("manzana", "pera");
+
+        ExerciseResultResponse distractor = grade(q, new AnswerDto(q.getId(), List.of(),
+                mapper.readTree("""
+                {"placements":["%s","%s"]}
+                """.formatted(id3, id1))));
+        // blank0 wrong (uva not accepted), blank1 wrong (manzana not accepted for blank1)
+        assertThat(distractor.scorePercent()).isEqualTo(0);
+    }
+
+    @Test
+    void dragDrop_orderIndependentSharedAcceptedSet() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        String id2 = "22222222-2222-2222-2222-222222222222";
+        // "___ and ___" — both blanks accept both words (either order OK)
+        HomeworkQuestion q = structured(QuestionKind.DRAG_DROP,
+                "Como ___ y ___.",
+                """
+                {"bank":[
+                  {"id":"%s","label":"manzana"},
+                  {"id":"%s","label":"pera"}
+                ],
+                "blanks":[
+                  {"correctBankIds":["%s","%s"]},
+                  {"correctBankIds":["%s","%s"]}
+                ]}
+                """.formatted(id1, id2, id1, id2, id1, id2));
+        ExerciseResultResponse ab = grade(q, new AnswerDto(q.getId(), List.of(),
+                mapper.readTree("""
+                {"placements":["%s","%s"]}
+                """.formatted(id1, id2))));
+        assertThat(ab.scorePercent()).isEqualTo(100);
+
+        ExerciseResultResponse ba = grade(q, new AnswerDto(q.getId(), List.of(),
+                mapper.readTree("""
+                {"placements":["%s","%s"]}
+                """.formatted(id2, id1))));
+        assertThat(ba.scorePercent()).isEqualTo(100);
+    }
+
+    @Test
+    void multiBlank_showsAllAcceptedWhenCorrectAndMulti() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK,
+                "Hoy ___ al mercado.",
+                """
+                {"blanks":[{"acceptedAnswers":["voy","Voy a"]}]}
+                """);
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(),
+                mapper.readTree("""
+                {"blanks":["voy"]}
+                """)));
+        assertThat(r.scorePercent()).isEqualTo(100);
+        assertThat(r.questions().getFirst().unitResults().getFirst().correct()).isTrue();
+        assertThat(r.questions().getFirst().unitResults().getFirst().expectedDisplay())
+                .containsExactly("voy", "Voy a");
+    }
+
+    @Test
     void tableFill_gradesBlankCells() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         HomeworkQuestion q = structured(QuestionKind.TABLE_FILL, "Presente de hablar",

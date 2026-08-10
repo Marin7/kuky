@@ -359,9 +359,18 @@ export interface BankItem {
   label: string;
 }
 
+export interface DragDropBlankKey {
+  /** Bank item ids that count as correct for this blank (any-of). */
+  correctBankIds: string[];
+}
+
 export interface DragDropStructure {
-  /** Index i is the correct bank item for blank i (bank order = correct order). */
   bank: BankItem[];
+  /**
+   * Canonical answer key: one entry per `___` blank.
+   * Legacy payloads omit this — bank[i] was the sole correct item for blank i.
+   */
+  blanks?: DragDropBlankKey[];
 }
 
 export interface TableFillCell {

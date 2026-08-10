@@ -435,7 +435,7 @@ export const roDict = {
       noAnswer: "(fără răspuns)",
       unitCorrect: "Corect",
       unitIncorrect: "Incorect",
-      unitExpected: "Așteptat:",
+      unitExpected: "Acceptat:",
       teacherFeedback: "Comentariul profesoarei",
     },
     trueFalse: {
@@ -539,7 +539,8 @@ export const roDict = {
       youtubePlaceholder: "https://www.youtube.com/watch?v=…",
       youtubeHint: "Opțional dacă încarci o foto. Watch, short sau youtu.be.",
       photo: "Fotografie",
-      photoHint: "JPG, PNG sau WEBP (max. 2 MB). Opțional dacă lipești un video.",
+      photoHint:
+        "JPG, PNG sau WEBP (max. 2 MB). Opțional dacă lipești un video.",
       removePhoto: "Elimină fotografia",
       trigger: "Inserare în prezentare",
       triggerFile: "Fișier PDF",
@@ -866,11 +867,20 @@ export const roDict = {
         multiBlankCountWarning:
           "Adaugă cel puțin un spațiu liber (___) în enunț pentru a configura răspunsurile.",
         multiBlankHint:
-          "Definește răspunsurile acceptate pentru fiecare spațiu liber din enunț (elevul scrie).",
+          "Definește răspunsurile acceptate pentru fiecare spațiu liber din enunț (elevul scrie). Poți adăuga până la 10 pe spațiu.",
+        maxAcceptedAnswers: "Maximum {{max}} răspunsuri acceptate pe spațiu.",
         dragDropHint:
-          "Scrie cuvântul corect pentru fiecare spațiu, în ordine. Elevul va vedea aceste cuvinte amestecate într-o bancă și trebuie să le tragă (nu să scrie).",
+          "Construiește banca de cuvinte (poți adăuga extra ca distractori sau alternative), apoi marchează care cuvinte sunt corecte pentru fiecare spațiu. Elevul vede banca amestecată și trage cuvintele în spații.",
         wordBankTitle: "Banca de cuvinte",
         bankWordLabel: "Cuvântul {{index}} (spațiul {{index}})",
+        bankItemLabel: "Cuvântul {{index}}",
+        bankItemUntitled: "Cuvântul {{index}}",
+        addBankItem: "Adaugă cuvânt în bancă",
+        removeBankItem: "Elimină din bancă",
+        maxBankItems: "Maximum {{max}} cuvinte în bancă.",
+        correctBankPerBlank: "Cuvinte corecte pe spațiu",
+        correctBankPerBlankHint:
+          "Selectează unul sau mai multe cuvinte din bancă care contează ca corecte pentru fiecare spațiu. Același cuvânt poate fi corect pentru mai multe spații (ex. „___ și ___” în orice ordine). Cuvintele neselectate sunt distractori.",
         bankPreview: "Așa va vedea elevul banca (în altă ordine):",
         bankItemPlaceholder: "Cuvânt sau expresie din bancă",
         tableFillHint:

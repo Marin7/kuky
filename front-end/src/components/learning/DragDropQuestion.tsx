@@ -25,7 +25,7 @@ export function DragDropQuestion({
   onChange,
 }: Props) {
   const { t } = useTranslation();
-  const blankCount = Math.max(countBlanks(prompt), bank.length);
+  const blankCount = countBlanks(prompt);
   const bankKey = bank.map((b) => b.id).join(",");
   const shuffledBank = useMemo(
     () => shuffle(bank),
