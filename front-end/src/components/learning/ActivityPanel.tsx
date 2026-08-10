@@ -155,7 +155,16 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
         />
       ) : (
         <>
-          {item.feedback && item.feedback.length > 0 && (
+          {item.feedbackText ? (
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {t("learning.writePage.teacherFeedback")}
+              </p>
+              <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
+                {item.feedbackText}
+              </div>
+            </div>
+          ) : item.feedback && item.feedback.length > 0 ? (
             <div className="space-y-1">
               <p className="text-sm font-medium">
                 {t("learning.writePage.teacherFeedback")}
@@ -164,7 +173,7 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
                 <RichTextViewer segments={item.feedback} />
               </div>
             </div>
-          )}
+          ) : null}
           <ManualMultiAnswerForm
             key={`${item.id}-${item.status}`}
             homeworkId={item.id}
@@ -174,7 +183,9 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
             }))}
             initialAnswers={item.answers}
             readOnly={item.status === "REVIEWED"}
-            submitAnswer={submitActivity}
+            submitAnswer={(id, _response, answers) =>
+              submitActivity(id, undefined, answers)
+            }
             onSubmitted={handleChanged}
           />
         </>

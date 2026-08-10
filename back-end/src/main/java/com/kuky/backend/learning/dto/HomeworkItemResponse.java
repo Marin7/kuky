@@ -16,8 +16,10 @@ public record HomeworkItemResponse(
         String level,
         String format,            // MANUAL | EXERCISE
         String status,
+        String reviewModel,
         List<FormattedTextSegment> response,
         List<FormattedTextSegment> feedback,   // teacher's formatted feedback, present once REVIEWED
+        String feedbackText,
         Integer scorePercent,     // present when status == GRADED
         Instant submittedAt,
         boolean overdue,

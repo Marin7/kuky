@@ -16,6 +16,7 @@ import java.util.Set;
 public record FormattedTextSegment(String text, String color, String highlight, Boolean strike) {
 
     public static final int MAX_VISIBLE_LENGTH = 2000;
+    public static final int MAX_MANUAL_FEEDBACK_LENGTH = 500;
 
     private static final Set<String> COLORS = Set.of("red", "green", "blue", "neutral");
     private static final Set<String> HIGHLIGHTS = Set.of("yellow", "green", "pink");
@@ -67,21 +68,52 @@ public record FormattedTextSegment(String text, String color, String highlight, 
         }
     }
 
+    public static List<FormattedTextSegment> tryParseFormatted(String raw) {
+        if (raw == null || !raw.strip().startsWith("[")) {
+            return null;
+        }
+        try {
+            return fromJson(raw);
+        } catch (IllegalStateException e) {
+            return null;
+        }
+    }
+
+    public static String plainText(List<FormattedTextSegment> segments) {
+        if (segments == null || segments.isEmpty()) {
+            return "";
+        }
+        StringBuilder joined = new StringBuilder();
+        for (FormattedTextSegment segment : segments) {
+            if (segment != null && segment.text() != null) {
+                joined.append(segment.text());
+            }
+        }
+        return joined.toString();
+    }
+
+    public static String storedPlainWording(String raw) {
+        List<FormattedTextSegment> formatted = tryParseFormatted(raw);
+        return formatted == null ? raw : plainText(formatted);
+    }
+
     /**
      * Encode plain exercise teacher feedback for {@code homework_submissions.feedback}.
      * Stores a single unformatted FormattedText segment (or {@code null} when cleared).
      * Whitespace-only input clears. Visible length must be ≤ {@link #MAX_VISIBLE_LENGTH}.
      */
     public static String encodePlainFeedback(String plain) {
-        if (plain == null) {
+        return encodePlainFeedback(plain, MAX_VISIBLE_LENGTH);
+    }
+
+    public static String encodePlainFeedback(String plain, int maxLen) {
+        if (plain == null || plain.isBlank()) {
             return null;
         }
         String text = plain.strip();
-        if (text.isEmpty()) {
-            return null;
-        }
-        if (text.length() > MAX_VISIBLE_LENGTH) {
-            throw new IllegalArgumentException("El contenido es demasiado largo (máximo 2000 caracteres).");
+        if (text.length() > maxLen) {
+            throw new IllegalArgumentException(
+                    "El contenido es demasiado largo (máximo " + maxLen + " caracteres).");
         }
         return toJson(List.of(new FormattedTextSegment(text, null, null, null)));
     }
@@ -92,13 +124,7 @@ public record FormattedTextSegment(String text, String color, String highlight, 
         if (segments == null || segments.isEmpty()) {
             return null;
         }
-        StringBuilder sb = new StringBuilder();
-        for (FormattedTextSegment segment : segments) {
-            if (segment.text() != null) {
-                sb.append(segment.text());
-            }
-        }
-        String joined = sb.toString();
+        String joined = plainText(segments);
         return joined.isEmpty() ? null : joined;
     }
 

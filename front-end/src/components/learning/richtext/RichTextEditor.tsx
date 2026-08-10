@@ -19,6 +19,8 @@ interface Props {
   value: FormattedText;
   onChange: (value: FormattedText) => void;
   disabled?: boolean;
+  /** Toolbar formatting only — blocks typing/paste/delete that would change characters. */
+  formatOnly?: boolean;
   placeholder?: string;
   id?: string;
   rows?: number;
@@ -47,6 +49,7 @@ export function RichTextEditor({
   value,
   onChange,
   disabled,
+  formatOnly = false,
   placeholder,
   id,
   rows = 14,
@@ -127,14 +130,16 @@ export function RichTextEditor({
   };
 
   const handleTextChange = (newText: string) => {
+    if (formatOnly) return;
     onChange(reconcileEdit(value, text, newText, pendingRef.current));
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    if (formatOnly) return;
     // Only ever read the plain-text MIME type — this is what strips any
     // foreign styling, links, or images carried by content copied from
     // another application, regardless of source.
-    e.preventDefault();
     const el = textareaRef.current;
     if (!el) return;
     const pasted = e.clipboardData.getData("text/plain");
@@ -154,6 +159,14 @@ export function RichTextEditor({
         selectionRef.current = { start: pos, end: pos };
       }
     });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!formatOnly) return;
+    // Allow navigation / shortcuts that don't mutate text; block typing & delete.
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (NAV_KEYS.has(e.key) || e.key === "Tab" || e.key === "Escape") return;
+    e.preventDefault();
   };
 
   const handleApplyColor = (color: TextColor | undefined) => {
@@ -249,6 +262,7 @@ export function RichTextEditor({
           value={text}
           onChange={(e) => handleTextChange(e.target.value)}
           onPaste={handlePaste}
+          onKeyDown={handleKeyDown}
           onSelect={rememberSelection}
           onKeyUp={(e) => {
             rememberSelection();
@@ -263,14 +277,17 @@ export function RichTextEditor({
           rows={rows}
           maxLength={MAX_VISIBLE_LENGTH}
           disabled={disabled}
+          readOnly={formatOnly}
           style={{ WebkitTextFillColor: "transparent" }}
           className="relative z-10 min-h-[14rem] w-full resize-none overflow-auto rounded-md border border-input bg-transparent px-3 py-2 text-base leading-relaxed text-transparent caret-foreground shadow-sm placeholder:text-transparent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed"
         />
       </div>
 
-      <p className="text-right text-xs text-muted-foreground tabular-nums">
-        {visibleLength(value)} / {MAX_VISIBLE_LENGTH}
-      </p>
+      {!formatOnly && (
+        <p className="text-right text-xs text-muted-foreground tabular-nums">
+          {visibleLength(value)} / {MAX_VISIBLE_LENGTH}
+        </p>
+      )}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
 
 interface QuestionPrompt {
   id: string;
@@ -135,8 +136,18 @@ export function ManualMultiAnswerForm({
               {q.prompt ? ` — ${q.prompt}` : ""}
             </Label>
             {readOnly ? (
-              <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm whitespace-pre-wrap">
-                {readOnlyAnswer || t("learning.manualMulti.emptyAnswer")}
+              <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm break-all [overflow-wrap:anywhere]">
+                {(() => {
+                  const ans = initialAnswers?.find((a) => a.questionId === q.id);
+                  if (ans?.formatted && ans.formatted.length > 0) {
+                    return <RichTextViewer segments={ans.formatted} />;
+                  }
+                  return (
+                    <p className="whitespace-pre-wrap">
+                      {readOnlyAnswer || t("learning.manualMulti.emptyAnswer")}
+                    </p>
+                  );
+                })()}
               </div>
             ) : (
               <Textarea

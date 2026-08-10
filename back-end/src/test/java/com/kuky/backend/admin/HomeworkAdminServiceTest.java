@@ -4,6 +4,7 @@ import com.kuky.backend.admin.dto.CreateHomeworkRequest;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
 import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
+import com.kuky.backend.admin.dto.SaveHomeworkFeedbackRequest;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuky.backend.admin.service.HomeworkAdminService;
@@ -19,6 +20,7 @@ import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
+import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
@@ -46,6 +48,7 @@ class HomeworkAdminServiceTest {
     private AudioFileRepository audioFileRepository;
     private UserRepository userRepository;
     private HomeworkSubmissionRepository submissionRepository;
+    private HomeworkAnswerRepository answerRepository;
     private HomeworkAdminService service;
 
     private final UUID studentId = UUID.randomUUID();
@@ -58,8 +61,9 @@ class HomeworkAdminServiceTest {
         audioFileRepository = mock(AudioFileRepository.class);
         userRepository = mock(UserRepository.class);
         submissionRepository = mock(HomeworkSubmissionRepository.class);
+        answerRepository = mock(HomeworkAnswerRepository.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
-                mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
+                answerRepository,
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
                 new ObjectMapper());
 
@@ -170,98 +174,118 @@ class HomeworkAdminServiceTest {
     }
 
     @Test
-    void saveFeedback_rejectsEmptySegments() {
+    void saveFeedback_rejectsChangedStudentWording() {
         UUID submissionId = UUID.randomUUID();
         when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null)));
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
 
-        assertThatThrownBy(() -> service.saveFeedback(submissionId, List.of()))
-                .isInstanceOf(IllegalArgumentException.class);
-        verify(submissionRepository, never()).updateFeedback(any(), any(), any());
+        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Texto cambiado", null)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("respuesta del alumno");
+        verify(submissionRepository, never()).saveAnnotatedReview(any(), any(), any(), anyBoolean());
     }
 
     @Test
-    void saveFeedback_rejectsFeedbackOverVisibleLengthLimit() {
+    void saveFeedback_marksWriteAnswerAndTransitionsToAnnotated() {
         UUID submissionId = UUID.randomUUID();
+        List<FormattedTextSegment> annotated =
+                List.of(new FormattedTextSegment("Mi respuesta", "red", "yellow", true));
         when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null)));
-        String tooLong = "a".repeat(FormattedTextSegment.MAX_VISIBLE_LENGTH + 1);
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
+                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED",
+                        FormattedTextSegment.encodePlainFeedback("Bien", 500), "ANNOTATED")));
 
-        assertThatThrownBy(() -> service.saveFeedback(submissionId,
-                List.of(new FormattedTextSegment(tooLong, null, null, null))))
-                .isInstanceOf(IllegalArgumentException.class);
-        verify(submissionRepository, never()).updateFeedback(any(), any(), any());
+        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId,
+                new SaveHomeworkFeedbackRequest("Bien", annotated, null));
+
+        assertThat(result.reviewModel()).isEqualTo("ANNOTATED");
+        assertThat(result.feedbackText()).isEqualTo("Bien");
+        verify(submissionRepository).saveAnnotatedReview(eq(submissionId), any(), any(), eq(true));
     }
 
     @Test
-    void saveFeedback_acceptsColorHighlightAndStrikeCombinedOnOneSegment() {
+    void saveFeedback_marksEachFreeTextAnswer() {
         UUID submissionId = UUID.randomUUID();
-        List<FormattedTextSegment> combined =
-                List.of(new FormattedTextSegment("bien", "red", "yellow", true));
+        UUID questionId = UUID.randomUUID();
+        UUID answerId = UUID.randomUUID();
+        com.kuky.backend.learning.model.HomeworkAnswer answer =
+                new com.kuky.backend.learning.model.HomeworkAnswer();
+        answer.setId(answerId);
+        answer.setQuestionId(questionId);
+        answer.setAnswerText("Una respuesta");
+        answer.setPromptSnapshot("¿Qué opinas?");
+        List<FormattedTextSegment> annotated =
+                List.of(new FormattedTextSegment("Una respuesta", null, "yellow", false));
+        when(answerRepository.findBySubmission(submissionId)).thenReturn(List.of(answer));
         when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null)))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", FormattedTextSegment.toJson(combined))));
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
+                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", null, "ANNOTATED")));
 
-        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, combined);
+        service.saveFeedback(submissionId, new SaveHomeworkFeedbackRequest(
+                null, null, List.of(new SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest(questionId, annotated))));
 
-        assertThat(result.feedback()).hasSize(1);
-        assertThat(result.feedback().get(0).color()).isEqualTo("red");
-        assertThat(result.feedback().get(0).highlight()).isEqualTo("yellow");
-        assertThat(result.feedback().get(0).strike()).isTrue();
+        verify(answerRepository).updateAnswerText(answerId, FormattedTextSegment.toJson(annotated));
+        verify(submissionRepository).saveAnnotatedReview(eq(submissionId), isNull(), isNull(), eq(true));
     }
 
     @Test
-    void saveFeedback_handCraftedMarkupIsStoredAsInertPlainText() {
-        // Guarantees SC-004 server-side: markup-like text is never interpreted,
-        // only ever carried as the segment's plain `text` value.
-        UUID submissionId = UUID.randomUUID();
-        String malicious = "<script>alert(1)</script>";
-        List<FormattedTextSegment> feedback = List.of(new FormattedTextSegment(malicious, null, null, null));
-        when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null)))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", FormattedTextSegment.toJson(feedback))));
-
-        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, feedback);
-
-        assertThat(result.feedback().get(0).text()).isEqualTo(malicious);
-    }
-
-    @Test
-    void saveFeedback_alreadyReviewed_throws() {
+    void saveFeedback_freezesLegacyRichReview() {
         UUID submissionId = UUID.randomUUID();
         when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", null)));
+                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", "[]", "LEGACY_RICH")));
 
-        assertThatThrownBy(() -> service.saveFeedback(submissionId,
-                List.of(new FormattedTextSegment("ok", null, null, null))))
+        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Mi respuesta", null)))
                 .isInstanceOf(AlreadyReviewedException.class);
-        verify(submissionRepository, never()).updateFeedback(any(), any(), any());
+    }
+
+    @Test
+    void saveFeedback_allowsAnnotatedReedit() {
+        UUID submissionId = UUID.randomUUID();
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED",
+                        FormattedTextSegment.encodePlainFeedback("Anterior", 500), "ANNOTATED")))
+                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED",
+                        FormattedTextSegment.encodePlainFeedback("Actualizado", 500), "ANNOTATED")));
+
+        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, review("Mi respuesta", "Actualizado"));
+
+        assertThat(result.feedbackText()).isEqualTo("Actualizado");
+        verify(submissionRepository).saveAnnotatedReview(eq(submissionId), any(), any(), eq(false));
+    }
+
+    @Test
+    void saveFeedback_rejectsFeedbackOverManualLimit() {
+        UUID submissionId = UUID.randomUUID();
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
+
+        assertThatThrownBy(() -> service.saveFeedback(submissionId,
+                review("Mi respuesta", "a".repeat(FormattedTextSegment.MAX_MANUAL_FEEDBACK_LENGTH + 1))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("500");
+    }
+
+    @Test
+    void saveFeedback_allowsEmptyFeedback() {
+        UUID submissionId = UUID.randomUUID();
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
+                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", null, "ANNOTATED")));
+
+        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, review("Mi respuesta", "   "));
+
+        assertThat(result.feedbackText()).isNull();
+        verify(submissionRepository).saveAnnotatedReview(eq(submissionId), isNull(), any(), eq(true));
     }
 
     @Test
     void saveFeedback_notYetSubmitted_throws() {
         UUID submissionId = UUID.randomUUID();
         when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "PENDING", null)));
+                .thenReturn(Optional.of(detailRow(submissionId, "PENDING", null, null)));
 
-        assertThatThrownBy(() -> service.saveFeedback(submissionId,
-                List.of(new FormattedTextSegment("ok", null, null, null))))
+        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Mi respuesta", null)))
                 .isInstanceOf(NotSubmittedException.class);
-        verify(submissionRepository, never()).updateFeedback(any(), any(), any());
-    }
-
-    @Test
-    void saveFeedback_success_transitionsToReviewed() {
-        UUID submissionId = UUID.randomUUID();
-        List<FormattedTextSegment> feedback = List.of(new FormattedTextSegment("Muy bien", null, null, null));
-        when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null)))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", FormattedTextSegment.toJson(feedback))));
-
-        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, feedback);
-
-        assertThat(result.status()).isEqualTo("REVIEWED");
-        verify(submissionRepository).updateFeedback(eq(submissionId), any(), any());
     }
 
     // --- Plain-text feedback on GRADED exercises -----------------------------
@@ -368,7 +392,7 @@ class HomeworkAdminServiceTest {
         when(submissionRepository.findDetailById(submissionId)).thenReturn(Optional.of(
                 new HomeworkSubmissionRepository.SubmissionDetailRow(
                         submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
-                        "Escucha", "SUBMITTED", null, null, Instant.now(), null)));
+                        "Escucha", "SUBMITTED", null, null, null, Instant.now(), null)));
         com.kuky.backend.learning.repository.HomeworkAnswerRepository answers =
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class);
         com.kuky.backend.learning.model.HomeworkAnswer row = new com.kuky.backend.learning.model.HomeworkAnswer();
@@ -446,12 +470,17 @@ class HomeworkAdminServiceTest {
         return a;
     }
 
+    private SaveHomeworkFeedbackRequest review(String text, String feedbackText) {
+        return new SaveHomeworkFeedbackRequest(feedbackText,
+                List.of(new FormattedTextSegment(text, null, null, null)), null);
+    }
+
     private HomeworkSubmissionRepository.SubmissionDetailRow detailRow(UUID submissionId, String status,
-                                                                       String feedbackJson) {
+                                                                       String feedbackJson, String reviewModel) {
         String response = FormattedTextSegment.toJson(List.of(new FormattedTextSegment("Mi respuesta", null, null, null)));
         return new HomeworkSubmissionRepository.SubmissionDetailRow(
                 submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
-                "Tarea", status, response, feedbackJson, Instant.now(),
+                "Tarea", status, response, feedbackJson, reviewModel, Instant.now(),
                 "REVIEWED".equals(status) ? Instant.now() : null);
     }
 }

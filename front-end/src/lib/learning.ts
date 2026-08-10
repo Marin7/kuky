@@ -32,6 +32,7 @@ export interface ManualAnswerItem {
   questionId: string;
   promptSnapshot: string;
   text: string;
+  formatted?: FormattedText | null;
 }
 
 export interface ManualAnswerPayload {
@@ -49,7 +50,9 @@ export interface HomeworkItem {
   format: HomeworkFormat;
   status: HomeworkStatus;
   response: FormattedText | null;
-  feedback: FormattedText | null; // teacher's formatted feedback, present once REVIEWED
+  feedback: FormattedText | null; // LEGACY_RICH teacher feedback
+  feedbackText?: string | null; // ANNOTATED plain note
+  reviewModel?: "LEGACY_RICH" | "ANNOTATED" | null;
   scorePercent: number | null; // present when status === "GRADED"
   submittedAt: string | null; // ISO instant or null
   overdue: boolean;
@@ -331,6 +334,8 @@ export interface ActivityItem {
   imageId: string | null;
   response: FormattedText | null;
   feedback: FormattedText | null;
+  feedbackText?: string | null;
+  reviewModel?: "LEGACY_RICH" | "ANNOTATED" | null;
   scorePercent: number | null;
   questions: StudentQuestion[];
   /** MANUAL: submitted plain-text answers (with prompt snapshots). */

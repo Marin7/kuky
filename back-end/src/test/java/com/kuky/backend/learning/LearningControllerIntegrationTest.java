@@ -50,7 +50,7 @@ class LearningControllerIntegrationTest {
                 testEmail);
         testAssignmentId = UUID.randomUUID();
         jdbcTemplate.update(
-                "INSERT INTO homework_assignments (id, title, instructions, published, format, sort_order) VALUES (?, 'Test assignment', 'Do the thing', true, 'MANUAL', 0)",
+                "INSERT INTO homework_assignments (id, title, instructions, published, format, homework_type, sort_order) VALUES (?, 'Test assignment', 'Do the thing', true, 'MANUAL', 'WRITE', 0)",
                 testAssignmentId);
     }
 
@@ -113,8 +113,8 @@ class LearningControllerIntegrationTest {
                 "INSERT INTO homework_targets (assignment_id, user_id) SELECT ?, id FROM users WHERE email = ?",
                 testAssignmentId, testEmail);
         jdbcTemplate.update("""
-                INSERT INTO homework_submissions (id, user_id, assignment_id, status, response_text, feedback, submitted_at, reviewed_at)
-                SELECT gen_random_uuid(), id, ?, 'REVIEWED', '[{"text":"Mi respuesta"}]', '[{"text":"Muy bien","color":"green"}]', NOW(), NOW()
+                INSERT INTO homework_submissions (id, user_id, assignment_id, status, response_text, feedback, review_model, submitted_at, reviewed_at)
+                SELECT gen_random_uuid(), id, ?, 'REVIEWED', '[{"text":"Mi respuesta"}]', '[{"text":"Muy bien","color":"green"}]', 'LEGACY_RICH', NOW(), NOW()
                 FROM users WHERE email = ?
                 """, testAssignmentId, testEmail);
 

@@ -73,7 +73,16 @@ export function HomeworkWritePage({ homeworkId }: Props) {
             }}
           />
 
-          {item.feedback && item.feedback.length > 0 && (
+          {item.feedbackText ? (
+            <div className="mt-6 space-y-2">
+              <p className="text-base font-medium text-foreground">
+                {t("learning.writePage.teacherFeedback")}
+              </p>
+              <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
+                {item.feedbackText}
+              </div>
+            </div>
+          ) : item.feedback && item.feedback.length > 0 ? (
             <div className="mt-6 space-y-2">
               <p className="text-base font-medium text-foreground">
                 {t("learning.writePage.teacherFeedback")}
@@ -82,7 +91,7 @@ export function HomeworkWritePage({ homeworkId }: Props) {
                 <RichTextViewer segments={item.feedback} />
               </div>
             </div>
-          )}
+          ) : null}
         </>
       )}
     </div>

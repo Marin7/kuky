@@ -894,13 +894,16 @@ export const roDict = {
       deletedPrompt: "(întrebare eliminată)",
       emptyAnswer: "(fără răspuns)",
       yourFeedback: "Feedback-ul tău",
-      feedbackPlaceholder: "Scrie feedback-ul aici…",
+      feedbackPlaceholder: "Notă scurtă pentru elev (opțional, max. 500)…",
+      feedbackTooLong: "Nota este prea lungă (maximum 500 de caractere).",
+      legacyFrozen:
+        "Această corectură veche este doar pentru citire (model anterior).",
       save: "Salvează feedback-ul",
       saving: "Se salvează…",
       close: "Închide",
       loadError: "Nu s-a putut încărca lucrarea.",
       validationError:
-        "Feedback-ul este gol sau prea lung (maximum 2000 de caractere).",
+        "Corectura nu este validă (text modificat sau notă prea lungă).",
       alreadyReviewedError: "Această lucrare a fost deja corectată.",
       notSubmittedError: "Elevul nu a trimis încă această lucrare.",
       genericError: "Nu s-a putut salva feedback-ul. Încearcă din nou.",

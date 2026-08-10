@@ -11,6 +11,7 @@ import {
 import { ExerciseForm } from "./ExerciseForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { AudioPlayer } from "./AudioPlayer";
+import { RichTextViewer } from "./richtext/RichTextViewer";
 
 interface Props {
   homeworkId: string;
@@ -96,15 +97,36 @@ export function HomeworkListeningPage({ homeworkId, format }: Props) {
           {exercise ? (
             <ExerciseForm exercise={exercise} />
           ) : item ? (
-            <ManualMultiAnswerForm
-              homeworkId={homeworkId}
-              questions={(item.questions ?? []).map((q) => ({
-                id: q.id,
-                prompt: q.prompt,
-              }))}
-              initialAnswers={item.answers}
-              readOnly={item.status === "REVIEWED"}
-            />
+            <>
+              <ManualMultiAnswerForm
+                homeworkId={homeworkId}
+                questions={(item.questions ?? []).map((q) => ({
+                  id: q.id,
+                  prompt: q.prompt,
+                }))}
+                initialAnswers={item.answers}
+                readOnly={item.status === "REVIEWED"}
+              />
+              {item.feedbackText ? (
+                <div className="mt-6 space-y-2">
+                  <p className="text-base font-medium text-foreground">
+                    {t("learning.writePage.teacherFeedback")}
+                  </p>
+                  <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
+                    {item.feedbackText}
+                  </div>
+                </div>
+              ) : item.feedback && item.feedback.length > 0 ? (
+                <div className="mt-6 space-y-2">
+                  <p className="text-base font-medium text-foreground">
+                    {t("learning.writePage.teacherFeedback")}
+                  </p>
+                  <div className="rounded-md border bg-muted/20 p-3">
+                    <RichTextViewer segments={item.feedback} />
+                  </div>
+                </div>
+              ) : null}
+            </>
           ) : null}
         </>
       )}

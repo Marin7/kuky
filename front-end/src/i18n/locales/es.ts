@@ -897,13 +897,17 @@ export const esDict = {
       deletedPrompt: "(pregunta eliminada)",
       emptyAnswer: "(sin respuesta)",
       yourFeedback: "Tu corrección",
-      feedbackPlaceholder: "Escribe aquí tu corrección…",
+      feedbackPlaceholder: "Nota breve para el alumno (opcional, máx. 500)…",
+      feedbackTooLong:
+        "La nota es demasiado larga (máximo 500 caracteres).",
+      legacyFrozen:
+        "Esta corrección antigua es de solo lectura (modelo anterior).",
       save: "Guardar corrección",
       saving: "Guardando…",
       close: "Cerrar",
       loadError: "No se pudo cargar la entrega.",
       validationError:
-        "La corrección está vacía o es demasiado larga (máximo 2000 caracteres).",
+        "La corrección no es válida (texto alterado o nota demasiado larga).",
       alreadyReviewedError: "Esta entrega ya ha sido corregida.",
       notSubmittedError: "El alumno todavía no ha enviado esta entrega.",
       genericError: "No se pudo guardar la corrección. Inténtalo de nuevo.",

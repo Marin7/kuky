@@ -10,6 +10,7 @@ import com.kuky.backend.admin.dto.HomeworkQuestionDto;
 import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
 import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
 import com.kuky.backend.admin.dto.SaveActivityRequest;
+import com.kuky.backend.admin.dto.SaveHomeworkFeedbackRequest;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
@@ -275,19 +276,55 @@ public class ActivityAdminService {
                 FormattedTextSegment.decodePlainFeedback(submission.getFeedback()));
     }
 
-    public HomeworkSubmissionAdminDto saveFeedback(UUID submissionId, List<FormattedTextSegment> feedback) {
-        FormattedTextSegment.validate(feedback);
+    public HomeworkSubmissionAdminDto saveFeedback(UUID submissionId, SaveHomeworkFeedbackRequest request) {
         ActivitySubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
-        if (HomeworkStatus.REVIEWED.name().equals(submission.getStatus())) {
+        if ("LEGACY_RICH".equals(submission.getReviewModel())) {
             throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
         }
-        if (!HomeworkStatus.SUBMITTED.name().equals(submission.getStatus())) {
+        boolean firstReview = HomeworkStatus.SUBMITTED.name().equals(submission.getStatus());
+        if (!firstReview && !("REVIEWED".equals(submission.getStatus())
+                && "ANNOTATED".equals(submission.getReviewModel()))) {
+            if (HomeworkStatus.REVIEWED.name().equals(submission.getStatus())) {
+                throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
+            }
             throw new NotSubmittedException("Esta entrega todavÃ­a no ha sido enviada por el alumno.");
         }
-        ActivitySubmission updated = submissionRepository.saveFeedback(
-                submissionId, FormattedTextSegment.toJson(feedback));
+        String feedbackJson = FormattedTextSegment.encodePlainFeedback(
+                request == null ? null : request.feedbackText(),
+                FormattedTextSegment.MAX_MANUAL_FEEDBACK_LENGTH);
+        List<com.kuky.backend.learning.model.HomeworkAnswer> storedAnswers =
+                answerRepository.findBySubmission(submissionId);
+        String responseText = null;
+        if (storedAnswers.isEmpty()) {
+            List<FormattedTextSegment> response = request == null ? null : request.response();
+            FormattedTextSegment.validate(response);
+            assertUnchangedWording(response, submission.getResponseText());
+            responseText = FormattedTextSegment.toJson(response);
+        } else {
+            List<SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> requested =
+                    request == null || request.answers() == null ? List.of() : request.answers();
+            for (var stored : storedAnswers) {
+                var annotation = requested.stream()
+                        .filter(a -> java.util.Objects.equals(a.questionId(), stored.getQuestionId()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Falta la anotación de una respuesta del alumno."));
+                FormattedTextSegment.validate(annotation.formatted());
+                assertUnchangedWording(annotation.formatted(), stored.getAnswerText());
+                answerRepository.updateAnswerText(stored.getId(), FormattedTextSegment.toJson(annotation.formatted()));
+            }
+        }
+        ActivitySubmission updated = submissionRepository.saveAnnotatedReview(
+                submissionId, feedbackJson, responseText, firstReview);
         return toSubmissionAdminDto(updated);
+    }
+
+    private static void assertUnchangedWording(List<FormattedTextSegment> incoming, String stored) {
+        if (!FormattedTextSegment.plainText(incoming)
+                .equals(FormattedTextSegment.storedPlainWording(stored))) {
+            throw new IllegalArgumentException("No se puede modificar el texto de la respuesta del alumno.");
+        }
     }
 
     public ExerciseSubmissionResultAdminDto saveExerciseFeedback(UUID submissionId, String feedback) {
@@ -438,7 +475,7 @@ public class ActivityAdminService {
                 .orElseThrow(() -> new StudentNotFoundException("Alumno no encontrado."));
         Activity activity = requireActivity(submission.getActivityId());
         List<ManualAnswerViewDto> answers = answerRepository.findBySubmission(submission.getId()).stream()
-                .map(a -> new ManualAnswerViewDto(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                .map(a -> ManualAnswerViewDto.fromStored(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
                 .toList();
         List<FormattedTextSegment> response = answers.isEmpty()
                 ? FormattedTextSegment.fromJson(submission.getResponseText())
@@ -452,9 +489,13 @@ public class ActivityAdminService {
                 student.getUsername(),
                 activity.getTitle(),
                 submission.getStatus(),
+                submission.getReviewModel(),
                 response,
                 answers,
-                FormattedTextSegment.fromJson(submission.getFeedback()),
+                "LEGACY_RICH".equals(submission.getReviewModel())
+                        ? FormattedTextSegment.fromJson(submission.getFeedback()) : null,
+                "ANNOTATED".equals(submission.getReviewModel())
+                        ? FormattedTextSegment.decodePlainFeedback(submission.getFeedback()) : null,
                 submission.getSubmittedAt(),
                 submission.getReviewedAt());
     }

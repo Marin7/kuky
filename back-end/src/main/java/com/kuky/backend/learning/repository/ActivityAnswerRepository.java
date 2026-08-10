@@ -86,4 +86,13 @@ public class ActivityAnswerRepository {
         });
         return answers;
     }
+
+    public int updateAnswerText(UUID answerId, String answerText) {
+        return jdbc.update("""
+                UPDATE activity_answers SET answer_text = :answerText
+                WHERE id = :id
+                """, new MapSqlParameterSource()
+                .addValue("id", answerId)
+                .addValue("answerText", answerText, Types.VARCHAR));
+    }
 }

@@ -885,13 +885,15 @@ export const enDict = {
       deletedPrompt: "(question removed)",
       emptyAnswer: "(no answer)",
       yourFeedback: "Your feedback",
-      feedbackPlaceholder: "Write your feedback here…",
+      feedbackPlaceholder: "Short note for the student (optional, max 500)…",
+      feedbackTooLong: "The note is too long (maximum 500 characters).",
+      legacyFrozen: "This older review is read-only (previous feedback model).",
       save: "Save feedback",
       saving: "Saving…",
       close: "Close",
       loadError: "Could not load the submission.",
       validationError:
-        "Feedback is empty or too long (maximum 2000 characters).",
+        "Review is invalid (answer wording changed or note too long).",
       alreadyReviewedError: "This submission has already been reviewed.",
       notSubmittedError:
         "This submission hasn't been submitted by the student yet.",

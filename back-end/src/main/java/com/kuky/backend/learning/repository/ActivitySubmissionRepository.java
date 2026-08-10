@@ -31,6 +31,7 @@ public class ActivitySubmissionRepository {
         s.setResponseText(rs.getString("response_text"));
         s.setScorePercent(rs.getObject("score_percent", Integer.class));
         s.setFeedback(rs.getString("feedback"));
+        s.setReviewModel(rs.getString("review_model"));
         Timestamp submittedAt = rs.getTimestamp("submitted_at");
         if (submittedAt != null) s.setSubmittedAt(submittedAt.toInstant());
         Timestamp reviewedAt = rs.getTimestamp("reviewed_at");
@@ -123,6 +124,35 @@ public class ActivitySubmissionRepository {
                 .addValue("feedback", feedbackJson)
                 .addValue("reviewedAt", Timestamp.from(now))
                 .addValue("updatedAt", Timestamp.from(now)), MAPPER).stream().findFirst().orElseThrow();
+    }
+
+    public ActivitySubmission saveAnnotatedReview(UUID submissionId, String feedbackJson,
+                                                   String responseTextOrKeep, boolean firstReview) {
+        Instant now = Instant.now();
+        String sql = firstReview ? """
+                UPDATE activity_submissions SET
+                    feedback = :feedback,
+                    response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
+                    status = 'REVIEWED',
+                    review_model = 'ANNOTATED',
+                    reviewed_at = :now,
+                    updated_at = :now
+                WHERE id = :id
+                RETURNING *
+                """ : """
+                UPDATE activity_submissions SET
+                    feedback = :feedback,
+                    response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
+                    updated_at = :now
+                WHERE id = :id AND review_model = 'ANNOTATED'
+                RETURNING *
+                """;
+        return jdbc.query(sql, new MapSqlParameterSource()
+                .addValue("id", submissionId)
+                .addValue("feedback", feedbackJson)
+                .addValue("hasResponse", responseTextOrKeep != null)
+                .addValue("responseText", responseTextOrKeep)
+                .addValue("now", Timestamp.from(now)), MAPPER).stream().findFirst().orElseThrow();
     }
 
     public ActivitySubmission saveExerciseFeedback(UUID submissionId, String feedback) {

@@ -90,4 +90,13 @@ public class HomeworkAnswerRepository {
         });
         return answers;
     }
+
+    public int updateAnswerText(UUID answerId, String answerText) {
+        return jdbc.update("""
+                UPDATE homework_answers SET answer_text = :answerText
+                WHERE id = :id
+                """, new MapSqlParameterSource()
+                .addValue("id", answerId)
+                .addValue("answerText", answerText, Types.VARCHAR));
+    }
 }

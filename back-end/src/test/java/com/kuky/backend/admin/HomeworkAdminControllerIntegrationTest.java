@@ -130,13 +130,14 @@ class HomeworkAdminControllerIntegrationTest {
         mockMvc.perform(put("/api/v1/admin/homework/submissions/" + submissionId + "/feedback")
                         .with(authentication(adminPrincipal(adminEmail)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"feedback\":[{\"text\":\"Muy bien\",\"color\":\"red\",\"highlight\":\"yellow\",\"strike\":true}]}"))
+                        .content("{\"feedbackText\":\"Muy bien\",\"response\":[{\"text\":\"Mi respuesta\",\"color\":\"red\",\"highlight\":\"yellow\",\"strike\":true}]}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("REVIEWED"))
-                .andExpect(jsonPath("$.feedback[0].text").value("Muy bien"))
-                .andExpect(jsonPath("$.feedback[0].color").value("red"))
-                .andExpect(jsonPath("$.feedback[0].highlight").value("yellow"))
-                .andExpect(jsonPath("$.feedback[0].strike").value(true));
+                .andExpect(jsonPath("$.reviewModel").value("ANNOTATED"))
+                .andExpect(jsonPath("$.feedbackText").value("Muy bien"))
+                .andExpect(jsonPath("$.response[0].color").value("red"))
+                .andExpect(jsonPath("$.response[0].highlight").value("yellow"))
+                .andExpect(jsonPath("$.response[0].strike").value(true));
 
         mockMvc.perform(get("/api/v1/admin/homework/submissions")
                         .with(authentication(adminPrincipal(adminEmail))))
@@ -153,7 +154,7 @@ class HomeworkAdminControllerIntegrationTest {
         mockMvc.perform(put("/api/v1/admin/homework/submissions/" + submissionId + "/feedback")
                         .with(authentication(adminPrincipal(adminEmail)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"feedback\":[]}"))
+                        .content("{\"response\":[]}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
     }

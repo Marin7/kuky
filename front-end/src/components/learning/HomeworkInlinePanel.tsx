@@ -9,6 +9,7 @@ import { ExerciseForm } from "./ExerciseForm";
 import { ManualAnswerForm } from "./ManualAnswerForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { AudioPlayer } from "./AudioPlayer";
+import { RichTextViewer } from "./richtext/RichTextViewer";
 
 interface Props {
   item: HomeworkItem;
@@ -130,6 +131,25 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
           onSubmitted={onChanged}
         />
       )}
+      {item.feedbackText ? (
+        <div className="space-y-1">
+          <p className="text-sm font-medium">
+            {t("learning.writePage.teacherFeedback")}
+          </p>
+          <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
+            {item.feedbackText}
+          </div>
+        </div>
+      ) : item.feedback && item.feedback.length > 0 ? (
+        <div className="space-y-1">
+          <p className="text-sm font-medium">
+            {t("learning.writePage.teacherFeedback")}
+          </p>
+          <div className="rounded-md border bg-muted/20 p-3">
+            <RichTextViewer segments={item.feedback} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

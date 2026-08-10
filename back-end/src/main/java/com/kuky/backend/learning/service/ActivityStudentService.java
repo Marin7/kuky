@@ -178,8 +178,10 @@ public class ActivityStudentService {
                     activity.getInstructionsText(),
                     activity.getYoutubeUrl(),
                     activity.getImageId(),
+                    submission == null ? null : submission.getReviewModel(),
                     List.of(),
                     List.of(),
+                    null,
                     submission == null ? null : submission.getScorePercent(),
                     gradingService.studentQuestionsFor(activity.getId()),
                     result,
@@ -195,8 +197,9 @@ public class ActivityStudentService {
         List<ManualAnswerViewDto> answers = submission == null
                 ? List.of()
                 : answerRepository.findBySubmission(submission.getId()).stream()
-                .map(a -> new ManualAnswerViewDto(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                .map(a -> ManualAnswerViewDto.fromStored(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
                 .toList();
+        boolean annotated = submission != null && "ANNOTATED".equals(submission.getReviewModel());
 
         return new ActivityItemResponse(
                 activity.getId(),
@@ -210,8 +213,10 @@ public class ActivityStudentService {
                 activity.getInstructionsText(),
                 activity.getYoutubeUrl(),
                 activity.getImageId(),
+                submission == null ? null : submission.getReviewModel(),
                 List.of(),
-                submission == null ? List.of() : FormattedTextSegment.fromJson(submission.getFeedback()),
+                submission == null || annotated ? null : FormattedTextSegment.fromJson(submission.getFeedback()),
+                annotated ? FormattedTextSegment.decodePlainFeedback(submission.getFeedback()) : null,
                 null,
                 questions,
                 null,

@@ -531,7 +531,10 @@ export interface ManualSubmissionAnswerAdmin {
   questionId: string | null;
   promptSnapshot: string;
   text: string;
+  formatted?: FormattedText | null;
 }
+
+export type ReviewModel = "LEGACY_RICH" | "ANNOTATED" | null;
 
 export interface HomeworkSubmissionAdmin {
   submissionId: string;
@@ -542,13 +545,26 @@ export interface HomeworkSubmissionAdmin {
   studentUsername: string | null;
   assignmentTitle: string;
   status: "PENDING" | "SUBMITTED" | "REVIEWED";
+  reviewModel?: ReviewModel;
   /** WRITE MANUAL: rich-text answer. Multi MANUAL: null/empty. */
   response: FormattedText | null;
   /** Multi MANUAL per-question answers (prompt snapshots). WRITE: null/empty. */
   answers?: ManualSubmissionAnswerAdmin[] | null;
+  /** LEGACY_RICH rich feedback only. */
   feedback: FormattedText | null;
+  /** ANNOTATED plain note (≤500). */
+  feedbackText?: string | null;
   submittedAt: string | null;
   reviewedAt: string | null;
+}
+
+export interface SaveHomeworkReviewPayload {
+  feedbackText?: string | null;
+  response?: FormattedText | null;
+  answers?: {
+    questionId: string | null;
+    formatted: FormattedText;
+  }[];
 }
 
 export const getHomeworkReviewQueue = () =>
@@ -587,13 +603,13 @@ export const saveExerciseFeedback = (submissionId: string, feedback: string) =>
 
 export const saveHomeworkFeedback = (
   submissionId: string,
-  feedback: FormattedText,
+  payload: SaveHomeworkReviewPayload,
 ) =>
   apiCall<HomeworkSubmissionAdmin>(
     `/homework/submissions/${submissionId}/feedback`,
     {
       method: "PUT",
-      body: JSON.stringify({ feedback }),
+      body: JSON.stringify(payload),
     },
   );
 
@@ -816,13 +832,13 @@ export const getActivityExerciseSubmissionResult = (submissionId: string) =>
 
 export const saveActivityFeedback = (
   submissionId: string,
-  feedback: FormattedText,
+  payload: SaveHomeworkReviewPayload,
 ) =>
   apiCall<HomeworkSubmissionAdmin>(
     `/activities/submissions/${submissionId}/feedback`,
     {
       method: "PUT",
-      body: JSON.stringify({ feedback }),
+      body: JSON.stringify(payload),
     },
   );
 

@@ -88,6 +88,6 @@ public class HomeworkAdminController {
     @PutMapping("/submissions/{submissionId}/feedback")
     public HomeworkSubmissionAdminDto saveFeedback(@PathVariable UUID submissionId,
                                                    @Valid @RequestBody SaveHomeworkFeedbackRequest request) {
-        return service.saveFeedback(submissionId, request.feedback());
+        return service.saveFeedback(submissionId, request);
     }
 }

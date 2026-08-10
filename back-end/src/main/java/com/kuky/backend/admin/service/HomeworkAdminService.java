@@ -12,6 +12,7 @@ import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.HomeworkQuestionDto;
 import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
 import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
+import com.kuky.backend.admin.dto.SaveHomeworkFeedbackRequest;
 import com.kuky.backend.admin.dto.UpdateHomeworkRequest;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
@@ -42,7 +43,6 @@ import com.kuky.backend.learning.service.ExerciseGradingService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -154,30 +154,61 @@ public class HomeworkAdminService {
         return getExerciseResult(submissionId);
     }
 
-    /**
-     * Saves the teacher's formatted feedback and transitions the submission to
-     * REVIEWED. Feedback goes through the same {@link FormattedTextSegment}
-     * validator used by the student-submit path — an over-length or malformed
-     * feedback array is rejected exactly like an over-length answer.
-     */
-    public HomeworkSubmissionAdminDto saveFeedback(UUID submissionId, List<FormattedTextSegment> feedback) {
-        FormattedTextSegment.validate(feedback);
+    /** Saves in-place annotations and the optional plain teacher note for a MANUAL submission. */
+    public HomeworkSubmissionAdminDto saveFeedback(UUID submissionId, SaveHomeworkFeedbackRequest request) {
         var row = submissionRepository.findDetailById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
-        if (HomeworkStatus.REVIEWED.name().equals(row.status())) {
+        if ("LEGACY_RICH".equals(row.reviewModel())) {
             throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
         }
-        if (!HomeworkStatus.SUBMITTED.name().equals(row.status())) {
+        boolean firstReview = HomeworkStatus.SUBMITTED.name().equals(row.status());
+        if (!firstReview && !("REVIEWED".equals(row.status()) && "ANNOTATED".equals(row.reviewModel()))) {
+            if (HomeworkStatus.REVIEWED.name().equals(row.status())) {
+                throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
+            }
             throw new NotSubmittedException("Esta entrega todavía no ha sido enviada por el alumno.");
         }
-        submissionRepository.updateFeedback(submissionId, FormattedTextSegment.toJson(feedback), Instant.now());
+        String feedbackJson = FormattedTextSegment.encodePlainFeedback(
+                request == null ? null : request.feedbackText(),
+                FormattedTextSegment.MAX_MANUAL_FEEDBACK_LENGTH);
+
+        List<com.kuky.backend.learning.model.HomeworkAnswer> storedAnswers =
+                answerRepository.findBySubmission(submissionId);
+        String responseText = null;
+        if (storedAnswers.isEmpty()) {
+            List<FormattedTextSegment> response = request == null ? null : request.response();
+            FormattedTextSegment.validate(response);
+            assertUnchangedWording(response, row.responseText());
+            responseText = FormattedTextSegment.toJson(response);
+        } else {
+            List<SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> requested =
+                    request == null || request.answers() == null ? List.of() : request.answers();
+            for (var stored : storedAnswers) {
+                var annotation = requested.stream()
+                        .filter(a -> java.util.Objects.equals(a.questionId(), stored.getQuestionId()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Falta la anotación de una respuesta del alumno."));
+                FormattedTextSegment.validate(annotation.formatted());
+                assertUnchangedWording(annotation.formatted(), stored.getAnswerText());
+                answerRepository.updateAnswerText(stored.getId(), FormattedTextSegment.toJson(annotation.formatted()));
+            }
+        }
+        submissionRepository.saveAnnotatedReview(submissionId, feedbackJson, responseText, firstReview);
         var updated = submissionRepository.findDetailById(submissionId).orElseThrow();
         return toSubmissionAdminDto(updated);
     }
 
+    private static void assertUnchangedWording(List<FormattedTextSegment> incoming, String stored) {
+        if (!FormattedTextSegment.plainText(incoming)
+                .equals(FormattedTextSegment.storedPlainWording(stored))) {
+            throw new IllegalArgumentException("No se puede modificar el texto de la respuesta del alumno.");
+        }
+    }
+
     private HomeworkSubmissionAdminDto toSubmissionAdminDto(HomeworkSubmissionRepository.SubmissionDetailRow row) {
         List<ManualAnswerViewDto> answers = answerRepository.findBySubmission(row.submissionId()).stream()
-                .map(a -> new ManualAnswerViewDto(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                .map(a -> ManualAnswerViewDto.fromStored(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
                 .toList();
         List<FormattedTextSegment> response = answers.isEmpty()
                 ? FormattedTextSegment.fromJson(row.responseText())
@@ -185,9 +216,12 @@ public class HomeworkAdminService {
         return new HomeworkSubmissionAdminDto(
                 row.submissionId(), row.studentId(), row.studentEmail(), row.studentFirstName(),
                 row.studentLastName(), row.studentUsername(), row.assignmentTitle(), row.status(),
+                row.reviewModel(),
                 response,
                 answers,
-                FormattedTextSegment.fromJson(row.feedback()),
+                "LEGACY_RICH".equals(row.reviewModel()) ? FormattedTextSegment.fromJson(row.feedback()) : null,
+                "ANNOTATED".equals(row.reviewModel())
+                        ? FormattedTextSegment.decodePlainFeedback(row.feedback()) : null,
                 row.submittedAt(), row.reviewedAt());
     }
 

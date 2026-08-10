@@ -45,8 +45,11 @@ final class HomeworkItems {
         List<FormattedTextSegment> response = multiManual
                 ? null
                 : (submission != null ? FormattedTextSegment.fromJson(submission.getResponseText()) : null);
-        List<FormattedTextSegment> feedback =
-                submission != null ? FormattedTextSegment.fromJson(submission.getFeedback()) : null;
+        boolean annotated = submission != null && "ANNOTATED".equals(submission.getReviewModel());
+        List<FormattedTextSegment> feedback = submission != null && !annotated
+                ? FormattedTextSegment.fromJson(submission.getFeedback()) : null;
+        String feedbackText = annotated
+                ? FormattedTextSegment.decodePlainFeedback(submission.getFeedback()) : null;
         boolean overdue = a.getDueOn() != null
                 && a.getDueOn().isBefore(today)
                 && HomeworkStatus.PENDING.name().equals(status);
@@ -73,8 +76,10 @@ final class HomeworkItems {
                 level,
                 format,
                 status,
+                submission != null ? submission.getReviewModel() : null,
                 response,
                 feedback,
+                feedbackText,
                 scorePercent,
                 submission != null ? submission.getSubmittedAt() : null,
                 overdue,
@@ -102,6 +107,6 @@ final class HomeworkItems {
     }
 
     private static ManualAnswerViewDto toAnswerView(HomeworkAnswer a) {
-        return new ManualAnswerViewDto(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText());
+        return ManualAnswerViewDto.fromStored(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText());
     }
 }

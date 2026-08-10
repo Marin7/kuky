@@ -12,6 +12,7 @@ public class ActivitySubmission {
     private String responseText;
     private Integer scorePercent;
     private String feedback;
+    private String reviewModel;
     private Instant submittedAt;
     private Instant reviewedAt;
     private Instant updatedAt;
@@ -30,6 +31,8 @@ public class ActivitySubmission {
     public void setScorePercent(Integer scorePercent) { this.scorePercent = scorePercent; }
     public String getFeedback() { return feedback; }
     public void setFeedback(String feedback) { this.feedback = feedback; }
+    public String getReviewModel() { return reviewModel; }
+    public void setReviewModel(String reviewModel) { this.reviewModel = reviewModel; }
     public Instant getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(Instant submittedAt) { this.submittedAt = submittedAt; }
     public Instant getReviewedAt() { return reviewedAt; }

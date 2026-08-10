@@ -17,9 +17,11 @@ public record HomeworkSubmissionAdminDto(
         String studentUsername,
         String assignmentTitle,
         String status,
+        String reviewModel,
         List<FormattedTextSegment> response,
         List<ManualAnswerViewDto> answers,
         List<FormattedTextSegment> feedback,
+        String feedbackText,
         Instant submittedAt,
         Instant reviewedAt
 ) {}

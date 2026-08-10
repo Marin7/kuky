@@ -12,6 +12,7 @@ public class HomeworkSubmission {
     private String responseText; // nullable — JSON-encoded List<FormattedTextSegment>
     private Integer scorePercent; // nullable — set only when status = GRADED
     private String feedback; // nullable — JSON-encoded List<FormattedTextSegment>, set once REVIEWED
+    private String reviewModel; // nullable — LEGACY_RICH | ANNOTATED
     private Instant submittedAt; // nullable
     private Instant reviewedAt; // nullable — set when feedback is saved
     private Instant updatedAt;
@@ -30,6 +31,8 @@ public class HomeworkSubmission {
     public void setScorePercent(Integer scorePercent) { this.scorePercent = scorePercent; }
     public String getFeedback() { return feedback; }
     public void setFeedback(String feedback) { this.feedback = feedback; }
+    public String getReviewModel() { return reviewModel; }
+    public void setReviewModel(String reviewModel) { this.reviewModel = reviewModel; }
     public Instant getSubmittedAt() { return submittedAt; }
     public void setSubmittedAt(Instant submittedAt) { this.submittedAt = submittedAt; }
     public Instant getReviewedAt() { return reviewedAt; }

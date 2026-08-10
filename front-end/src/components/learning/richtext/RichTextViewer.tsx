@@ -30,7 +30,7 @@ export function RichTextViewer({ segments, className }: Props) {
   return (
     <div
       className={cn(
-        "whitespace-pre-wrap break-words text-base leading-relaxed",
+        "whitespace-pre-wrap break-words break-all [overflow-wrap:anywhere] text-base leading-relaxed",
         className,
       )}
     >

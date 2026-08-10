@@ -35,6 +35,7 @@ public class HomeworkSubmissionRepository {
         s.setResponseText(rs.getString("response_text"));
         s.setScorePercent(rs.getObject("score_percent", Integer.class));
         s.setFeedback(rs.getString("feedback"));
+        s.setReviewModel(rs.getString("review_model"));
         Timestamp submittedAt = rs.getTimestamp("submitted_at");
         if (submittedAt != null) {
             s.setSubmittedAt(submittedAt.toInstant());
@@ -157,7 +158,7 @@ public class HomeworkSubmissionRepository {
     public record SubmissionDetailRow(UUID submissionId, UUID studentId, String studentEmail,
                                       String studentFirstName, String studentLastName, String studentUsername,
                                       String assignmentTitle, String status, String responseText, String feedback,
-                                      Instant submittedAt, Instant reviewedAt) {}
+                                      String reviewModel, Instant submittedAt, Instant reviewedAt) {}
 
     /** Full detail of a single submission, joined with its student and assignment, for the review screen. */
     public Optional<SubmissionDetailRow> findDetailById(UUID submissionId) {
@@ -165,7 +166,7 @@ public class HomeworkSubmissionRepository {
                 SELECT s.id AS submission_id, u.id AS student_id, u.email AS student_email,
                        u.first_name AS student_first_name, u.last_name AS student_last_name,
                        u.username AS student_username, ha.title AS assignment_title,
-                       s.status, s.response_text, s.feedback, s.submitted_at, s.reviewed_at
+                       s.status, s.response_text, s.feedback, s.review_model, s.submitted_at, s.reviewed_at
                 FROM homework_submissions s
                 JOIN users u ON u.id = s.user_id
                 JOIN homework_assignments ha ON ha.id = s.assignment_id
@@ -185,6 +186,7 @@ public class HomeworkSubmissionRepository {
                     rs.getString("status"),
                     rs.getString("response_text"),
                     rs.getString("feedback"),
+                    rs.getString("review_model"),
                     submittedAt == null ? null : submittedAt.toInstant(),
                     reviewedAt == null ? null : reviewedAt.toInstant());
         }).stream().findFirst();
@@ -202,6 +204,37 @@ public class HomeworkSubmissionRepository {
                 .addValue("reviewedAt", Timestamp.from(reviewedAt))
                 .addValue("updatedAt", Timestamp.from(Instant.now()))
                 .addValue("id", submissionId));
+    }
+
+    /**
+     * Saves an annotated manual review. First review records its timestamp; subsequent
+     * annotated edits preserve it and cannot overwrite another review model.
+     */
+    public int saveAnnotatedReview(UUID submissionId, String feedbackJson, String responseTextOrKeep,
+                                   boolean firstReview) {
+        String sql = firstReview ? """
+                UPDATE homework_submissions
+                SET feedback = :feedback,
+                    response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
+                    status = 'REVIEWED',
+                    review_model = 'ANNOTATED',
+                    reviewed_at = :now,
+                    updated_at = :now
+                WHERE id = :id
+                """ : """
+                UPDATE homework_submissions
+                SET feedback = :feedback,
+                    response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
+                    updated_at = :now
+                WHERE id = :id AND review_model = 'ANNOTATED'
+                """;
+        Instant now = Instant.now();
+        return jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("id", submissionId)
+                .addValue("feedback", feedbackJson)
+                .addValue("hasResponse", responseTextOrKeep != null)
+                .addValue("responseText", responseTextOrKeep)
+                .addValue("now", Timestamp.from(now)));
     }
 
     /**
