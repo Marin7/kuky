@@ -1,0 +1,117 @@
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  setAssignees,
+  studentDisplayName,
+  type HomeworkAdminItem,
+  type Student,
+} from "@/lib/admin";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  homework: HomeworkAdminItem;
+  allStudents: Student[];
+  onAssigned: (item: HomeworkAdminItem) => void;
+}
+
+export function HomeworkAssignDialog({
+  open,
+  onOpenChange,
+  homework,
+  allStudents,
+  onAssigned,
+}: Props) {
+  const { t } = useTranslation();
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(homework.assignees.map((a) => a.userId)),
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await setAssignees(homework.id, [...selected]);
+      onAssigned(updated);
+      onOpenChange(false);
+    } catch {
+      setError(t("admin.homework.assignError"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>
+            {t("admin.homework.assign")} — {homework.title}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-1 max-h-60 overflow-y-auto">
+          {allStudents.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {t("admin.homework.noStudents")}
+            </p>
+          ) : (
+            allStudents.map((s) => {
+              const checked = selected.has(s.id);
+              return (
+                <label
+                  key={s.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(s.id)}
+                    className="h-4 w-4 rounded"
+                  />
+                  <span>{studentDisplayName(s)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {s.email}
+                  </span>
+                </label>
+              );
+            })
+          )}
+        </div>
+
+        {error && <p className="text-sm text-destructive">{error}</p>}
+
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? t("common.saving") : t("common.save")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

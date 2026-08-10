@@ -3,13 +3,16 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
   getHomework,
+  getStudents,
   deleteHomework,
   type HomeworkAdminItem,
   type HomeworkType,
   type HomeworkLevel,
+  type Student,
 } from "@/lib/admin";
 import { StudentLink } from "@/components/admin/students/StudentLink";
 import { ExerciseResultDialog } from "@/components/admin/homework/ExerciseResultDialog";
+import { HomeworkAssignDialog } from "@/components/admin/homework/HomeworkAssignDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -48,16 +51,24 @@ export function HomeworkAdminList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [items, setItems] = useState<HomeworkAdminItem[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<HomeworkType | "ALL">("ALL");
   const [filterLevel, setFilterLevel] = useState<HomeworkLevel | "ALL">("ALL");
   const [openResultId, setOpenResultId] = useState<string | null>(null);
+  const [assignItem, setAssignItem] = useState<HomeworkAdminItem | null>(null);
 
   const load = () => {
     setLoading(true);
-    getHomework()
-      .then(setItems)
-      .catch(() => setItems([]))
+    Promise.all([getHomework(), getStudents()])
+      .then(([homework, studentList]) => {
+        setItems(homework);
+        setStudents(studentList);
+      })
+      .catch(() => {
+        setItems([]);
+        setStudents([]);
+      })
       .finally(() => setLoading(false));
   };
 
@@ -190,6 +201,14 @@ export function HomeworkAdminList() {
                 </div>
                 <div className="flex shrink-0 gap-1">
                   <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => setAssignItem(item)}
+                  >
+                    {t("admin.homework.assign")}
+                  </Button>
+                  <Button
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
@@ -287,6 +306,21 @@ export function HomeworkAdminList() {
           submissionId={openResultId}
           onClose={() => setOpenResultId(null)}
           onFeedbackSaved={load}
+        />
+      )}
+      {assignItem && (
+        <HomeworkAssignDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) setAssignItem(null);
+          }}
+          homework={assignItem}
+          allStudents={students}
+          onAssigned={(updated) => {
+            setItems((prev) =>
+              prev.map((h) => (h.id === updated.id ? updated : h)),
+            );
+          }}
         />
       )}
     </div>
