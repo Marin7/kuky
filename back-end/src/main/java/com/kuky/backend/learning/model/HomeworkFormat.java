@@ -1,10 +1,11 @@
 package com.kuky.backend.learning.model;
 
 /**
- * Whether a homework is a manual free-text assignment (existing behaviour) or a
- * self-correcting exercise with structured, auto-graded questions.
+ * Derived cache of how an assignment/activity is graded, based on question kinds
+ * (and WRITE homework type). Not chosen in the authoring UI.
  */
 public enum HomeworkFormat {
     MANUAL,
-    EXERCISE
+    EXERCISE,
+    MIXED
 }

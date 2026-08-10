@@ -1,6 +1,5 @@
 package com.kuky.backend.learning.service;
 
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.dto.ActivityItemResponse;
@@ -19,7 +18,9 @@ import com.kuky.backend.learning.model.ActivityQuestion;
 import com.kuky.backend.learning.model.ActivitySubmission;
 import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAnswer;
+import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
+import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.repository.ActivityAnswerRepository;
@@ -30,6 +31,7 @@ import com.kuky.backend.presentations.repository.PresentationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,10 +40,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 public class ActivityStudentService {
+
+    private static final int MAX_PLAIN_ANSWER_CHARS = 2000;
 
     private final ActivityRepository activityRepository;
     private final ActivitySubmissionRepository submissionRepository;
@@ -103,13 +108,15 @@ public class ActivityStudentService {
         return toItemResponse(activity, existing.orElse(null));
     }
 
+    /** Transitional ALL_MANUAL path (legacy PUT /activities/{id}). */
     @Transactional
     public ActivityItemResponse submitManual(String email, UUID activityId,
                                              List<FormattedTextSegment> response,
                                              List<ManualAnswerDto> answers) {
         User user = requireUser(email);
         Activity activity = requireAccessible(activityId, user.getId());
-        if (activity.getFormat() != HomeworkFormat.MANUAL) {
+        HomeworkComposition composition = compositionOf(activity);
+        if (composition != HomeworkComposition.ALL_MANUAL) {
             throw new ActivityValidationException("Este ejercicio se entrega desde su propia página.");
         }
         Optional<ActivitySubmission> existing =
@@ -125,7 +132,7 @@ public class ActivityStudentService {
         List<HomeworkAnswer> mapped;
         try {
             mapped = HomeworkSubmissionService.validateAndMapFreeTextAnswers(
-                    questions.stream().map(q -> q.toHomeworkQuestion()).toList(),
+                    questions.stream().map(ActivityQuestion::toHomeworkQuestion).toList(),
                     answers);
         } catch (IllegalArgumentException e) {
             throw new ActivityValidationException(e.getMessage());
@@ -140,6 +147,76 @@ public class ActivityStudentService {
         return toItemResponse(activity, saved);
     }
 
+    /**
+     * Unified submit: ALL_AUTO → GRADED; ALL_MANUAL → SUBMITTED;
+     * MIXED → SUBMITTED with auto scores + provisional %.
+     */
+    @Transactional
+    public ActivityItemResponse submitAnswers(String email, UUID activityId, SubmitExerciseRequest request) {
+        User user = requireUser(email);
+        Activity activity = requireAccessible(activityId, user.getId());
+        HomeworkComposition composition = compositionOf(activity);
+
+        Optional<ActivitySubmission> existing =
+                submissionRepository.findByUserAndActivity(user.getId(), activityId);
+        if (existing.isPresent() && HomeworkStatus.REVIEWED.name().equals(existing.get().getStatus())) {
+            throw new ActivityAlreadySubmittedException(
+                    "Esta actividad ya ha sido revisada y no puede modificarse.");
+        }
+        if (existing.isPresent() && HomeworkStatus.GRADED.name().equals(existing.get().getStatus())) {
+            throw new ActivityAlreadySubmittedException(
+                    "Este ejercicio ya ha sido entregado y no puede repetirse.");
+        }
+        if (existing.isPresent() && HomeworkStatus.SUBMITTED.name().equals(existing.get().getStatus())) {
+            throw new ActivityAlreadySubmittedException(
+                    "Esta actividad ya ha sido entregada y no puede modificarse.");
+        }
+
+        List<HomeworkQuestion> questions = gradingService.toHomeworkQuestions(activityId);
+        Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion = indexAnswers(request);
+
+        List<HomeworkAnswer> allAnswers = new ArrayList<>();
+        ExerciseResultResponse autoResult = null;
+
+        try {
+            if (composition == HomeworkComposition.ALL_AUTO || composition == HomeworkComposition.MIXED) {
+                requireEveryQuestionAnswered(questions, byQuestion);
+                ActivityExerciseGradingService.StructuredGradeResult graded =
+                        gradingService.gradeStructuredSubset(questions, byQuestion);
+                allAnswers.addAll(graded.structuredAnswers());
+                autoResult = graded.toProvisionalResult();
+
+                if (composition == HomeworkComposition.ALL_AUTO) {
+                    ActivitySubmission saved = submissionRepository.upsertGraded(
+                            user.getId(), activityId, graded.provisionalScorePercent(), Instant.now());
+                    answerRepository.saveAll(saved.getId(), allAnswers);
+                    return toItemResponse(activity, saved, questions, allAnswers,
+                            gradingService.studentQuestionsFor(questions), autoResult);
+                }
+
+                allAnswers.addAll(mapFreeTextFromUnified(questions, byQuestion));
+                ActivitySubmission saved = submissionRepository.upsertManual(
+                        user.getId(), activityId, HomeworkStatus.SUBMITTED.name(), null, Instant.now());
+                answerRepository.saveAll(saved.getId(), allAnswers);
+                return toItemResponse(activity, saved, questions, allAnswers,
+                        gradingService.studentQuestionsFor(questions), autoResult);
+            }
+
+            // ALL_MANUAL via /answers
+            List<ManualAnswerDto> manual = toManualDtos(byQuestion);
+            List<HomeworkAnswer> mapped = HomeworkSubmissionService.validateAndMapFreeTextAnswers(
+                    questions.stream().filter(q -> q.getKind() == QuestionKind.FREE_TEXT).toList(), manual);
+            ActivitySubmission saved = submissionRepository.upsertManual(
+                    user.getId(), activityId, HomeworkStatus.SUBMITTED.name(), null, Instant.now());
+            answerRepository.saveAll(saved.getId(), mapped);
+            return toItemResponse(activity, saved, questions, mapped,
+                    gradingService.studentQuestionsFor(questions), null);
+        } catch (IllegalArgumentException e) {
+            throw new ActivityValidationException(e.getMessage());
+        }
+    }
+
+    /** Thin delegate for ALL_AUTO-only grading path. Prefer {@link #submitAnswers}. */
     public ExerciseResultResponse submitExercise(String email, UUID activityId, SubmitExerciseRequest request) {
         return gradingService.submit(email, activityId, request);
     }
@@ -157,54 +234,86 @@ public class ActivityStudentService {
     }
 
     private ActivityItemResponse toItemResponse(Activity activity, ActivitySubmission submission) {
-        String status = submission == null ? HomeworkStatus.PENDING.name() : submission.getStatus();
+        List<HomeworkQuestion> questions = gradingService.toHomeworkQuestions(activity.getId());
+        List<HomeworkAnswer> answers = submission == null
+                ? List.of()
+                : answerRepository.findBySubmission(submission.getId());
+        HomeworkComposition composition = HomeworkCompositionSupport.activityComposition(
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
+        List<ExerciseQuestionDto> studentQuestions = gradingService.studentQuestionsFor(questions);
+        ExerciseResultResponse result = null;
+        if (submission != null && !answers.isEmpty()
+                && (composition == HomeworkComposition.ALL_AUTO || composition == HomeworkComposition.MIXED)
+                && (HomeworkStatus.GRADED.name().equals(submission.getStatus())
+                || HomeworkStatus.SUBMITTED.name().equals(submission.getStatus()))) {
+            result = composition == HomeworkComposition.MIXED
+                    && HomeworkStatus.SUBMITTED.name().equals(submission.getStatus())
+                    ? gradingService.storedProvisionalResultFor(questions, submission)
+                    : gradingService.storedResultFor(questions, submission);
+        }
+        return toItemResponse(activity, submission, questions, answers, studentQuestions, result);
+    }
 
-        if (activity.getFormat() == HomeworkFormat.EXERCISE) {
-            ExerciseResultResponse result = null;
-            String teacherFeedback = null;
-            if (submission != null && HomeworkStatus.GRADED.name().equals(submission.getStatus())) {
-                result = gradingService.storedResultFor(submission);
-                teacherFeedback = FormattedTextSegment.decodePlainFeedback(submission.getFeedback());
-            }
-            return new ActivityItemResponse(
-                    activity.getId(),
-                    activity.getTitle(),
-                    HomeworkFormat.EXERCISE.name(),
-                    status,
-                    activity.getLevel(),
-                    activity.getHomeworkType(),
-                    activity.getTriggerFileId(),
-                    activity.getTriggerPage(),
-                    activity.getInstructionsText(),
-                    activity.getYoutubeUrl(),
-                    activity.getImageId(),
-                    submission == null ? null : submission.getReviewModel(),
-                    List.of(),
-                    List.of(),
-                    null,
-                    submission == null ? null : submission.getScorePercent(),
-                    gradingService.studentQuestionsFor(activity.getId()),
-                    result,
-                    teacherFeedback,
-                    List.of());
+    private ActivityItemResponse toItemResponse(Activity activity, ActivitySubmission submission,
+                                                List<HomeworkQuestion> questions,
+                                                List<HomeworkAnswer> answers,
+                                                List<ExerciseQuestionDto> studentQuestions,
+                                                ExerciseResultResponse result) {
+        HomeworkComposition composition = HomeworkCompositionSupport.activityComposition(
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
+        String status = submission == null ? HomeworkStatus.PENDING.name() : submission.getStatus();
+        String format = activity.getFormat() == null ? HomeworkFormat.MANUAL.name() : activity.getFormat().name();
+        boolean annotated = submission != null && "ANNOTATED".equals(submission.getReviewModel());
+
+        Integer scorePercent = submission == null ? null : submission.getScorePercent();
+        Integer provisionalScorePercent = null;
+        if (composition == HomeworkComposition.MIXED
+                && submission != null
+                && HomeworkStatus.SUBMITTED.name().equals(status)
+                && result != null) {
+            provisionalScorePercent = result.scorePercent();
+            scorePercent = null;
         }
 
-        List<ExerciseQuestionDto> questions = freeTextQuestions(activity.getId()).stream()
-                .map(q -> new ExerciseQuestionDto(
-                        q.getId(), QuestionKind.FREE_TEXT.name(), q.getPrompt(),
-                        List.of(), JsonNodeFactory.instance.objectNode()))
-                .toList();
-        List<ManualAnswerViewDto> answers = submission == null
-                ? List.of()
-                : answerRepository.findBySubmission(submission.getId()).stream()
-                .map(a -> ManualAnswerViewDto.fromStored(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
-                .toList();
-        boolean annotated = submission != null && "ANNOTATED".equals(submission.getReviewModel());
+        List<ManualAnswerViewDto> answerViews = List.of();
+        if (!answers.isEmpty()
+                && (composition == HomeworkComposition.ALL_MANUAL || composition == HomeworkComposition.MIXED)) {
+            answerViews = answers.stream()
+                    .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
+                    .map(a -> ManualAnswerViewDto.fromStored(
+                            a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
+                            a.getTeacherValidation(),
+                            a.getScore() == null ? null : a.getScore().doubleValue()))
+                    .toList();
+        }
+
+        String teacherFeedback = null;
+        List<FormattedTextSegment> feedback = null;
+        String feedbackText = null;
+        if (submission != null) {
+            if (composition == HomeworkComposition.ALL_AUTO
+                    || (composition == HomeworkComposition.MIXED
+                    && HomeworkStatus.GRADED.name().equals(status))) {
+                teacherFeedback = FormattedTextSegment.decodePlainFeedback(submission.getFeedback());
+            }
+            if (composition == HomeworkComposition.ALL_MANUAL
+                    || (composition == HomeworkComposition.MIXED
+                    && (HomeworkStatus.SUBMITTED.name().equals(status)
+                    || HomeworkStatus.GRADED.name().equals(status)
+                    || HomeworkStatus.REVIEWED.name().equals(status)))) {
+                if (annotated) {
+                    feedbackText = FormattedTextSegment.decodePlainFeedback(submission.getFeedback());
+                } else {
+                    feedback = FormattedTextSegment.fromJson(submission.getFeedback());
+                }
+            }
+        }
 
         return new ActivityItemResponse(
                 activity.getId(),
                 activity.getTitle(),
-                HomeworkFormat.MANUAL.name(),
+                format,
+                composition.name(),
                 status,
                 activity.getLevel(),
                 activity.getHomeworkType(),
@@ -215,19 +324,81 @@ public class ActivityStudentService {
                 activity.getImageId(),
                 submission == null ? null : submission.getReviewModel(),
                 List.of(),
-                submission == null || annotated ? null : FormattedTextSegment.fromJson(submission.getFeedback()),
-                annotated ? FormattedTextSegment.decodePlainFeedback(submission.getFeedback()) : null,
-                null,
-                questions,
-                null,
-                null,
-                answers);
+                feedback,
+                feedbackText,
+                scorePercent,
+                provisionalScorePercent,
+                studentQuestions,
+                result,
+                teacherFeedback,
+                answerViews);
+    }
+
+    private HomeworkComposition compositionOf(Activity activity) {
+        List<HomeworkQuestion> questions = gradingService.toHomeworkQuestions(activity.getId());
+        return HomeworkCompositionSupport.activityComposition(
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
     }
 
     private List<ActivityQuestion> freeTextQuestions(UUID activityId) {
         return questionRepository.findByActivityId(activityId).stream()
                 .filter(q -> q.getKind() == QuestionKind.FREE_TEXT)
                 .toList();
+    }
+
+    private static Map<UUID, SubmitExerciseRequest.AnswerDto> indexAnswers(SubmitExerciseRequest request) {
+        if (request == null || request.answers() == null) return Map.of();
+        return request.answers().stream()
+                .filter(a -> a.questionId() != null)
+                .collect(Collectors.toMap(SubmitExerciseRequest.AnswerDto::questionId, Function.identity(), (a, b) -> a));
+    }
+
+    private static void requireEveryQuestionAnswered(
+            List<HomeworkQuestion> questions, Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
+        for (HomeworkQuestion q : questions) {
+            SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
+            if (given == null) {
+                throw new IllegalArgumentException("Debes responder a todas las preguntas.");
+            }
+            if (q.getKind() == QuestionKind.FREE_TEXT) {
+                String text = given.text() == null ? "" : given.text().strip();
+                if (text.isEmpty()) {
+                    throw new IllegalArgumentException("Debes responder a todas las preguntas.");
+                }
+                if (text.length() > MAX_PLAIN_ANSWER_CHARS) {
+                    throw new IllegalArgumentException("Una de las respuestas es demasiado larga.");
+                }
+            }
+        }
+        if (!byQuestion.keySet().equals(questions.stream().map(HomeworkQuestion::getId).collect(Collectors.toSet()))) {
+            throw new IllegalArgumentException("Las respuestas no coinciden con las preguntas actuales.");
+        }
+    }
+
+    private static List<HomeworkAnswer> mapFreeTextFromUnified(
+            List<HomeworkQuestion> questions, Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
+        List<HomeworkAnswer> mapped = new ArrayList<>();
+        for (HomeworkQuestion q : questions) {
+            if (q.getKind() != QuestionKind.FREE_TEXT) continue;
+            SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
+            String text = given.text().strip();
+            HomeworkAnswer row = new HomeworkAnswer();
+            row.setQuestionId(q.getId());
+            row.setAnswerText(text);
+            row.setPromptSnapshot(q.getPrompt());
+            row.setScore(BigDecimal.ZERO);
+            row.setSelectedOptionIds(List.of());
+            mapped.add(row);
+        }
+        return mapped;
+    }
+
+    private static List<ManualAnswerDto> toManualDtos(Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
+        List<ManualAnswerDto> out = new ArrayList<>();
+        for (var e : byQuestion.entrySet()) {
+            out.add(new ManualAnswerDto(e.getKey(), e.getValue().text()));
+        }
+        return out;
     }
 
     private Activity requireAccessible(UUID activityId, UUID userId) {

@@ -400,6 +400,17 @@ export const esDict = {
       notFound: "No se ha encontrado esta tarea de comprensión auditiva.",
       loadError: "No se pudo cargar el audio.",
     },
+    mixed: {
+      awaitingTeacher:
+        "Parte autocorregida. La profesora revisará tus respuestas abiertas.",
+      provisionalScore: "Nota provisional (solo autocorregibles): {{percent}}%",
+      combinedScore: "Nota final (todas las preguntas)",
+      autoResults: "Preguntas autocorregibles",
+      manualAnswers: "Respuestas abiertas",
+      validated: "Correcta",
+      invalidated: "Incorrecta",
+      pendingValidation: "Pendiente de revisión",
+    },
     manualMulti: {
       title: "Tus respuestas",
       questionLabel: "Pregunta {{index}}",
@@ -749,6 +760,7 @@ export const esDict = {
       noTasks: "Aún no has creado ninguna tarea.",
       noTasksFiltered: "No hay tareas con esos filtros.",
       exercise: "Ejercicio",
+      mixed: "Mixta",
       edit: "Editar",
       delete: "Eliminar",
       assignedTo: "Asignada a",
@@ -789,6 +801,10 @@ export const esDict = {
           "Ejercicio autocorregible — preguntas con corrección automática.",
         formatWriteHint:
           "Las tareas de escritura siempre se revisan manualmente; no pueden ser un ejercicio autocorregible.",
+        writeHint:
+          "Las tareas de escritura usan una sola respuesta larga que tú revisas. No hace falta añadir preguntas.",
+        questionsRequired:
+          "Añade al menos una pregunta (puedes mezclar respuesta libre y autocorregibles).",
         audioLabel: "Audio (comprensión auditiva)",
         audioHint:
           "Añade el audio que el alumno escuchará: un enlace o un archivo subido.",
@@ -810,12 +826,14 @@ export const esDict = {
         countSingular: "{{count}} pregunta",
         countPlural: "{{count}} preguntas",
         empty:
-          "Aún no has añadido preguntas. Un ejercicio autocorregible necesita al menos una.",
+          "Aún no has añadido preguntas. Añade al menos una (respuesta libre o autocorregible).",
         addQuestion: "Añadir pregunta",
         questionLabel: "Pregunta {{index}}",
         kindLabel: "Tipo",
         promptLabel: "Enunciado",
         promptPlaceholder: "Ej. El plural de «el lápiz»",
+        freeTextHint:
+          "El alumno escribirá una respuesta libre que tú validarás o anularás al corregir.",
         acceptedAnswers: "Respuestas aceptadas",
         acceptedAnswersHint:
           "El alumno acierta si su respuesta coincide con alguna (sin distinguir mayúsculas, pero respetando los acentos).",
@@ -834,6 +852,7 @@ export const esDict = {
           TABLE_FILL: "Rellenar tabla",
           MATCHING: "Emparejar",
           TRUE_FALSE: "Verdadero / Falso",
+          FREE_TEXT: "Respuesta libre",
         },
         trueFalseHint: "Marca si el enunciado es verdadero o falso.",
         trueLabel: "Verdadero",
@@ -902,6 +921,18 @@ export const esDict = {
         "La nota es demasiado larga (máximo 500 caracteres).",
       legacyFrozen:
         "Esta corrección antigua es de solo lectura (modelo anterior).",
+      mixedHint:
+        "Valida o invalida cada respuesta libre para calcular la nota final. Las autocorregibles ya están puntuadas.",
+      manualValidationHint:
+        "Valida o invalida cada respuesta para calcular la nota de la tarea.",
+      autoResults: "Preguntas autocorregibles",
+      combinedScore: "Nota combinada: {{percent}}%",
+      validate: "Validar",
+      invalidate: "Invalidar",
+      validatedBadge: "Validada",
+      invalidatedBadge: "Invalidada",
+      validationRequired:
+        "Debes validar o invalidar todas las respuestas libres antes de guardar.",
       save: "Guardar corrección",
       saving: "Guardando…",
       close: "Cerrar",

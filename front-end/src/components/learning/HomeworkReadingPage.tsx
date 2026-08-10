@@ -4,11 +4,14 @@ import { Link } from "@tanstack/react-router";
 import {
   getExercise,
   getLearning,
+  resolveComposition,
+  isAutoTakeComposition,
   type ExerciseResponse,
   type HomeworkItem,
   type HomeworkFormat,
 } from "@/lib/learning";
 import { ExerciseForm } from "./ExerciseForm";
+import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 
@@ -19,8 +22,7 @@ interface Props {
 
 /**
  * Reading ("Lectura") homework on its own page: the passage is shown
- * prominently on top, with the questions (EXERCISE) or a free-text answer
- * (MANUAL) on separate lines below.
+ * prominently on top, with questions (auto / mixed / manual) below.
  */
 export function HomeworkReadingPage({ homeworkId, format }: Props) {
   const { t } = useTranslation();
@@ -31,28 +33,31 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    const load =
-      format === "EXERCISE"
-        ? getExercise(homeworkId).then(setExercise)
-        : getLearning().then((data) => {
-            const found = data.homework.find(
-              (h) => h.id === homeworkId && h.format === "MANUAL",
-            );
-            if (!found) {
-              setLoadError(t("learning.readPage.notFound"));
-              return;
-            }
-            setItem(found);
-          });
+    const compositionHint = resolveComposition({ format });
+    const load = isAutoTakeComposition(compositionHint)
+      ? getExercise(homeworkId).then(setExercise)
+      : getLearning().then((data) => {
+          const found = data.homework.find((h) => h.id === homeworkId);
+          if (!found) {
+            setLoadError(t("learning.readPage.notFound"));
+            return;
+          }
+          setItem(found);
+        });
 
     load
       .catch(() => setLoadError(t("learning.readPage.loadError")))
       .finally(() => setLoading(false));
-  }, [homeworkId, format]);
+  }, [homeworkId, format, t]);
 
   const title = exercise?.title ?? item?.title ?? "";
   const passage = exercise?.instructions ?? item?.instructions ?? "";
   const ready = exercise !== null || item !== null;
+  const composition = exercise
+    ? resolveComposition(exercise)
+    : item
+      ? resolveComposition(item)
+      : resolveComposition({ format });
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
@@ -83,7 +88,21 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
             {passage}
           </div>
 
-          {exercise ? (
+          {composition === "MIXED" && exercise ? (
+            <MixedHomeworkForm
+              assignment={{
+                id: exercise.id,
+                status: exercise.status,
+                questions: exercise.questions,
+                result: exercise.result,
+                answers: exercise.answers,
+                scorePercent: exercise.scorePercent ?? null,
+                provisionalScorePercent: exercise.provisionalScorePercent,
+                feedbackText: exercise.feedbackText,
+                teacherFeedback: exercise.teacherFeedback,
+              }}
+            />
+          ) : composition === "ALL_AUTO" && exercise ? (
             <ExerciseForm exercise={exercise} />
           ) : item ? (
             <>
@@ -94,7 +113,9 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
                   prompt: q.prompt,
                 }))}
                 initialAnswers={item.answers}
-                readOnly={item.status === "REVIEWED"}
+                readOnly={
+                  item.status === "REVIEWED" || item.status === "GRADED"
+                }
               />
               {item.feedbackText ? (
                 <div className="mt-6 space-y-2">

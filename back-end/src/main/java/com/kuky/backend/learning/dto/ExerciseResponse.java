@@ -4,19 +4,24 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * A self-correcting exercise as seen by a student. When {@code status == GRADED}
- * the {@code result} is populated so the locked exercise re-renders with feedback.
+ * Exercise / mixed homework take page as seen by a student.
+ * When graded (or mixed submitted with auto results), {@code result} is populated.
  */
 public record ExerciseResponse(
         UUID id,
         String title,
         String instructions,
-        String format,                       // always EXERCISE
-        String status,                       // PENDING (not taken) or GRADED (locked)
+        String format,                       // EXERCISE | MIXED
+        String composition,                  // ALL_AUTO | MIXED
+        String status,                       // PENDING | SUBMITTED | GRADED
         String homeworkType,                 // AUDIO | READ | … (nullable)
         String audioUrl,                     // listening homework external source (nullable)
         UUID audioFileId,                    // listening homework uploaded file (nullable)
         List<ExerciseQuestionDto> questions,
-        ExerciseResultResponse result,       // null unless GRADED
+        ExerciseResultResponse result,       // null unless submitted/graded with auto results
+        List<ManualAnswerViewDto> answers,   // FREE_TEXT answers for MIXED; else empty
+        Integer scorePercent,                // final combined when GRADED
+        Integer provisionalScorePercent,     // auto-only while MIXED SUBMITTED
+        String feedbackText,                 // ANNOTATED plain note when present
         String teacherFeedback               // plain teacher comment; null unless present
 ) {}

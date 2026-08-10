@@ -176,6 +176,7 @@ class HomeworkAdminServiceTest {
     @Test
     void saveFeedback_rejectsChangedStudentWording() {
         UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
 
@@ -188,19 +189,20 @@ class HomeworkAdminServiceTest {
     @Test
     void saveFeedback_marksWriteAnswerAndTransitionsToAnnotated() {
         UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
         List<FormattedTextSegment> annotated =
                 List.of(new FormattedTextSegment("Mi respuesta", "red", "yellow", true));
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED",
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
                         FormattedTextSegment.encodePlainFeedback("Bien", 500), "ANNOTATED")));
 
         HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId,
-                new SaveHomeworkFeedbackRequest("Bien", annotated, null));
+                new SaveHomeworkFeedbackRequest("Bien", annotated, null, "VALIDATED"));
 
         assertThat(result.reviewModel()).isEqualTo("ANNOTATED");
         assertThat(result.feedbackText()).isEqualTo("Bien");
-        verify(submissionRepository).saveAnnotatedReview(eq(submissionId), any(), any(), eq(true));
+        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), any(), any(), eq(100), eq(true));
     }
 
     @Test
@@ -208,24 +210,28 @@ class HomeworkAdminServiceTest {
         UUID submissionId = UUID.randomUUID();
         UUID questionId = UUID.randomUUID();
         UUID answerId = UUID.randomUUID();
+        UUID assignmentId = stubManualFreeTextSubmission(submissionId, questionId);
         com.kuky.backend.learning.model.HomeworkAnswer answer =
                 new com.kuky.backend.learning.model.HomeworkAnswer();
         answer.setId(answerId);
         answer.setQuestionId(questionId);
         answer.setAnswerText("Una respuesta");
         answer.setPromptSnapshot("¿Qué opinas?");
+        answer.setScore(java.math.BigDecimal.ONE);
         List<FormattedTextSegment> annotated =
                 List.of(new FormattedTextSegment("Una respuesta", null, "yellow", false));
         when(answerRepository.findBySubmission(submissionId)).thenReturn(List.of(answer));
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", null, "ANNOTATED")));
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", null, "ANNOTATED")));
 
         service.saveFeedback(submissionId, new SaveHomeworkFeedbackRequest(
-                null, null, List.of(new SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest(questionId, annotated))));
+                null, null, List.of(new SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest(
+                        questionId, annotated, "VALIDATED")), null));
 
-        verify(answerRepository).updateAnswerText(answerId, FormattedTextSegment.toJson(annotated));
-        verify(submissionRepository).saveAnnotatedReview(eq(submissionId), isNull(), isNull(), eq(true));
+        verify(answerRepository).updateManualReview(eq(answerId), any(), eq("VALIDATED"), any());
+        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), isNull(), isNull(), eq(100), eq(true));
+        verify(questionRepository).findByAssignment(assignmentId);
     }
 
     @Test
@@ -241,21 +247,23 @@ class HomeworkAdminServiceTest {
     @Test
     void saveFeedback_allowsAnnotatedReedit() {
         UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
         when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED",
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
                         FormattedTextSegment.encodePlainFeedback("Anterior", 500), "ANNOTATED")))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED",
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
                         FormattedTextSegment.encodePlainFeedback("Actualizado", 500), "ANNOTATED")));
 
         HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, review("Mi respuesta", "Actualizado"));
 
         assertThat(result.feedbackText()).isEqualTo("Actualizado");
-        verify(submissionRepository).saveAnnotatedReview(eq(submissionId), any(), any(), eq(false));
+        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), any(), any(), eq(100), eq(false));
     }
 
     @Test
     void saveFeedback_rejectsFeedbackOverManualLimit() {
         UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
 
@@ -268,19 +276,21 @@ class HomeworkAdminServiceTest {
     @Test
     void saveFeedback_allowsEmptyFeedback() {
         UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
-                .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", null, "ANNOTATED")));
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", null, "ANNOTATED")));
 
         HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, review("Mi respuesta", "   "));
 
         assertThat(result.feedbackText()).isNull();
-        verify(submissionRepository).saveAnnotatedReview(eq(submissionId), isNull(), any(), eq(true));
+        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), isNull(), any(), eq(100), eq(true));
     }
 
     @Test
     void saveFeedback_notYetSubmitted_throws() {
         UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "PENDING", null, null)));
 
@@ -392,7 +402,7 @@ class HomeworkAdminServiceTest {
         when(submissionRepository.findDetailById(submissionId)).thenReturn(Optional.of(
                 new HomeworkSubmissionRepository.SubmissionDetailRow(
                         submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
-                        "Escucha", "SUBMITTED", null, null, null, Instant.now(), null)));
+                        "Escucha", "SUBMITTED", null, null, null, null, "MANUAL", "AUDIO", Instant.now(), null)));
         com.kuky.backend.learning.repository.HomeworkAnswerRepository answers =
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class);
         com.kuky.backend.learning.model.HomeworkAnswer row = new com.kuky.backend.learning.model.HomeworkAnswer();
@@ -413,36 +423,77 @@ class HomeworkAdminServiceTest {
     }
 
     @Test
-    void validateAndMapQuestions_manualWriteRejectsQuestions() {
+    void validateAndMapQuestions_writeRejectsQuestions() {
         assertThatThrownBy(() -> service.validateAndMapQuestions(
-                com.kuky.backend.learning.model.HomeworkFormat.MANUAL,
+                true,
                 List.of(new com.kuky.backend.admin.dto.HomeworkQuestionDto(
-                        null, "FREE_TEXT", "¿Hola?", List.of(), null)),
-                false))
+                        null, "FREE_TEXT", "¿Hola?", List.of(), null))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("escritura");
     }
 
     @Test
+    void validateAndMapQuestions_nonWriteRequiresAtLeastOne() {
+        assertThatThrownBy(() -> service.validateAndMapQuestions(false, List.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("al menos una pregunta");
+    }
+
+    @Test
+    void validateAndMapQuestions_allowsMixedKinds() {
+        var mapped = service.validateAndMapQuestions(false, List.of(
+                new com.kuky.backend.admin.dto.HomeworkQuestionDto(
+                        null, "FREE_TEXT", "¿Qué oyes?", List.of(), null),
+                new com.kuky.backend.admin.dto.HomeworkQuestionDto(
+                        null, "SINGLE_CHOICE", "¿Tema?",
+                        List.of(
+                                new com.kuky.backend.admin.dto.HomeworkQuestionDto.OptionDto(null, "a", true),
+                                new com.kuky.backend.admin.dto.HomeworkQuestionDto.OptionDto(null, "b", false)),
+                        null)));
+        assertThat(mapped).hasSize(2);
+        assertThat(mapped.get(0).getKind()).isEqualTo(com.kuky.backend.learning.model.QuestionKind.FREE_TEXT);
+        assertThat(mapped.get(1).getKind()).isEqualTo(com.kuky.backend.learning.model.QuestionKind.SINGLE_CHOICE);
+    }
+
+    @Test
     void validateAndMapQuestions_manualAudioRequiresFreeText() {
         var mapped = service.validateAndMapQuestions(
-                com.kuky.backend.learning.model.HomeworkFormat.MANUAL,
+                false,
                 List.of(new com.kuky.backend.admin.dto.HomeworkQuestionDto(
-                        null, "FREE_TEXT", "¿Qué oyes?", List.of(), null)),
-                true);
+                        null, "FREE_TEXT", "¿Qué oyes?", List.of(), null)));
         assertThat(mapped).hasSize(1);
         assertThat(mapped.get(0).getKind()).isEqualTo(com.kuky.backend.learning.model.QuestionKind.FREE_TEXT);
     }
 
-    @Test
-    void validateAndMapQuestions_exerciseRejectsFreeText() {
-        assertThatThrownBy(() -> service.validateAndMapQuestions(
-                com.kuky.backend.learning.model.HomeworkFormat.EXERCISE,
-                List.of(new com.kuky.backend.admin.dto.HomeworkQuestionDto(
-                        null, "FREE_TEXT", "¿…?", List.of(), null)),
-                false))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("autocorregibles");
+    private void stubWriteSubmission(UUID submissionId) {
+        UUID assignmentId = UUID.randomUUID();
+        HomeworkSubmission sub = new HomeworkSubmission();
+        sub.setId(submissionId);
+        sub.setAssignmentId(assignmentId);
+        when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(sub));
+        HomeworkAssignment a = assignment(assignmentId);
+        a.setHomeworkType(com.kuky.backend.learning.model.HomeworkType.WRITE);
+        a.setFormat(com.kuky.backend.learning.model.HomeworkFormat.MANUAL);
+        when(contentRepository.findAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(questionRepository.findByAssignment(assignmentId)).thenReturn(List.of());
+    }
+
+    private UUID stubManualFreeTextSubmission(UUID submissionId, UUID questionId) {
+        UUID assignmentId = UUID.randomUUID();
+        HomeworkSubmission sub = new HomeworkSubmission();
+        sub.setId(submissionId);
+        sub.setAssignmentId(assignmentId);
+        when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(sub));
+        HomeworkAssignment a = assignment(assignmentId);
+        a.setHomeworkType(com.kuky.backend.learning.model.HomeworkType.AUDIO);
+        a.setFormat(com.kuky.backend.learning.model.HomeworkFormat.MANUAL);
+        when(contentRepository.findAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        com.kuky.backend.learning.model.HomeworkQuestion q = new com.kuky.backend.learning.model.HomeworkQuestion();
+        q.setId(questionId);
+        q.setKind(com.kuky.backend.learning.model.QuestionKind.FREE_TEXT);
+        q.setPrompt("¿Qué opinas?");
+        when(questionRepository.findByAssignment(assignmentId)).thenReturn(List.of(q));
+        return assignmentId;
     }
 
     private User studentUser() {
@@ -471,16 +522,21 @@ class HomeworkAdminServiceTest {
     }
 
     private SaveHomeworkFeedbackRequest review(String text, String feedbackText) {
+        return review(text, feedbackText, "VALIDATED");
+    }
+
+    private SaveHomeworkFeedbackRequest review(String text, String feedbackText, String teacherValidation) {
         return new SaveHomeworkFeedbackRequest(feedbackText,
-                List.of(new FormattedTextSegment(text, null, null, null)), null);
+                List.of(new FormattedTextSegment(text, null, null, null)), null, teacherValidation);
     }
 
     private HomeworkSubmissionRepository.SubmissionDetailRow detailRow(UUID submissionId, String status,
                                                                        String feedbackJson, String reviewModel) {
         String response = FormattedTextSegment.toJson(List.of(new FormattedTextSegment("Mi respuesta", null, null, null)));
+        Integer score = "GRADED".equals(status) ? 100 : null;
         return new HomeworkSubmissionRepository.SubmissionDetailRow(
                 submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
-                "Tarea", status, response, feedbackJson, reviewModel, Instant.now(),
-                "REVIEWED".equals(status) ? Instant.now() : null);
+                "Tarea", status, response, feedbackJson, reviewModel, score, "MANUAL", "WRITE", Instant.now(),
+                ("REVIEWED".equals(status) || "GRADED".equals(status)) ? Instant.now() : null);
     }
 }

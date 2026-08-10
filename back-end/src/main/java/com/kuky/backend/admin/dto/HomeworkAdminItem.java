@@ -11,8 +11,9 @@ public record HomeworkAdminItem(
         LocalDate dueOn,
         String homeworkType,
         String level,
-        String format,                      // MANUAL | EXERCISE
-        List<HomeworkQuestionDto> questions, // empty for MANUAL; with answer key for EXERCISE
+        String format,                      // MANUAL | EXERCISE | MIXED (derived)
+        String composition,                 // WRITE | ALL_MANUAL | ALL_AUTO | MIXED
+        List<HomeworkQuestionDto> questions,
         String audioUrl,                    // listening homework external source (nullable)
         UUID audioFileId,                   // listening homework uploaded file (nullable)
         String audioFileName,               // original filename of the uploaded audio (nullable)

@@ -2,14 +2,17 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getActivity,
+  resolveComposition,
   submitActivity,
   submitActivityAnswers,
+  submitActivityAnswersItem,
   type ActivityItem,
   type ExerciseResponse,
 } from "@/lib/learning";
 import { extractYoutubeVideoId, youtubeEmbedUrl, activityImageUrl } from "@/lib/youtube";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { ExerciseForm } from "./ExerciseForm";
+import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 
 interface Props {
@@ -24,13 +27,18 @@ function toExerciseResponse(item: ActivityItem): ExerciseResponse {
     id: item.id,
     title: item.title,
     instructions: "",
-    format: "EXERCISE",
+    format: item.format === "MIXED" ? "MIXED" : "EXERCISE",
+    composition: item.composition,
     status: item.status,
     homeworkType: item.homeworkType,
     audioUrl: null,
     audioFileId: null,
     questions: item.questions ?? [],
     result: item.result,
+    answers: item.answers,
+    scorePercent: item.scorePercent,
+    provisionalScorePercent: item.provisionalScorePercent,
+    feedbackText: item.feedbackText,
     teacherFeedback: item.teacherFeedback,
   };
 }
@@ -113,6 +121,16 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
 
   if (!item) return null;
 
+  const composition = resolveComposition(item);
+  const scoreLabel =
+    item.status === "GRADED" && item.scorePercent != null
+      ? ` — ${item.scorePercent}%`
+      : item.status === "SUBMITTED" &&
+          composition === "MIXED" &&
+          item.provisionalScorePercent != null
+        ? ` — ~${item.provisionalScorePercent}%`
+        : "";
+
   return (
     <div className={compact ? "space-y-4" : "space-y-6"}>
       {!compact && (
@@ -131,9 +149,7 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
           ].join(" ")}
         >
           {t(`learning.homework.status.${item.status}`)}
-          {item.status === "GRADED" &&
-            item.scorePercent != null &&
-            ` — ${item.scorePercent}%`}
+          {scoreLabel}
         </span>
       </div>
 
@@ -147,7 +163,23 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
 
       {!compact && <ActivityMedia item={item} />}
 
-      {item.format === "EXERCISE" ? (
+      {composition === "MIXED" ? (
+        <MixedHomeworkForm
+          assignment={{
+            id: item.id,
+            status: item.status,
+            questions: item.questions ?? [],
+            result: item.result,
+            answers: item.answers,
+            scorePercent: item.scorePercent,
+            provisionalScorePercent: item.provisionalScorePercent,
+            feedbackText: item.feedbackText,
+            teacherFeedback: item.teacherFeedback,
+          }}
+          submitAnswers={submitActivityAnswersItem}
+          onSubmitted={handleChanged}
+        />
+      ) : composition === "ALL_AUTO" ? (
         <ExerciseForm
           exercise={toExerciseResponse(item)}
           onGraded={handleChanged}
@@ -182,7 +214,7 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
               prompt: q.prompt,
             }))}
             initialAnswers={item.answers}
-            readOnly={item.status === "REVIEWED"}
+            readOnly={item.status === "REVIEWED" || item.status === "GRADED"}
             submitAnswer={(id, _response, answers) =>
               submitActivity(id, undefined, answers)
             }

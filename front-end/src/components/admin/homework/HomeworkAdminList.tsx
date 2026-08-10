@@ -175,9 +175,16 @@ export function HomeworkAdminList() {
                       {item.level}
                     </span>
                   )}
-                  {item.format === "EXERCISE" && (
+                  {(item.format === "EXERCISE" ||
+                    item.composition === "ALL_AUTO") && (
                     <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
                       {t("admin.homework.exercise")}
+                    </span>
+                  )}
+                  {(item.format === "MIXED" ||
+                    item.composition === "MIXED") && (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                      {t("admin.homework.mixed")}
                     </span>
                   )}
                 </div>

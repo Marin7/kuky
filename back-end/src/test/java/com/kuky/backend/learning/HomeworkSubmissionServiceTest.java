@@ -47,7 +47,11 @@ class HomeworkSubmissionServiceTest {
     @Mock
     private HomeworkAnswerRepository answerRepository;
     @Mock
+    private com.kuky.backend.learning.repository.HomeworkTargetRepository targetRepository;
+    @Mock
     private UserRepository userRepository;
+    @Mock
+    private com.kuky.backend.learning.service.ExerciseGradingService gradingService;
 
     private HomeworkSubmissionService service;
 
@@ -58,7 +62,7 @@ class HomeworkSubmissionServiceTest {
     @BeforeEach
     void setUp() {
         service = new HomeworkSubmissionService(contentRepository, submissionRepository, questionRepository,
-                answerRepository, userRepository, new SchedulingProperties());
+                answerRepository, targetRepository, userRepository, gradingService, new SchedulingProperties());
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);

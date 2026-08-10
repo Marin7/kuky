@@ -11,7 +11,6 @@ import {
   type AdminQuestion,
   type HomeworkType,
   type HomeworkLevel,
-  type HomeworkFormat,
   type PresentationSummary,
   type PresentationFileSummary,
   type ApiError,
@@ -29,9 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { QuestionListEditor } from "@/components/admin/homework/QuestionListEditor";
-import { ManualQuestionListEditor } from "@/components/admin/homework/ManualQuestionListEditor";
 import { Textarea } from "@/components/ui/textarea";
 
 const LEVEL_OPTIONS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
@@ -52,7 +49,6 @@ export function ActivityEditorPage({ activityId }: Props) {
   const [presentationId, setPresentationId] = useState("");
   const [presentations, setPresentations] = useState<PresentationSummary[]>([]);
   const [pdfFiles, setPdfFiles] = useState<PresentationFileSummary[]>([]);
-  const [format, setFormat] = useState<HomeworkFormat>("MANUAL");
   const [homeworkType, setHomeworkType] = useState<HomeworkType | "">("");
   const [level, setLevel] = useState<HomeworkLevel | "">("");
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
@@ -109,7 +105,6 @@ export function ActivityEditorPage({ activityId }: Props) {
       .then((a) => {
         setTitle(a.title);
         setPresentationId(a.presentationId);
-        setFormat(a.format);
         setHomeworkType(a.homeworkType ?? "");
         setLevel(a.level ?? "");
         setQuestions(a.questions ?? []);
@@ -157,6 +152,10 @@ export function ActivityEditorPage({ activityId }: Props) {
       setError(t("admin.activities.editor.triggerPageError"));
       return;
     }
+    if (questions.length === 0) {
+      setError(t("admin.homework.editor.questionsRequired"));
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -164,7 +163,6 @@ export function ActivityEditorPage({ activityId }: Props) {
       const fields = {
         title: title.trim(),
         presentationId,
-        format,
         level: level || null,
         homeworkType: homeworkType || null,
         triggerFileId,
@@ -172,17 +170,7 @@ export function ActivityEditorPage({ activityId }: Props) {
         instructionsText: instructionsText.trim(),
         youtubeUrl: youtubeUrl.trim() || null,
         imageId,
-        questions:
-          format === "EXERCISE"
-            ? questions
-            : format === "MANUAL"
-              ? questions.map((q) => ({
-                  ...q,
-                  kind: "FREE_TEXT" as const,
-                  options: [],
-                  structure: {},
-                }))
-              : [],
+        questions,
       };
       if (activityId) {
         await updateActivity(activityId, fields);
@@ -306,41 +294,12 @@ export function ActivityEditorPage({ activityId }: Props) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>{t("admin.homework.editor.formatLabel")}</Label>
-            <RadioGroup
-              value={format}
-              onValueChange={(v) => setFormat(v as HomeworkFormat)}
-              className="flex flex-col gap-2"
-            >
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="MANUAL" id="act-fmt-manual" />
-                {t("admin.homework.editor.formatManual")}
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="EXERCISE" id="act-fmt-exercise" />
-                {t("admin.homework.editor.formatExercise")}
-              </label>
-            </RadioGroup>
+          <div className="rounded-lg border bg-muted/30 p-4">
+            <QuestionListEditor
+              questions={questions}
+              onChange={setQuestions}
+            />
           </div>
-
-          {format === "EXERCISE" && (
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <QuestionListEditor
-                questions={questions}
-                onChange={setQuestions}
-              />
-            </div>
-          )}
-
-          {format === "MANUAL" && (
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <ManualQuestionListEditor
-                questions={questions}
-                onChange={setQuestions}
-              />
-            </div>
-          )}
 
           <div className="space-y-1">
             <Label htmlFor="act-instructions">

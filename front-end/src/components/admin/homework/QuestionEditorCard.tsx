@@ -39,6 +39,7 @@ const KINDS: QuestionKind[] = [
   "DRAG_DROP",
   "TABLE_FILL",
   "MATCHING",
+  "FREE_TEXT",
 ];
 
 interface Props {
@@ -192,9 +193,11 @@ export function QuestionEditorCard({
           <p className="text-xs text-muted-foreground">
             {isPassageKind
               ? t("admin.homework.questions.promptBlanksHint")
-              : question.kind === "TABLE_FILL" || question.kind === "MATCHING"
-                ? t("admin.homework.questions.promptOptionalHint")
-                : null}
+              : question.kind === "FREE_TEXT"
+                ? t("admin.homework.questions.freeTextHint")
+                : question.kind === "TABLE_FILL" || question.kind === "MATCHING"
+                  ? t("admin.homework.questions.promptOptionalHint")
+                  : null}
           </p>
         </div>
       </div>
@@ -270,7 +273,9 @@ export function QuestionEditorCard({
         </div>
       )}
 
-      {!structured && question.kind !== "TRUE_FALSE" && (
+      {!structured &&
+        question.kind !== "TRUE_FALSE" &&
+        question.kind !== "FREE_TEXT" && (
         <div className="space-y-2">
           <Label>{t("admin.homework.questions.optionsLabel")}</Label>
           <p className="text-xs text-muted-foreground">

@@ -5,7 +5,10 @@ const API_BASE = `${API_ORIGIN}/api/v1`;
 export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
-export type HomeworkFormat = "MANUAL" | "EXERCISE";
+export type HomeworkFormat = "MANUAL" | "EXERCISE" | "MIXED";
+/** Preferred UI discriminator — derived server-side from type + question kinds. */
+export type HomeworkComposition = "WRITE" | "ALL_MANUAL" | "ALL_AUTO" | "MIXED";
+export type TeacherValidation = "VALIDATED" | "INVALIDATED";
 export type QuestionKind =
   | "SINGLE_CHOICE"
   | "MULTI_CHOICE"
@@ -33,6 +36,10 @@ export interface ManualAnswerItem {
   promptSnapshot: string;
   text: string;
   formatted?: FormattedText | null;
+  kind?: QuestionKind | null;
+  teacherValidation?: TeacherValidation | null;
+  score?: number | null;
+  correct?: boolean | null;
 }
 
 export interface ManualAnswerPayload {
@@ -48,12 +55,16 @@ export interface HomeworkItem {
   homeworkType: HomeworkType | null;
   level: HomeworkLevel | null;
   format: HomeworkFormat;
+  /** Preferred UI discriminator; fall back via resolveComposition(). */
+  composition?: HomeworkComposition | null;
   status: HomeworkStatus;
   response: FormattedText | null;
   feedback: FormattedText | null; // LEGACY_RICH teacher feedback
   feedbackText?: string | null; // ANNOTATED plain note
   reviewModel?: "LEGACY_RICH" | "ANNOTATED" | null;
   scorePercent: number | null; // present when status === "GRADED"
+  /** MIXED awaiting teacher: auto-only mean; null once finalized. */
+  provisionalScorePercent?: number | null;
   submittedAt: string | null; // ISO instant or null
   overdue: boolean;
   audioUrl: string | null; // listening homework external source
@@ -61,10 +72,38 @@ export interface HomeworkItem {
   unit: UnitRef | null; // owning unit for grouping (null for legacy/unattached)
   unitPosition?: number | null; // rank within unit mixed sequence
   hasTeacherFeedback: boolean;
-  /** MANUAL non-WRITE: free-text questions to answer. */
+  /** Non-WRITE questions (manual, auto, or mixed). */
   questions?: StudentQuestion[];
-  /** MANUAL non-WRITE: submitted plain-text answers (with prompt snapshots). */
+  /** Submitted answers (FREE_TEXT + optional auto metadata). */
   answers?: ManualAnswerItem[] | null;
+  /** Auto-graded subset results (ALL_AUTO / MIXED after submit). */
+  result?: ExerciseResult | null;
+  teacherFeedback?: string | null;
+}
+
+/** Resolve composition preferring the server field, else format / questions. */
+export function resolveComposition(item: {
+  composition?: HomeworkComposition | null;
+  format?: HomeworkFormat | null;
+  homeworkType?: HomeworkType | null;
+  questions?: { kind: QuestionKind }[] | null;
+}): HomeworkComposition {
+  if (item.composition) return item.composition;
+  if (item.homeworkType === "WRITE") return "WRITE";
+  if (item.format === "MIXED") return "MIXED";
+  if (item.format === "EXERCISE") return "ALL_AUTO";
+  if (item.format === "MANUAL") return "ALL_MANUAL";
+  const qs = item.questions ?? [];
+  if (qs.length === 0) return "ALL_MANUAL";
+  const hasFree = qs.some((q) => q.kind === "FREE_TEXT");
+  const hasAuto = qs.some((q) => q.kind !== "FREE_TEXT");
+  if (hasFree && hasAuto) return "MIXED";
+  if (hasAuto) return "ALL_AUTO";
+  return "ALL_MANUAL";
+}
+
+export function isAutoTakeComposition(c: HomeworkComposition): boolean {
+  return c === "ALL_AUTO" || c === "MIXED";
 }
 
 // --- Self-correcting exercises ---------------------------------------------
@@ -160,22 +199,34 @@ export interface ExerciseResponse {
   id: string;
   title: string;
   instructions: string;
-  format: "EXERCISE";
-  status: HomeworkStatus; // PENDING or GRADED
+  format: HomeworkFormat;
+  composition?: HomeworkComposition | null;
+  status: HomeworkStatus;
   homeworkType: HomeworkType | null;
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
   questions: StudentQuestion[];
   result: ExerciseResult | null;
+  /** FREE_TEXT answers for MIXED (and optional metadata). */
+  answers?: ManualAnswerItem[] | null;
+  scorePercent?: number | null;
+  provisionalScorePercent?: number | null;
+  feedbackText?: string | null;
+  feedback?: FormattedText | null;
   teacherFeedback: string | null;
 }
 
 export interface AnswerPayload {
   questionId: string;
-  selectedOptionIds: string[];
+  selectedOptionIds?: string[];
   /** Structured kinds (MULTI_BLANK/DRAG_DROP/TABLE_FILL/MATCHING); null/omitted for choice. */
   answerJson?: unknown | null;
+  /** FREE_TEXT answers on mixed /answers submit. */
+  text?: string;
 }
+
+/** Heterogeneous payload for PUT .../answers (structured + FREE_TEXT). */
+export type HeterogeneousAnswerPayload = AnswerPayload;
 
 export interface UnitRef {
   id: string;
@@ -196,7 +247,8 @@ export interface PresentationFileSummary {
 export interface ActivitySummary {
   id: string;
   title: string;
-  format: "MANUAL" | "EXERCISE";
+  format: HomeworkFormat;
+  composition?: HomeworkComposition | null;
   position: number;
   status: HomeworkItem["status"];
   scorePercent: number | null;
@@ -261,20 +313,37 @@ export const submitHomework = (
   apiCall<HomeworkItem>(`/learning/homework/${assignmentId}`, {
     method: "PUT",
     body: JSON.stringify(
-      answers != null
-        ? { answers }
-        : { response: response ?? null },
+      answers != null ? { answers } : { response: response ?? null },
     ),
   });
 
 export const getExercise = (assignmentId: string) =>
   apiCall<ExerciseResponse>(`/learning/homework/${assignmentId}`);
 
-export const submitExercise = (
+/** ALL_AUTO submit — returns nested ExerciseResult for ExerciseForm compatibility. */
+export const submitExercise = async (
   assignmentId: string,
-  answers: AnswerPayload[],
+  answers: HeterogeneousAnswerPayload[],
+): Promise<ExerciseResult> => {
+  const item = await apiCall<HomeworkItem>(
+    `/learning/homework/${assignmentId}/answers`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ answers }),
+    },
+  );
+  if (!item.result) {
+    throw { error: "VALIDATION_ERROR", message: "Missing exercise result" };
+  }
+  return item.result;
+};
+
+/** Unified non-WRITE submit (ALL_AUTO / ALL_MANUAL / MIXED) via /answers. */
+export const submitHomeworkAnswers = (
+  assignmentId: string,
+  answers: HeterogeneousAnswerPayload[],
 ) =>
-  apiCall<ExerciseResult>(`/learning/homework/${assignmentId}/answers`, {
+  apiCall<HomeworkItem>(`/learning/homework/${assignmentId}/answers`, {
     method: "PUT",
     body: JSON.stringify({ answers }),
   });
@@ -324,6 +393,7 @@ export interface ActivityItem {
   id: string;
   title: string;
   format: HomeworkFormat;
+  composition?: HomeworkComposition | null;
   status: HomeworkStatus;
   level: HomeworkLevel | null;
   homeworkType: HomeworkType | null;
@@ -337,8 +407,9 @@ export interface ActivityItem {
   feedbackText?: string | null;
   reviewModel?: "LEGACY_RICH" | "ANNOTATED" | null;
   scorePercent: number | null;
+  provisionalScorePercent?: number | null;
   questions: StudentQuestion[];
-  /** MANUAL: submitted plain-text answers (with prompt snapshots). */
+  /** Submitted answers (FREE_TEXT + optional auto metadata). */
   answers?: ManualAnswerItem[] | null;
   result: ExerciseResult | null;
   teacherFeedback: string | null;
@@ -355,14 +426,34 @@ export const submitActivity = (
   apiCall<ActivityItem>(`/learning/activities/${id}`, {
     method: "PUT",
     body: JSON.stringify(
-      answers != null
-        ? { answers }
-        : { response: response ?? null },
+      answers != null ? { answers } : { response: response ?? null },
     ),
   });
 
-export const submitActivityAnswers = (id: string, answers: AnswerPayload[]) =>
-  apiCall<ExerciseResult>(`/learning/activities/${id}/answers`, {
+/** ALL_AUTO activity submit — returns nested ExerciseResult for ExerciseForm. */
+export const submitActivityAnswers = async (
+  id: string,
+  answers: HeterogeneousAnswerPayload[],
+): Promise<ExerciseResult> => {
+  const item = await apiCall<ActivityItem>(
+    `/learning/activities/${id}/answers`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ answers }),
+    },
+  );
+  if (!item.result) {
+    throw { error: "VALIDATION_ERROR", message: "Missing exercise result" };
+  }
+  return item.result;
+};
+
+/** Activity mixed/unified submit returning the full item (provisional/final). */
+export const submitActivityAnswersItem = (
+  id: string,
+  answers: HeterogeneousAnswerPayload[],
+) =>
+  apiCall<ActivityItem>(`/learning/activities/${id}/answers`, {
     method: "PUT",
     body: JSON.stringify({ answers }),
   });

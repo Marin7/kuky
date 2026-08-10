@@ -25,25 +25,35 @@ import com.kuky.backend.learning.model.Activity;
 import com.kuky.backend.learning.model.ActivityQuestion;
 import com.kuky.backend.learning.model.ActivitySubmission;
 import com.kuky.backend.learning.model.FormattedTextSegment;
+import com.kuky.backend.learning.model.HomeworkAnswer;
+import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
+import com.kuky.backend.learning.model.QuestionKind;
+import com.kuky.backend.learning.model.TeacherValidation;
 import com.kuky.backend.learning.repository.ActivityAnswerRepository;
 import com.kuky.backend.learning.repository.ActivityQuestionRepository;
 import com.kuky.backend.learning.repository.ActivityRepository;
 import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
 import com.kuky.backend.learning.service.ActivityExerciseGradingService;
 import com.kuky.backend.learning.service.ActivityInstructionsFileStore;
+import com.kuky.backend.learning.service.HomeworkCompositionSupport;
 import com.kuky.backend.learning.util.YoutubeUrls;
 import com.kuky.backend.presentations.repository.ImageRepository;
 import com.kuky.backend.presentations.repository.PresentationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -137,17 +147,19 @@ public class ActivityAdminService {
         if (presentationId == null || !activityRepository.presentationExists(presentationId)) {
             throw new ActivityValidationException("La presentación no existe.");
         }
-        HomeworkFormat format = parseFormat(formatRaw);
+        // Client format is ignored — derived from question kinds.
         requirePageTrigger(presentationId, triggerFileId, triggerPage);
         String resolvedInstructions = requireInstructionsText(instructionsText);
         String resolvedYoutube = normalizeYoutubeUrl(youtubeUrl);
         UUID resolvedImageId = requireMedia(resolvedYoutube, imageId);
-        List<ActivityQuestion> questions = mapQuestions(format, questionDtos);
+        List<ActivityQuestion> questions = mapQuestions(questionDtos);
+        HomeworkFormat derived = HomeworkCompositionSupport.deriveActivityFormat(
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
 
         Activity activity = new Activity();
         activity.setPresentationId(presentationId);
         activity.setTitle(title.strip());
-        activity.setFormat(format);
+        activity.setFormat(derived);
         activity.setLevel(blankToNull(level));
         activity.setHomeworkType(blankToNull(homeworkType));
         activity.setPosition(activityRepository.maxPosition(presentationId) + 1);
@@ -175,7 +187,7 @@ public class ActivityAdminService {
         if (!activityRepository.presentationExists(targetPresentationId)) {
             throw new ActivityValidationException("La presentación no existe.");
         }
-        HomeworkFormat format = parseFormat(formatRaw);
+        // Client format is ignored — derived from question kinds.
         UUID resolvedTriggerFile = triggerFileId;
         Integer resolvedTriggerPage = triggerPage;
         // Changing presentation clears invalid triggers
@@ -191,11 +203,13 @@ public class ActivityAdminService {
         String resolvedInstructions = requireInstructionsText(instructionsText);
         String resolvedYoutube = normalizeYoutubeUrl(youtubeUrl);
         UUID resolvedImageId = requireMedia(resolvedYoutube, imageId);
-        List<ActivityQuestion> questions = mapQuestions(format, questionDtos);
+        List<ActivityQuestion> questions = mapQuestions(questionDtos);
+        HomeworkFormat derived = HomeworkCompositionSupport.deriveActivityFormat(
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
 
         existing.setPresentationId(targetPresentationId);
         existing.setTitle(title.strip());
-        existing.setFormat(format);
+        existing.setFormat(derived);
         existing.setLevel(blankToNull(level));
         existing.setHomeworkType(blankToNull(homeworkType));
         existing.setTriggerFileId(resolvedTriggerFile);
@@ -220,7 +234,7 @@ public class ActivityAdminService {
 
     public void reorder(UUID presentationId, List<UUID> activityIds) {
         if (!activityRepository.presentationExists(presentationId)) {
-            throw new ActivityValidationException("La presentaciÃ³n no existe.");
+            throw new ActivityValidationException("La presentación no existe.");
         }
         List<UUID> existing = activityRepository.listByPresentationId(presentationId).stream()
                 .map(Activity::getId).toList();
@@ -228,7 +242,7 @@ public class ActivityAdminService {
                 || activityIds.size() != existing.size()
                 || !new HashSet<>(existing).equals(new HashSet<>(activityIds))) {
             throw new ActivityReorderInvalidException(
-                    "La lista de actividades no es una permutaciÃ³n completa de la presentaciÃ³n.");
+                    "La lista de actividades no es una permutación completa de la presentación.");
         }
         activityRepository.reorderPositions(presentationId, activityIds);
     }
@@ -253,10 +267,11 @@ public class ActivityAdminService {
         ActivitySubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
         if (!HomeworkStatus.GRADED.name().equals(submission.getStatus())) {
-            throw new NotSubmittedException("Esta entrega todavÃ­a no ha sido calificada automÃ¡ticamente.");
+            throw new NotSubmittedException("Esta entrega todavía no ha sido calificada automáticamente.");
         }
         Activity activity = requireActivity(submission.getActivityId());
-        if (activity.getFormat() != HomeworkFormat.EXERCISE) {
+        if (activity.getFormat() != HomeworkFormat.EXERCISE
+                && activity.getFormat() != HomeworkFormat.MIXED) {
             throw new ActivityNotFoundException("Esta entrega no es un ejercicio auto-corregible.");
         }
         User student = userRepository.findById(submission.getUserId())
@@ -282,42 +297,119 @@ public class ActivityAdminService {
         if ("LEGACY_RICH".equals(submission.getReviewModel())) {
             throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
         }
+
+        Activity activity = requireActivity(submission.getActivityId());
+        List<ActivityQuestion> questions = questionRepository.findByActivityId(activity.getId());
+        HomeworkComposition composition = HomeworkCompositionSupport.activityComposition(
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
+
         boolean firstReview = HomeworkStatus.SUBMITTED.name().equals(submission.getStatus());
-        if (!firstReview && !("REVIEWED".equals(submission.getStatus())
-                && "ANNOTATED".equals(submission.getReviewModel()))) {
-            if (HomeworkStatus.REVIEWED.name().equals(submission.getStatus())) {
+        boolean scoredReEdit = (composition == HomeworkComposition.MIXED
+                || composition == HomeworkComposition.ALL_MANUAL)
+                && HomeworkStatus.GRADED.name().equals(submission.getStatus())
+                && "ANNOTATED".equals(submission.getReviewModel());
+        boolean legacyManualReEdit = composition != HomeworkComposition.MIXED
+                && composition != HomeworkComposition.ALL_MANUAL
+                && HomeworkStatus.REVIEWED.name().equals(submission.getStatus())
+                && "ANNOTATED".equals(submission.getReviewModel());
+
+        if (!firstReview && !scoredReEdit && !legacyManualReEdit) {
+            if (HomeworkStatus.REVIEWED.name().equals(submission.getStatus())
+                    || HomeworkStatus.GRADED.name().equals(submission.getStatus())) {
                 throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
             }
-            throw new NotSubmittedException("Esta entrega todavÃ­a no ha sido enviada por el alumno.");
+            throw new NotSubmittedException("Esta entrega todavía no ha sido enviada por el alumno.");
         }
+
         String feedbackJson = FormattedTextSegment.encodePlainFeedback(
                 request == null ? null : request.feedbackText(),
                 FormattedTextSegment.MAX_MANUAL_FEEDBACK_LENGTH);
-        List<com.kuky.backend.learning.model.HomeworkAnswer> storedAnswers =
-                answerRepository.findBySubmission(submissionId);
-        String responseText = null;
+        List<HomeworkAnswer> storedAnswers = answerRepository.findBySubmission(submissionId);
+        Map<UUID, QuestionKind> kindByQuestion = questions.stream()
+                .collect(Collectors.toMap(ActivityQuestion::getId, ActivityQuestion::getKind, (a, b) -> a));
+
         if (storedAnswers.isEmpty()) {
+            // Activities have no WRITE path with empty answers in normal use; keep annotate-only fallback.
             List<FormattedTextSegment> response = request == null ? null : request.response();
             FormattedTextSegment.validate(response);
             assertUnchangedWording(response, submission.getResponseText());
-            responseText = FormattedTextSegment.toJson(response);
+            String responseText = FormattedTextSegment.toJson(response);
+            submissionRepository.saveAnnotatedReview(submissionId, feedbackJson, responseText, firstReview);
+        } else if (composition == HomeworkComposition.MIXED
+                || composition == HomeworkComposition.ALL_MANUAL) {
+            finalizeWithValidations(submissionId, request, storedAnswers, kindByQuestion, questions,
+                    feedbackJson, firstReview);
         } else {
-            List<SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> requested =
-                    request == null || request.answers() == null ? List.of() : request.answers();
-            for (var stored : storedAnswers) {
-                var annotation = requested.stream()
-                        .filter(a -> java.util.Objects.equals(a.questionId(), stored.getQuestionId()))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Falta la anotación de una respuesta del alumno."));
-                FormattedTextSegment.validate(annotation.formatted());
-                assertUnchangedWording(annotation.formatted(), stored.getAnswerText());
-                answerRepository.updateAnswerText(stored.getId(), FormattedTextSegment.toJson(annotation.formatted()));
+            throw new IllegalStateException("Unexpected composition for activity review: " + composition);
+        }
+        ActivitySubmission updated = submissionRepository.findById(submissionId).orElseThrow();
+        return toSubmissionAdminDto(updated);
+    }
+
+    private void finalizeWithValidations(UUID submissionId, SaveHomeworkFeedbackRequest request,
+                               List<HomeworkAnswer> storedAnswers,
+                               Map<UUID, QuestionKind> kindByQuestion,
+                               List<ActivityQuestion> questions,
+                               String feedbackJson, boolean firstReview) {
+        List<SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> requested =
+                request == null || request.answers() == null ? List.of() : request.answers();
+        Map<UUID, SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> byQuestion = requested.stream()
+                .filter(a -> a.questionId() != null)
+                .collect(Collectors.toMap(SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest::questionId,
+                        a -> a, (a, b) -> a));
+
+        List<HomeworkAnswer> freeTextAnswers = storedAnswers.stream()
+                .filter(a -> a.getQuestionId() != null
+                        && kindByQuestion.get(a.getQuestionId()) == QuestionKind.FREE_TEXT)
+                .toList();
+
+        for (var stored : freeTextAnswers) {
+            var annotation = byQuestion.get(stored.getQuestionId());
+            if (annotation == null) {
+                throw new IllegalArgumentException("Falta la anotación de una respuesta del alumno.");
+            }
+            TeacherValidation validation = parseTeacherValidation(annotation.teacherValidation());
+            FormattedTextSegment.validate(annotation.formatted());
+            assertUnchangedWording(annotation.formatted(), stored.getAnswerText());
+            double score = HomeworkCompositionSupport.teacherValidationScore(validation);
+            answerRepository.updateManualReview(
+                    stored.getId(),
+                    FormattedTextSegment.toJson(annotation.formatted()),
+                    validation.name(),
+                    HomeworkCompositionSupport.scoreAsDecimal(score));
+            stored.setScore(HomeworkCompositionSupport.scoreAsDecimal(score));
+            stored.setTeacherValidation(validation.name());
+        }
+
+        Map<UUID, HomeworkAnswer> answersByQ = storedAnswers.stream()
+                .filter(a -> a.getQuestionId() != null)
+                .collect(Collectors.toMap(HomeworkAnswer::getQuestionId, a -> a, (a, b) -> a));
+        for (var refreshed : answerRepository.findBySubmission(submissionId)) {
+            if (refreshed.getQuestionId() != null) {
+                answersByQ.put(refreshed.getQuestionId(), refreshed);
             }
         }
-        ActivitySubmission updated = submissionRepository.saveAnnotatedReview(
-                submissionId, feedbackJson, responseText, firstReview);
-        return toSubmissionAdminDto(updated);
+
+        List<BigDecimal> scores = new ArrayList<>();
+        for (ActivityQuestion q : questions) {
+            var answer = answersByQ.get(q.getId());
+            scores.add(answer == null || answer.getScore() == null ? BigDecimal.ZERO : answer.getScore());
+        }
+        int scorePercent = HomeworkCompositionSupport.scorePercentFromScores(scores);
+        submissionRepository.saveScoredAnnotatedReview(submissionId, feedbackJson, scorePercent, firstReview);
+    }
+
+    private static TeacherValidation parseTeacherValidation(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Debes validar o invalidar cada respuesta de texto libre.");
+        }
+        try {
+            return TeacherValidation.valueOf(raw.strip().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "Debes validar o invalidar cada respuesta de texto libre.");
+        }
     }
 
     private static void assertUnchangedWording(List<FormattedTextSegment> incoming, String stored) {
@@ -331,10 +423,11 @@ public class ActivityAdminService {
         ActivitySubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
         if (!HomeworkStatus.GRADED.name().equals(submission.getStatus())) {
-            throw new NotSubmittedException("Esta entrega todavÃ­a no ha sido calificada automÃ¡ticamente.");
+            throw new NotSubmittedException("Esta entrega todavía no ha sido calificada automáticamente.");
         }
         Activity activity = requireActivity(submission.getActivityId());
-        if (activity.getFormat() != HomeworkFormat.EXERCISE) {
+        if (activity.getFormat() != HomeworkFormat.EXERCISE
+                && activity.getFormat() != HomeworkFormat.MIXED) {
             throw new ActivityNotFoundException("Esta entrega no es un ejercicio auto-corregible.");
         }
         String encoded = FormattedTextSegment.encodePlainFeedback(feedback);
@@ -392,12 +485,10 @@ public class ActivityAdminService {
         return imageId;
     }
 
-
-    private List<ActivityQuestion> mapQuestions(HomeworkFormat format, List<HomeworkQuestionDto> questionDtos) {
-        List<HomeworkQuestionDto> dtos = questionDtos == null ? List.of() : questionDtos;
+    private List<ActivityQuestion> mapQuestions(List<HomeworkQuestionDto> questionDtos) {
         List<HomeworkQuestion> mapped;
         try {
-            mapped = homeworkAdminService.validateAndMapQuestions(format, dtos, format == HomeworkFormat.MANUAL);
+            mapped = homeworkAdminService.validateAndMapQuestions(false, questionDtos);
         } catch (IllegalArgumentException e) {
             throw new ActivityValidationException(e.getMessage());
         }
@@ -406,24 +497,26 @@ public class ActivityAdminService {
                 .toList();
     }
 
-    private static HomeworkFormat parseFormat(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return HomeworkFormat.MANUAL;
-        }
-        try {
-            return HomeworkFormat.valueOf(raw.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new ActivityValidationException("Formato de actividad no válido.");
-        }
-    }
-
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.strip();
     }
 
+    private HomeworkComposition compositionOf(Activity a, List<ActivityQuestion> questions) {
+        if (questions != null && !questions.isEmpty()) {
+            return HomeworkCompositionSupport.activityComposition(
+                    questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
+        }
+        // Fall back to stored format when questions not loaded for list rows.
+        if (a.getFormat() == HomeworkFormat.MIXED) return HomeworkComposition.MIXED;
+        if (a.getFormat() == HomeworkFormat.EXERCISE) return HomeworkComposition.ALL_AUTO;
+        return HomeworkComposition.ALL_MANUAL;
+    }
+
     private ActivityAdminItem toItem(Activity a, String presentationTitle, boolean hasInstructions) {
+        HomeworkComposition composition = compositionOf(a, null);
         return new ActivityAdminItem(
-                a.getId(), a.getTitle(), a.getFormat().name(), a.getLevel(), a.getHomeworkType(),
+                a.getId(), a.getTitle(), a.getFormat().name(), composition.name(),
+                a.getLevel(), a.getHomeworkType(),
                 a.getPresentationId(), presentationTitle, a.getPosition(),
                 a.getTriggerFileId(), a.getTriggerPage(),
                 a.getInstructionsText(), a.getYoutubeUrl(), a.getImageId(), hasInstructions,
@@ -435,16 +528,16 @@ public class ActivityAdminService {
                 .map(p -> p.getTitle())
                 .orElse("");
         var instructions = activityRepository.findInstructionsByActivityId(a.getId()).orElse(null);
-        List<HomeworkQuestionDto> questions = a.getFormat() == HomeworkFormat.EXERCISE
-                || a.getFormat() == HomeworkFormat.MANUAL
-                ? questionRepository.findByActivityId(a.getId()).stream().map(this::toQuestionDto).toList()
-                : List.of();
+        List<ActivityQuestion> questionModels = questionRepository.findByActivityId(a.getId());
+        List<HomeworkQuestionDto> questions = questionModels.stream().map(this::toQuestionDto).toList();
+        HomeworkComposition composition = compositionOf(a, questionModels);
         ActivityAdminDetail.InstructionsMeta meta = instructions == null ? null
                 : new ActivityAdminDetail.InstructionsMeta(
                         instructions.getId(), instructions.getOriginalName(),
                         instructions.getContentType(), instructions.getByteSize());
         return new ActivityAdminDetail(
-                a.getId(), a.getTitle(), a.getFormat().name(), a.getLevel(), a.getHomeworkType(),
+                a.getId(), a.getTitle(), a.getFormat().name(), composition.name(),
+                a.getLevel(), a.getHomeworkType(),
                 a.getPresentationId(), presentationTitle, a.getPosition(),
                 a.getTriggerFileId(), a.getTriggerPage(),
                 a.getInstructionsText(), a.getYoutubeUrl(), a.getImageId(), instructions != null,
@@ -475,11 +568,22 @@ public class ActivityAdminService {
                 .orElseThrow(() -> new StudentNotFoundException("Alumno no encontrado."));
         Activity activity = requireActivity(submission.getActivityId());
         List<ManualAnswerViewDto> answers = answerRepository.findBySubmission(submission.getId()).stream()
-                .map(a -> ManualAnswerViewDto.fromStored(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
+                .map(a -> ManualAnswerViewDto.fromStored(
+                        a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
+                        a.getTeacherValidation(),
+                        a.getScore() == null ? null : a.getScore().doubleValue()))
                 .toList();
         List<FormattedTextSegment> response = answers.isEmpty()
                 ? FormattedTextSegment.fromJson(submission.getResponseText())
                 : null;
+        String formatName = activity.getFormat() == null ? HomeworkFormat.MANUAL.name() : activity.getFormat().name();
+        HomeworkComposition composition = switch (activity.getFormat() == null
+                ? HomeworkFormat.MANUAL : activity.getFormat()) {
+            case MIXED -> HomeworkComposition.MIXED;
+            case EXERCISE -> HomeworkComposition.ALL_AUTO;
+            case MANUAL -> HomeworkComposition.ALL_MANUAL;
+        };
         return new HomeworkSubmissionAdminDto(
                 submission.getId(),
                 student.getId(),
@@ -489,6 +593,8 @@ public class ActivityAdminService {
                 student.getUsername(),
                 activity.getTitle(),
                 submission.getStatus(),
+                formatName,
+                composition.name(),
                 submission.getReviewModel(),
                 response,
                 answers,
@@ -496,6 +602,7 @@ public class ActivityAdminService {
                         ? FormattedTextSegment.fromJson(submission.getFeedback()) : null,
                 "ANNOTATED".equals(submission.getReviewModel())
                         ? FormattedTextSegment.decodePlainFeedback(submission.getFeedback()) : null,
+                submission.getScorePercent(),
                 submission.getSubmittedAt(),
                 submission.getReviewedAt());
     }

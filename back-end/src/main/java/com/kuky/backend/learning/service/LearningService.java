@@ -13,7 +13,6 @@ import com.kuky.backend.learning.dto.UnitRef;
 import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkSubmission;
-import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
@@ -98,16 +97,12 @@ public class LearningService {
                             : new UnitRef(au.unitId(), au.level(), au.subject(), au.position());
                     Integer unitPosition = au == null ? null : au.unitPosition();
                     HomeworkSubmission submission = submissionsByAssignment.get(a.getId());
-                    if (!HomeworkItems.isMultiManual(a)) {
-                        return HomeworkItems.toResponse(a, submission, today, unit, unitPosition);
-                    }
-                    List<HomeworkQuestion> questions = questionRepository.findByAssignment(a.getId()).stream()
-                            .filter(q -> q.getKind() == QuestionKind.FREE_TEXT)
-                            .toList();
+                    List<HomeworkQuestion> questions = questionRepository.findByAssignment(a.getId());
                     List<HomeworkAnswer> answers = submission == null
                             ? List.of()
                             : answerRepository.findBySubmission(submission.getId());
-                    return HomeworkItems.toResponse(a, submission, today, unit, unitPosition, questions, answers);
+                    return HomeworkItems.toResponse(a, submission, today, unit, unitPosition,
+                            questions, answers, null, null);
                 })
                 .toList();
 

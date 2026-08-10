@@ -1,5 +1,11 @@
 import { useTranslation } from "react-i18next";
-import type { HomeworkItem, HomeworkType, HomeworkLevel } from "@/lib/learning";
+import {
+  resolveComposition,
+  isAutoTakeComposition,
+  type HomeworkItem,
+  type HomeworkType,
+  type HomeworkLevel,
+} from "@/lib/learning";
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,9 +67,11 @@ export function HomeworkItemCard({
   typeLabel,
 }: HomeworkItemCardProps) {
   const { t } = useTranslation();
+  const composition = resolveComposition(item);
+  const autoTake = isAutoTakeComposition(composition);
 
   const gradedExerciseButton =
-    item.format === "EXERCISE" && item.status === "GRADED" ? (
+    autoTake && item.status === "GRADED" ? (
       <Button
         variant="outline"
         size="sm"
@@ -166,7 +174,7 @@ export function HomeworkItemCard({
         {gradedExerciseButton ? (
           gradedExerciseButton
         ) : item.homeworkType === "READ" ? (
-          item.format === "EXERCISE" ? (
+          autoTake ? (
             <Button asChild variant="default" size="sm" className="h-8 text-xs">
               <Link
                 to="/aprendizaje/lectura/$homeworkId"
@@ -177,7 +185,8 @@ export function HomeworkItemCard({
               </Link>
             </Button>
           ) : (
-            item.status !== "REVIEWED" && (
+            item.status !== "REVIEWED" &&
+            item.status !== "GRADED" && (
               <Button
                 asChild
                 variant={item.status === "PENDING" ? "default" : "outline"}
@@ -197,7 +206,7 @@ export function HomeworkItemCard({
             )
           )
         ) : item.homeworkType === "AUDIO" ? (
-          item.format === "EXERCISE" ? (
+          autoTake ? (
             <Button asChild variant="default" size="sm" className="h-8 text-xs">
               <Link
                 to="/aprendizaje/escucha/$homeworkId"
@@ -208,7 +217,8 @@ export function HomeworkItemCard({
               </Link>
             </Button>
           ) : (
-            item.status !== "REVIEWED" && (
+            item.status !== "REVIEWED" &&
+            item.status !== "GRADED" && (
               <Button
                 asChild
                 variant={item.status === "PENDING" ? "default" : "outline"}
@@ -227,7 +237,7 @@ export function HomeworkItemCard({
               </Button>
             )
           )
-        ) : item.format === "EXERCISE" ? (
+        ) : autoTake ? (
           <Button asChild variant="default" size="sm" className="h-8 text-xs">
             <Link
               to="/aprendizaje/tarea/$homeworkId"
@@ -255,7 +265,8 @@ export function HomeworkItemCard({
             </Button>
           )
         ) : (
-          item.status !== "REVIEWED" && (
+          item.status !== "REVIEWED" &&
+          item.status !== "GRADED" && (
             <Button
               variant={item.status === "PENDING" ? "default" : "outline"}
               size="sm"

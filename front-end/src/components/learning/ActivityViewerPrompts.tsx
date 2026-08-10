@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import type { ActivitySummary } from "@/lib/learning";
+import {
+  resolveComposition,
+  type ActivitySummary,
+} from "@/lib/learning";
 import { PresentationPdfViewer } from "./PresentationPdfViewer";
 
 interface Props {
@@ -48,10 +51,11 @@ export function ActivityViewerPrompts({
         setLocalActivities((prev) =>
           prev.map((a) => {
             if (a.id !== activityId) return a;
+            const composition = resolveComposition(a);
             return {
               ...a,
               status:
-                a.format === "EXERCISE"
+                composition === "ALL_AUTO"
                   ? ("GRADED" as const)
                   : ("SUBMITTED" as const),
             };

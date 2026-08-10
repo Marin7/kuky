@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
-import { getExercise, type ExerciseResponse } from "@/lib/learning";
+import {
+  getExercise,
+  resolveComposition,
+  type ExerciseResponse,
+} from "@/lib/learning";
 import { ExerciseForm } from "./ExerciseForm";
+import { MixedHomeworkForm } from "./MixedHomeworkForm";
 
 interface Props {
   homeworkId: string;
@@ -19,7 +24,9 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
       .then(setExercise)
       .catch(() => setError(t("learning.exercisePage.loadError")))
       .finally(() => setLoading(false));
-  }, [homeworkId]);
+  }, [homeworkId, t]);
+
+  const composition = exercise ? resolveComposition(exercise) : null;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
@@ -49,7 +56,26 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
             {exercise.instructions}
           </p>
 
-          <ExerciseForm exercise={exercise} />
+          {composition === "MIXED" ? (
+            <MixedHomeworkForm
+              assignment={{
+                id: exercise.id,
+                status: exercise.status,
+                questions: exercise.questions,
+                result: exercise.result,
+                answers: exercise.answers,
+                scorePercent: exercise.scorePercent ?? null,
+                provisionalScorePercent: exercise.provisionalScorePercent,
+                feedbackText: exercise.feedbackText,
+                teacherFeedback: exercise.teacherFeedback,
+              }}
+              onSubmitted={() =>
+                getExercise(homeworkId).then(setExercise).catch(() => {})
+              }
+            />
+          ) : (
+            <ExerciseForm exercise={exercise} />
+          )}
         </>
       )}
     </div>

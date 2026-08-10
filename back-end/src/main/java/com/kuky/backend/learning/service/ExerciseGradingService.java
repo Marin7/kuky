@@ -10,12 +10,14 @@ import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.dto.ExerciseQuestionDto;
 import com.kuky.backend.learning.dto.ExerciseResponse;
 import com.kuky.backend.learning.dto.ExerciseResultResponse;
+import com.kuky.backend.learning.dto.ManualAnswerViewDto;
 import com.kuky.backend.learning.dto.SubmitExerciseRequest;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
 import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
@@ -31,8 +33,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -95,7 +95,8 @@ public class ExerciseGradingService {
     public ExerciseResponse getExercise(String email, UUID assignmentId) {
         User user = requireUser(email);
         HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
-        if (assignment.getFormat() != HomeworkFormat.EXERCISE) {
+        HomeworkComposition composition = HomeworkItems.compositionFromFormat(assignment);
+        if (composition != HomeworkComposition.ALL_AUTO && composition != HomeworkComposition.MIXED) {
             // A non-exercise homework is "not found" through the exercise endpoint.
             throw new AssignmentNotFoundException("Tarea no encontrada.");
         }
@@ -107,24 +108,109 @@ public class ExerciseGradingService {
         ExerciseResultResponse result = null;
         String status = HomeworkStatus.PENDING.name();
         String teacherFeedback = null;
-        if (existing.isPresent() && HomeworkStatus.GRADED.name().equals(existing.get().getStatus())) {
-            status = HomeworkStatus.GRADED.name();
-            result = buildStoredResult(questions, existing.get());
-            teacherFeedback = FormattedTextSegment.decodePlainFeedback(existing.get().getFeedback());
+        String feedbackText = null;
+        Integer scorePercent = null;
+        Integer provisionalScorePercent = null;
+        List<ManualAnswerViewDto> answerViews = List.of();
+        if (existing.isPresent()) {
+            HomeworkSubmission submission = existing.get();
+            String existingStatus = submission.getStatus();
+            boolean mixedAwaiting = composition == HomeworkComposition.MIXED
+                    && HomeworkStatus.SUBMITTED.name().equals(existingStatus);
+            boolean graded = HomeworkStatus.GRADED.name().equals(existingStatus);
+            if (graded || mixedAwaiting) {
+                status = existingStatus;
+                result = buildStoredResult(questions, submission, mixedAwaiting);
+                teacherFeedback = FormattedTextSegment.decodePlainFeedback(submission.getFeedback());
+                if ("ANNOTATED".equals(submission.getReviewModel())) {
+                    feedbackText = teacherFeedback;
+                }
+                scorePercent = graded ? submission.getScorePercent() : null;
+                provisionalScorePercent = mixedAwaiting && result != null ? result.scorePercent() : null;
+                if (composition == HomeworkComposition.MIXED) {
+                    answerViews = answerRepository.findBySubmission(submission.getId()).stream()
+                            .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
+                            .map(a -> ManualAnswerViewDto.fromStored(
+                                    a.getQuestionId(),
+                                    a.getPromptSnapshot(),
+                                    a.getAnswerText(),
+                                    a.getTeacherValidation(),
+                                    a.getScore() == null ? null : a.getScore().doubleValue()))
+                            .toList();
+                }
+            }
         }
 
         return new ExerciseResponse(
                 assignment.getId(),
                 assignment.getTitle(),
                 assignment.getInstructions(),
-                HomeworkFormat.EXERCISE.name(),
+                assignment.getFormat() == null ? HomeworkFormat.EXERCISE.name() : assignment.getFormat().name(),
+                composition.name(),
                 status,
                 assignment.getHomeworkType() == null ? null : assignment.getHomeworkType().name(),
                 assignment.getAudioUrl(),
                 assignment.getAudioFileId(),
                 buildStudentQuestions(questions),
                 result,
+                answerViews,
+                scorePercent,
+                provisionalScorePercent,
+                feedbackText,
                 teacherFeedback);
+    }
+
+    /**
+     * Grades only auto-correctible questions; FREE_TEXT entries are ignored.
+     * Returns persisted answer rows + result DTOs for the structured subset.
+     */
+    public record StructuredGradeResult(
+            List<HomeworkAnswer> structuredAnswers,
+            List<ExerciseResultResponse.QuestionResultDto> questionResults,
+            double scoreSum,
+            int fullyCorrect,
+            int structuredCount
+    ) {
+        public int provisionalScorePercent() {
+            return HomeworkCompositionSupport.scorePercent(scoreSum, structuredCount);
+        }
+
+        public ExerciseResultResponse toProvisionalResult() {
+            return new ExerciseResultResponse(
+                    provisionalScorePercent(), fullyCorrect, structuredCount, questionResults);
+        }
+    }
+
+    public StructuredGradeResult gradeStructuredSubset(
+            List<HomeworkQuestion> questions,
+            Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
+        List<HomeworkAnswer> answers = new ArrayList<>();
+        List<ExerciseResultResponse.QuestionResultDto> questionResults = new ArrayList<>();
+        double scoreSum = 0;
+        int fullyCorrect = 0;
+        int structuredCount = 0;
+
+        for (HomeworkQuestion q : questions) {
+            if (!HomeworkCompositionSupport.isAutoGradable(q.getKind())) continue;
+            structuredCount++;
+            SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
+            GradedAnswer graded = gradeQuestion(q, given);
+            scoreSum += graded.score();
+            if (graded.score() >= 1.0) fullyCorrect++;
+
+            HomeworkAnswer answer = new HomeworkAnswer();
+            answer.setQuestionId(q.getId());
+            answer.setAnswerJson(graded.answerJson());
+            answer.setScore(HomeworkCompositionSupport.scoreAsDecimal(graded.score()));
+            answer.setSelectedOptionIds(graded.selectedOptionIds());
+            answers.add(answer);
+
+            questionResults.add(new ExerciseResultResponse.QuestionResultDto(
+                    q.getId(), graded.score(), graded.score() >= 1.0,
+                    correctOptionIds(q), List.of(), graded.unitResults(),
+                    graded.selectedOptionIds()));
+        }
+        return new StructuredGradeResult(answers, questionResults, scoreSum, fullyCorrect, structuredCount);
     }
 
     /** Submit answers, auto-grade, persist, and return the result. Single submission only. */
@@ -132,7 +218,7 @@ public class ExerciseGradingService {
     public ExerciseResultResponse submit(String email, UUID assignmentId, SubmitExerciseRequest request) {
         User user = requireUser(email);
         HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
-        if (assignment.getFormat() != HomeworkFormat.EXERCISE) {
+        if (HomeworkItems.compositionFromFormat(assignment) != HomeworkComposition.ALL_AUTO) {
             throw new SubmissionNotAllowedException(
                     "Esta tarea no es un ejercicio autocorregible.", HttpStatus.BAD_REQUEST);
         }
@@ -151,39 +237,27 @@ public class ExerciseGradingService {
                     .filter(a -> a.questionId() != null)
                     .collect(Collectors.toMap(SubmitExerciseRequest.AnswerDto::questionId, Function.identity(), (a, b) -> a));
 
-        List<HomeworkAnswer> answers = new ArrayList<>();
-        List<ExerciseResultResponse.QuestionResultDto> questionResults = new ArrayList<>();
-        double scoreSum = 0;
-        int fullyCorrect = 0;
-
-        for (HomeworkQuestion q : questions) {
-            SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
-            GradedAnswer graded = gradeQuestion(q, given);
-
-            scoreSum += graded.score();
-            if (graded.score() >= 1.0) fullyCorrect++;
-
-            HomeworkAnswer answer = new HomeworkAnswer();
-            answer.setQuestionId(q.getId());
-            answer.setAnswerJson(graded.answerJson());
-            answer.setScore(BigDecimal.valueOf(graded.score()).setScale(3, RoundingMode.HALF_UP));
-            answer.setSelectedOptionIds(graded.selectedOptionIds());
-            answers.add(answer);
-
-            questionResults.add(new ExerciseResultResponse.QuestionResultDto(
-                    q.getId(), graded.score(), graded.score() >= 1.0,
-                    correctOptionIds(q), List.of(), graded.unitResults(),
-                    graded.selectedOptionIds()));
-        }
-
-        int total = questions.size();
-        int scorePercent = total == 0 ? 0 : (int) Math.round((scoreSum / total) * 100);
+        StructuredGradeResult graded = gradeStructuredSubset(questions, byQuestion);
+        int scorePercent = graded.provisionalScorePercent();
 
         HomeworkSubmission saved = submissionRepository.upsertGraded(
                 user.getId(), assignmentId, scorePercent, Instant.now());
-        answerRepository.saveAll(saved.getId(), answers);
+        answerRepository.saveAll(saved.getId(), graded.structuredAnswers());
 
-        return new ExerciseResultResponse(scorePercent, fullyCorrect, total, questionResults);
+        return graded.toProvisionalResult();
+    }
+
+    public List<ExerciseQuestionDto> studentQuestionsFor(List<HomeworkQuestion> questions) {
+        return buildStudentQuestions(questions);
+    }
+
+    public ExerciseResultResponse storedResultFor(List<HomeworkQuestion> questions, HomeworkSubmission submission) {
+        return buildStoredResult(questions, submission, false);
+    }
+
+    public ExerciseResultResponse storedProvisionalResultFor(
+            List<HomeworkQuestion> questions, HomeworkSubmission submission) {
+        return buildStoredResult(questions, submission, true);
     }
 
     /**
@@ -194,7 +268,7 @@ public class ExerciseGradingService {
 
     public GradedExerciseView viewGradedSubmission(HomeworkSubmission submission) {
         List<HomeworkQuestion> questions = questionRepository.findByAssignment(submission.getAssignmentId());
-        return new GradedExerciseView(buildStudentQuestions(questions), buildStoredResult(questions, submission));
+        return new GradedExerciseView(buildStudentQuestions(questions), buildStoredResult(questions, submission, false));
     }
 
     // --- grading --------------------------------------------------------------
@@ -452,18 +526,27 @@ public class ExerciseGradingService {
 
     // --- reconstruction for a locked (already graded) exercise ------------------
 
-    private ExerciseResultResponse buildStoredResult(List<HomeworkQuestion> questions, HomeworkSubmission submission) {
+    private ExerciseResultResponse buildStoredResult(List<HomeworkQuestion> questions,
+                                                     HomeworkSubmission submission,
+                                                     boolean provisionalAutoOnly) {
         Map<UUID, HomeworkAnswer> byQuestion = answerRepository.findBySubmission(submission.getId()).stream()
                 .filter(a -> a.getQuestionId() != null)
                 .collect(Collectors.toMap(HomeworkAnswer::getQuestionId, Function.identity(), (a, b) -> a));
 
         List<ExerciseResultResponse.QuestionResultDto> results = new ArrayList<>();
         int fullyCorrect = 0;
+        double scoreSum = 0;
+        int counted = 0;
         for (HomeworkQuestion q : questions) {
+            if (provisionalAutoOnly && !HomeworkCompositionSupport.isAutoGradable(q.getKind())) {
+                continue;
+            }
             HomeworkAnswer a = byQuestion.get(q.getId());
             double score = a == null || a.getScore() == null ? 0.0 : a.getScore().doubleValue();
             boolean correct = score >= 1.0;
             if (correct) fullyCorrect++;
+            scoreSum += score;
+            counted++;
             List<ExerciseResultResponse.UnitResultDto> unitResults =
                     q.getKind().isStructured() ? recomputeUnitResults(q, a) : List.of();
             List<UUID> selected = a == null ? List.of() : a.getSelectedOptionIds();
@@ -471,8 +554,13 @@ public class ExerciseGradingService {
                     q.getId(), score, correct, correctOptionIds(q), List.of(), unitResults,
                     selected));
         }
-        int scorePercent = submission.getScorePercent() == null ? 0 : submission.getScorePercent();
-        return new ExerciseResultResponse(scorePercent, fullyCorrect, questions.size(), results);
+        int scorePercent;
+        if (provisionalAutoOnly) {
+            scorePercent = HomeworkCompositionSupport.scorePercent(scoreSum, counted);
+        } else {
+            scorePercent = submission.getScorePercent() == null ? 0 : submission.getScorePercent();
+        }
+        return new ExerciseResultResponse(scorePercent, fullyCorrect, counted, results);
     }
 
     /**

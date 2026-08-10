@@ -20,7 +20,7 @@ export function HomeworkWritePage({ homeworkId }: Props) {
     getLearning()
       .then((data) => {
         const found = data.homework.find(
-          (h) => h.id === homeworkId && h.format === "MANUAL",
+          (h) => h.id === homeworkId,
         );
         if (!found) {
           setLoadError(t("learning.writePage.notFound"));

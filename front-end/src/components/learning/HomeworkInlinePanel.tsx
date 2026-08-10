@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   getExercise,
+  resolveComposition,
+  isAutoTakeComposition,
   type ExerciseResponse,
   type HomeworkItem,
 } from "@/lib/learning";
 import { ExerciseForm } from "./ExerciseForm";
+import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { ManualAnswerForm } from "./ManualAnswerForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { AudioPlayer } from "./AudioPlayer";
@@ -23,12 +26,14 @@ interface Props {
  */
 export function HomeworkInlinePanel({ item, onChanged }: Props) {
   const { t } = useTranslation();
+  const composition = resolveComposition(item);
+  const needsFetch = isAutoTakeComposition(composition);
   const [exercise, setExercise] = useState<ExerciseResponse | null>(null);
-  const [loading, setLoading] = useState(item.format === "EXERCISE");
+  const [loading, setLoading] = useState(needsFetch);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (item.format !== "EXERCISE") {
+    if (!needsFetch) {
       setLoading(false);
       return;
     }
@@ -52,7 +57,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     };
     // Re-fetch when homework status changes (e.g. after grade refresh).
     // eslint-disable-next-line react-hooks/exhaustive-deps -- exercise kept for silent refresh
-  }, [item.id, item.format, item.status, t]);
+  }, [item.id, composition, item.status, t]);
 
   if (loading) {
     return (
@@ -66,7 +71,38 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     return <p className="text-sm text-destructive">{loadError}</p>;
   }
 
-  if (item.format === "EXERCISE" && exercise) {
+  if (composition === "MIXED" && exercise) {
+    const audioUrl = exercise.audioUrl;
+    const audioFileId = exercise.audioFileId;
+    return (
+      <div className="space-y-3">
+        {(audioUrl || audioFileId) && (
+          <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
+        )}
+        {exercise.instructions && (
+          <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
+            {exercise.instructions}
+          </div>
+        )}
+        <MixedHomeworkForm
+          assignment={{
+            id: exercise.id,
+            status: exercise.status,
+            questions: exercise.questions,
+            result: exercise.result,
+            answers: exercise.answers,
+            scorePercent: exercise.scorePercent ?? null,
+            provisionalScorePercent: exercise.provisionalScorePercent,
+            feedbackText: exercise.feedbackText,
+            teacherFeedback: exercise.teacherFeedback,
+          }}
+          onSubmitted={onChanged}
+        />
+      </div>
+    );
+  }
+
+  if (composition === "ALL_AUTO" && exercise) {
     const audioUrl = exercise.audioUrl;
     const audioFileId = exercise.audioFileId;
     return (
@@ -84,7 +120,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     );
   }
 
-  // MANUAL
+  // WRITE / ALL_MANUAL
   const audioUrl = item.audioUrl;
   const audioFileId = item.audioFileId;
   const showPassageBox = item.homeworkType === "READ";
@@ -104,7 +140,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
       {(audioUrl || audioFileId) && (
         <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
       )}
-      {item.homeworkType !== "WRITE" ? (
+      {composition !== "WRITE" ? (
         <ManualMultiAnswerForm
           key={`${item.id}-${item.status}-${item.submittedAt ?? "draft"}`}
           homeworkId={item.id}
@@ -113,7 +149,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
             prompt: q.prompt,
           }))}
           initialAnswers={item.answers}
-          readOnly={item.status === "REVIEWED"}
+          readOnly={item.status === "REVIEWED" || item.status === "GRADED"}
           onSubmitted={onChanged}
         />
       ) : (

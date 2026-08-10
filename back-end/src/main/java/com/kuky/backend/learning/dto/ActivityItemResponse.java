@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Student-facing activity detail (MANUAL or EXERCISE).
+ * Student-facing activity detail (MANUAL, EXERCISE, or MIXED).
  * Placement: insert after {@code triggerPage} of {@code triggerFileId}.
  * Media: {@code instructionsText} + optional {@code youtubeUrl}.
  */
@@ -14,6 +14,7 @@ public record ActivityItemResponse(
         UUID id,
         String title,
         String format,
+        String composition,
         String status,
         String level,
         String homeworkType,
@@ -27,6 +28,7 @@ public record ActivityItemResponse(
         List<FormattedTextSegment> feedback,
         String feedbackText,
         Integer scorePercent,
+        Integer provisionalScorePercent,
         List<ExerciseQuestionDto> questions,
         ExerciseResultResponse result,
         String teacherFeedback,

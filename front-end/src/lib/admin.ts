@@ -4,7 +4,13 @@
 
 import { API_ORIGIN } from "@/lib/api";
 import type { FormattedText } from "@/components/learning/richtext/types";
-import type { ExerciseResult, StudentQuestion } from "@/lib/learning";
+import type {
+  ExerciseResult,
+  HomeworkComposition,
+  HomeworkFormat as LearningHomeworkFormat,
+  StudentQuestion,
+  TeacherValidation,
+} from "@/lib/learning";
 const API_BASE = `${API_ORIGIN}/api/v1/admin`;
 
 export interface ApiError {
@@ -323,7 +329,8 @@ export const getStudentProfile = (id: string) =>
 
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
-export type HomeworkFormat = "MANUAL" | "EXERCISE";
+export type HomeworkFormat = LearningHomeworkFormat;
+export type { HomeworkComposition, TeacherValidation };
 export type QuestionKind =
   | "SINGLE_CHOICE"
   | "MULTI_CHOICE"
@@ -411,7 +418,9 @@ export interface HomeworkAdminItem {
   dueOn: string | null;
   homeworkType: HomeworkType | null;
   level: HomeworkLevel | null;
+  /** Derived cache; prefer composition for UI. */
   format: HomeworkFormat;
+  composition?: HomeworkComposition | null;
   questions: AdminQuestion[];
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
@@ -442,7 +451,6 @@ export const createHomework = (
   dueOn: string | null,
   homeworkType: HomeworkType | null,
   level: HomeworkLevel | null,
-  format: HomeworkFormat,
   questions: AdminQuestion[],
   audio: HomeworkAudio,
   assigneeIds: string[],
@@ -455,7 +463,6 @@ export const createHomework = (
       dueOn,
       homeworkType,
       level,
-      format,
       questions,
       audioUrl: audio.audioUrl,
       audioFileId: audio.audioFileId,
@@ -470,7 +477,6 @@ export const updateHomework = (
   dueOn: string | null,
   homeworkType: HomeworkType | null,
   level: HomeworkLevel | null,
-  format: HomeworkFormat,
   questions: AdminQuestion[],
   audio: HomeworkAudio,
 ) =>
@@ -482,7 +488,6 @@ export const updateHomework = (
       dueOn,
       homeworkType,
       level,
-      format,
       questions,
       audioUrl: audio.audioUrl,
       audioFileId: audio.audioFileId,
@@ -525,6 +530,8 @@ export interface HomeworkReviewQueueItem {
   studentUsername: string | null;
   assignmentTitle: string;
   submittedAt: string;
+  composition?: HomeworkComposition | null;
+  format?: HomeworkFormat | null;
 }
 
 export interface ManualSubmissionAnswerAdmin {
@@ -532,6 +539,10 @@ export interface ManualSubmissionAnswerAdmin {
   promptSnapshot: string;
   text: string;
   formatted?: FormattedText | null;
+  kind?: QuestionKind | null;
+  teacherValidation?: TeacherValidation | null;
+  score?: number | null;
+  correct?: boolean | null;
 }
 
 export type ReviewModel = "LEGACY_RICH" | "ANNOTATED" | null;
@@ -544,12 +555,18 @@ export interface HomeworkSubmissionAdmin {
   studentLastName: string | null;
   studentUsername: string | null;
   assignmentTitle: string;
-  status: "PENDING" | "SUBMITTED" | "REVIEWED";
+  status: "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
+  composition?: HomeworkComposition | null;
+  format?: HomeworkFormat | null;
   reviewModel?: ReviewModel;
+  scorePercent?: number | null;
   /** WRITE MANUAL: rich-text answer. Multi MANUAL: null/empty. */
   response: FormattedText | null;
-  /** Multi MANUAL per-question answers (prompt snapshots). WRITE: null/empty. */
+  /** Per-question answers (FREE_TEXT + optional auto metadata for MIXED). */
   answers?: ManualSubmissionAnswerAdmin[] | null;
+  /** MIXED / ALL_AUTO: structured questions for read-only auto results. */
+  questions?: StudentQuestion[];
+  result?: ExerciseResult | null;
   /** LEGACY_RICH rich feedback only. */
   feedback: FormattedText | null;
   /** ANNOTATED plain note (≤500). */
@@ -561,9 +578,13 @@ export interface HomeworkSubmissionAdmin {
 export interface SaveHomeworkReviewPayload {
   feedbackText?: string | null;
   response?: FormattedText | null;
+  /** WRITE: required validate/invalidate for scored finalize. */
+  teacherValidation?: TeacherValidation;
   answers?: {
     questionId: string | null;
     formatted: FormattedText;
+    /** Required for every FREE_TEXT answer on MIXED / ALL_MANUAL. */
+    teacherValidation?: TeacherValidation;
   }[];
 }
 
@@ -711,6 +732,7 @@ export interface ActivityAdminItem {
   id: string;
   title: string;
   format: HomeworkFormat;
+  composition?: HomeworkComposition | null;
   level: HomeworkLevel | null;
   homeworkType: HomeworkType | null;
   presentationId: string;
@@ -734,7 +756,8 @@ export interface ActivityAdminDetail extends ActivityAdminItem {
 export interface ActivityWriteFields {
   title: string;
   presentationId: string;
-  format: HomeworkFormat;
+  /** Ignored by server; format is derived from questions. */
+  format?: HomeworkFormat;
   level?: HomeworkLevel | null;
   homeworkType?: HomeworkType | null;
   triggerFileId: string;
@@ -776,7 +799,6 @@ export const createActivity = (fields: ActivityWriteFields) =>
     body: JSON.stringify({
       title: fields.title,
       presentationId: fields.presentationId,
-      format: fields.format,
       level: fields.level ?? null,
       homeworkType: fields.homeworkType ?? null,
       triggerFileId: fields.triggerFileId,
@@ -794,7 +816,6 @@ export const updateActivity = (id: string, fields: ActivityWriteFields) =>
     body: JSON.stringify({
       title: fields.title,
       presentationId: fields.presentationId,
-      format: fields.format,
       level: fields.level ?? null,
       homeworkType: fields.homeworkType ?? null,
       triggerFileId: fields.triggerFileId,
@@ -805,7 +826,6 @@ export const updateActivity = (id: string, fields: ActivityWriteFields) =>
       questions: fields.questions ?? [],
     }),
   });
-
 
 export const deleteActivity = (id: string) =>
   apiCall<void>(`/activities/${id}`, { method: "DELETE" });

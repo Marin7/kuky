@@ -7,7 +7,9 @@ import {
   type ApiError,
   type HomeworkSubmissionAdmin,
   type SaveHomeworkReviewPayload,
+  type TeacherValidation,
 } from "@/lib/admin";
+import { resolveComposition } from "@/lib/learning";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
+import { ExerciseResult } from "@/components/learning/ExerciseResult";
 import {
   plainText,
   type FormattedText,
@@ -41,14 +44,30 @@ function toFormatted(
 }
 
 function isEditableReview(s: HomeworkSubmissionAdmin): boolean {
+  const composition = resolveComposition(s);
+  const scoredManual =
+    composition === "MIXED" ||
+    composition === "ALL_MANUAL" ||
+    composition === "WRITE";
   return (
     s.status === "SUBMITTED" ||
-    (s.status === "REVIEWED" && s.reviewModel === "ANNOTATED")
+    (s.status === "REVIEWED" && s.reviewModel === "ANNOTATED") ||
+    (s.status === "GRADED" &&
+      scoredManual &&
+      s.reviewModel === "ANNOTATED")
   );
 }
 
+function isFreeTextAnswer(a: {
+  kind?: string | null;
+  text?: string;
+}): boolean {
+  return !a.kind || a.kind === "FREE_TEXT";
+}
+
 /**
- * MANUAL homework review: annotate student answers in place + optional plain ≤500 note.
+ * MANUAL / MIXED / WRITE homework review: annotate + optional plain ≤500 note.
+ * FREE_TEXT (and WRITE) answers require validate/invalidate to compute the score.
  * LEGACY_RICH reviews stay view-only with rich feedback.
  */
 export function HomeworkReviewDialog({
@@ -64,6 +83,11 @@ export function HomeworkReviewDialog({
   const [answerFormats, setAnswerFormats] = useState<
     Record<string, FormattedText>
   >({});
+  const [validations, setValidations] = useState<
+    Record<string, TeacherValidation | null>
+  >({});
+  const [writeValidation, setWriteValidation] =
+    useState<TeacherValidation | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -74,11 +98,22 @@ export function HomeworkReviewDialog({
     setSubmission(data);
     setResponse(data.response ?? []);
     const map: Record<string, FormattedText> = {};
+    const vals: Record<string, TeacherValidation | null> = {};
     for (const a of data.answers ?? []) {
       const key = a.questionId ?? `null:${a.promptSnapshot}`;
       map[key] = toFormatted(a.text, a.formatted);
+      vals[key] = a.teacherValidation ?? null;
     }
     setAnswerFormats(map);
+    setValidations(vals);
+    const composition = resolveComposition(data);
+    if (composition === "WRITE" && data.status === "GRADED") {
+      if (data.scorePercent === 100) setWriteValidation("VALIDATED");
+      else if (data.scorePercent === 0) setWriteValidation("INVALIDATED");
+      else setWriteValidation(null);
+    } else {
+      setWriteValidation(null);
+    }
     setFeedbackText(data.feedbackText ?? "");
   };
 
@@ -90,9 +125,25 @@ export function HomeworkReviewDialog({
   }, [submissionId, t]);
 
   const multiAnswers = submission?.answers?.filter(Boolean) ?? [];
-  const hasMultiAnswers = multiAnswers.length > 0;
+  const freeTextAnswers = multiAnswers.filter(isFreeTextAnswer);
+  const hasMultiAnswers = freeTextAnswers.length > 0;
+  const composition = submission ? resolveComposition(submission) : null;
+  const isMixed = composition === "MIXED";
+  const needsValidation =
+    composition === "MIXED" ||
+    composition === "ALL_MANUAL" ||
+    composition === "WRITE";
   const legacy = submission?.reviewModel === "LEGACY_RICH";
   const editable = submission ? isEditableReview(submission) : false;
+  const allValidated = !needsValidation
+    ? true
+    : hasMultiAnswers
+      ? freeTextAnswers.every((a) => {
+          const key = a.questionId ?? `null:${a.promptSnapshot}`;
+          const v = validations[key];
+          return v === "VALIDATED" || v === "INVALIDATED";
+        })
+      : writeValidation === "VALIDATED" || writeValidation === "INVALIDATED";
 
   const handleSave = async () => {
     if (!submission || !editable) return;
@@ -101,25 +152,43 @@ export function HomeworkReviewDialog({
       setError(t("admin.homeworkReview.feedbackTooLong"));
       return;
     }
+    if (needsValidation && !allValidated) {
+      setError(t("admin.homeworkReview.validationRequired"));
+      return;
+    }
 
     const payload: SaveHomeworkReviewPayload = {
       feedbackText: trimmed,
     };
     if (hasMultiAnswers) {
-      payload.answers = multiAnswers.map((a) => {
+      payload.answers = freeTextAnswers.map((a) => {
         const key = a.questionId ?? `null:${a.promptSnapshot}`;
         const formatted = answerFormats[key] ?? toFormatted(a.text, a.formatted);
-        return {
-          questionId: a.questionId,
-          formatted:
-            formatted.length > 0 ? formatted : [{ text: a.text || "" }],
-        };
+        const item: NonNullable<SaveHomeworkReviewPayload["answers"]>[number] =
+          {
+            questionId: a.questionId,
+            formatted:
+              formatted.length > 0 ? formatted : [{ text: a.text || "" }],
+          };
+        if (needsValidation) {
+          const v = validations[key];
+          if (v === "VALIDATED" || v === "INVALIDATED") {
+            item.teacherValidation = v;
+          }
+        }
+        return item;
       });
     } else {
       payload.response =
         response.length > 0
           ? response
           : [{ text: plainText(submission.response ?? []) || " " }];
+      if (
+        writeValidation === "VALIDATED" ||
+        writeValidation === "INVALIDATED"
+      ) {
+        payload.teacherValidation = writeValidation;
+      }
     }
 
     setSaving(true);
@@ -131,7 +200,11 @@ export function HomeworkReviewDialog({
     } catch (e) {
       const err = e as ApiError;
       if (err.error === "VALIDATION_ERROR") {
-        setError(t("admin.homeworkReview.validationError"));
+        setError(
+          needsValidation
+            ? t("admin.homeworkReview.validationRequired")
+            : t("admin.homeworkReview.validationError"),
+        );
       } else if (err.error === "ALREADY_REVIEWED") {
         setError(t("admin.homeworkReview.alreadyReviewedError"));
       } else if (err.error === "NOT_SUBMITTED") {
@@ -179,6 +252,40 @@ export function HomeworkReviewDialog({
               </p>
             )}
 
+            {needsValidation && (
+              <p className="text-sm text-muted-foreground">
+                {isMixed
+                  ? t("admin.homeworkReview.mixedHint")
+                  : t("admin.homeworkReview.manualValidationHint")}
+              </p>
+            )}
+
+            {isMixed &&
+              submission.result &&
+              submission.questions &&
+              submission.questions.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">
+                    {t("admin.homeworkReview.autoResults")}
+                  </p>
+                  <ExerciseResult
+                    questions={submission.questions.filter(
+                      (q) => q.kind !== "FREE_TEXT",
+                    )}
+                    result={submission.result}
+                    showAllAnswers
+                  />
+                </div>
+              )}
+
+            {submission.scorePercent != null && (
+              <p className="text-sm font-medium">
+                {t("admin.homeworkReview.combinedScore", {
+                  percent: submission.scorePercent,
+                })}
+              </p>
+            )}
+
             <div>
               <p className="mb-2 text-sm font-medium">
                 {hasMultiAnswers
@@ -187,10 +294,11 @@ export function HomeworkReviewDialog({
               </p>
               {hasMultiAnswers ? (
                 <ul className="space-y-3">
-                  {multiAnswers.map((a, i) => {
+                  {freeTextAnswers.map((a, i) => {
                     const key = a.questionId ?? `null:${a.promptSnapshot}`;
                     const formatted =
                       answerFormats[key] ?? toFormatted(a.text, a.formatted);
+                    const validation = validations[key] ?? null;
                     return (
                       <li
                         key={key}
@@ -233,21 +341,109 @@ export function HomeworkReviewDialog({
                             )}
                           </div>
                         )}
+                        {needsValidation && editable && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={
+                                validation === "VALIDATED"
+                                  ? "default"
+                                  : "outline"
+                              }
+                              disabled={saving}
+                              onClick={() =>
+                                setValidations((prev) => ({
+                                  ...prev,
+                                  [key]: "VALIDATED",
+                                }))
+                              }
+                            >
+                              {t("admin.homeworkReview.validate")}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={
+                                validation === "INVALIDATED"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                              disabled={saving}
+                              onClick={() =>
+                                setValidations((prev) => ({
+                                  ...prev,
+                                  [key]: "INVALIDATED",
+                                }))
+                              }
+                            >
+                              {t("admin.homeworkReview.invalidate")}
+                            </Button>
+                          </div>
+                        )}
+                        {needsValidation && !editable && validation && (
+                          <p className="mt-2 text-xs font-medium">
+                            {validation === "VALIDATED"
+                              ? t("admin.homeworkReview.validatedBadge")
+                              : t("admin.homeworkReview.invalidatedBadge")}
+                          </p>
+                        )}
                       </li>
                     );
                   })}
                 </ul>
-              ) : editable ? (
-                <RichTextEditor
-                  value={response}
-                  onChange={setResponse}
-                  formatOnly
-                  rows={10}
-                  disabled={saving}
-                />
               ) : (
-                <div className="rounded-md border bg-muted/20 p-3">
-                  <RichTextViewer segments={submission.response ?? []} />
+                <div className="space-y-3">
+                  {editable ? (
+                    <RichTextEditor
+                      value={response}
+                      onChange={setResponse}
+                      formatOnly
+                      rows={10}
+                      disabled={saving}
+                    />
+                  ) : (
+                    <div className="rounded-md border bg-muted/20 p-3">
+                      <RichTextViewer segments={submission.response ?? []} />
+                    </div>
+                  )}
+                  {needsValidation && editable && (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                          writeValidation === "VALIDATED"
+                            ? "default"
+                            : "outline"
+                        }
+                        disabled={saving}
+                        onClick={() => setWriteValidation("VALIDATED")}
+                      >
+                        {t("admin.homeworkReview.validate")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={
+                          writeValidation === "INVALIDATED"
+                            ? "destructive"
+                            : "outline"
+                        }
+                        disabled={saving}
+                        onClick={() => setWriteValidation("INVALIDATED")}
+                      >
+                        {t("admin.homeworkReview.invalidate")}
+                      </Button>
+                    </div>
+                  )}
+                  {needsValidation && !editable && writeValidation && (
+                    <p className="text-xs font-medium">
+                      {writeValidation === "VALIDATED"
+                        ? t("admin.homeworkReview.validatedBadge")
+                        : t("admin.homeworkReview.invalidatedBadge")}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -289,7 +485,10 @@ export function HomeworkReviewDialog({
                 <Button variant="outline" onClick={onClose} disabled={saving}>
                   {t("admin.homeworkReview.close")}
                 </Button>
-                <Button onClick={handleSave} disabled={saving}>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || (needsValidation && !allValidated)}
+                >
                   {saving
                     ? t("admin.homeworkReview.saving")
                     : t("admin.homeworkReview.save")}

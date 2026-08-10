@@ -2,7 +2,6 @@ package com.kuky.backend.learning.controller;
 
 import com.kuky.backend.learning.dto.ActivityItemResponse;
 import com.kuky.backend.learning.dto.ExerciseResponse;
-import com.kuky.backend.learning.dto.ExerciseResultResponse;
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
 import com.kuky.backend.learning.dto.LearningResponse;
 import com.kuky.backend.learning.dto.SubmitExerciseRequest;
@@ -80,11 +79,11 @@ public class LearningController {
     }
 
     @PutMapping("/homework/{assignmentId}/answers")
-    public ResponseEntity<ExerciseResultResponse> submitExercise(
+    public ResponseEntity<HomeworkItemResponse> submitHomeworkAnswers(
             @AuthenticationPrincipal String email,
             @PathVariable UUID assignmentId,
             @RequestBody(required = false) SubmitExerciseRequest request) {
-        return ResponseEntity.ok(gradingService.submit(email, assignmentId, request));
+        return ResponseEntity.ok(submissionService.submitAnswers(email, assignmentId, request));
     }
 
     @GetMapping("/activities/{id}")
@@ -119,10 +118,10 @@ public class LearningController {
     }
 
     @PutMapping("/activities/{id}/answers")
-    public ResponseEntity<ExerciseResultResponse> submitActivityExercise(
+    public ResponseEntity<ActivityItemResponse> submitActivityAnswers(
             @AuthenticationPrincipal String email,
             @PathVariable UUID id,
             @RequestBody(required = false) SubmitExerciseRequest request) {
-        return ResponseEntity.ok(activityStudentService.submitExercise(email, id, request));
+        return ResponseEntity.ok(activityStudentService.submitAnswers(email, id, request));
     }
 }

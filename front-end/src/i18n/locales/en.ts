@@ -390,6 +390,17 @@ export const enDict = {
       notFound: "This listening assignment could not be found.",
       loadError: "Could not load the audio.",
     },
+    mixed: {
+      awaitingTeacher:
+        "Auto-graded part done. Your teacher will review your free-text answers.",
+      provisionalScore: "Provisional score (auto only): {{percent}}%",
+      combinedScore: "Final score (all questions)",
+      autoResults: "Auto-graded questions",
+      manualAnswers: "Free-text answers",
+      validated: "Correct",
+      invalidated: "Incorrect",
+      pendingValidation: "Awaiting review",
+    },
     manualMulti: {
       title: "Your answers",
       questionLabel: "Question {{index}}",
@@ -736,6 +747,7 @@ export const enDict = {
       noTasks: "You haven't created any homework yet.",
       noTasksFiltered: "No homework matches these filters.",
       exercise: "Exercise",
+      mixed: "Mixed",
       edit: "Edit",
       delete: "Delete",
       assignedTo: "Assigned to",
@@ -776,6 +788,10 @@ export const enDict = {
           "Self-grading exercise — questions with automatic correction.",
         formatWriteHint:
           "Writing homework is always reviewed manually — it can't be a self-grading exercise.",
+        writeHint:
+          "Writing homework uses a single long answer that you review. No question list needed.",
+        questionsRequired:
+          "Add at least one question (you can mix free-text and auto-graded kinds).",
         audioLabel: "Audio (listening)",
         audioHint:
           "Add the audio the student will listen to: a link or an uploaded file.",
@@ -797,12 +813,14 @@ export const enDict = {
         countSingular: "{{count}} question",
         countPlural: "{{count}} questions",
         empty:
-          "You haven't added any questions yet. A self-grading exercise needs at least one.",
+          "You haven't added any questions yet. Add at least one (free-text or auto-graded).",
         addQuestion: "Add question",
         questionLabel: "Question {{index}}",
         kindLabel: "Type",
         promptLabel: "Prompt",
         promptPlaceholder: "E.g. The plural of «el lápiz»",
+        freeTextHint:
+          "The student will write a free-text answer that you validate or invalidate when reviewing.",
         acceptedAnswers: "Accepted answers",
         acceptedAnswersHint:
           "The student is correct if their answer matches any of these (case-insensitive, but accent-sensitive).",
@@ -821,6 +839,7 @@ export const enDict = {
           TABLE_FILL: "Table fill",
           MATCHING: "Matching",
           TRUE_FALSE: "True / False",
+          FREE_TEXT: "Free text",
         },
         trueFalseHint: "Mark whether the statement is true or false.",
         trueLabel: "True",
@@ -888,6 +907,18 @@ export const enDict = {
       feedbackPlaceholder: "Short note for the student (optional, max 500)…",
       feedbackTooLong: "The note is too long (maximum 500 characters).",
       legacyFrozen: "This older review is read-only (previous feedback model).",
+      mixedHint:
+        "Validate or invalidate every free-text answer to compute the final score. Auto-graded items are already scored.",
+      manualValidationHint:
+        "Validate or invalidate each answer to compute the homework score.",
+      autoResults: "Auto-graded questions",
+      combinedScore: "Combined score: {{percent}}%",
+      validate: "Validate",
+      invalidate: "Invalidate",
+      validatedBadge: "Validated",
+      invalidatedBadge: "Invalidated",
+      validationRequired:
+        "You must validate or invalidate every free-text answer before saving.",
       save: "Save feedback",
       saving: "Saving…",
       close: "Close",

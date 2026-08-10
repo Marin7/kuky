@@ -136,16 +136,33 @@ export function ManualMultiAnswerForm({
               {q.prompt ? ` — ${q.prompt}` : ""}
             </Label>
             {readOnly ? (
-              <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm break-all [overflow-wrap:anywhere]">
+              <div className="space-y-1.5">
                 {(() => {
                   const ans = initialAnswers?.find((a) => a.questionId === q.id);
-                  if (ans?.formatted && ans.formatted.length > 0) {
-                    return <RichTextViewer segments={ans.formatted} />;
-                  }
+                  const validation = ans?.teacherValidation;
                   return (
-                    <p className="whitespace-pre-wrap">
-                      {readOnlyAnswer || t("learning.manualMulti.emptyAnswer")}
-                    </p>
+                    <>
+                      {validation === "VALIDATED" && (
+                        <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                          {t("learning.mixed.validated")}
+                        </span>
+                      )}
+                      {validation === "INVALIDATED" && (
+                        <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                          {t("learning.mixed.invalidated")}
+                        </span>
+                      )}
+                      <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm break-all [overflow-wrap:anywhere]">
+                        {ans?.formatted && ans.formatted.length > 0 ? (
+                          <RichTextViewer segments={ans.formatted} />
+                        ) : (
+                          <p className="whitespace-pre-wrap">
+                            {readOnlyAnswer ||
+                              t("learning.manualMulti.emptyAnswer")}
+                          </p>
+                        )}
+                      </div>
+                    </>
                   );
                 })()}
               </div>

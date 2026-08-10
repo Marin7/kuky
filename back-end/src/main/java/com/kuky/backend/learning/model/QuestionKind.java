@@ -10,7 +10,7 @@ package com.kuky.backend.learning.model;
  *   <li>{@code TABLE_FILL} — grid of fixed/blank cells; typed blank cells.</li>
  *   <li>{@code MATCHING} — left↔right pairs with optional distractors.</li>
  *   <li>{@code TRUE_FALSE} — fixed true/false options; scored 0/1 like single choice.</li>
- *   <li>{@code FREE_TEXT} — MANUAL-only plain free-text prompt (not auto-graded; never on EXERCISE).</li>
+ *   <li>{@code FREE_TEXT} — plain free-text prompt (manual grading; may mix with structured kinds).</li>
  * </ul>
  */
 public enum QuestionKind {

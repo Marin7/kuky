@@ -9,7 +9,6 @@ import {
   type AdminQuestion,
   type HomeworkType,
   type HomeworkLevel,
-  type HomeworkFormat,
   type ApiError,
 } from "@/lib/admin";
 import { getMe } from "@/lib/auth";
@@ -24,10 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StudentMultiSelect } from "./StudentMultiSelect";
 import { QuestionListEditor } from "./QuestionListEditor";
-import { ManualQuestionListEditor } from "./ManualQuestionListEditor";
 import { AudioSourceEditor, type AudioSourceValue } from "./AudioSourceEditor";
 
 const LEVEL_OPTIONS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
@@ -49,7 +46,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
   const [dueOn, setDueOn] = useState("");
   const [homeworkType, setHomeworkType] = useState<HomeworkType | "">("");
   const [level, setLevel] = useState<HomeworkLevel | "">("");
-  const [format, setFormat] = useState<HomeworkFormat>("MANUAL");
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
   const [audio, setAudio] = useState<AudioSourceValue>({
     audioUrl: null,
@@ -79,7 +75,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
         setDueOn(hw.dueOn ?? "");
         setHomeworkType(hw.homeworkType ?? "");
         setLevel(hw.level ?? "");
-        setFormat(hw.format);
         setQuestions(hw.questions ?? []);
         setAudio({
           audioUrl: hw.audioUrl,
@@ -92,12 +87,10 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       .finally(() => setLoading(false));
   }, [homeworkId]);
 
-  // Writing homework is always reviewed by the teacher — never auto-graded.
-  // Force MANUAL when WRITE is selected (also fixes any legacy EXERCISE record).
-  const autoGradeDisabled = homeworkType === "WRITE";
+  // Writing homework is a single rich-text answer — no question list.
   useEffect(() => {
-    if (autoGradeDisabled && format === "EXERCISE") setFormat("MANUAL");
-  }, [autoGradeDisabled, format]);
+    if (homeworkType === "WRITE") setQuestions([]);
+  }, [homeworkType]);
 
   const backToList = () =>
     navigate({ to: "/panel", search: { tab: "homework" } as never });
@@ -107,23 +100,17 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       setError(t("admin.homework.editor.requiredError"));
       return;
     }
+    const type = homeworkType || null;
+    if (type !== "WRITE" && questions.length === 0) {
+      setError(t("admin.homework.editor.questionsRequired"));
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
       const due = dueOn ? dueOn : null;
-      const type = homeworkType || null;
       const lvl = level || null;
-      const qs =
-        format === "EXERCISE"
-          ? questions
-          : format === "MANUAL" && type !== "WRITE"
-            ? questions.map((q) => ({
-                ...q,
-                kind: "FREE_TEXT" as const,
-                options: [],
-                structure: {},
-              }))
-            : [];
+      const qs = type === "WRITE" ? [] : questions;
       // Audio is only meaningful for listening homework; clear it otherwise.
       const audioPayload =
         type === "AUDIO"
@@ -140,7 +127,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           due,
           type,
           lvl,
-          format,
           qs,
           audioPayload,
         );
@@ -152,7 +138,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           due,
           type,
           lvl,
-          format,
           qs,
           audioPayload,
           assigneeIds,
@@ -279,56 +264,19 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>{t("admin.homework.editor.formatLabel")}</Label>
-            <RadioGroup
-              value={format}
-              onValueChange={(v) => setFormat(v as HomeworkFormat)}
-              className="flex flex-col gap-2"
-            >
-              <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="MANUAL" id="fmt-manual" />
-                {t("admin.homework.editor.formatManual")}
-              </label>
-              <label
-                className={[
-                  "flex items-center gap-2 text-sm",
-                  autoGradeDisabled && "opacity-50",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <RadioGroupItem
-                  value="EXERCISE"
-                  id="fmt-exercise"
-                  disabled={autoGradeDisabled}
-                />
-                {t("admin.homework.editor.formatExercise")}
-              </label>
-            </RadioGroup>
-            {autoGradeDisabled && (
-              <p className="text-xs text-muted-foreground">
-                {t("admin.homework.editor.formatWriteHint")}
-              </p>
-            )}
-          </div>
+          {homeworkType === "WRITE" && (
+            <p className="text-xs text-muted-foreground">
+              {t("admin.homework.editor.writeHint")}
+            </p>
+          )}
 
           {homeworkType === "AUDIO" && (
             <AudioSourceEditor value={audio} onChange={setAudio} />
           )}
 
-          {format === "EXERCISE" && (
+          {homeworkType !== "WRITE" && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <QuestionListEditor
-                questions={questions}
-                onChange={setQuestions}
-              />
-            </div>
-          )}
-
-          {format === "MANUAL" && homeworkType !== "WRITE" && (
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <ManualQuestionListEditor
                 questions={questions}
                 onChange={setQuestions}
               />

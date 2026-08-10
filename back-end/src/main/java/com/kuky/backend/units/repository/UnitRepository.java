@@ -345,19 +345,31 @@ public class UnitRepository {
                 WHERE ha.unit_id = :uid
                 ORDER BY ha.unit_position
                 """;
-        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> new HomeworkAdminItem(
-                rs.getObject("id", UUID.class),
-                rs.getString("title"),
-                rs.getString("instructions"),
-                rs.getObject("due_on", LocalDate.class),
-                rs.getString("homework_type"),
-                rs.getString("level"),
-                rs.getString("format"),
-                List.of(),
-                rs.getString("audio_url"),
-                rs.getObject("audio_file_id", UUID.class),
-                null,
-                List.of()));
+        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> {
+            String homeworkType = rs.getString("homework_type");
+            String format = rs.getString("format");
+            return new HomeworkAdminItem(
+                    rs.getObject("id", UUID.class),
+                    rs.getString("title"),
+                    rs.getString("instructions"),
+                    rs.getObject("due_on", LocalDate.class),
+                    homeworkType,
+                    rs.getString("level"),
+                    format,
+                    compositionFrom(homeworkType, format),
+                    List.of(),
+                    rs.getString("audio_url"),
+                    rs.getObject("audio_file_id", UUID.class),
+                    null,
+                    List.of());
+        });
+    }
+
+    private static String compositionFrom(String homeworkType, String format) {
+        if ("WRITE".equals(homeworkType)) return "WRITE";
+        if ("MIXED".equals(format)) return "MIXED";
+        if ("EXERCISE".equals(format)) return "ALL_AUTO";
+        return "ALL_MANUAL";
     }
 
     public List<StudentResponse> findAssignedStudents(UUID unitId) {

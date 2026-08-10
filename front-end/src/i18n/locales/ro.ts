@@ -398,6 +398,17 @@ export const roDict = {
       notFound: "Această temă de ascultare nu a putut fi găsită.",
       loadError: "Nu s-a putut încărca audio.",
     },
+    mixed: {
+      awaitingTeacher:
+        "Partea autocorectată e gata. Profesoara va verifica răspunsurile libere.",
+      provisionalScore: "Notă provizorie (doar autocorectabile): {{percent}}%",
+      combinedScore: "Nota finală (toate întrebările)",
+      autoResults: "Întrebări autocorectabile",
+      manualAnswers: "Răspunsuri libere",
+      validated: "Corect",
+      invalidated: "Incorect",
+      pendingValidation: "În așteptarea revizuirii",
+    },
     manualMulti: {
       title: "Răspunsurile tale",
       questionLabel: "Întrebarea {{index}}",
@@ -746,6 +757,7 @@ export const roDict = {
       noTasks: "Nu ai creat încă nicio temă.",
       noTasksFiltered: "Nu există teme cu aceste filtre.",
       exercise: "Exercițiu",
+      mixed: "Mixtă",
       edit: "Editează",
       delete: "Șterge",
       assignedTo: "Asignată la",
@@ -786,6 +798,10 @@ export const roDict = {
           "Exercițiu autocorectabil — întrebări cu corectare automată.",
         formatWriteHint:
           "Temele de scriere sunt întotdeauna revizuite manual — nu pot fi un exercițiu autocorectabil.",
+        writeHint:
+          "Temele de scriere folosesc un singur răspuns lung pe care tu îl revizuiești. Nu e nevoie de listă de întrebări.",
+        questionsRequired:
+          "Adaugă cel puțin o întrebare (poți combina răspuns liber și tipuri autocorectabile).",
         audioLabel: "Audio (ascultare)",
         audioHint:
           "Adaugă audio-ul pe care elevul îl va asculta: un link sau un fișier încărcat.",
@@ -807,12 +823,14 @@ export const roDict = {
         countSingular: "{{count}} întrebare",
         countPlural: "{{count}} întrebări",
         empty:
-          "Nu ai adăugat încă întrebări. Un exercițiu autocorectabil necesită cel puțin una.",
+          "Nu ai adăugat încă întrebări. Adaugă cel puțin una (răspuns liber sau autocorectabil).",
         addQuestion: "Adaugă întrebare",
         questionLabel: "Întrebarea {{index}}",
         kindLabel: "Tip",
         promptLabel: "Enunț",
         promptPlaceholder: "Ex. Pluralul lui «el lápiz»",
+        freeTextHint:
+          "Elevul va scrie un răspuns liber pe care tu îl validezi sau invalidezi la corectare.",
         acceptedAnswers: "Răspunsuri acceptate",
         acceptedAnswersHint:
           "Elevul răspunde corect dacă răspunsul său coincide cu unul dintre acestea (fără a distinge majusculele, dar respectând accentele).",
@@ -831,6 +849,7 @@ export const roDict = {
           TABLE_FILL: "Completează tabelul",
           MATCHING: "Potrivire",
           TRUE_FALSE: "Adevărat / Fals",
+          FREE_TEXT: "Răspuns liber",
         },
         trueFalseHint: "Marchează dacă enunțul este adevărat sau fals.",
         trueLabel: "Adevărat",
@@ -898,6 +917,18 @@ export const roDict = {
       feedbackTooLong: "Nota este prea lungă (maximum 500 de caractere).",
       legacyFrozen:
         "Această corectură veche este doar pentru citire (model anterior).",
+      mixedHint:
+        "Validează sau invalidează fiecare răspuns liber pentru nota finală. Cele autocorectabile sunt deja notate.",
+      manualValidationHint:
+        "Validează sau invalidează fiecare răspuns pentru nota temei.",
+      autoResults: "Întrebări autocorectabile",
+      combinedScore: "Notă combinată: {{percent}}%",
+      validate: "Validează",
+      invalidate: "Invalidează",
+      validatedBadge: "Validat",
+      invalidatedBadge: "Invalidat",
+      validationRequired:
+        "Trebuie să validezi sau să invalidezi toate răspunsurile libere înainte de a salva.",
       save: "Salvează feedback-ul",
       saving: "Se salvează…",
       close: "Închide",

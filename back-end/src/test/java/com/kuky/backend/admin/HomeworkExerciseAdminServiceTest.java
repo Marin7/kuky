@@ -130,10 +130,20 @@ class HomeworkExerciseAdminServiceTest {
     }
 
     @Test
-    void manualWithQuestionsIsRejected() {
-        var req = new CreateHomeworkRequest("Título", "Instrucciones", null, null, null,
-                "MANUAL", List.of(q("SINGLE_CHOICE", new OptionDto(null, "a", true), new OptionDto(null, "b", false))),
+    void mixedManualAndStructuredIsAcceptedAsMixed() {
+        var req = new CreateHomeworkRequest("Título", "Instrucciones", null, "AUDIO", null,
+                "MANUAL", List.of(
+                        q("SINGLE_CHOICE", new OptionDto(null, "a", true), new OptionDto(null, "b", false)),
+                        new HomeworkQuestionDto(null, "FREE_TEXT", "Resume", List.of(), null)),
                 null, null, List.of());
+        assertThatNoException().isThrownBy(() -> service.create(req));
+        verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
+    }
+
+    @Test
+    void emptyNonWriteIsRejected() {
+        var req = new CreateHomeworkRequest("Título", "Instrucciones", null, "AUDIO", null,
+                null, List.of(), null, null, List.of());
         assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
     }
 

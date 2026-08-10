@@ -24,6 +24,7 @@ import com.kuky.backend.learning.exception.SubmissionNotFoundException;
 import com.kuky.backend.learning.dto.ManualAnswerViewDto;
 import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkLevel;
 import com.kuky.backend.learning.model.HomeworkQuestion;
@@ -32,6 +33,7 @@ import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.model.QuestionOption;
+import com.kuky.backend.learning.model.TeacherValidation;
 import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
@@ -40,17 +42,22 @@ import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.learning.service.BlankPassageParser;
 import com.kuky.backend.learning.service.ExerciseGradingService;
+import com.kuky.backend.learning.service.HomeworkCompositionSupport;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /** Teacher-side homework authoring + assignment + submission review. */
 @Service
@@ -114,7 +121,8 @@ public class HomeworkAdminService {
             throw new NotSubmittedException("Esta entrega todavía no ha sido calificada automáticamente.");
         }
         HomeworkAssignment assignment = requireAssignment(submission.getAssignmentId());
-        if (assignment.getFormat() != HomeworkFormat.EXERCISE) {
+        if (assignment.getFormat() != HomeworkFormat.EXERCISE
+                && assignment.getFormat() != HomeworkFormat.MIXED) {
             throw new AssignmentNotFoundException("Esta entrega no es un ejercicio auto-corregible.");
         }
         User student = userRepository.findById(submission.getUserId())
@@ -146,7 +154,8 @@ public class HomeworkAdminService {
             throw new NotSubmittedException("Esta entrega todavía no ha sido calificada automáticamente.");
         }
         HomeworkAssignment assignment = requireAssignment(submission.getAssignmentId());
-        if (assignment.getFormat() != HomeworkFormat.EXERCISE) {
+        if (assignment.getFormat() != HomeworkFormat.EXERCISE
+                && assignment.getFormat() != HomeworkFormat.MIXED) {
             throw new AssignmentNotFoundException("Esta entrega no es un ejercicio auto-corregible.");
         }
         String encoded = FormattedTextSegment.encodePlainFeedback(feedback);
@@ -154,49 +163,141 @@ public class HomeworkAdminService {
         return getExerciseResult(submissionId);
     }
 
-    /** Saves in-place annotations and the optional plain teacher note for a MANUAL submission. */
+    /** Saves in-place annotations and the optional plain teacher note for a MANUAL or MIXED submission. */
     public HomeworkSubmissionAdminDto saveFeedback(UUID submissionId, SaveHomeworkFeedbackRequest request) {
         var row = submissionRepository.findDetailById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
         if ("LEGACY_RICH".equals(row.reviewModel())) {
             throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
         }
+
+        HomeworkAssignment assignment = requireAssignment(
+                submissionRepository.findById(submissionId)
+                        .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."))
+                        .getAssignmentId());
+        List<HomeworkQuestion> questions = questionRepository.findByAssignment(assignment.getId());
+        HomeworkComposition composition = HomeworkCompositionSupport.compositionFromQuestions(
+                assignment.getHomeworkType(),
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
+
         boolean firstReview = HomeworkStatus.SUBMITTED.name().equals(row.status());
-        if (!firstReview && !("REVIEWED".equals(row.status()) && "ANNOTATED".equals(row.reviewModel()))) {
-            if (HomeworkStatus.REVIEWED.name().equals(row.status())) {
+        boolean scoredReEdit = (composition == HomeworkComposition.MIXED
+                || composition == HomeworkComposition.ALL_MANUAL
+                || composition == HomeworkComposition.WRITE)
+                && HomeworkStatus.GRADED.name().equals(row.status())
+                && "ANNOTATED".equals(row.reviewModel());
+        boolean legacyManualReEdit = composition != HomeworkComposition.MIXED
+                && composition != HomeworkComposition.ALL_MANUAL
+                && composition != HomeworkComposition.WRITE
+                && HomeworkStatus.REVIEWED.name().equals(row.status())
+                && "ANNOTATED".equals(row.reviewModel());
+
+        if (!firstReview && !scoredReEdit && !legacyManualReEdit) {
+            if (HomeworkStatus.REVIEWED.name().equals(row.status())
+                    || HomeworkStatus.GRADED.name().equals(row.status())) {
                 throw new AlreadyReviewedException("Esta entrega ya ha sido revisada.");
             }
             throw new NotSubmittedException("Esta entrega todavía no ha sido enviada por el alumno.");
         }
+
         String feedbackJson = FormattedTextSegment.encodePlainFeedback(
                 request == null ? null : request.feedbackText(),
                 FormattedTextSegment.MAX_MANUAL_FEEDBACK_LENGTH);
 
         List<com.kuky.backend.learning.model.HomeworkAnswer> storedAnswers =
                 answerRepository.findBySubmission(submissionId);
-        String responseText = null;
+        Map<UUID, QuestionKind> kindByQuestion = questions.stream()
+                .collect(Collectors.toMap(HomeworkQuestion::getId, HomeworkQuestion::getKind, (a, b) -> a));
+
         if (storedAnswers.isEmpty()) {
+            // WRITE — annotate response + required validate/invalidate → GRADED score 0/100
             List<FormattedTextSegment> response = request == null ? null : request.response();
             FormattedTextSegment.validate(response);
             assertUnchangedWording(response, row.responseText());
-            responseText = FormattedTextSegment.toJson(response);
+            String responseText = FormattedTextSegment.toJson(response);
+            TeacherValidation validation = parseTeacherValidation(
+                    request == null ? null : request.teacherValidation());
+            int scorePercent = (int) Math.round(
+                    HomeworkCompositionSupport.teacherValidationScore(validation) * 100.0);
+            submissionRepository.saveScoredAnnotatedReview(
+                    submissionId, feedbackJson, responseText, scorePercent, firstReview);
+        } else if (composition == HomeworkComposition.MIXED
+                || composition == HomeworkComposition.ALL_MANUAL) {
+            finalizeWithValidations(submissionId, request, storedAnswers, kindByQuestion, questions,
+                    feedbackJson, firstReview);
         } else {
-            List<SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> requested =
-                    request == null || request.answers() == null ? List.of() : request.answers();
-            for (var stored : storedAnswers) {
-                var annotation = requested.stream()
-                        .filter(a -> java.util.Objects.equals(a.questionId(), stored.getQuestionId()))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                "Falta la anotación de una respuesta del alumno."));
-                FormattedTextSegment.validate(annotation.formatted());
-                assertUnchangedWording(annotation.formatted(), stored.getAnswerText());
-                answerRepository.updateAnswerText(stored.getId(), FormattedTextSegment.toJson(annotation.formatted()));
-            }
+            throw new IllegalStateException("Unexpected composition for manual review: " + composition);
         }
-        submissionRepository.saveAnnotatedReview(submissionId, feedbackJson, responseText, firstReview);
         var updated = submissionRepository.findDetailById(submissionId).orElseThrow();
         return toSubmissionAdminDto(updated);
+    }
+
+    private void finalizeWithValidations(UUID submissionId, SaveHomeworkFeedbackRequest request,
+                               List<com.kuky.backend.learning.model.HomeworkAnswer> storedAnswers,
+                               Map<UUID, QuestionKind> kindByQuestion,
+                               List<HomeworkQuestion> questions,
+                               String feedbackJson, boolean firstReview) {
+        List<SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> requested =
+                request == null || request.answers() == null ? List.of() : request.answers();
+        Map<UUID, SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> byQuestion = requested.stream()
+                .filter(a -> a.questionId() != null)
+                .collect(Collectors.toMap(SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest::questionId,
+                        a -> a, (a, b) -> a));
+
+        List<com.kuky.backend.learning.model.HomeworkAnswer> freeTextAnswers = storedAnswers.stream()
+                .filter(a -> a.getQuestionId() != null
+                        && kindByQuestion.get(a.getQuestionId()) == QuestionKind.FREE_TEXT)
+                .toList();
+
+        for (var stored : freeTextAnswers) {
+            var annotation = byQuestion.get(stored.getQuestionId());
+            if (annotation == null) {
+                throw new IllegalArgumentException("Falta la anotación de una respuesta del alumno.");
+            }
+            TeacherValidation validation = parseTeacherValidation(annotation.teacherValidation());
+            FormattedTextSegment.validate(annotation.formatted());
+            assertUnchangedWording(annotation.formatted(), stored.getAnswerText());
+            double score = HomeworkCompositionSupport.teacherValidationScore(validation);
+            answerRepository.updateManualReview(
+                    stored.getId(),
+                    FormattedTextSegment.toJson(annotation.formatted()),
+                    validation.name(),
+                    HomeworkCompositionSupport.scoreAsDecimal(score));
+            stored.setScore(HomeworkCompositionSupport.scoreAsDecimal(score));
+            stored.setTeacherValidation(validation.name());
+        }
+
+        Map<UUID, com.kuky.backend.learning.model.HomeworkAnswer> answersByQ = storedAnswers.stream()
+                .filter(a -> a.getQuestionId() != null)
+                .collect(Collectors.toMap(com.kuky.backend.learning.model.HomeworkAnswer::getQuestionId,
+                        a -> a, (a, b) -> a));
+        // Re-read after updates for accurate scores on FREE_TEXT
+        for (var refreshed : answerRepository.findBySubmission(submissionId)) {
+            if (refreshed.getQuestionId() != null) {
+                answersByQ.put(refreshed.getQuestionId(), refreshed);
+            }
+        }
+
+        List<BigDecimal> scores = new ArrayList<>();
+        for (HomeworkQuestion q : questions) {
+            var answer = answersByQ.get(q.getId());
+            scores.add(answer == null || answer.getScore() == null ? BigDecimal.ZERO : answer.getScore());
+        }
+        int scorePercent = HomeworkCompositionSupport.scorePercentFromScores(scores);
+        submissionRepository.saveScoredAnnotatedReview(submissionId, feedbackJson, null, scorePercent, firstReview);
+    }
+
+    private static TeacherValidation parseTeacherValidation(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Debes validar o invalidar cada respuesta de texto libre.");
+        }
+        try {
+            return TeacherValidation.valueOf(raw.strip().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "Debes validar o invalidar cada respuesta de texto libre.");
+        }
     }
 
     private static void assertUnchangedWording(List<FormattedTextSegment> incoming, String stored) {
@@ -208,20 +309,39 @@ public class HomeworkAdminService {
 
     private HomeworkSubmissionAdminDto toSubmissionAdminDto(HomeworkSubmissionRepository.SubmissionDetailRow row) {
         List<ManualAnswerViewDto> answers = answerRepository.findBySubmission(row.submissionId()).stream()
-                .map(a -> ManualAnswerViewDto.fromStored(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
+                .map(a -> ManualAnswerViewDto.fromStored(
+                        a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
+                        a.getTeacherValidation(),
+                        a.getScore() == null ? null : a.getScore().doubleValue()))
                 .toList();
         List<FormattedTextSegment> response = answers.isEmpty()
                 ? FormattedTextSegment.fromJson(row.responseText())
                 : null;
+        HomeworkFormat format = row.format() == null ? HomeworkFormat.MANUAL : HomeworkFormat.valueOf(row.format());
+        HomeworkType type = row.homeworkType() == null ? null : HomeworkType.valueOf(row.homeworkType());
+        HomeworkComposition composition;
+        if (type == HomeworkType.WRITE) {
+            composition = HomeworkComposition.WRITE;
+        } else if (format == HomeworkFormat.MIXED) {
+            composition = HomeworkComposition.MIXED;
+        } else if (format == HomeworkFormat.EXERCISE) {
+            composition = HomeworkComposition.ALL_AUTO;
+        } else {
+            composition = HomeworkComposition.ALL_MANUAL;
+        }
         return new HomeworkSubmissionAdminDto(
                 row.submissionId(), row.studentId(), row.studentEmail(), row.studentFirstName(),
                 row.studentLastName(), row.studentUsername(), row.assignmentTitle(), row.status(),
+                format.name(),
+                composition.name(),
                 row.reviewModel(),
                 response,
                 answers,
                 "LEGACY_RICH".equals(row.reviewModel()) ? FormattedTextSegment.fromJson(row.feedback()) : null,
                 "ANNOTATED".equals(row.reviewModel())
                         ? FormattedTextSegment.decodePlainFeedback(row.feedback()) : null,
+                row.scorePercent(),
                 row.submittedAt(), row.reviewedAt());
     }
 
@@ -240,9 +360,11 @@ public class HomeworkAdminService {
         validateStudents(assignees);
         HomeworkType type = parseType(req.homeworkType());
         HomeworkLevel level = parseLevel(req.level());
-        HomeworkFormat format = parseFormat(req.format());
-        validateTypeFormat(type, format);
-        List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions(), type != HomeworkType.WRITE);
+        boolean write = type == HomeworkType.WRITE;
+        List<HomeworkQuestion> questions = validateAndMapQuestions(write, req.questions());
+        HomeworkComposition composition = HomeworkCompositionSupport.compositionFromQuestions(
+                type, questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
+        HomeworkFormat format = HomeworkCompositionSupport.formatFromComposition(composition);
         Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
 
         UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn(), type, level, format,
@@ -258,9 +380,11 @@ public class HomeworkAdminService {
         requireAssignment(id);
         HomeworkType type = parseType(req.homeworkType());
         HomeworkLevel level = parseLevel(req.level());
-        HomeworkFormat format = parseFormat(req.format());
-        validateTypeFormat(type, format);
-        List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions(), type != HomeworkType.WRITE);
+        boolean write = type == HomeworkType.WRITE;
+        List<HomeworkQuestion> questions = validateAndMapQuestions(write, req.questions());
+        HomeworkComposition composition = HomeworkCompositionSupport.compositionFromQuestions(
+                type, questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
+        HomeworkFormat format = HomeworkCompositionSupport.formatFromComposition(composition);
         Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
 
         contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format,
@@ -283,92 +407,48 @@ public class HomeworkAdminService {
         }
     }
 
-    // --- exercise validation + mapping --------------------------------------
+    // --- question validation + mapping --------------------------------------
 
     /**
-     * Writing homework is always reviewed by the teacher; it can never be an
-     * auto-graded exercise. Throws {@link IllegalArgumentException}
-     * (→ VALIDATION_ERROR) on violation.
+     * Public entry for activity authoring (and tests). {@code writeHomework=true} requires
+     * an empty question list (WRITE homework); otherwise ≥1 question of any mix of kinds.
      */
-    private static void validateTypeFormat(HomeworkType type, HomeworkFormat format) {
-        if (type == HomeworkType.WRITE && format == HomeworkFormat.EXERCISE) {
-            throw new IllegalArgumentException("Las tareas de escritura no pueden ser autocorregibles.");
-        }
-    }
-
-    /**
-     * Public entry for activity authoring (and tests) to reuse homework question rules.
-     * MANUAL without free-text questions (WRITE / legacy default). Prefer
-     * {@link #validateAndMapQuestions(HomeworkFormat, List, boolean)} for non-WRITE MANUAL.
-     */
-    public List<HomeworkQuestion> validateAndMapQuestions(HomeworkFormat format, List<HomeworkQuestionDto> dtos) {
-        return validateAndMapQuestions(format, dtos, false);
-    }
-
-    /**
-     * @param allowManualFreeText when {@code format == MANUAL}, if true require ≥1 {@code FREE_TEXT}
-     *                            questions (non-WRITE homework / MANUAL activity); if false require none (WRITE).
-     */
-    public List<HomeworkQuestion> validateAndMapQuestions(HomeworkFormat format, List<HomeworkQuestionDto> dtos,
-                                                          boolean allowManualFreeText) {
+    public List<HomeworkQuestion> validateAndMapQuestions(boolean writeHomework, List<HomeworkQuestionDto> dtos) {
         List<HomeworkQuestionDto> questions = dtos == null ? List.of() : dtos;
 
-        if (format == HomeworkFormat.MANUAL) {
-            if (!allowManualFreeText) {
-                if (!questions.isEmpty()) {
-                    throw new IllegalArgumentException("Una tarea de escritura no puede tener preguntas.");
-                }
-                return List.of();
+        if (writeHomework) {
+            if (!questions.isEmpty()) {
+                throw new IllegalArgumentException("Una tarea de escritura no puede tener preguntas.");
             }
-            if (questions.isEmpty()) {
-                throw new IllegalArgumentException("Una tarea manual necesita al menos una pregunta de texto libre.");
-            }
-            List<HomeworkQuestion> mapped = new ArrayList<>();
-            for (HomeworkQuestionDto q : questions) {
-                if (q.prompt() == null || q.prompt().isBlank()) {
-                    throw new IllegalArgumentException("Cada pregunta necesita un enunciado.");
-                }
-                QuestionKind kind = parseKind(q.kind());
-                if (kind != QuestionKind.FREE_TEXT) {
-                    throw new IllegalArgumentException("Las tareas manuales solo admiten preguntas de texto libre.");
-                }
-                List<HomeworkQuestionDto.OptionDto> opts = q.options() == null ? List.of() : q.options();
-                if (!opts.isEmpty()) {
-                    throw new IllegalArgumentException("Las preguntas de texto libre no admiten opciones.");
-                }
-                if (!isStructureEmpty(q.structure())) {
-                    throw new IllegalArgumentException("Las preguntas de texto libre no admiten una estructura adicional.");
-                }
-                HomeworkQuestion model = new HomeworkQuestion();
-                model.setKind(QuestionKind.FREE_TEXT);
-                model.setPrompt(q.prompt().strip());
-                model.setStructureJson("{}");
-                model.setOptions(List.of());
-                mapped.add(model);
-            }
-            return mapped;
+            return List.of();
         }
 
-        // EXERCISE
         if (questions.isEmpty()) {
-            throw new IllegalArgumentException("Un ejercicio autocorregible necesita al menos una pregunta.");
+            throw new IllegalArgumentException("La tarea necesita al menos una pregunta.");
         }
+
         List<HomeworkQuestion> mapped = new ArrayList<>();
         for (HomeworkQuestionDto q : questions) {
             if (q.prompt() == null || q.prompt().isBlank()) {
                 throw new IllegalArgumentException("Cada pregunta necesita un enunciado.");
             }
             QuestionKind kind = parseKind(q.kind());
-            if (kind == QuestionKind.FREE_TEXT) {
-                throw new IllegalArgumentException("Las preguntas de texto libre no se usan en ejercicios autocorregibles.");
-            }
             List<HomeworkQuestionDto.OptionDto> opts = q.options() == null ? List.of() : q.options();
 
             HomeworkQuestion model = new HomeworkQuestion();
             model.setKind(kind);
             model.setPrompt(q.prompt().strip());
 
-            if (kind.isStructured()) {
+            if (kind == QuestionKind.FREE_TEXT) {
+                if (!opts.isEmpty()) {
+                    throw new IllegalArgumentException("Las preguntas de texto libre no admiten opciones.");
+                }
+                if (!isStructureEmpty(q.structure())) {
+                    throw new IllegalArgumentException("Las preguntas de texto libre no admiten una estructura adicional.");
+                }
+                model.setStructureJson("{}");
+                model.setOptions(List.of());
+            } else if (kind.isStructured()) {
                 if (!opts.isEmpty()) {
                     throw new IllegalArgumentException("Este tipo de pregunta no admite opciones.");
                 }
@@ -396,6 +476,18 @@ public class HomeworkAdminService {
             mapped.add(model);
         }
         return mapped;
+    }
+
+    /**
+     * @deprecated Prefer {@link #validateAndMapQuestions(boolean, List)}.
+     */
+    @Deprecated
+    public List<HomeworkQuestion> validateAndMapQuestions(HomeworkFormat format, List<HomeworkQuestionDto> dtos,
+                                                          boolean allowManualFreeText) {
+        if (format == HomeworkFormat.MANUAL && !allowManualFreeText) {
+            return validateAndMapQuestions(true, dtos);
+        }
+        return validateAndMapQuestions(false, dtos);
     }
 
     private void validateOptions(QuestionKind kind, List<HomeworkQuestionDto.OptionDto> opts) {
@@ -741,17 +833,21 @@ public class HomeworkAdminService {
         String level = a.getLevel() == null ? null : a.getLevel().name();
         String format = a.getFormat() == null ? HomeworkFormat.MANUAL.name() : a.getFormat().name();
 
-        List<HomeworkQuestionDto> questions = a.getFormat() == HomeworkFormat.EXERCISE
-                || (a.getFormat() == HomeworkFormat.MANUAL && a.getHomeworkType() != HomeworkType.WRITE)
-                ? questionRepository.findByAssignment(a.getId()).stream().map(this::toQuestionDto).toList()
-                : List.of();
+        List<HomeworkQuestion> questionModels = a.getHomeworkType() == HomeworkType.WRITE
+                ? List.of()
+                : questionRepository.findByAssignment(a.getId());
+        List<HomeworkQuestionDto> questions = questionModels.stream().map(this::toQuestionDto).toList();
+        HomeworkComposition composition = HomeworkCompositionSupport.compositionFromQuestions(
+                a.getHomeworkType(),
+                questionModels.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
 
         String audioFileName = a.getAudioFileId() == null
                 ? null
                 : audioFileRepository.findOriginalName(a.getAudioFileId()).orElse(null);
 
         return new HomeworkAdminItem(a.getId(), a.getTitle(), a.getInstructions(), a.getDueOn(),
-                type, level, format, questions, a.getAudioUrl(), a.getAudioFileId(), audioFileName, assignees);
+                type, level, format, composition.name(), questions,
+                a.getAudioUrl(), a.getAudioFileId(), audioFileName, assignees);
     }
 
     private HomeworkQuestionDto toQuestionDto(HomeworkQuestion q) {
@@ -790,6 +886,8 @@ public class HomeworkAdminService {
             throw new IllegalArgumentException("Formato de tarea no válido.");
         }
     }
+
+    // parseFormat retained only for any leftover callers; create/update ignore client format.
 
     private static QuestionKind parseKind(String raw) {
         if (raw == null || raw.isBlank()) {

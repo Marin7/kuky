@@ -12,6 +12,12 @@ public record SubmitExerciseRequest(
     public record AnswerDto(
             UUID questionId,
             List<UUID> selectedOptionIds, // choice questions; [] otherwise
-            JsonNode answerJson           // structured kinds; null otherwise
-    ) {}
+            JsonNode answerJson,          // structured kinds; null otherwise
+            String text                   // FREE_TEXT plain answer; null otherwise
+    ) {
+        /** Back-compat for structured-only callers. */
+        public AnswerDto(UUID questionId, List<UUID> selectedOptionIds, JsonNode answerJson) {
+            this(questionId, selectedOptionIds, answerJson, null);
+        }
+    }
 }

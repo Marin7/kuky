@@ -155,6 +155,40 @@ public class ActivitySubmissionRepository {
                 .addValue("now", Timestamp.from(now)), MAPPER).stream().findFirst().orElseThrow();
     }
 
+    public ActivitySubmission saveScoredAnnotatedReview(UUID submissionId, String feedbackJson,
+                                                    int scorePercent, boolean firstReview) {
+        Instant now = Instant.now();
+        String sql = firstReview ? """
+                UPDATE activity_submissions SET
+                    feedback = :feedback,
+                    score_percent = :scorePercent,
+                    status = 'GRADED',
+                    review_model = 'ANNOTATED',
+                    reviewed_at = :now,
+                    updated_at = :now
+                WHERE id = :id
+                RETURNING *
+                """ : """
+                UPDATE activity_submissions SET
+                    feedback = :feedback,
+                    score_percent = :scorePercent,
+                    updated_at = :now
+                WHERE id = :id AND status = 'GRADED' AND review_model = 'ANNOTATED'
+                RETURNING *
+                """;
+        return jdbc.query(sql, new MapSqlParameterSource()
+                .addValue("id", submissionId)
+                .addValue("feedback", feedbackJson)
+                .addValue("scorePercent", scorePercent)
+                .addValue("now", Timestamp.from(now)), MAPPER).stream().findFirst().orElseThrow();
+    }
+
+    /** @deprecated use {@link #saveScoredAnnotatedReview} */
+    public ActivitySubmission saveMixedGradedReview(UUID submissionId, String feedbackJson,
+                                                    int scorePercent, boolean firstReview) {
+        return saveScoredAnnotatedReview(submissionId, feedbackJson, scorePercent, firstReview);
+    }
+
     public ActivitySubmission saveExerciseFeedback(UUID submissionId, String feedback) {
         Instant now = Instant.now();
         return jdbc.query("""
@@ -184,7 +218,7 @@ public class ActivitySubmissionRepository {
                 FROM activity_submissions s
                 JOIN users u ON u.id = s.user_id
                 JOIN activities a ON a.id = s.activity_id
-                WHERE s.status = 'SUBMITTED' AND a.format = 'MANUAL'
+                WHERE s.status = 'SUBMITTED' AND a.format IN ('MANUAL', 'MIXED')
                 ORDER BY s.submitted_at ASC
                 """, Map.of(), (rs, n) -> {
             var submittedAt = rs.getTimestamp("submitted_at");

@@ -129,7 +129,7 @@ public class HomeworkSubmissionRepository {
                                  String studentLastName, String studentUsername, String assignmentTitle,
                                  Instant submittedAt) {}
 
-    /** Every MANUAL-format submission currently awaiting teacher feedback, oldest first. */
+    /** Every MANUAL/MIXED submission currently awaiting teacher feedback, oldest first. */
     public List<ReviewQueueRow> findSubmittedManualQueue() {
         String sql = """
                 SELECT s.id AS submission_id, u.id AS student_id, u.email AS student_email,
@@ -138,7 +138,7 @@ public class HomeworkSubmissionRepository {
                 FROM homework_submissions s
                 JOIN users u ON u.id = s.user_id
                 JOIN homework_assignments ha ON ha.id = s.assignment_id
-                WHERE s.status = 'SUBMITTED' AND ha.format = 'MANUAL'
+                WHERE s.status = 'SUBMITTED' AND ha.format IN ('MANUAL', 'MIXED')
                 ORDER BY s.submitted_at ASC
                 """;
         return jdbc.query(sql, Map.of(), (rs, n) -> {
@@ -158,7 +158,8 @@ public class HomeworkSubmissionRepository {
     public record SubmissionDetailRow(UUID submissionId, UUID studentId, String studentEmail,
                                       String studentFirstName, String studentLastName, String studentUsername,
                                       String assignmentTitle, String status, String responseText, String feedback,
-                                      String reviewModel, Instant submittedAt, Instant reviewedAt) {}
+                                      String reviewModel, Integer scorePercent, String format, String homeworkType,
+                                      Instant submittedAt, Instant reviewedAt) {}
 
     /** Full detail of a single submission, joined with its student and assignment, for the review screen. */
     public Optional<SubmissionDetailRow> findDetailById(UUID submissionId) {
@@ -166,7 +167,9 @@ public class HomeworkSubmissionRepository {
                 SELECT s.id AS submission_id, u.id AS student_id, u.email AS student_email,
                        u.first_name AS student_first_name, u.last_name AS student_last_name,
                        u.username AS student_username, ha.title AS assignment_title,
-                       s.status, s.response_text, s.feedback, s.review_model, s.submitted_at, s.reviewed_at
+                       s.status, s.response_text, s.feedback, s.review_model, s.score_percent,
+                       ha.format, ha.homework_type,
+                       s.submitted_at, s.reviewed_at
                 FROM homework_submissions s
                 JOIN users u ON u.id = s.user_id
                 JOIN homework_assignments ha ON ha.id = s.assignment_id
@@ -187,6 +190,9 @@ public class HomeworkSubmissionRepository {
                     rs.getString("response_text"),
                     rs.getString("feedback"),
                     rs.getString("review_model"),
+                    rs.getObject("score_percent", Integer.class),
+                    rs.getString("format"),
+                    rs.getString("homework_type"),
                     submittedAt == null ? null : submittedAt.toInstant(),
                     reviewedAt == null ? null : reviewedAt.toInstant());
         }).stream().findFirst();
@@ -235,6 +241,46 @@ public class HomeworkSubmissionRepository {
                 .addValue("hasResponse", responseTextOrKeep != null)
                 .addValue("responseText", responseTextOrKeep)
                 .addValue("now", Timestamp.from(now)));
+    }
+
+    /**
+     * Finalizes (or re-edits) a scored annotated review: combined score, {@code GRADED}.
+     * Used for MIXED, ALL_MANUAL (with validations), and WRITE.
+     */
+    public int saveScoredAnnotatedReview(UUID submissionId, String feedbackJson, String responseTextOrKeep,
+                                         int scorePercent, boolean firstReview) {
+        String sql = firstReview ? """
+                UPDATE homework_submissions
+                SET feedback = :feedback,
+                    response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
+                    score_percent = :scorePercent,
+                    status = 'GRADED',
+                    review_model = 'ANNOTATED',
+                    reviewed_at = :now,
+                    updated_at = :now
+                WHERE id = :id
+                """ : """
+                UPDATE homework_submissions
+                SET feedback = :feedback,
+                    response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
+                    score_percent = :scorePercent,
+                    updated_at = :now
+                WHERE id = :id AND status = 'GRADED' AND review_model = 'ANNOTATED'
+                """;
+        Instant now = Instant.now();
+        return jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("id", submissionId)
+                .addValue("feedback", feedbackJson)
+                .addValue("hasResponse", responseTextOrKeep != null)
+                .addValue("responseText", responseTextOrKeep)
+                .addValue("scorePercent", scorePercent)
+                .addValue("now", Timestamp.from(now)));
+    }
+
+    /** @deprecated use {@link #saveScoredAnnotatedReview} */
+    public int saveMixedGradedReview(UUID submissionId, String feedbackJson, int scorePercent,
+                                     boolean firstReview) {
+        return saveScoredAnnotatedReview(submissionId, feedbackJson, null, scorePercent, firstReview);
     }
 
     /**

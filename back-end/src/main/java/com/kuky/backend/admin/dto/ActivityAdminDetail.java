@@ -8,6 +8,7 @@ public record ActivityAdminDetail(
         UUID id,
         String title,
         String format,
+        String composition,
         String level,
         String homeworkType,
         UUID presentationId,

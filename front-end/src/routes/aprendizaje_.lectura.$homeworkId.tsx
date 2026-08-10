@@ -10,7 +10,10 @@ export const Route = createFileRoute("/aprendizaje_/lectura/$homeworkId")({
   validateSearch: (
     search: Record<string, unknown>,
   ): { format: HomeworkFormat } => ({
-    format: search.format === "EXERCISE" ? "EXERCISE" : "MANUAL",
+    format:
+      search.format === "EXERCISE" || search.format === "MIXED"
+        ? (search.format as HomeworkFormat)
+        : "MANUAL",
   }),
   head: () => ({
     meta: seo({

@@ -17,7 +17,7 @@ import com.kuky.backend.learning.model.Activity;
 import com.kuky.backend.learning.model.ActivityQuestion;
 import com.kuky.backend.learning.model.ActivitySubmission;
 import com.kuky.backend.learning.model.HomeworkAnswer;
-import com.kuky.backend.learning.model.HomeworkFormat;
+import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.QuestionKind;
@@ -30,8 +30,6 @@ import com.kuky.backend.presentations.repository.PresentationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -46,7 +44,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Auto-grades EXERCISE activities; mirrors {@link ExerciseGradingService}. */
+/** Auto-grades EXERCISE / MIXED activities; mirrors {@link ExerciseGradingService}. */
 @Service
 public class ActivityExerciseGradingService {
 
@@ -74,11 +72,68 @@ public class ActivityExerciseGradingService {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Grades only auto-correctible questions; FREE_TEXT entries are ignored.
+     * Returns persisted answer rows + result DTOs for the structured subset.
+     */
+    public record StructuredGradeResult(
+            List<HomeworkAnswer> structuredAnswers,
+            List<ExerciseResultResponse.QuestionResultDto> questionResults,
+            double scoreSum,
+            int fullyCorrect,
+            int structuredCount
+    ) {
+        public int provisionalScorePercent() {
+            return HomeworkCompositionSupport.scorePercent(scoreSum, structuredCount);
+        }
+
+        public ExerciseResultResponse toProvisionalResult() {
+            return new ExerciseResultResponse(
+                    provisionalScorePercent(), fullyCorrect, structuredCount, questionResults);
+        }
+    }
+
+    public StructuredGradeResult gradeStructuredSubset(
+            List<HomeworkQuestion> questions,
+            Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
+        List<HomeworkAnswer> answers = new ArrayList<>();
+        List<ExerciseResultResponse.QuestionResultDto> questionResults = new ArrayList<>();
+        double scoreSum = 0;
+        int fullyCorrect = 0;
+        int structuredCount = 0;
+
+        for (HomeworkQuestion q : questions) {
+            if (!HomeworkCompositionSupport.isAutoGradable(q.getKind())) continue;
+            structuredCount++;
+            SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
+            GradedAnswer graded = gradeQuestion(q, given);
+            scoreSum += graded.score();
+            if (graded.score() >= 1.0) fullyCorrect++;
+
+            HomeworkAnswer answer = new HomeworkAnswer();
+            answer.setQuestionId(q.getId());
+            answer.setAnswerJson(graded.answerJson());
+            answer.setScore(HomeworkCompositionSupport.scoreAsDecimal(graded.score()));
+            answer.setSelectedOptionIds(graded.selectedOptionIds());
+            answers.add(answer);
+
+            questionResults.add(new ExerciseResultResponse.QuestionResultDto(
+                    q.getId(), graded.score(), graded.score() >= 1.0,
+                    correctOptionIds(q), List.of(), graded.unitResults(),
+                    graded.selectedOptionIds()));
+        }
+        return new StructuredGradeResult(answers, questionResults, scoreSum, fullyCorrect, structuredCount);
+    }
+
+    /** ALL_AUTO only — single submission → GRADED. Prefer {@code ActivityStudentService.submitAnswers}. */
     @Transactional
     public ExerciseResultResponse submit(String email, UUID activityId, SubmitExerciseRequest request) {
         User user = requireUser(email);
-        Activity activity = requireAccessible(activityId, user.getId());
-        if (activity.getFormat() != HomeworkFormat.EXERCISE) {
+        requireAccessible(activityId, user.getId());
+        List<HomeworkQuestion> questions = toHomeworkQuestions(activityId);
+        HomeworkComposition composition = HomeworkCompositionSupport.activityComposition(
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
+        if (composition != HomeworkComposition.ALL_AUTO) {
             throw new ActivityValidationException("Esta actividad no es un ejercicio autocorregible.");
         }
         Optional<ActivitySubmission> existing =
@@ -88,61 +143,49 @@ public class ActivityExerciseGradingService {
                     "Este ejercicio ya ha sido entregado y no puede repetirse.");
         }
 
-        List<HomeworkQuestion> questions = toHomeworkQuestions(activityId);
         Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion = (request == null || request.answers() == null)
                 ? Map.of()
                 : request.answers().stream()
                     .filter(a -> a.questionId() != null)
                     .collect(Collectors.toMap(SubmitExerciseRequest.AnswerDto::questionId, Function.identity(), (a, b) -> a));
 
-        List<HomeworkAnswer> answers = new ArrayList<>();
-        List<ExerciseResultResponse.QuestionResultDto> questionResults = new ArrayList<>();
-        double scoreSum = 0;
-        int fullyCorrect = 0;
-
-        for (HomeworkQuestion q : questions) {
-            SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
-            GradedAnswer graded = gradeQuestion(q, given);
-            scoreSum += graded.score();
-            if (graded.score() >= 1.0) fullyCorrect++;
-
-            HomeworkAnswer answer = new HomeworkAnswer();
-            answer.setQuestionId(q.getId());
-            answer.setAnswerJson(graded.answerJson());
-            answer.setScore(BigDecimal.valueOf(graded.score()).setScale(3, RoundingMode.HALF_UP));
-            answer.setSelectedOptionIds(graded.selectedOptionIds());
-            answers.add(answer);
-
-            questionResults.add(new ExerciseResultResponse.QuestionResultDto(
-                    q.getId(), graded.score(), graded.score() >= 1.0,
-                    correctOptionIds(q), List.of(), graded.unitResults(),
-                    graded.selectedOptionIds()));
-        }
-
-        int total = questions.size();
-        int scorePercent = total == 0 ? 0 : (int) Math.round((scoreSum / total) * 100);
+        StructuredGradeResult graded = gradeStructuredSubset(questions, byQuestion);
+        int scorePercent = graded.provisionalScorePercent();
         ActivitySubmission saved = submissionRepository.upsertGraded(
                 user.getId(), activityId, scorePercent, Instant.now());
-        answerRepository.saveAll(saved.getId(), answers);
-        return new ExerciseResultResponse(scorePercent, fullyCorrect, total, questionResults);
+        answerRepository.saveAll(saved.getId(), graded.structuredAnswers());
+        return graded.toProvisionalResult();
     }
 
     public record GradedExerciseView(List<ExerciseQuestionDto> questions, ExerciseResultResponse result) {}
 
     public GradedExerciseView viewGradedSubmission(ActivitySubmission submission) {
         List<HomeworkQuestion> questions = toHomeworkQuestions(submission.getActivityId());
-        return new GradedExerciseView(buildStudentQuestions(questions), buildStoredResult(questions, submission));
+        return new GradedExerciseView(buildStudentQuestions(questions), buildStoredResult(questions, submission, false));
     }
 
     public List<ExerciseQuestionDto> studentQuestionsFor(UUID activityId) {
-        return buildStudentQuestions(toHomeworkQuestions(activityId));
+        return studentQuestionsFor(toHomeworkQuestions(activityId));
+    }
+
+    public List<ExerciseQuestionDto> studentQuestionsFor(List<HomeworkQuestion> questions) {
+        return buildStudentQuestions(questions);
     }
 
     public ExerciseResultResponse storedResultFor(ActivitySubmission submission) {
-        return buildStoredResult(toHomeworkQuestions(submission.getActivityId()), submission);
+        return storedResultFor(toHomeworkQuestions(submission.getActivityId()), submission);
     }
 
-    private List<HomeworkQuestion> toHomeworkQuestions(UUID activityId) {
+    public ExerciseResultResponse storedResultFor(List<HomeworkQuestion> questions, ActivitySubmission submission) {
+        return buildStoredResult(questions, submission, false);
+    }
+
+    public ExerciseResultResponse storedProvisionalResultFor(
+            List<HomeworkQuestion> questions, ActivitySubmission submission) {
+        return buildStoredResult(questions, submission, true);
+    }
+
+    public List<HomeworkQuestion> toHomeworkQuestions(UUID activityId) {
         return questionRepository.findByActivityId(activityId).stream()
                 .map(ActivityQuestion::toHomeworkQuestion).toList();
     }
@@ -161,26 +204,40 @@ public class ActivityExerciseGradingService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
     }
 
-    private ExerciseResultResponse buildStoredResult(List<HomeworkQuestion> questions, ActivitySubmission submission) {
+    private ExerciseResultResponse buildStoredResult(List<HomeworkQuestion> questions,
+                                                     ActivitySubmission submission,
+                                                     boolean provisionalAutoOnly) {
         Map<UUID, HomeworkAnswer> byQuestion = answerRepository.findBySubmission(submission.getId()).stream()
                 .filter(a -> a.getQuestionId() != null)
                 .collect(Collectors.toMap(HomeworkAnswer::getQuestionId, Function.identity(), (a, b) -> a));
 
         List<ExerciseResultResponse.QuestionResultDto> results = new ArrayList<>();
         int fullyCorrect = 0;
+        double scoreSum = 0;
+        int counted = 0;
         for (HomeworkQuestion q : questions) {
+            if (provisionalAutoOnly && !HomeworkCompositionSupport.isAutoGradable(q.getKind())) {
+                continue;
+            }
             HomeworkAnswer a = byQuestion.get(q.getId());
             double score = a == null || a.getScore() == null ? 0.0 : a.getScore().doubleValue();
             boolean correct = score >= 1.0;
             if (correct) fullyCorrect++;
+            scoreSum += score;
+            counted++;
             List<ExerciseResultResponse.UnitResultDto> unitResults =
                     q.getKind().isStructured() ? recomputeUnitResults(q, a) : List.of();
             List<UUID> selected = a == null ? List.of() : a.getSelectedOptionIds();
             results.add(new ExerciseResultResponse.QuestionResultDto(
                     q.getId(), score, correct, correctOptionIds(q), List.of(), unitResults, selected));
         }
-        int scorePercent = submission.getScorePercent() == null ? 0 : submission.getScorePercent();
-        return new ExerciseResultResponse(scorePercent, fullyCorrect, questions.size(), results);
+        int scorePercent;
+        if (provisionalAutoOnly) {
+            scorePercent = HomeworkCompositionSupport.scorePercent(scoreSum, counted);
+        } else {
+            scorePercent = submission.getScorePercent() == null ? 0 : submission.getScorePercent();
+        }
+        return new ExerciseResultResponse(scorePercent, fullyCorrect, counted, results);
     }
 
     private record GradedAnswer(
