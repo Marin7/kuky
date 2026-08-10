@@ -3,6 +3,7 @@ package com.kuky.backend.admin.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.exception.ActivityValidationException;
+import com.kuky.backend.learning.repository.ActivityAnswerRepository;
 import com.kuky.backend.learning.repository.ActivityQuestionRepository;
 import com.kuky.backend.learning.repository.ActivityRepository;
 import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
@@ -28,6 +29,7 @@ class ActivityAdminServiceValidationTest {
     @Mock ActivityRepository activityRepository;
     @Mock ActivityQuestionRepository questionRepository;
     @Mock ActivitySubmissionRepository submissionRepository;
+    @Mock ActivityAnswerRepository answerRepository;
     @Mock ActivityInstructionsFileStore instructionsFileStore;
     @Mock PresentationRepository presentationRepository;
     @Mock ImageRepository imageRepository;
@@ -44,6 +46,7 @@ class ActivityAdminServiceValidationTest {
                 activityRepository,
                 questionRepository,
                 submissionRepository,
+                answerRepository,
                 instructionsFileStore,
                 presentationRepository,
                 imageRepository,

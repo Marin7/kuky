@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { QuestionListEditor } from "@/components/admin/homework/QuestionListEditor";
+import { ManualQuestionListEditor } from "@/components/admin/homework/ManualQuestionListEditor";
 import { Textarea } from "@/components/ui/textarea";
 
 const LEVEL_OPTIONS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
@@ -171,7 +172,17 @@ export function ActivityEditorPage({ activityId }: Props) {
         instructionsText: instructionsText.trim(),
         youtubeUrl: youtubeUrl.trim() || null,
         imageId,
-        questions: format === "EXERCISE" ? questions : [],
+        questions:
+          format === "EXERCISE"
+            ? questions
+            : format === "MANUAL"
+              ? questions.map((q) => ({
+                  ...q,
+                  kind: "FREE_TEXT" as const,
+                  options: [],
+                  structure: {},
+                }))
+              : [],
       };
       if (activityId) {
         await updateActivity(activityId, fields);
@@ -316,6 +327,15 @@ export function ActivityEditorPage({ activityId }: Props) {
           {format === "EXERCISE" && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <QuestionListEditor
+                questions={questions}
+                onChange={setQuestions}
+              />
+            </div>
+          )}
+
+          {format === "MANUAL" && (
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <ManualQuestionListEditor
                 questions={questions}
                 onChange={setQuestions}
               />

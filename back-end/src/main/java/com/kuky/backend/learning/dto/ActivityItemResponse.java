@@ -27,5 +27,6 @@ public record ActivityItemResponse(
         Integer scorePercent,
         List<ExerciseQuestionDto> questions,
         ExerciseResultResponse result,
-        String teacherFeedback
+        String teacherFeedback,
+        List<ManualAnswerViewDto> answers
 ) {}

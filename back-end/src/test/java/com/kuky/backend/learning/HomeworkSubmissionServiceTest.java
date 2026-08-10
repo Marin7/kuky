@@ -11,8 +11,11 @@ import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.repository.ContentRepository;
+import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
+import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.service.HomeworkSubmissionService;
+import com.kuky.backend.learning.model.HomeworkType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +43,10 @@ class HomeworkSubmissionServiceTest {
     @Mock
     private HomeworkSubmissionRepository submissionRepository;
     @Mock
+    private HomeworkQuestionRepository questionRepository;
+    @Mock
+    private HomeworkAnswerRepository answerRepository;
+    @Mock
     private UserRepository userRepository;
 
     private HomeworkSubmissionService service;
@@ -50,8 +57,8 @@ class HomeworkSubmissionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new HomeworkSubmissionService(contentRepository, submissionRepository, userRepository,
-                new SchedulingProperties());
+        service = new HomeworkSubmissionService(contentRepository, submissionRepository, questionRepository,
+                answerRepository, userRepository, new SchedulingProperties());
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);
@@ -72,7 +79,7 @@ class HomeworkSubmissionServiceTest {
                 eq(HomeworkStatus.SUBMITTED.name()), eq(FormattedTextSegment.toJson(response)), any()))
                 .thenReturn(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(response)));
 
-        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, response);
+        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, response, null);
 
         assertThat(result.status()).isEqualTo("SUBMITTED");
         assertThat(result.response()).isEqualTo(response);
@@ -89,7 +96,7 @@ class HomeworkSubmissionServiceTest {
                 eq(HomeworkStatus.SUBMITTED.name()), isNull(), any()))
                 .thenReturn(submission(HomeworkStatus.SUBMITTED, null));
 
-        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, null);
+        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, null, null);
 
         assertThat(result.status()).isEqualTo("SUBMITTED");
         assertThat(result.response()).isNull();
@@ -99,7 +106,7 @@ class HomeworkSubmissionServiceTest {
     void submit_unknownAssignment_throwsNotFound() {
         when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("x")))
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("x"), null))
                 .isInstanceOf(AssignmentNotFoundException.class);
     }
 
@@ -110,7 +117,7 @@ class HomeworkSubmissionServiceTest {
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId))
                 .thenReturn(Optional.of(submission(HomeworkStatus.REVIEWED, FormattedTextSegment.toJson(plain("ya revisada")))));
 
-        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("nuevo intento")))
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("nuevo intento"), null))
                 .isInstanceOf(SubmissionNotAllowedException.class);
     }
 
@@ -125,7 +132,7 @@ class HomeworkSubmissionServiceTest {
                 eq(HomeworkStatus.SUBMITTED.name()), eq(FormattedTextSegment.toJson(updated)), any()))
                 .thenReturn(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(updated)));
 
-        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, updated);
+        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, updated, null);
 
         assertThat(result.status()).isEqualTo("SUBMITTED");
         assertThat(result.response()).isEqualTo(updated);
@@ -138,7 +145,7 @@ class HomeworkSubmissionServiceTest {
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.submit(EMAIL, assignmentId,
-                List.of(new FormattedTextSegment("hola", "purple", null, null))))
+                List.of(new FormattedTextSegment("hola", "purple", null, null)), null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -149,7 +156,7 @@ class HomeworkSubmissionServiceTest {
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.submit(EMAIL, assignmentId,
-                List.of(new FormattedTextSegment("hola", null, "orange", null))))
+                List.of(new FormattedTextSegment("hola", null, "orange", null)), null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -160,8 +167,32 @@ class HomeworkSubmissionServiceTest {
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
         String tooLong = "a".repeat(FormattedTextSegment.MAX_VISIBLE_LENGTH + 1);
 
-        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain(tooLong)))
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain(tooLong), null))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void submit_multiManual_requiresEveryAnswer() {
+        HomeworkAssignment a = assignment(null);
+        a.setHomeworkType(null); // non-WRITE MANUAL
+        UUID q1 = UUID.randomUUID();
+        UUID q2 = UUID.randomUUID();
+        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
+        com.kuky.backend.learning.model.HomeworkQuestion hq1 = new com.kuky.backend.learning.model.HomeworkQuestion();
+        hq1.setId(q1);
+        hq1.setKind(com.kuky.backend.learning.model.QuestionKind.FREE_TEXT);
+        hq1.setPrompt("Q1");
+        com.kuky.backend.learning.model.HomeworkQuestion hq2 = new com.kuky.backend.learning.model.HomeworkQuestion();
+        hq2.setId(q2);
+        hq2.setKind(com.kuky.backend.learning.model.QuestionKind.FREE_TEXT);
+        hq2.setPrompt("Q2");
+        when(questionRepository.findByAssignment(assignmentId)).thenReturn(List.of(hq1, hq2));
+
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, null,
+                List.of(new com.kuky.backend.learning.dto.ManualAnswerDto(q1, "solo una"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("todas");
     }
 
     // ---- helpers ----
@@ -173,6 +204,7 @@ class HomeworkSubmissionServiceTest {
         a.setInstructions("Instrucciones");
         a.setDueOn(dueOn);
         a.setPublished(true);
+        a.setHomeworkType(HomeworkType.WRITE);
         return a;
     }
 

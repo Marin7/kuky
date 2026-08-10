@@ -59,6 +59,7 @@ class HomeworkAdminServiceTest {
         userRepository = mock(UserRepository.class);
         submissionRepository = mock(HomeworkSubmissionRepository.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
                 new ObjectMapper());
 
@@ -88,7 +89,7 @@ class HomeworkAdminServiceTest {
                         null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null, false)));
 
         HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
-                "Tarea", "Hazla", LocalDate.of(2026, 6, 20), null, null, "MANUAL", List.of(), null, null, List.of(studentId)));
+                "Tarea", "Hazla", LocalDate.of(2026, 6, 20), "WRITE", null, "MANUAL", List.of(), null, null, List.of(studentId)));
 
         verify(targetRepository).replaceTargets(id, List.of(studentId));
         assertThat(item.assignees()).hasSize(1);
@@ -102,7 +103,7 @@ class HomeworkAdminServiceTest {
         when(userRepository.findById(unknown)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(new CreateHomeworkRequest(
-                "Tarea", "Hazla", null, null, null, "MANUAL", List.of(), null, null, List.of(unknown))))
+                "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, List.of(unknown))))
                 .isInstanceOf(StudentNotFoundException.class);
         verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any());
     }
@@ -131,7 +132,7 @@ class HomeworkAdminServiceTest {
         UUID id = UUID.randomUUID();
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.update(id,
-                new com.kuky.backend.admin.dto.UpdateHomeworkRequest("T", "I", null, null, null, "MANUAL", List.of(), null, null)))
+                new com.kuky.backend.admin.dto.UpdateHomeworkRequest("T", "I", null, "WRITE", null, "MANUAL", List.of(), null, null)))
                 .isInstanceOf(AssignmentNotFoundException.class);
         verify(contentRepository, never()).updateAssignment(eq(id), any(), any(), any(), any(), any(), any(), any(), any());
     }
@@ -282,6 +283,7 @@ class HomeworkAdminServiceTest {
                 new ExerciseGradingService.GradedExerciseView(List.of(),
                         new com.kuky.backend.learning.dto.ExerciseResultResponse(100, 1, 1, List.of())));
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper());
 
         var result = service.saveExerciseFeedback(submissionId, "  Muy bien  ");
@@ -308,6 +310,7 @@ class HomeworkAdminServiceTest {
                 new ExerciseGradingService.GradedExerciseView(List.of(),
                         new com.kuky.backend.learning.dto.ExerciseResultResponse(80, 0, 1, List.of())));
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper());
 
         var result = service.saveExerciseFeedback(submissionId, "   ");
@@ -356,6 +359,66 @@ class HomeworkAdminServiceTest {
         assertThatThrownBy(() -> service.saveExerciseFeedback(submissionId, "ok"))
                 .isInstanceOf(AssignmentNotFoundException.class);
         verify(submissionRepository, never()).updateExerciseFeedback(any(), any());
+    }
+
+    @Test
+    void getSubmissionDetail_includesFreeTextAnswersWithSnapshots() {
+        UUID submissionId = UUID.randomUUID();
+        UUID qid = UUID.randomUUID();
+        when(submissionRepository.findDetailById(submissionId)).thenReturn(Optional.of(
+                new HomeworkSubmissionRepository.SubmissionDetailRow(
+                        submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
+                        "Escucha", "SUBMITTED", null, null, Instant.now(), null)));
+        com.kuky.backend.learning.repository.HomeworkAnswerRepository answers =
+                mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class);
+        com.kuky.backend.learning.model.HomeworkAnswer row = new com.kuky.backend.learning.model.HomeworkAnswer();
+        row.setQuestionId(qid);
+        row.setPromptSnapshot("¿Qué oyes?");
+        row.setAnswerText("una noticia");
+        when(answers.findBySubmission(submissionId)).thenReturn(List.of(row));
+        service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                answers, audioFileRepository, userRepository, submissionRepository,
+                mock(ExerciseGradingService.class), new ObjectMapper());
+
+        HomeworkSubmissionAdminDto detail = service.getSubmissionDetail(submissionId);
+
+        assertThat(detail.answers()).hasSize(1);
+        assertThat(detail.answers().get(0).promptSnapshot()).isEqualTo("¿Qué oyes?");
+        assertThat(detail.answers().get(0).text()).isEqualTo("una noticia");
+        assertThat(detail.response()).isNull();
+    }
+
+    @Test
+    void validateAndMapQuestions_manualWriteRejectsQuestions() {
+        assertThatThrownBy(() -> service.validateAndMapQuestions(
+                com.kuky.backend.learning.model.HomeworkFormat.MANUAL,
+                List.of(new com.kuky.backend.admin.dto.HomeworkQuestionDto(
+                        null, "FREE_TEXT", "¿Hola?", List.of(), null)),
+                false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("escritura");
+    }
+
+    @Test
+    void validateAndMapQuestions_manualAudioRequiresFreeText() {
+        var mapped = service.validateAndMapQuestions(
+                com.kuky.backend.learning.model.HomeworkFormat.MANUAL,
+                List.of(new com.kuky.backend.admin.dto.HomeworkQuestionDto(
+                        null, "FREE_TEXT", "¿Qué oyes?", List.of(), null)),
+                true);
+        assertThat(mapped).hasSize(1);
+        assertThat(mapped.get(0).getKind()).isEqualTo(com.kuky.backend.learning.model.QuestionKind.FREE_TEXT);
+    }
+
+    @Test
+    void validateAndMapQuestions_exerciseRejectsFreeText() {
+        assertThatThrownBy(() -> service.validateAndMapQuestions(
+                com.kuky.backend.learning.model.HomeworkFormat.EXERCISE,
+                List.of(new com.kuky.backend.admin.dto.HomeworkQuestionDto(
+                        null, "FREE_TEXT", "¿…?", List.of(), null)),
+                false))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("autocorregibles");
     }
 
     private User studentUser() {

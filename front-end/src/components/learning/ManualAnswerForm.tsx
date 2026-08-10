@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "@tanstack/react-router";
 import { submitHomework, type ApiError } from "@/lib/learning";
 import { Button } from "@/components/ui/button";
 import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
@@ -24,7 +25,9 @@ interface Props {
   initialResponse: FormattedText | null;
   readOnly: boolean;
   labels: Labels;
-  onSubmitted: () => void;
+  onSubmitted?: () => void;
+  /** Where to go after a successful submit. Default: stay on the page. */
+  redirectTo?: "/aprendizaje" | null;
   /** Override default homework submit (e.g. presentation activities). */
   submitAnswer?: (
     id: string,
@@ -55,9 +58,11 @@ export function ManualAnswerForm({
   readOnly,
   labels,
   onSubmitted,
+  redirectTo = null,
   submitAnswer,
 }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [answer, setAnswer] = useState<FormattedText>(() => {
     // Prefer a locally saved draft (the most recent edit) over the last
     // server-saved response — unless the homework is locked.
@@ -92,7 +97,10 @@ export function ManualAnswerForm({
       } catch {
         // ignore
       }
-      onSubmitted();
+      onSubmitted?.();
+      if (redirectTo != null) {
+        await navigate({ to: redirectTo });
+      }
     } catch (e) {
       const err = e as ApiError;
       if (err.error === "VALIDATION_ERROR") {

@@ -25,10 +25,9 @@ interface Props {
 }
 
 /**
- * Review screen for a single Writing submission: shows the student's
- * formatted answer read-only, and lets the teacher write formatted feedback
- * (color/highlight/strike) and save it, which transitions the submission to
- * REVIEWED. Once REVIEWED, both sides render read-only.
+ * Review screen for a MANUAL submission: WRITE shows rich-text response;
+ * multi-question MANUAL shows each prompt snapshot + plain answer. Feedback
+ * stays whole-submission rich text.
  */
 export function HomeworkReviewDialog({
   submissionId,
@@ -79,6 +78,8 @@ export function HomeworkReviewDialog({
   };
 
   const readOnly = submission?.status === "REVIEWED";
+  const multiAnswers = submission?.answers?.filter(Boolean) ?? [];
+  const hasMultiAnswers = multiAnswers.length > 0;
 
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
@@ -111,11 +112,40 @@ export function HomeworkReviewDialog({
 
             <div>
               <p className="mb-2 text-sm font-medium">
-                {t("admin.homeworkReview.studentAnswer")}
+                {hasMultiAnswers
+                  ? t("admin.homeworkReview.studentAnswers")
+                  : t("admin.homeworkReview.studentAnswer")}
               </p>
-              <div className="rounded-md border bg-muted/20 p-3">
-                <RichTextViewer segments={submission.response} />
-              </div>
+              {hasMultiAnswers ? (
+                <ul className="space-y-3">
+                  {multiAnswers.map((a, i) => (
+                    <li
+                      key={a.questionId ?? `ans-${i}`}
+                      className="rounded-md border bg-muted/20 p-3"
+                    >
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">
+                        {t("admin.homeworkReview.questionPrompt", {
+                          index: i + 1,
+                        })}
+                      </p>
+                      <p className="mb-2 text-sm font-medium whitespace-pre-wrap">
+                        {a.promptSnapshot ||
+                          t("admin.homeworkReview.deletedPrompt")}
+                      </p>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {t("admin.homeworkReview.answerLabel")}
+                      </p>
+                      <p className="text-sm whitespace-pre-wrap">
+                        {a.text || t("admin.homeworkReview.emptyAnswer")}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <RichTextViewer segments={submission.response ?? []} />
+                </div>
+              )}
             </div>
 
             <div>

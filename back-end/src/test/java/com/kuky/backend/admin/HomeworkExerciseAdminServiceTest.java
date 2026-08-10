@@ -54,6 +54,7 @@ class HomeworkExerciseAdminServiceTest {
         userRepository = mock(UserRepository.class);
         submissionRepository = mock(HomeworkSubmissionRepository.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
                 objectMapper);
 

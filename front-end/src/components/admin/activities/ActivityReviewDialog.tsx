@@ -73,6 +73,8 @@ export function ActivityReviewDialog({
   };
 
   const reviewed = submission?.status === "REVIEWED";
+  const multiAnswers = submission?.answers?.filter(Boolean) ?? [];
+  const hasMultiAnswers = multiAnswers.length > 0;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -101,30 +103,68 @@ export function ActivityReviewDialog({
             </p>
             <div>
               <p className="mb-1 text-xs font-medium text-muted-foreground">
-                {t("admin.homeworkReview.studentAnswer")}
+                {hasMultiAnswers
+                  ? t("admin.homeworkReview.studentAnswers")
+                  : t("admin.homeworkReview.studentAnswer")}
               </p>
-              <RichTextViewer value={submission.response ?? []} />
+              {hasMultiAnswers ? (
+                <ul className="space-y-3">
+                  {multiAnswers.map((a, i) => (
+                    <li
+                      key={a.questionId ?? `ans-${i}`}
+                      className="rounded-md border bg-muted/20 p-3"
+                    >
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">
+                        {t("admin.homeworkReview.questionPrompt", {
+                          index: i + 1,
+                        })}
+                      </p>
+                      <p className="mb-2 text-sm font-medium whitespace-pre-wrap">
+                        {a.promptSnapshot ||
+                          t("admin.homeworkReview.deletedPrompt")}
+                      </p>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {t("admin.homeworkReview.answerLabel")}
+                      </p>
+                      <p className="text-sm whitespace-pre-wrap">
+                        {a.text || t("admin.homeworkReview.emptyAnswer")}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <RichTextViewer segments={submission.response ?? []} />
+                </div>
+              )}
             </div>
             <div>
               <p className="mb-1 text-xs font-medium text-muted-foreground">
-                {t("admin.homeworkReview.feedback")}
+                {t("admin.homeworkReview.yourFeedback")}
               </p>
               {reviewed ? (
-                <RichTextViewer value={feedback} />
+                <div className="rounded-md border bg-muted/20 p-3">
+                  <RichTextViewer segments={feedback} />
+                </div>
               ) : (
-                <RichTextEditor value={feedback} onChange={setFeedback} />
+                <RichTextEditor
+                  value={feedback}
+                  onChange={setFeedback}
+                  placeholder={t("admin.homeworkReview.feedbackPlaceholder")}
+                  disabled={saving}
+                />
               )}
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             {!reviewed && (
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={onClose}>
-                  {t("common.cancel")}
+                  {t("admin.homeworkReview.close")}
                 </Button>
                 <Button type="button" disabled={saving} onClick={handleSave}>
                   {saving
-                    ? t("common.saving")
-                    : t("admin.homeworkReview.saveFeedback")}
+                    ? t("admin.homeworkReview.saving")
+                    : t("admin.homeworkReview.save")}
                 </Button>
               </div>
             )}

@@ -331,7 +331,8 @@ export type QuestionKind =
   | "DRAG_DROP"
   | "TABLE_FILL"
   | "MATCHING"
-  | "TRUE_FALSE";
+  | "TRUE_FALSE"
+  | "FREE_TEXT";
 
 export interface AdminOption {
   id?: string;
@@ -526,6 +527,12 @@ export interface HomeworkReviewQueueItem {
   submittedAt: string;
 }
 
+export interface ManualSubmissionAnswerAdmin {
+  questionId: string | null;
+  promptSnapshot: string;
+  text: string;
+}
+
 export interface HomeworkSubmissionAdmin {
   submissionId: string;
   studentId: string;
@@ -535,7 +542,10 @@ export interface HomeworkSubmissionAdmin {
   studentUsername: string | null;
   assignmentTitle: string;
   status: "PENDING" | "SUBMITTED" | "REVIEWED";
-  response: FormattedText;
+  /** WRITE MANUAL: rich-text answer. Multi MANUAL: null/empty. */
+  response: FormattedText | null;
+  /** Multi MANUAL per-question answers (prompt snapshots). WRITE: null/empty. */
+  answers?: ManualSubmissionAnswerAdmin[] | null;
   feedback: FormattedText | null;
   submittedAt: string | null;
   reviewedAt: string | null;

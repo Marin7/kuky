@@ -8,7 +8,7 @@ import {
   type ExerciseResponse,
 } from "@/lib/learning";
 import { extractYoutubeVideoId, youtubeEmbedUrl, activityImageUrl } from "@/lib/youtube";
-import { ManualAnswerForm } from "./ManualAnswerForm";
+import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { ExerciseForm } from "./ExerciseForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 
@@ -165,17 +165,15 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
               </div>
             </div>
           )}
-          <ManualAnswerForm
+          <ManualMultiAnswerForm
+            key={`${item.id}-${item.status}`}
             homeworkId={item.id}
-            initialResponse={item.response}
+            questions={(item.questions ?? []).map((q) => ({
+              id: q.id,
+              prompt: q.prompt,
+            }))}
+            initialAnswers={item.answers}
             readOnly={item.status === "REVIEWED"}
-            labels={{
-              yourAnswer: t("learning.submitDialog.yourAnswer"),
-              placeholder: t("learning.submitDialog.placeholder"),
-              submit: t("learning.activities.submit"),
-              submitting: t("learning.submitDialog.submitting"),
-              autosaveHint: t("learning.writePage.autosaveHint"),
-            }}
             submitAnswer={submitActivity}
             onSubmitted={handleChanged}
           />

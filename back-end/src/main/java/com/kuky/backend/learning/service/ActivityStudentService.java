@@ -1,20 +1,29 @@
 package com.kuky.backend.learning.service;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.dto.ActivityItemResponse;
 import com.kuky.backend.learning.dto.ActivitySummary;
+import com.kuky.backend.learning.dto.ExerciseQuestionDto;
 import com.kuky.backend.learning.dto.ExerciseResultResponse;
+import com.kuky.backend.learning.dto.ManualAnswerDto;
+import com.kuky.backend.learning.dto.ManualAnswerViewDto;
 import com.kuky.backend.learning.dto.SubmitExerciseRequest;
 import com.kuky.backend.learning.exception.ActivityAlreadySubmittedException;
 import com.kuky.backend.learning.exception.ActivityNotFoundException;
 import com.kuky.backend.learning.exception.ActivityValidationException;
 import com.kuky.backend.learning.model.Activity;
 import com.kuky.backend.learning.model.ActivityInstructionsFile;
+import com.kuky.backend.learning.model.ActivityQuestion;
 import com.kuky.backend.learning.model.ActivitySubmission;
 import com.kuky.backend.learning.model.FormattedTextSegment;
+import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkStatus;
+import com.kuky.backend.learning.model.QuestionKind;
+import com.kuky.backend.learning.repository.ActivityAnswerRepository;
+import com.kuky.backend.learning.repository.ActivityQuestionRepository;
 import com.kuky.backend.learning.repository.ActivityRepository;
 import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
 import com.kuky.backend.presentations.repository.PresentationRepository;
@@ -36,6 +45,8 @@ public class ActivityStudentService {
 
     private final ActivityRepository activityRepository;
     private final ActivitySubmissionRepository submissionRepository;
+    private final ActivityQuestionRepository questionRepository;
+    private final ActivityAnswerRepository answerRepository;
     private final PresentationRepository presentationRepository;
     private final UserRepository userRepository;
     private final ActivityInstructionsFileStore instructionsFileStore;
@@ -43,12 +54,16 @@ public class ActivityStudentService {
 
     public ActivityStudentService(ActivityRepository activityRepository,
                                   ActivitySubmissionRepository submissionRepository,
+                                  ActivityQuestionRepository questionRepository,
+                                  ActivityAnswerRepository answerRepository,
                                   PresentationRepository presentationRepository,
                                   UserRepository userRepository,
                                   ActivityInstructionsFileStore instructionsFileStore,
                                   ActivityExerciseGradingService gradingService) {
         this.activityRepository = activityRepository;
         this.submissionRepository = submissionRepository;
+        this.questionRepository = questionRepository;
+        this.answerRepository = answerRepository;
         this.presentationRepository = presentationRepository;
         this.userRepository = userRepository;
         this.instructionsFileStore = instructionsFileStore;
@@ -89,7 +104,9 @@ public class ActivityStudentService {
     }
 
     @Transactional
-    public ActivityItemResponse submitManual(String email, UUID activityId, List<FormattedTextSegment> response) {
+    public ActivityItemResponse submitManual(String email, UUID activityId,
+                                             List<FormattedTextSegment> response,
+                                             List<ManualAnswerDto> answers) {
         User user = requireUser(email);
         Activity activity = requireAccessible(activityId, user.getId());
         if (activity.getFormat() != HomeworkFormat.MANUAL) {
@@ -101,15 +118,25 @@ public class ActivityStudentService {
             throw new ActivityAlreadySubmittedException(
                     "Esta actividad ya ha sido revisada y no puede modificarse.");
         }
-        if (response != null) {
-            FormattedTextSegment.validate(response);
+        if (response != null && !response.isEmpty()) {
+            throw new ActivityValidationException("Esta actividad se entrega con respuestas por pregunta.");
+        }
+        List<ActivityQuestion> questions = freeTextQuestions(activityId);
+        List<HomeworkAnswer> mapped;
+        try {
+            mapped = HomeworkSubmissionService.validateAndMapFreeTextAnswers(
+                    questions.stream().map(q -> q.toHomeworkQuestion()).toList(),
+                    answers);
+        } catch (IllegalArgumentException e) {
+            throw new ActivityValidationException(e.getMessage());
         }
         ActivitySubmission saved = submissionRepository.upsertManual(
                 user.getId(),
                 activityId,
                 HomeworkStatus.SUBMITTED.name(),
-                FormattedTextSegment.toJson(response),
+                null,
                 Instant.now());
+        answerRepository.saveAll(saved.getId(), mapped);
         return toItemResponse(activity, saved);
     }
 
@@ -156,8 +183,20 @@ public class ActivityStudentService {
                     submission == null ? null : submission.getScorePercent(),
                     gradingService.studentQuestionsFor(activity.getId()),
                     result,
-                    teacherFeedback);
+                    teacherFeedback,
+                    List.of());
         }
+
+        List<ExerciseQuestionDto> questions = freeTextQuestions(activity.getId()).stream()
+                .map(q -> new ExerciseQuestionDto(
+                        q.getId(), QuestionKind.FREE_TEXT.name(), q.getPrompt(),
+                        List.of(), JsonNodeFactory.instance.objectNode()))
+                .toList();
+        List<ManualAnswerViewDto> answers = submission == null
+                ? List.of()
+                : answerRepository.findBySubmission(submission.getId()).stream()
+                .map(a -> new ManualAnswerViewDto(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                .toList();
 
         return new ActivityItemResponse(
                 activity.getId(),
@@ -171,12 +210,19 @@ public class ActivityStudentService {
                 activity.getInstructionsText(),
                 activity.getYoutubeUrl(),
                 activity.getImageId(),
-                submission == null ? List.of() : FormattedTextSegment.fromJson(submission.getResponseText()),
+                List.of(),
                 submission == null ? List.of() : FormattedTextSegment.fromJson(submission.getFeedback()),
                 null,
-                List.of(),
+                questions,
                 null,
-                null);
+                null,
+                answers);
+    }
+
+    private List<ActivityQuestion> freeTextQuestions(UUID activityId) {
+        return questionRepository.findByActivityId(activityId).stream()
+                .filter(q -> q.getKind() == QuestionKind.FREE_TEXT)
+                .toList();
     }
 
     private Activity requireAccessible(UUID activityId, UUID userId) {

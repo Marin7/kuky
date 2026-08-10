@@ -29,6 +29,8 @@ public class HomeworkAnswerRepository {
         a.setSubmissionId(rs.getObject("submission_id", UUID.class));
         a.setQuestionId(rs.getObject("question_id", UUID.class));
         a.setAnswerJson(rs.getString("answer_json"));
+        a.setAnswerText(rs.getString("answer_text"));
+        a.setPromptSnapshot(rs.getString("prompt_snapshot"));
         a.setScore(rs.getBigDecimal("score"));
         return a;
     };
@@ -46,10 +48,13 @@ public class HomeworkAnswerRepository {
                     .addValue("qid", a.getQuestionId())
                     // VARCHAR (incl. null) + CAST — avoids untyped CASE WHEN ? IS NULL (PSQLException)
                     .addValue("answerJson", a.getAnswerJson(), Types.VARCHAR)
+                    .addValue("answerText", a.getAnswerText(), Types.VARCHAR)
+                    .addValue("promptSnapshot", a.getPromptSnapshot(), Types.VARCHAR)
                     .addValue("score", a.getScore());
             jdbc.update("""
-                    INSERT INTO homework_answers (id, submission_id, question_id, answer_json, score)
-                    VALUES (:id, :sid, :qid, CAST(:answerJson AS jsonb), :score)
+                    INSERT INTO homework_answers
+                        (id, submission_id, question_id, answer_json, answer_text, prompt_snapshot, score)
+                    VALUES (:id, :sid, :qid, CAST(:answerJson AS jsonb), :answerText, :promptSnapshot, :score)
                     """, params);
             for (UUID optionId : a.getSelectedOptionIds()) {
                 jdbc.update("""

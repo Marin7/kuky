@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   getExercise,
   getLearning,
@@ -9,7 +9,7 @@ import {
   type HomeworkFormat,
 } from "@/lib/learning";
 import { ExerciseForm } from "./ExerciseForm";
-import { ManualAnswerForm } from "./ManualAnswerForm";
+import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { AudioPlayer } from "./AudioPlayer";
 
 interface Props {
@@ -24,7 +24,6 @@ interface Props {
  */
 export function HomeworkListeningPage({ homeworkId, format }: Props) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [exercise, setExercise] = useState<ExerciseResponse | null>(null);
   const [item, setItem] = useState<HomeworkItem | null>(null);
@@ -82,33 +81,29 @@ export function HomeworkListeningPage({ homeworkId, format }: Props) {
             {title}
           </h1>
 
-          {(audioUrl || audioFileId) && (
-            <div className="mt-3">
-              <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
-            </div>
-          )}
-
           {instructions && (
             <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
               {instructions}
             </p>
           )}
 
+          {(audioUrl || audioFileId) && (
+            <div className="mt-3">
+              <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
+            </div>
+          )}
+
           {exercise ? (
             <ExerciseForm exercise={exercise} />
           ) : item ? (
-            <ManualAnswerForm
+            <ManualMultiAnswerForm
               homeworkId={homeworkId}
-              initialResponse={item.response}
+              questions={(item.questions ?? []).map((q) => ({
+                id: q.id,
+                prompt: q.prompt,
+              }))}
+              initialAnswers={item.answers}
               readOnly={item.status === "REVIEWED"}
-              labels={{
-                yourAnswer: t("learning.listenPage.yourAnswer"),
-                placeholder: t("learning.listenPage.placeholder"),
-                submit: t("learning.listenPage.submit"),
-                submitting: t("learning.listenPage.submitting"),
-                autosaveHint: t("learning.writePage.autosaveHint"),
-              }}
-              onSubmitted={() => navigate({ to: "/aprendizaje" })}
             />
           ) : null}
         </>

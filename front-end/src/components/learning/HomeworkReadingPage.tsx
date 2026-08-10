@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   getExercise,
   getLearning,
@@ -9,7 +9,7 @@ import {
   type HomeworkFormat,
 } from "@/lib/learning";
 import { ExerciseForm } from "./ExerciseForm";
-import { ManualAnswerForm } from "./ManualAnswerForm";
+import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 
 interface Props {
   homeworkId: string;
@@ -23,7 +23,6 @@ interface Props {
  */
 export function HomeworkReadingPage({ homeworkId, format }: Props) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [exercise, setExercise] = useState<ExerciseResponse | null>(null);
   const [item, setItem] = useState<HomeworkItem | null>(null);
@@ -86,18 +85,14 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
           {exercise ? (
             <ExerciseForm exercise={exercise} />
           ) : item ? (
-            <ManualAnswerForm
+            <ManualMultiAnswerForm
               homeworkId={homeworkId}
-              initialResponse={item.response}
+              questions={(item.questions ?? []).map((q) => ({
+                id: q.id,
+                prompt: q.prompt,
+              }))}
+              initialAnswers={item.answers}
               readOnly={item.status === "REVIEWED"}
-              labels={{
-                yourAnswer: t("learning.readPage.yourAnswer"),
-                placeholder: t("learning.readPage.placeholder"),
-                submit: t("learning.readPage.submit"),
-                submitting: t("learning.readPage.submitting"),
-                autosaveHint: t("learning.writePage.autosaveHint"),
-              }}
-              onSubmitted={() => navigate({ to: "/aprendizaje" })}
             />
           ) : null}
         </>

@@ -20,6 +20,7 @@ import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.exception.NotSubmittedException;
 import com.kuky.backend.learning.exception.SubmissionNotFoundException;
+import com.kuky.backend.learning.dto.ManualAnswerViewDto;
 import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
@@ -32,6 +33,7 @@ import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.model.QuestionOption;
 import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
+import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
@@ -58,6 +60,7 @@ public class HomeworkAdminService {
     private final ContentRepository contentRepository;
     private final HomeworkTargetRepository targetRepository;
     private final HomeworkQuestionRepository questionRepository;
+    private final HomeworkAnswerRepository answerRepository;
     private final AudioFileRepository audioFileRepository;
     private final UserRepository userRepository;
     private final HomeworkSubmissionRepository submissionRepository;
@@ -67,6 +70,7 @@ public class HomeworkAdminService {
     public HomeworkAdminService(ContentRepository contentRepository,
                                 HomeworkTargetRepository targetRepository,
                                 HomeworkQuestionRepository questionRepository,
+                                HomeworkAnswerRepository answerRepository,
                                 AudioFileRepository audioFileRepository,
                                 UserRepository userRepository,
                                 HomeworkSubmissionRepository submissionRepository,
@@ -75,6 +79,7 @@ public class HomeworkAdminService {
         this.contentRepository = contentRepository;
         this.targetRepository = targetRepository;
         this.questionRepository = questionRepository;
+        this.answerRepository = answerRepository;
         this.audioFileRepository = audioFileRepository;
         this.userRepository = userRepository;
         this.submissionRepository = submissionRepository;
@@ -171,10 +176,17 @@ public class HomeworkAdminService {
     }
 
     private HomeworkSubmissionAdminDto toSubmissionAdminDto(HomeworkSubmissionRepository.SubmissionDetailRow row) {
+        List<ManualAnswerViewDto> answers = answerRepository.findBySubmission(row.submissionId()).stream()
+                .map(a -> new ManualAnswerViewDto(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                .toList();
+        List<FormattedTextSegment> response = answers.isEmpty()
+                ? FormattedTextSegment.fromJson(row.responseText())
+                : null;
         return new HomeworkSubmissionAdminDto(
                 row.submissionId(), row.studentId(), row.studentEmail(), row.studentFirstName(),
                 row.studentLastName(), row.studentUsername(), row.assignmentTitle(), row.status(),
-                FormattedTextSegment.fromJson(row.responseText()),
+                response,
+                answers,
                 FormattedTextSegment.fromJson(row.feedback()),
                 row.submittedAt(), row.reviewedAt());
     }
@@ -196,7 +208,7 @@ public class HomeworkAdminService {
         HomeworkLevel level = parseLevel(req.level());
         HomeworkFormat format = parseFormat(req.format());
         validateTypeFormat(type, format);
-        List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions());
+        List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions(), type != HomeworkType.WRITE);
         Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
 
         UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn(), type, level, format,
@@ -214,7 +226,7 @@ public class HomeworkAdminService {
         HomeworkLevel level = parseLevel(req.level());
         HomeworkFormat format = parseFormat(req.format());
         validateTypeFormat(type, format);
-        List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions());
+        List<HomeworkQuestion> questions = validateAndMapQuestions(format, req.questions(), type != HomeworkType.WRITE);
         Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
 
         contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format,
@@ -252,16 +264,55 @@ public class HomeworkAdminService {
 
     /**
      * Public entry for activity authoring (and tests) to reuse homework question rules.
-     * Throws {@link IllegalArgumentException} (→ VALIDATION_ERROR) on any rule violation.
+     * MANUAL without free-text questions (WRITE / legacy default). Prefer
+     * {@link #validateAndMapQuestions(HomeworkFormat, List, boolean)} for non-WRITE MANUAL.
      */
     public List<HomeworkQuestion> validateAndMapQuestions(HomeworkFormat format, List<HomeworkQuestionDto> dtos) {
+        return validateAndMapQuestions(format, dtos, false);
+    }
+
+    /**
+     * @param allowManualFreeText when {@code format == MANUAL}, if true require ≥1 {@code FREE_TEXT}
+     *                            questions (non-WRITE homework / MANUAL activity); if false require none (WRITE).
+     */
+    public List<HomeworkQuestion> validateAndMapQuestions(HomeworkFormat format, List<HomeworkQuestionDto> dtos,
+                                                          boolean allowManualFreeText) {
         List<HomeworkQuestionDto> questions = dtos == null ? List.of() : dtos;
 
         if (format == HomeworkFormat.MANUAL) {
-            if (!questions.isEmpty()) {
-                throw new IllegalArgumentException("Una tarea manual no puede tener preguntas.");
+            if (!allowManualFreeText) {
+                if (!questions.isEmpty()) {
+                    throw new IllegalArgumentException("Una tarea de escritura no puede tener preguntas.");
+                }
+                return List.of();
             }
-            return List.of();
+            if (questions.isEmpty()) {
+                throw new IllegalArgumentException("Una tarea manual necesita al menos una pregunta de texto libre.");
+            }
+            List<HomeworkQuestion> mapped = new ArrayList<>();
+            for (HomeworkQuestionDto q : questions) {
+                if (q.prompt() == null || q.prompt().isBlank()) {
+                    throw new IllegalArgumentException("Cada pregunta necesita un enunciado.");
+                }
+                QuestionKind kind = parseKind(q.kind());
+                if (kind != QuestionKind.FREE_TEXT) {
+                    throw new IllegalArgumentException("Las tareas manuales solo admiten preguntas de texto libre.");
+                }
+                List<HomeworkQuestionDto.OptionDto> opts = q.options() == null ? List.of() : q.options();
+                if (!opts.isEmpty()) {
+                    throw new IllegalArgumentException("Las preguntas de texto libre no admiten opciones.");
+                }
+                if (!isStructureEmpty(q.structure())) {
+                    throw new IllegalArgumentException("Las preguntas de texto libre no admiten una estructura adicional.");
+                }
+                HomeworkQuestion model = new HomeworkQuestion();
+                model.setKind(QuestionKind.FREE_TEXT);
+                model.setPrompt(q.prompt().strip());
+                model.setStructureJson("{}");
+                model.setOptions(List.of());
+                mapped.add(model);
+            }
+            return mapped;
         }
 
         // EXERCISE
@@ -274,6 +325,9 @@ public class HomeworkAdminService {
                 throw new IllegalArgumentException("Cada pregunta necesita un enunciado.");
             }
             QuestionKind kind = parseKind(q.kind());
+            if (kind == QuestionKind.FREE_TEXT) {
+                throw new IllegalArgumentException("Las preguntas de texto libre no se usan en ejercicios autocorregibles.");
+            }
             List<HomeworkQuestionDto.OptionDto> opts = q.options() == null ? List.of() : q.options();
 
             HomeworkQuestion model = new HomeworkQuestion();
@@ -654,6 +708,7 @@ public class HomeworkAdminService {
         String format = a.getFormat() == null ? HomeworkFormat.MANUAL.name() : a.getFormat().name();
 
         List<HomeworkQuestionDto> questions = a.getFormat() == HomeworkFormat.EXERCISE
+                || (a.getFormat() == HomeworkFormat.MANUAL && a.getHomeworkType() != HomeworkType.WRITE)
                 ? questionRepository.findByAssignment(a.getId()).stream().map(this::toQuestionDto).toList()
                 : List.of();
 

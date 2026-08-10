@@ -27,6 +27,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { StudentMultiSelect } from "./StudentMultiSelect";
 import { QuestionListEditor } from "./QuestionListEditor";
+import { ManualQuestionListEditor } from "./ManualQuestionListEditor";
 import { AudioSourceEditor, type AudioSourceValue } from "./AudioSourceEditor";
 
 const LEVEL_OPTIONS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
@@ -112,7 +113,17 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       const due = dueOn ? dueOn : null;
       const type = homeworkType || null;
       const lvl = level || null;
-      const qs = format === "EXERCISE" ? questions : [];
+      const qs =
+        format === "EXERCISE"
+          ? questions
+          : format === "MANUAL" && type !== "WRITE"
+            ? questions.map((q) => ({
+                ...q,
+                kind: "FREE_TEXT" as const,
+                options: [],
+                structure: {},
+              }))
+            : [];
       // Audio is only meaningful for listening homework; clear it otherwise.
       const audioPayload =
         type === "AUDIO"
@@ -309,6 +320,15 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           {format === "EXERCISE" && (
             <div className="rounded-lg border bg-muted/30 p-4">
               <QuestionListEditor
+                questions={questions}
+                onChange={setQuestions}
+              />
+            </div>
+          )}
+
+          {format === "MANUAL" && homeworkType !== "WRITE" && (
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <ManualQuestionListEditor
                 questions={questions}
                 onChange={setQuestions}
               />

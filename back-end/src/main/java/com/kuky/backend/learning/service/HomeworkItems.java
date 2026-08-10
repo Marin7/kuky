@@ -1,12 +1,19 @@
 package com.kuky.backend.learning.service;
 
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.kuky.backend.learning.dto.ExerciseQuestionDto;
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
+import com.kuky.backend.learning.dto.ManualAnswerViewDto;
 import com.kuky.backend.learning.dto.UnitRef;
 import com.kuky.backend.learning.model.FormattedTextSegment;
+import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
+import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
+import com.kuky.backend.learning.model.HomeworkType;
+import com.kuky.backend.learning.model.QuestionKind;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -20,20 +27,24 @@ final class HomeworkItems {
 
     private HomeworkItems() {}
 
-    /**
-     * @param submission the student's submission, or {@code null} when none exists (⇒ PENDING)
-     * @param today      the current date in the teacher's timezone, for overdue derivation
-     */
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission, LocalDate today) {
-        return toResponse(a, submission, today, null, null);
+        return toResponse(a, submission, today, null, null, List.of(), List.of());
     }
 
-    /** Variant that attaches the owning unit, for the student's unit-grouped learning view. */
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
                                            LocalDate today, UnitRef unit, Integer unitPosition) {
+        return toResponse(a, submission, today, unit, unitPosition, List.of(), List.of());
+    }
+
+    static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
+                                           LocalDate today, UnitRef unit, Integer unitPosition,
+                                           List<HomeworkQuestion> freeTextQuestions,
+                                           List<HomeworkAnswer> freeTextAnswers) {
         String status = submission != null ? submission.getStatus() : HomeworkStatus.PENDING.name();
-        List<FormattedTextSegment> response =
-                submission != null ? FormattedTextSegment.fromJson(submission.getResponseText()) : null;
+        boolean multiManual = isMultiManual(a);
+        List<FormattedTextSegment> response = multiManual
+                ? null
+                : (submission != null ? FormattedTextSegment.fromJson(submission.getResponseText()) : null);
         List<FormattedTextSegment> feedback =
                 submission != null ? FormattedTextSegment.fromJson(submission.getFeedback()) : null;
         boolean overdue = a.getDueOn() != null
@@ -45,6 +56,14 @@ final class HomeworkItems {
         Integer scorePercent = submission != null ? submission.getScorePercent() : null;
         boolean hasTeacherFeedback = submission != null
                 && FormattedTextSegment.hasTeacherFeedback(submission.getFeedback());
+
+        List<ExerciseQuestionDto> questions = multiManual
+                ? freeTextQuestions.stream().map(HomeworkItems::toFreeTextQuestionDto).toList()
+                : List.of();
+        List<ManualAnswerViewDto> answers = multiManual
+                ? freeTextAnswers.stream().map(HomeworkItems::toAnswerView).toList()
+                : List.of();
+
         return new HomeworkItemResponse(
                 a.getId(),
                 a.getTitle(),
@@ -63,7 +82,26 @@ final class HomeworkItems {
                 a.getAudioFileId(),
                 unit,
                 unitPosition,
-                hasTeacherFeedback
+                hasTeacherFeedback,
+                questions,
+                answers
         );
+    }
+
+    static boolean isMultiManual(HomeworkAssignment a) {
+        return a.getFormat() == HomeworkFormat.MANUAL && a.getHomeworkType() != HomeworkType.WRITE;
+    }
+
+    private static ExerciseQuestionDto toFreeTextQuestionDto(HomeworkQuestion q) {
+        return new ExerciseQuestionDto(
+                q.getId(),
+                QuestionKind.FREE_TEXT.name(),
+                q.getPrompt(),
+                List.of(),
+                JsonNodeFactory.instance.objectNode());
+    }
+
+    private static ManualAnswerViewDto toAnswerView(HomeworkAnswer a) {
+        return new ManualAnswerViewDto(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText());
     }
 }

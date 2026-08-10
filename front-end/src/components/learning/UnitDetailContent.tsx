@@ -211,7 +211,13 @@ export function UnitDetailContent({
   onHomeworkChanged,
 }: Props) {
   const { t } = useTranslation();
-  const [openItem, setOpenItem] = useState<string | undefined>();
+  // Controlled Radix accordion: use "" (not undefined) so collapse stays controlled.
+  const [openItem, setOpenItem] = useState("");
+
+  const handleHomeworkChanged = () => {
+    setOpenItem("");
+    onHomeworkChanged();
+  };
 
   const items: UnitListItem[] = [
     ...presentations.map((p) => ({
@@ -239,7 +245,7 @@ export function UnitDetailContent({
       type="single"
       collapsible
       value={openItem}
-      onValueChange={(v) => setOpenItem(v || undefined)}
+      onValueChange={setOpenItem}
       className="w-full space-y-2"
     >
       {items.map((item) =>
@@ -281,7 +287,7 @@ export function UnitDetailContent({
             <AccordionContent className="overflow-visible">
               <HomeworkInlinePanel
                 item={item.homework}
-                onChanged={onHomeworkChanged}
+                onChanged={handleHomeworkChanged}
               />
             </AccordionContent>
           </AccordionItem>

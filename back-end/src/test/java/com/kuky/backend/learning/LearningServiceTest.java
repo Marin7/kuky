@@ -11,6 +11,8 @@ import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.model.PastClass;
 import com.kuky.backend.learning.model.PresentationBlock;
 import com.kuky.backend.learning.repository.ContentRepository;
+import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
+import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.service.ActivityStudentService;
 import com.kuky.backend.learning.service.LearningService;
@@ -41,6 +43,10 @@ class LearningServiceTest {
     @Mock
     private HomeworkSubmissionRepository submissionRepository;
     @Mock
+    private HomeworkQuestionRepository questionRepository;
+    @Mock
+    private HomeworkAnswerRepository answerRepository;
+    @Mock
     private UserRepository userRepository;
     @Mock
     private PresentationRepository presentationRepository;
@@ -56,8 +62,9 @@ class LearningServiceTest {
     void setUp() {
         ActivityStudentService activityStudentService = mock(ActivityStudentService.class);
         lenient().when(activityStudentService.summariesForPresentations(any(), any())).thenReturn(java.util.Map.of());
-        service = new LearningService(contentRepository, submissionRepository, userRepository,
-                presentationRepository, presentationFileStore, activityStudentService, new SchedulingProperties());
+        service = new LearningService(contentRepository, submissionRepository, questionRepository, answerRepository,
+                userRepository, presentationRepository, presentationFileStore, activityStudentService,
+                new SchedulingProperties());
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);
@@ -206,6 +213,7 @@ class LearningServiceTest {
         a.setInstructions("Instrucciones");
         a.setDueOn(dueOn);
         a.setPublished(true);
+        a.setHomeworkType(com.kuky.backend.learning.model.HomeworkType.WRITE);
         return a;
     }
 }

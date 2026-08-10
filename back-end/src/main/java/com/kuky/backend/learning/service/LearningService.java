@@ -10,8 +10,13 @@ import com.kuky.backend.learning.dto.PastClassResponse;
 import com.kuky.backend.learning.dto.PresentationBlockResponse;
 import com.kuky.backend.learning.dto.SharedPresentationSummary;
 import com.kuky.backend.learning.dto.UnitRef;
+import com.kuky.backend.learning.model.HomeworkAnswer;
+import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkSubmission;
+import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.repository.ContentRepository;
+import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
+import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.presentations.model.PresentationFile;
@@ -32,6 +37,8 @@ public class LearningService {
 
     private final ContentRepository contentRepository;
     private final HomeworkSubmissionRepository submissionRepository;
+    private final HomeworkQuestionRepository questionRepository;
+    private final HomeworkAnswerRepository answerRepository;
     private final UserRepository userRepository;
     private final PresentationRepository presentationRepository;
     private final PresentationFileStore presentationFileStore;
@@ -40,6 +47,8 @@ public class LearningService {
 
     public LearningService(ContentRepository contentRepository,
                            HomeworkSubmissionRepository submissionRepository,
+                           HomeworkQuestionRepository questionRepository,
+                           HomeworkAnswerRepository answerRepository,
                            UserRepository userRepository,
                            PresentationRepository presentationRepository,
                            PresentationFileStore presentationFileStore,
@@ -47,6 +56,8 @@ public class LearningService {
                            SchedulingProperties props) {
         this.contentRepository = contentRepository;
         this.submissionRepository = submissionRepository;
+        this.questionRepository = questionRepository;
+        this.answerRepository = answerRepository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
         this.presentationFileStore = presentationFileStore;
@@ -86,8 +97,17 @@ public class LearningService {
                     UnitRef unit = au == null ? null
                             : new UnitRef(au.unitId(), au.level(), au.subject(), au.position());
                     Integer unitPosition = au == null ? null : au.unitPosition();
-                    return HomeworkItems.toResponse(a, submissionsByAssignment.get(a.getId()), today,
-                            unit, unitPosition);
+                    HomeworkSubmission submission = submissionsByAssignment.get(a.getId());
+                    if (!HomeworkItems.isMultiManual(a)) {
+                        return HomeworkItems.toResponse(a, submission, today, unit, unitPosition);
+                    }
+                    List<HomeworkQuestion> questions = questionRepository.findByAssignment(a.getId()).stream()
+                            .filter(q -> q.getKind() == QuestionKind.FREE_TEXT)
+                            .toList();
+                    List<HomeworkAnswer> answers = submission == null
+                            ? List.of()
+                            : answerRepository.findBySubmission(submission.getId());
+                    return HomeworkItems.toResponse(a, submission, today, unit, unitPosition, questions, answers);
                 })
                 .toList();
 

@@ -58,10 +58,10 @@ BEGIN
     -- pres2 stays without a direct share row, so it only shows up via the unit_assignments path.
 
     -- Homeworks: one MANUAL (submitted, awaiting review), one EXERCISE (graded)
-    INSERT INTO homework_assignments (id, title, instructions, due_on, format, unit_id, sort_order)
+    INSERT INTO homework_assignments (id, title, instructions, due_on, format, homework_type, unit_id, sort_order)
     VALUES (gen_random_uuid(), 'Redacción: preséntate',
             'Escribe entre 8 y 10 frases presentándote: nombre, de dónde eres, qué te gusta.',
-            CURRENT_DATE + 7, 'MANUAL', unit_a1, 1)
+            CURRENT_DATE + 7, 'MANUAL', 'WRITE', unit_a1, 1)
     RETURNING id INTO hw_manual;
 
     INSERT INTO homework_assignments (id, title, instructions, due_on, format, unit_id, sort_order)

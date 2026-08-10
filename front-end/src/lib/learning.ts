@@ -13,7 +13,8 @@ export type QuestionKind =
   | "DRAG_DROP"
   | "TABLE_FILL"
   | "MATCHING"
-  | "TRUE_FALSE";
+  | "TRUE_FALSE"
+  | "FREE_TEXT";
 
 export interface PresentationBlock {
   heading: string;
@@ -25,6 +26,17 @@ export interface PastClass {
   title: string;
   heldOn: string; // ISO date, e.g. "2026-06-03"
   teacherNote: string;
+}
+
+export interface ManualAnswerItem {
+  questionId: string;
+  promptSnapshot: string;
+  text: string;
+}
+
+export interface ManualAnswerPayload {
+  questionId: string;
+  text: string;
 }
 
 export interface HomeworkItem {
@@ -46,6 +58,10 @@ export interface HomeworkItem {
   unit: UnitRef | null; // owning unit for grouping (null for legacy/unattached)
   unitPosition?: number | null; // rank within unit mixed sequence
   hasTeacherFeedback: boolean;
+  /** MANUAL non-WRITE: free-text questions to answer. */
+  questions?: StudentQuestion[];
+  /** MANUAL non-WRITE: submitted plain-text answers (with prompt snapshots). */
+  answers?: ManualAnswerItem[] | null;
 }
 
 // --- Self-correcting exercises ---------------------------------------------
@@ -237,10 +253,15 @@ export const getLearning = () => apiCall<LearningResponse>("/learning");
 export const submitHomework = (
   assignmentId: string,
   response?: FormattedText | null,
+  answers?: ManualAnswerPayload[],
 ) =>
   apiCall<HomeworkItem>(`/learning/homework/${assignmentId}`, {
     method: "PUT",
-    body: JSON.stringify({ response: response ?? null }),
+    body: JSON.stringify(
+      answers != null
+        ? { answers }
+        : { response: response ?? null },
+    ),
   });
 
 export const getExercise = (assignmentId: string) =>
@@ -312,6 +333,8 @@ export interface ActivityItem {
   feedback: FormattedText | null;
   scorePercent: number | null;
   questions: StudentQuestion[];
+  /** MANUAL: submitted plain-text answers (with prompt snapshots). */
+  answers?: ManualAnswerItem[] | null;
   result: ExerciseResult | null;
   teacherFeedback: string | null;
 }
@@ -322,10 +345,15 @@ export const getActivity = (id: string) =>
 export const submitActivity = (
   id: string,
   response?: FormattedText | null,
+  answers?: ManualAnswerPayload[],
 ) =>
   apiCall<ActivityItem>(`/learning/activities/${id}`, {
     method: "PUT",
-    body: JSON.stringify({ response: response ?? null }),
+    body: JSON.stringify(
+      answers != null
+        ? { answers }
+        : { response: response ?? null },
+    ),
   });
 
 export const submitActivityAnswers = (id: string, answers: AnswerPayload[]) =>

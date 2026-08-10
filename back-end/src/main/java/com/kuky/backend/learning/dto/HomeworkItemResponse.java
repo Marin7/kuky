@@ -25,5 +25,7 @@ public record HomeworkItemResponse(
         UUID audioFileId,         // listening homework uploaded file (nullable)
         UnitRef unit,             // owning unit for grouping (nullable for legacy/unattached)
         Integer unitPosition,     // rank within unit mixed sequence (nullable when unattached)
-        boolean hasTeacherFeedback
+        boolean hasTeacherFeedback,
+        List<ExerciseQuestionDto> questions,   // FREE_TEXT prompts for multi MANUAL; else empty
+        List<ManualAnswerViewDto> answers      // per-question plain answers; else empty
 ) {}

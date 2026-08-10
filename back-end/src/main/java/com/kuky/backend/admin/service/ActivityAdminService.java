@@ -19,6 +19,7 @@ import com.kuky.backend.learning.exception.ActivityValidationException;
 import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.NotSubmittedException;
 import com.kuky.backend.learning.exception.SubmissionNotFoundException;
+import com.kuky.backend.learning.dto.ManualAnswerViewDto;
 import com.kuky.backend.learning.model.Activity;
 import com.kuky.backend.learning.model.ActivityQuestion;
 import com.kuky.backend.learning.model.ActivitySubmission;
@@ -26,6 +27,7 @@ import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
+import com.kuky.backend.learning.repository.ActivityAnswerRepository;
 import com.kuky.backend.learning.repository.ActivityQuestionRepository;
 import com.kuky.backend.learning.repository.ActivityRepository;
 import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
@@ -49,6 +51,7 @@ public class ActivityAdminService {
     private final ActivityRepository activityRepository;
     private final ActivityQuestionRepository questionRepository;
     private final ActivitySubmissionRepository submissionRepository;
+    private final ActivityAnswerRepository answerRepository;
     private final ActivityInstructionsFileStore instructionsFileStore;
     private final PresentationRepository presentationRepository;
     private final ImageRepository imageRepository;
@@ -60,6 +63,7 @@ public class ActivityAdminService {
     public ActivityAdminService(ActivityRepository activityRepository,
                                 ActivityQuestionRepository questionRepository,
                                 ActivitySubmissionRepository submissionRepository,
+                                ActivityAnswerRepository answerRepository,
                                 ActivityInstructionsFileStore instructionsFileStore,
                                 PresentationRepository presentationRepository,
                                 ImageRepository imageRepository,
@@ -70,6 +74,7 @@ public class ActivityAdminService {
         this.activityRepository = activityRepository;
         this.questionRepository = questionRepository;
         this.submissionRepository = submissionRepository;
+        this.answerRepository = answerRepository;
         this.instructionsFileStore = instructionsFileStore;
         this.presentationRepository = presentationRepository;
         this.imageRepository = imageRepository;
@@ -355,7 +360,7 @@ public class ActivityAdminService {
         List<HomeworkQuestionDto> dtos = questionDtos == null ? List.of() : questionDtos;
         List<HomeworkQuestion> mapped;
         try {
-            mapped = homeworkAdminService.validateAndMapQuestions(format, dtos);
+            mapped = homeworkAdminService.validateAndMapQuestions(format, dtos, format == HomeworkFormat.MANUAL);
         } catch (IllegalArgumentException e) {
             throw new ActivityValidationException(e.getMessage());
         }
@@ -394,6 +399,7 @@ public class ActivityAdminService {
                 .orElse("");
         var instructions = activityRepository.findInstructionsByActivityId(a.getId()).orElse(null);
         List<HomeworkQuestionDto> questions = a.getFormat() == HomeworkFormat.EXERCISE
+                || a.getFormat() == HomeworkFormat.MANUAL
                 ? questionRepository.findByActivityId(a.getId()).stream().map(this::toQuestionDto).toList()
                 : List.of();
         ActivityAdminDetail.InstructionsMeta meta = instructions == null ? null
@@ -431,6 +437,12 @@ public class ActivityAdminService {
         User student = userRepository.findById(submission.getUserId())
                 .orElseThrow(() -> new StudentNotFoundException("Alumno no encontrado."));
         Activity activity = requireActivity(submission.getActivityId());
+        List<ManualAnswerViewDto> answers = answerRepository.findBySubmission(submission.getId()).stream()
+                .map(a -> new ManualAnswerViewDto(a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                .toList();
+        List<FormattedTextSegment> response = answers.isEmpty()
+                ? FormattedTextSegment.fromJson(submission.getResponseText())
+                : null;
         return new HomeworkSubmissionAdminDto(
                 submission.getId(),
                 student.getId(),
@@ -440,7 +452,8 @@ public class ActivityAdminService {
                 student.getUsername(),
                 activity.getTitle(),
                 submission.getStatus(),
-                FormattedTextSegment.fromJson(submission.getResponseText()),
+                response,
+                answers,
                 FormattedTextSegment.fromJson(submission.getFeedback()),
                 submission.getSubmittedAt(),
                 submission.getReviewedAt());

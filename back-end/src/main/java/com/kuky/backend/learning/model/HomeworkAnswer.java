@@ -11,8 +11,10 @@ public class HomeworkAnswer {
     private UUID id;
     private UUID submissionId;
     private UUID questionId;          // nullable after answer-key edits (ON DELETE SET NULL)
-    private String answerJson;        // structured kinds; null for choice
-    private BigDecimal score;         // per-question score in [0,1]
+    private String answerJson;        // structured kinds; null for choice / FREE_TEXT
+    private String answerText;        // FREE_TEXT plain answer; null for EXERCISE
+    private String promptSnapshot;    // FREE_TEXT prompt at submit time; null for EXERCISE
+    private BigDecimal score;         // per-question score in [0,1] (0 for FREE_TEXT)
     private List<UUID> selectedOptionIds = new ArrayList<>();
 
     public UUID getId() { return id; }
@@ -23,6 +25,10 @@ public class HomeworkAnswer {
     public void setQuestionId(UUID questionId) { this.questionId = questionId; }
     public String getAnswerJson() { return answerJson; }
     public void setAnswerJson(String answerJson) { this.answerJson = answerJson; }
+    public String getAnswerText() { return answerText; }
+    public void setAnswerText(String answerText) { this.answerText = answerText; }
+    public String getPromptSnapshot() { return promptSnapshot; }
+    public void setPromptSnapshot(String promptSnapshot) { this.promptSnapshot = promptSnapshot; }
     public BigDecimal getScore() { return score; }
     public void setScore(BigDecimal score) { this.score = score; }
     public List<UUID> getSelectedOptionIds() { return selectedOptionIds; }

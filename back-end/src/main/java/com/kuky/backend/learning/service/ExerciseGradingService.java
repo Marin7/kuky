@@ -213,6 +213,7 @@ public class ExerciseGradingService {
             case DRAG_DROP -> gradeDragDrop(q, given);
             case TABLE_FILL -> gradeTableFill(q, given);
             case MATCHING -> gradeMatching(q, given);
+            case FREE_TEXT -> throw new IllegalStateException("FREE_TEXT no se califica automáticamente.");
         };
     }
 

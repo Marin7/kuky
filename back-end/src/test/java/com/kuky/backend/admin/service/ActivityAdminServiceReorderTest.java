@@ -5,6 +5,7 @@ import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.exception.ActivityReorderInvalidException;
 import com.kuky.backend.learning.exception.ActivityValidationException;
 import com.kuky.backend.learning.model.Activity;
+import com.kuky.backend.learning.repository.ActivityAnswerRepository;
 import com.kuky.backend.learning.repository.ActivityQuestionRepository;
 import com.kuky.backend.learning.repository.ActivityRepository;
 import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
@@ -34,6 +35,7 @@ class ActivityAdminServiceReorderTest {
     @Mock ActivityRepository activityRepository;
     @Mock ActivityQuestionRepository questionRepository;
     @Mock ActivitySubmissionRepository submissionRepository;
+    @Mock ActivityAnswerRepository answerRepository;
     @Mock ActivityInstructionsFileStore instructionsFileStore;
     @Mock PresentationRepository presentationRepository;
     @Mock ImageRepository imageRepository;
@@ -50,6 +52,7 @@ class ActivityAdminServiceReorderTest {
                 activityRepository,
                 questionRepository,
                 submissionRepository,
+                answerRepository,
                 instructionsFileStore,
                 presentationRepository,
                 imageRepository,

@@ -7,6 +7,7 @@ import {
 } from "@/lib/learning";
 import { ExerciseForm } from "./ExerciseForm";
 import { ManualAnswerForm } from "./ManualAnswerForm";
+import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { AudioPlayer } from "./AudioPlayer";
 
 interface Props {
@@ -89,9 +90,6 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
 
   return (
     <div className="space-y-3">
-      {(audioUrl || audioFileId) && (
-        <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
-      )}
       {item.instructions &&
         (showPassageBox ? (
           <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
@@ -102,19 +100,36 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
             {item.instructions}
           </p>
         ))}
-      <ManualAnswerForm
-        homeworkId={item.id}
-        initialResponse={item.response}
-        readOnly={item.status === "REVIEWED"}
-        labels={{
-          yourAnswer: t("learning.submitDialog.yourAnswer"),
-          placeholder: t("learning.submitDialog.placeholder"),
-          submit: t("learning.submitDialog.submit"),
-          submitting: t("learning.submitDialog.submitting"),
-          autosaveHint: t("learning.writePage.autosaveHint"),
-        }}
-        onSubmitted={onChanged}
-      />
+      {(audioUrl || audioFileId) && (
+        <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
+      )}
+      {item.homeworkType !== "WRITE" ? (
+        <ManualMultiAnswerForm
+          key={`${item.id}-${item.status}-${item.submittedAt ?? "draft"}`}
+          homeworkId={item.id}
+          questions={(item.questions ?? []).map((q) => ({
+            id: q.id,
+            prompt: q.prompt,
+          }))}
+          initialAnswers={item.answers}
+          readOnly={item.status === "REVIEWED"}
+          onSubmitted={onChanged}
+        />
+      ) : (
+        <ManualAnswerForm
+          homeworkId={item.id}
+          initialResponse={item.response}
+          readOnly={item.status === "REVIEWED"}
+          labels={{
+            yourAnswer: t("learning.submitDialog.yourAnswer"),
+            placeholder: t("learning.submitDialog.placeholder"),
+            submit: t("learning.submitDialog.submit"),
+            submitting: t("learning.submitDialog.submitting"),
+            autosaveHint: t("learning.writePage.autosaveHint"),
+          }}
+          onSubmitted={onChanged}
+        />
+      )}
     </div>
   );
 }

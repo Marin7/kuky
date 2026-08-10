@@ -17,7 +17,7 @@ export function isStructuredKind(kind: QuestionKind): boolean {
 }
 
 export function defaultOptionsForKind(kind: QuestionKind): AdminOption[] {
-  if (isStructuredKind(kind)) return [];
+  if (isStructuredKind(kind) || kind === "FREE_TEXT") return [];
   if (kind === "TRUE_FALSE") {
     return [
       { label: "true", correct: false },

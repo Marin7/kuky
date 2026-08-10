@@ -68,7 +68,8 @@ public class LearningController {
             @PathVariable UUID assignmentId,
             @Valid @RequestBody(required = false) SubmitHomeworkRequest request) {
         var response = request == null ? null : request.response();
-        return ResponseEntity.ok(submissionService.submit(email, assignmentId, response));
+        var answers = request == null ? null : request.answers();
+        return ResponseEntity.ok(submissionService.submit(email, assignmentId, response, answers));
     }
 
     @GetMapping("/homework/{assignmentId}")
@@ -113,7 +114,8 @@ public class LearningController {
             @PathVariable UUID id,
             @Valid @RequestBody(required = false) SubmitHomeworkRequest request) {
         var response = request == null ? null : request.response();
-        return ResponseEntity.ok(activityStudentService.submitManual(email, id, response));
+        var answers = request == null ? null : request.answers();
+        return ResponseEntity.ok(activityStudentService.submitManual(email, id, response, answers));
     }
 
     @PutMapping("/activities/{id}/answers")

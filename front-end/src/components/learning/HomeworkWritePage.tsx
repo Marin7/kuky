@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { getLearning, type HomeworkItem } from "@/lib/learning";
 import { ManualAnswerForm } from "./ManualAnswerForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
@@ -11,7 +11,6 @@ interface Props {
 
 export function HomeworkWritePage({ homeworkId }: Props) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [item, setItem] = useState<HomeworkItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,7 +71,6 @@ export function HomeworkWritePage({ homeworkId }: Props) {
               submitting: t("learning.writePage.submitting"),
               autosaveHint: t("learning.writePage.autosaveHint"),
             }}
-            onSubmitted={() => navigate({ to: "/aprendizaje" })}
           />
 
           {item.feedback && item.feedback.length > 0 && (
