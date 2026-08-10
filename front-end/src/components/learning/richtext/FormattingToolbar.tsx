@@ -18,6 +18,9 @@ const HIGHLIGHT_COLOR_CLASS: Record<HighlightColor, string> = {
 
 interface Props {
   disabled: boolean;
+  activeColor?: TextColor;
+  activeHighlight?: HighlightColor;
+  activeStrike?: boolean;
   onApplyColor: (color: TextColor | undefined) => void;
   onApplyHighlight: (highlight: HighlightColor | undefined) => void;
   onToggleStrike: () => void;
@@ -29,13 +32,15 @@ function keepSelection(e: React.PointerEvent | React.MouseEvent) {
 }
 
 /**
- * A selection-based formatting bar: buttons apply to whatever text is
- * currently selected in the paired RichTextEditor. Pointer/mouse down
- * preventDefault on every button so activating a control never steals focus
- * from the textarea and collapses the selection before the click fires.
+ * Formatting bar: with a text selection, buttons restyle that range; with only
+ * a caret, they set sticky typing style for the next characters. Active styles
+ * are ring-highlighted so the current sticky/caret format is visible.
  */
 export function FormattingToolbar({
   disabled,
+  activeColor,
+  activeHighlight,
+  activeStrike,
   onApplyColor,
   onApplyHighlight,
   onToggleStrike,
@@ -58,7 +63,12 @@ export function FormattingToolbar({
             onClick={() => onApplyColor(color)}
             title={t(`richText.colors.${color}` as never)}
             aria-label={t(`richText.colors.${color}` as never)}
-            className={`h-6 w-6 rounded-full border-2 border-transparent text-sm font-semibold hover:border-foreground/40 disabled:opacity-40 ${TEXT_COLOR_CLASS[color]}`}
+            aria-pressed={activeColor === color}
+            className={`h-6 w-6 rounded-full border-2 text-sm font-semibold hover:border-foreground/40 disabled:opacity-40 ${TEXT_COLOR_CLASS[color]} ${
+              activeColor === color
+                ? "border-foreground ring-1 ring-foreground/30"
+                : "border-transparent"
+            }`}
           >
             A
           </button>
@@ -91,7 +101,12 @@ export function FormattingToolbar({
             onClick={() => onApplyHighlight(highlight)}
             title={t(`richText.highlights.${highlight}` as never)}
             aria-label={t(`richText.highlights.${highlight}` as never)}
-            className={`h-6 w-6 rounded border-2 border-transparent hover:border-foreground/40 disabled:opacity-40 ${HIGHLIGHT_COLOR_CLASS[highlight]}`}
+            aria-pressed={activeHighlight === highlight}
+            className={`h-6 w-6 rounded border-2 hover:border-foreground/40 disabled:opacity-40 ${HIGHLIGHT_COLOR_CLASS[highlight]} ${
+              activeHighlight === highlight
+                ? "border-foreground ring-1 ring-foreground/30"
+                : "border-transparent"
+            }`}
           />
         ))}
         <button
@@ -116,7 +131,10 @@ export function FormattingToolbar({
         onClick={() => onToggleStrike()}
         title={t("richText.strike")}
         aria-label={t("richText.strike")}
-        className="flex h-6 w-6 items-center justify-center rounded border hover:border-foreground/40 disabled:opacity-40"
+        aria-pressed={!!activeStrike}
+        className={`flex h-6 w-6 items-center justify-center rounded border hover:border-foreground/40 disabled:opacity-40 ${
+          activeStrike ? "border-foreground bg-muted ring-1 ring-foreground/30" : ""
+        }`}
       >
         <Strikethrough className="h-3.5 w-3.5" />
       </button>

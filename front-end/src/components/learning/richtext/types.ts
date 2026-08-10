@@ -17,10 +17,42 @@ export interface Segment {
 
 export type FormattedText = Segment[];
 
+/** Active typing style (sticky toolbar state / style at caret). */
+export type SegmentStyle = Pick<Segment, "color" | "highlight" | "strike">;
+
 export const TEXT_COLORS: TextColor[] = ["red", "green", "blue", "neutral"];
 export const HIGHLIGHT_COLORS: HighlightColor[] = ["yellow", "green", "pink"];
 
 export const MAX_VISIBLE_LENGTH = 2000;
+
+export function styleAtCaret(
+  segments: FormattedText,
+  caret: number,
+): SegmentStyle {
+  if (segments.length === 0) return {};
+  const index = caret > 0 ? caret - 1 : 0;
+  let pos = 0;
+  for (const seg of segments) {
+    const segEnd = pos + seg.text.length;
+    if (index >= pos && index < segEnd) {
+      const style: SegmentStyle = {};
+      if (seg.color) style.color = seg.color;
+      if (seg.highlight) style.highlight = seg.highlight;
+      if (seg.strike) style.strike = true;
+      return style;
+    }
+    pos = segEnd;
+  }
+  return {};
+}
+
+function segmentFromStyle(text: string, style?: SegmentStyle): Segment {
+  const seg: Segment = { text };
+  if (style?.color) seg.color = style.color;
+  if (style?.highlight) seg.highlight = style.highlight;
+  if (style?.strike) seg.strike = true;
+  return seg;
+}
 
 export function visibleLength(segments: FormattedText): number {
   return segments.reduce((total, s) => total + s.text.length, 0);
@@ -130,13 +162,15 @@ export function toggleStrike(
 
 /**
  * Reconciles a plain-text edit (typing, deleting, pasting) against the
- * existing segment array. Newly inserted text is unformatted; formatting on
- * text outside the edited span is preserved untouched.
+ * existing segment array. Newly inserted text takes `insertStyle` (sticky
+ * toolbar / caret style); formatting on text outside the edited span is
+ * preserved untouched.
  */
 export function reconcileEdit(
   segments: FormattedText,
   oldText: string,
   newText: string,
+  insertStyle?: SegmentStyle,
 ): FormattedText {
   if (oldText === newText) return segments;
 
@@ -175,7 +209,9 @@ export function reconcileEdit(
     // Segments fully inside [prefix, oldSuffixStart) are the replaced span — dropped.
   }
 
-  const middle: Segment[] = insertedText ? [{ text: insertedText }] : [];
+  const middle: Segment[] = insertedText
+    ? [segmentFromStyle(insertedText, insertStyle)]
+    : [];
   return mergeAdjacent([...before, ...middle, ...after]);
 }
 
