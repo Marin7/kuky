@@ -9,7 +9,6 @@ import type {
   HomeworkComposition,
   HomeworkFormat as LearningHomeworkFormat,
   StudentQuestion,
-  TeacherValidation,
 } from "@/lib/learning";
 const API_BASE = `${API_ORIGIN}/api/v1/admin`;
 
@@ -328,7 +327,7 @@ export const getStudentProfile = (id: string) =>
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type HomeworkFormat = LearningHomeworkFormat;
-export type { HomeworkComposition, TeacherValidation };
+export type { HomeworkComposition };
 export type QuestionKind =
   | "SINGLE_CHOICE"
   | "MULTI_CHOICE"
@@ -557,7 +556,7 @@ export interface ManualSubmissionAnswerAdmin {
   text: string;
   formatted?: FormattedText | null;
   kind?: QuestionKind | null;
-  teacherValidation?: TeacherValidation | null;
+  teacherScorePercent?: number | null;
   score?: number | null;
   correct?: boolean | null;
 }
@@ -588,6 +587,8 @@ export interface HomeworkSubmissionAdmin {
   feedback: FormattedText | null;
   /** ANNOTATED plain note (≤500). */
   feedbackText?: string | null;
+  /** WRITE: teacher percent (admin always; student only when GRADED). */
+  teacherScorePercent?: number | null;
   submittedAt: string | null;
   reviewedAt: string | null;
 }
@@ -595,13 +596,15 @@ export interface HomeworkSubmissionAdmin {
 export interface SaveHomeworkReviewPayload {
   feedbackText?: string | null;
   response?: FormattedText | null;
-  /** WRITE: required validate/invalidate for scored finalize. */
-  teacherValidation?: TeacherValidation;
+  /** When true, require all percents and set GRADED. Omit/false = progress save. */
+  finalize?: boolean;
+  /** WRITE: 0–100 teacher percent (required on finalize). */
+  teacherScorePercent?: number | null;
   answers?: {
     questionId: string | null;
     formatted: FormattedText;
-    /** Required for every FREE_TEXT answer on MIXED / ALL_MANUAL. */
-    teacherValidation?: TeacherValidation;
+    /** 0–100; required for every FREE_TEXT on finalize. */
+    teacherScorePercent?: number | null;
   }[];
 }
 

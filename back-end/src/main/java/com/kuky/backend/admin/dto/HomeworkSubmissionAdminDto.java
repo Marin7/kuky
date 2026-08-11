@@ -25,6 +25,8 @@ public record HomeworkSubmissionAdminDto(
         List<FormattedTextSegment> feedback,
         String feedbackText,
         Integer scorePercent,
+        /** WRITE top-level teacher percent (draft or graded); null for question-based reviews. */
+        Integer teacherScorePercent,
         Instant submittedAt,
         Instant reviewedAt
 ) {}

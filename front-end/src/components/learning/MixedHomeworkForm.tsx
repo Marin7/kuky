@@ -255,7 +255,7 @@ export function MixedHomeworkForm({
                 const ans = assignment.answers?.find(
                   (a) => a.questionId === q.id,
                 );
-                const validation = ans?.teacherValidation ?? null;
+                const percent = ans?.teacherScorePercent;
                 return (
                   <li
                     key={q.id}
@@ -268,17 +268,12 @@ export function MixedHomeworkForm({
                         })}
                         {q.prompt ? ` — ${q.prompt}` : ""}
                       </p>
-                      {validation === "VALIDATED" && (
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                          {t("learning.mixed.validated")}
+                      {finalized && percent != null && (
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                          {t("learning.mixed.scorePercent", { percent })}
                         </span>
                       )}
-                      {validation === "INVALIDATED" && (
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
-                          {t("learning.mixed.invalidated")}
-                        </span>
-                      )}
-                      {!finalized && !validation && (
+                      {!finalized && (
                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                           {t("learning.mixed.pendingValidation")}
                         </span>

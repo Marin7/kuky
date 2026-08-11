@@ -132,14 +132,18 @@ public class ExerciseGradingService {
                 scorePercent = graded ? submission.getScorePercent() : null;
                 provisionalScorePercent = mixedAwaiting && result != null ? result.scorePercent() : null;
                 if (composition == HomeworkComposition.MIXED) {
+                    boolean stripTeacherScores = mixedAwaiting;
                     answerViews = answerRepository.findBySubmission(submission.getId()).stream()
                             .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
-                            .map(a -> ManualAnswerViewDto.fromStored(
-                                    a.getQuestionId(),
-                                    a.getPromptSnapshot(),
-                                    a.getAnswerText(),
-                                    a.getTeacherValidation(),
-                                    a.getScore() == null ? null : a.getScore().doubleValue()))
+                            .map(a -> stripTeacherScores
+                                    ? ManualAnswerViewDto.fromStored(
+                                            a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText())
+                                    : ManualAnswerViewDto.fromStored(
+                                            a.getQuestionId(),
+                                            a.getPromptSnapshot(),
+                                            a.getAnswerText(),
+                                            a.getTeacherScorePercent(),
+                                            a.getScore() == null ? null : a.getScore().doubleValue()))
                             .toList();
                 }
             }

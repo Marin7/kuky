@@ -183,6 +183,27 @@ public class ActivitySubmissionRepository {
                 .addValue("now", Timestamp.from(now)), MAPPER).stream().findFirst().orElseThrow();
     }
 
+    /**
+     * Progress save while awaiting teacher: feedback/annotations, stay {@code SUBMITTED},
+     * clear final {@code score_percent}, set {@code review_model = ANNOTATED}.
+     */
+    public ActivitySubmission saveAnnotatedProgress(UUID submissionId, String feedbackJson) {
+        Instant now = Instant.now();
+        return jdbc.query("""
+                UPDATE activity_submissions SET
+                    feedback = :feedback,
+                    score_percent = NULL,
+                    status = 'SUBMITTED',
+                    review_model = 'ANNOTATED',
+                    updated_at = :now
+                WHERE id = :id AND status = 'SUBMITTED'
+                RETURNING *
+                """, new MapSqlParameterSource()
+                .addValue("id", submissionId)
+                .addValue("feedback", feedbackJson)
+                .addValue("now", Timestamp.from(now)), MAPPER).stream().findFirst().orElseThrow();
+    }
+
     /** @deprecated use {@link #saveScoredAnnotatedReview} */
     public ActivitySubmission saveMixedGradedReview(UUID submissionId, String feedbackJson,
                                                     int scorePercent, boolean firstReview) {

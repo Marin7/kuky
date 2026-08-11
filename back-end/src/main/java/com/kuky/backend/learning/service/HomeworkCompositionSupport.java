@@ -4,9 +4,9 @@ import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
-import com.kuky.backend.learning.model.TeacherValidation;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.List;
 
@@ -15,6 +15,8 @@ import java.util.List;
  * and shared score-percent helpers for auto / mixed grading.
  */
 public final class HomeworkCompositionSupport {
+
+    private static final double FULLY_CORRECT_EPSILON = 1e-9;
 
     private HomeworkCompositionSupport() {}
 
@@ -83,17 +85,35 @@ public final class HomeworkCompositionSupport {
         return scorePercent(sum, n);
     }
 
-    public static double teacherValidationScore(TeacherValidation validation) {
-        return validation == TeacherValidation.VALIDATED ? 1.0 : 0.0;
+    /** Converts a teacher percent (0–100) to a 0–1 contribution for overall mean. */
+    public static double teacherPercentAsScore(int percent) {
+        return percent / 100.0;
     }
 
-    public static double teacherValidationScore(String validation) {
-        if (validation == null) return 0.0;
-        return teacherValidationScore(TeacherValidation.valueOf(validation));
+    /**
+     * Count of contributions equal to {@code 1.0} (auto correct or teacher 100%).
+     * Partials do not count.
+     */
+    public static int fullyCorrectCount(Collection<? extends Number> scores) {
+        if (scores == null || scores.isEmpty()) return 0;
+        int count = 0;
+        for (Number s : scores) {
+            if (s == null) continue;
+            if (isFullyCorrect(s)) count++;
+        }
+        return count;
+    }
+
+    public static boolean isFullyCorrect(Number score) {
+        if (score == null) return false;
+        if (score instanceof BigDecimal bd) {
+            return bd.compareTo(BigDecimal.ONE) == 0;
+        }
+        return Math.abs(score.doubleValue() - 1.0) < FULLY_CORRECT_EPSILON;
     }
 
     public static BigDecimal scoreAsDecimal(double score) {
-        return BigDecimal.valueOf(score).setScale(3, java.math.RoundingMode.HALF_UP);
+        return BigDecimal.valueOf(score).setScale(3, RoundingMode.HALF_UP);
     }
 
     private static List<QuestionKind> kindsOf(Collection<? extends HasKind> questions) {

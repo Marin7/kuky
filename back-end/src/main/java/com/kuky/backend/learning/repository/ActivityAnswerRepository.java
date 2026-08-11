@@ -33,7 +33,7 @@ public class ActivityAnswerRepository {
         a.setAnswerText(rs.getString("answer_text"));
         a.setPromptSnapshot(rs.getString("prompt_snapshot"));
         a.setScore(rs.getBigDecimal("score"));
-        a.setTeacherValidation(rs.getString("teacher_validation"));
+        a.setTeacherScorePercent(rs.getObject("teacher_score_percent", Integer.class));
         return a;
     };
 
@@ -46,9 +46,9 @@ public class ActivityAnswerRepository {
             jdbc.update("""
                     INSERT INTO activity_answers
                         (id, submission_id, question_id, answer_json, answer_text, prompt_snapshot,
-                         score, teacher_validation)
+                         score, teacher_score_percent)
                     VALUES (:id, :sid, :qid, CAST(:answerJson AS jsonb), :answerText, :promptSnapshot,
-                            :score, :teacherValidation)
+                            :score, :teacherScorePercent)
                     """, new MapSqlParameterSource()
                     .addValue("id", answerId)
                     .addValue("sid", submissionId)
@@ -57,7 +57,7 @@ public class ActivityAnswerRepository {
                     .addValue("answerText", a.getAnswerText(), Types.VARCHAR)
                     .addValue("promptSnapshot", a.getPromptSnapshot(), Types.VARCHAR)
                     .addValue("score", a.getScore())
-                    .addValue("teacherValidation", a.getTeacherValidation(), Types.VARCHAR));
+                    .addValue("teacherScorePercent", a.getTeacherScorePercent(), Types.INTEGER));
             for (UUID optionId : a.getSelectedOptionIds()) {
                 jdbc.update("""
                         INSERT INTO activity_answer_options (answer_id, option_id)
@@ -101,17 +101,17 @@ public class ActivityAnswerRepository {
                 .addValue("answerText", answerText, Types.VARCHAR));
     }
 
-    public int updateManualReview(UUID answerId, String answerText, String teacherValidation, BigDecimal score) {
+    public int updateManualReview(UUID answerId, String answerText, Integer teacherScorePercent, BigDecimal score) {
         return jdbc.update("""
                 UPDATE activity_answers
                 SET answer_text = :answerText,
-                    teacher_validation = :teacherValidation,
+                    teacher_score_percent = :teacherScorePercent,
                     score = :score
                 WHERE id = :id
                 """, new MapSqlParameterSource()
                 .addValue("id", answerId)
                 .addValue("answerText", answerText, Types.VARCHAR)
-                .addValue("teacherValidation", teacherValidation, Types.VARCHAR)
+                .addValue("teacherScorePercent", teacherScorePercent, Types.INTEGER)
                 .addValue("score", score));
     }
 }

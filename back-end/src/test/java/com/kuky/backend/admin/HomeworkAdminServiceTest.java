@@ -180,14 +180,15 @@ class HomeworkAdminServiceTest {
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
 
-        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Texto cambiado", null)))
+        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Texto cambiado", null, 100, true)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("respuesta del alumno");
         verify(submissionRepository, never()).saveAnnotatedReview(any(), any(), any(), anyBoolean());
+        verify(submissionRepository, never()).saveScoredAnnotatedReview(any(), any(), any(), anyInt(), any(), anyBoolean());
     }
 
     @Test
-    void saveFeedback_marksWriteAnswerAndTransitionsToAnnotated() {
+    void saveFeedback_finalizesWriteWithPercent() {
         UUID submissionId = UUID.randomUUID();
         stubWriteSubmission(submissionId);
         List<FormattedTextSegment> annotated =
@@ -195,14 +196,65 @@ class HomeworkAdminServiceTest {
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
                 .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
-                        FormattedTextSegment.encodePlainFeedback("Bien", 500), "ANNOTATED")));
+                        FormattedTextSegment.encodePlainFeedback("Bien", 500), "ANNOTATED", 70, 70)));
 
         HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId,
-                new SaveHomeworkFeedbackRequest("Bien", annotated, null, "VALIDATED"));
+                new SaveHomeworkFeedbackRequest("Bien", annotated, null, 70, true));
 
         assertThat(result.reviewModel()).isEqualTo("ANNOTATED");
         assertThat(result.feedbackText()).isEqualTo("Bien");
-        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), any(), any(), eq(100), eq(true));
+        assertThat(result.scorePercent()).isEqualTo(70);
+        verify(submissionRepository).saveScoredAnnotatedReview(
+                eq(submissionId), any(), any(), eq(70), eq(70), eq(true));
+    }
+
+    @Test
+    void saveFeedback_progressWriteStaysSubmitted() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        List<FormattedTextSegment> annotated =
+                List.of(new FormattedTextSegment("Mi respuesta", null, null, false));
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED",
+                        FormattedTextSegment.encodePlainFeedback("Borrador", 500), "ANNOTATED", null, 40)));
+
+        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId,
+                new SaveHomeworkFeedbackRequest("Borrador", annotated, null, 40, false));
+
+        assertThat(result.status()).isEqualTo("SUBMITTED");
+        assertThat(result.scorePercent()).isNull();
+        assertThat(result.teacherScorePercent()).isEqualTo(40);
+        verify(submissionRepository).saveAnnotatedProgress(eq(submissionId), any(), any(), eq(40));
+        verify(submissionRepository, never()).saveScoredAnnotatedReview(any(), any(), any(), anyInt(), any(), anyBoolean());
+    }
+
+    @Test
+    void saveFeedback_finalizeWriteMissingPercentRejected() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
+
+        assertThatThrownBy(() -> service.saveFeedback(submissionId,
+                new SaveHomeworkFeedbackRequest("Bien",
+                        List.of(new FormattedTextSegment("Mi respuesta", null, null, null)),
+                        null, null, true)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("puntuación");
+        verify(submissionRepository, never()).saveScoredAnnotatedReview(any(), any(), any(), anyInt(), any(), anyBoolean());
+    }
+
+    @Test
+    void saveFeedback_rejectsOutOfRangePercent() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
+
+        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Mi respuesta", null, 101, true)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("0 y 100");
     }
 
     @Test
@@ -217,19 +269,21 @@ class HomeworkAdminServiceTest {
         answer.setQuestionId(questionId);
         answer.setAnswerText("Una respuesta");
         answer.setPromptSnapshot("¿Qué opinas?");
-        answer.setScore(java.math.BigDecimal.ONE);
+        answer.setScore(java.math.BigDecimal.ZERO);
         List<FormattedTextSegment> annotated =
                 List.of(new FormattedTextSegment("Una respuesta", null, "yellow", false));
-        when(answerRepository.findBySubmission(submissionId)).thenReturn(List.of(answer));
+        when(answerRepository.findBySubmission(submissionId))
+                .thenReturn(List.of(answer))
+                .thenReturn(List.of(scoredAnswer(answerId, questionId, 100)));
         when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
-                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", null, "ANNOTATED")));
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null, "MANUAL", "AUDIO")))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", null, "ANNOTATED", 100, null, "MANUAL", "AUDIO")));
 
         service.saveFeedback(submissionId, new SaveHomeworkFeedbackRequest(
                 null, null, List.of(new SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest(
-                        questionId, annotated, "VALIDATED")), null));
+                        questionId, annotated, 100)), null, true));
 
-        verify(answerRepository).updateManualReview(eq(answerId), any(), eq("VALIDATED"), any());
+        verify(answerRepository).updateManualReview(eq(answerId), any(), eq(100), any());
         verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), isNull(), isNull(), eq(100), eq(true));
         verify(questionRepository).findByAssignment(assignmentId);
     }
@@ -240,7 +294,7 @@ class HomeworkAdminServiceTest {
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "REVIEWED", "[]", "LEGACY_RICH")));
 
-        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Mi respuesta", null)))
+        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Mi respuesta", null, 100, true)))
                 .isInstanceOf(AlreadyReviewedException.class);
     }
 
@@ -250,14 +304,17 @@ class HomeworkAdminServiceTest {
         stubWriteSubmission(submissionId);
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
-                        FormattedTextSegment.encodePlainFeedback("Anterior", 500), "ANNOTATED")))
+                        FormattedTextSegment.encodePlainFeedback("Anterior", 500), "ANNOTATED", 100, 100)))
                 .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
-                        FormattedTextSegment.encodePlainFeedback("Actualizado", 500), "ANNOTATED")));
+                        FormattedTextSegment.encodePlainFeedback("Actualizado", 500), "ANNOTATED", 80, 80)));
 
-        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, review("Mi respuesta", "Actualizado"));
+        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId,
+                review("Mi respuesta", "Actualizado", 80, true));
 
         assertThat(result.feedbackText()).isEqualTo("Actualizado");
-        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), any(), any(), eq(100), eq(false));
+        assertThat(result.scorePercent()).isEqualTo(80);
+        verify(submissionRepository).saveScoredAnnotatedReview(
+                eq(submissionId), any(), any(), eq(80), eq(80), eq(false));
     }
 
     @Test
@@ -268,7 +325,7 @@ class HomeworkAdminServiceTest {
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
 
         assertThatThrownBy(() -> service.saveFeedback(submissionId,
-                review("Mi respuesta", "a".repeat(FormattedTextSegment.MAX_MANUAL_FEEDBACK_LENGTH + 1))))
+                review("Mi respuesta", "a".repeat(FormattedTextSegment.MAX_MANUAL_FEEDBACK_LENGTH + 1), 100, true)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("500");
     }
@@ -279,12 +336,14 @@ class HomeworkAdminServiceTest {
         stubWriteSubmission(submissionId);
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
-                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", null, "ANNOTATED")));
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", null, "ANNOTATED", 100, 100)));
 
-        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId, review("Mi respuesta", "   "));
+        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId,
+                review("Mi respuesta", "   ", 100, true));
 
         assertThat(result.feedbackText()).isNull();
-        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), isNull(), any(), eq(100), eq(true));
+        verify(submissionRepository).saveScoredAnnotatedReview(
+                eq(submissionId), isNull(), any(), eq(100), eq(100), eq(true));
     }
 
     @Test
@@ -294,7 +353,7 @@ class HomeworkAdminServiceTest {
         when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(detailRow(submissionId, "PENDING", null, null)));
 
-        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Mi respuesta", null)))
+        assertThatThrownBy(() -> service.saveFeedback(submissionId, review("Mi respuesta", null, 100, true)))
                 .isInstanceOf(NotSubmittedException.class);
     }
 
@@ -402,7 +461,7 @@ class HomeworkAdminServiceTest {
         when(submissionRepository.findDetailById(submissionId)).thenReturn(Optional.of(
                 new HomeworkSubmissionRepository.SubmissionDetailRow(
                         submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
-                        "Escucha", "SUBMITTED", null, null, null, null, "MANUAL", "AUDIO", Instant.now(), null)));
+                        "Escucha", "SUBMITTED", null, null, null, null, null, "MANUAL", "AUDIO", Instant.now(), null)));
         com.kuky.backend.learning.repository.HomeworkAnswerRepository answers =
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class);
         com.kuky.backend.learning.model.HomeworkAnswer row = new com.kuky.backend.learning.model.HomeworkAnswer();
@@ -540,22 +599,56 @@ class HomeworkAdminServiceTest {
         return a;
     }
 
-    private SaveHomeworkFeedbackRequest review(String text, String feedbackText) {
-        return review(text, feedbackText, "VALIDATED");
+    private SaveHomeworkFeedbackRequest review(String text, String feedbackText, Integer teacherScorePercent,
+                                               Boolean finalize) {
+        return new SaveHomeworkFeedbackRequest(feedbackText,
+                List.of(new FormattedTextSegment(text, null, null, null)), null,
+                teacherScorePercent, finalize);
     }
 
-    private SaveHomeworkFeedbackRequest review(String text, String feedbackText, String teacherValidation) {
-        return new SaveHomeworkFeedbackRequest(feedbackText,
-                List.of(new FormattedTextSegment(text, null, null, null)), null, teacherValidation);
+    private static com.kuky.backend.learning.model.HomeworkAnswer scoredAnswer(
+            UUID answerId, UUID questionId, int percent) {
+        com.kuky.backend.learning.model.HomeworkAnswer a = new com.kuky.backend.learning.model.HomeworkAnswer();
+        a.setId(answerId);
+        a.setQuestionId(questionId);
+        a.setAnswerText("Una respuesta");
+        a.setPromptSnapshot("¿Qué opinas?");
+        a.setTeacherScorePercent(percent);
+        a.setScore(java.math.BigDecimal.valueOf(percent / 100.0).setScale(3, java.math.RoundingMode.HALF_UP));
+        return a;
     }
 
     private HomeworkSubmissionRepository.SubmissionDetailRow detailRow(UUID submissionId, String status,
                                                                        String feedbackJson, String reviewModel) {
+        return detailRow(submissionId, status, feedbackJson, reviewModel,
+                "GRADED".equals(status) ? 100 : null,
+                "GRADED".equals(status) ? 100 : null,
+                "MANUAL", "WRITE");
+    }
+
+    private HomeworkSubmissionRepository.SubmissionDetailRow detailRow(UUID submissionId, String status,
+                                                                       String feedbackJson, String reviewModel,
+                                                                       Integer scorePercent, Integer teacherScorePercent) {
+        return detailRow(submissionId, status, feedbackJson, reviewModel, scorePercent, teacherScorePercent,
+                "MANUAL", "WRITE");
+    }
+
+    private HomeworkSubmissionRepository.SubmissionDetailRow detailRow(UUID submissionId, String status,
+                                                                       String feedbackJson, String reviewModel,
+                                                                       String format, String homeworkType) {
+        return detailRow(submissionId, status, feedbackJson, reviewModel,
+                "GRADED".equals(status) ? 100 : null, null, format, homeworkType);
+    }
+
+    private HomeworkSubmissionRepository.SubmissionDetailRow detailRow(UUID submissionId, String status,
+                                                                       String feedbackJson, String reviewModel,
+                                                                       Integer scorePercent, Integer teacherScorePercent,
+                                                                       String format, String homeworkType) {
         String response = FormattedTextSegment.toJson(List.of(new FormattedTextSegment("Mi respuesta", null, null, null)));
-        Integer score = "GRADED".equals(status) ? 100 : null;
         return new HomeworkSubmissionRepository.SubmissionDetailRow(
                 submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
-                "Tarea", status, response, feedbackJson, reviewModel, score, "MANUAL", "WRITE", Instant.now(),
+                "Tarea", status, response, feedbackJson, reviewModel, scorePercent, teacherScorePercent,
+                format, homeworkType, Instant.now(),
                 ("REVIEWED".equals(status) || "GRADED".equals(status)) ? Instant.now() : null);
     }
 }

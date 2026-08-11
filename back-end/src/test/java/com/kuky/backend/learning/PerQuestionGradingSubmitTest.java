@@ -82,7 +82,7 @@ class PerQuestionGradingSubmitTest {
         UUID manualQ = UUID.randomUUID();
         HomeworkQuestion auto = choiceQuestion(autoQ, true);
         HomeworkQuestion manual = freeText(manualQ);
-        stubAssignment(HomeworkFormat.MIXED, HomeworkType.AUDIO, List.of(auto, manual));
+        stubAssignment(HomeworkFormat.MIXED, HomeworkType.GRAMMAR, List.of(auto, manual));
 
         HomeworkSubmission saved = submitted(null);
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
@@ -136,7 +136,7 @@ class PerQuestionGradingSubmitTest {
     void allManualSubmit_viaAnswers_setsSubmittedWithoutScore() {
         UUID qid = UUID.randomUUID();
         HomeworkQuestion q = freeText(qid);
-        stubAssignment(HomeworkFormat.MANUAL, HomeworkType.AUDIO, List.of(q));
+        stubAssignment(HomeworkFormat.MANUAL, HomeworkType.GRAMMAR, List.of(q));
         HomeworkSubmission saved = submitted(null);
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
         when(submissionRepository.upsert(eq(userId), eq(assignmentId),
@@ -156,7 +156,7 @@ class PerQuestionGradingSubmitTest {
     void incompleteMixedAnswersRejected() {
         UUID autoQ = UUID.randomUUID();
         UUID manualQ = UUID.randomUUID();
-        stubAssignment(HomeworkFormat.MIXED, HomeworkType.AUDIO,
+        stubAssignment(HomeworkFormat.MIXED, HomeworkType.GRAMMAR,
                 List.of(choiceQuestion(autoQ, true), freeText(manualQ)));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
 
@@ -169,7 +169,7 @@ class PerQuestionGradingSubmitTest {
     @Test
     void noRetakeAfterSubmitted() {
         UUID qid = UUID.randomUUID();
-        stubAssignment(HomeworkFormat.MIXED, HomeworkType.AUDIO, List.of(freeText(qid), choiceQuestion(UUID.randomUUID(), false)));
+        stubAssignment(HomeworkFormat.MIXED, HomeworkType.GRAMMAR, List.of(freeText(qid), choiceQuestion(UUID.randomUUID(), false)));
         HomeworkSubmission existing = submitted(null);
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.of(existing));
 

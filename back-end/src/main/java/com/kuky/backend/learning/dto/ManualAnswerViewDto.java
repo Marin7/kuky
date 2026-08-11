@@ -11,7 +11,7 @@ public record ManualAnswerViewDto(
         String promptSnapshot,
         String text,
         List<FormattedTextSegment> formatted,
-        String teacherValidation,
+        Integer teacherScorePercent,
         Double score
 ) {
     public static ManualAnswerViewDto fromStored(UUID questionId, String promptSnapshot, String answerText) {
@@ -19,13 +19,13 @@ public record ManualAnswerViewDto(
     }
 
     public static ManualAnswerViewDto fromStored(UUID questionId, String promptSnapshot, String answerText,
-                                                 String teacherValidation, Double score) {
+                                                 Integer teacherScorePercent, Double score) {
         return new ManualAnswerViewDto(
                 questionId,
                 promptSnapshot,
                 FormattedTextSegment.storedPlainWording(answerText),
                 FormattedTextSegment.tryParseFormatted(answerText),
-                teacherValidation,
+                teacherScorePercent,
                 score);
     }
 }

@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -66,7 +67,7 @@ class MixedHomeworkFinalizeTest {
     }
 
     @Test
-    void missingTeacherValidationRejected() {
+    void finalizeMissingPercentRejected() {
         UUID submissionId = UUID.randomUUID();
         UUID autoQ = UUID.randomUUID();
         UUID manualQ = UUID.randomUUID();
@@ -74,11 +75,35 @@ class MixedHomeworkFinalizeTest {
 
         assertThatThrownBy(() -> service.saveFeedback(submissionId, new SaveHomeworkFeedbackRequest(
                 "nota", null, List.of(new SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest(
-                        manualQ, List.of(new FormattedTextSegment("texto", null, null, null)), null)), null)))
+                        manualQ, List.of(new FormattedTextSegment("texto", null, null, null)), null)),
+                null, true)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("validar");
+                .hasMessageContaining("puntuación");
         verify(submissionRepository, never()).saveScoredAnnotatedReview(any(), any(), any(), anyInt(), anyBoolean());
         verify(submissionRepository, never()).saveMixedGradedReview(any(), any(), anyInt(), anyBoolean());
+    }
+
+    @Test
+    void progressPartialPercentStaysSubmitted() {
+        UUID submissionId = UUID.randomUUID();
+        UUID autoQ = UUID.randomUUID();
+        UUID manualQ = UUID.randomUUID();
+        stubMixed(submissionId, autoQ, manualQ, BigDecimal.ONE);
+
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detail(submissionId, "SUBMITTED")))
+                .thenReturn(Optional.of(detail(submissionId, "SUBMITTED")));
+
+        service.saveFeedback(submissionId, new SaveHomeworkFeedbackRequest(
+                "parcial", null, List.of(new SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest(
+                        manualQ,
+                        List.of(new FormattedTextSegment("texto", null, null, null)),
+                        50)),
+                null, false));
+
+        verify(answerRepository).updateManualReview(any(), any(), eq(50), any());
+        verify(submissionRepository).saveAnnotatedProgress(eq(submissionId), any(), isNull(), isNull());
+        verify(submissionRepository, never()).saveScoredAnnotatedReview(any(), any(), any(), anyInt(), anyBoolean());
     }
 
     @Test
@@ -86,12 +111,12 @@ class MixedHomeworkFinalizeTest {
         UUID submissionId = UUID.randomUUID();
         UUID autoQ = UUID.randomUUID();
         UUID manualQ = UUID.randomUUID();
-        // auto scored 1.0, invalidate manual → mean 0.5 → 50%
+        // auto scored 1.0, manual 50% → mean 0.75 → 75%
         stubMixed(submissionId, autoQ, manualQ, BigDecimal.ONE);
 
         HomeworkAnswer refreshedManual = freeTextAnswer(manualQ, "texto");
-        refreshedManual.setScore(BigDecimal.ZERO.setScale(3));
-        refreshedManual.setTeacherValidation("INVALIDATED");
+        refreshedManual.setScore(BigDecimal.valueOf(0.5).setScale(3));
+        refreshedManual.setTeacherScorePercent(50);
         HomeworkAnswer autoAnswer = autoAnswer(autoQ, BigDecimal.ONE);
         when(answerRepository.findBySubmission(submissionId))
                 .thenReturn(List.of(autoAnswer, freeTextAnswer(manualQ, "texto")))
@@ -106,10 +131,11 @@ class MixedHomeworkFinalizeTest {
                 "Bien", null, List.of(new SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest(
                         manualQ,
                         List.of(new FormattedTextSegment("texto", null, null, true)),
-                        "INVALIDATED")), null));
+                        50)),
+                null, true));
 
-        verify(answerRepository).updateManualReview(any(), any(), eq("INVALIDATED"), any());
-        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), any(), any(), eq(50), eq(true));
+        verify(answerRepository).updateManualReview(any(), any(), eq(50), any());
+        verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), any(), any(), eq(75), eq(true));
     }
 
     @Test
@@ -121,7 +147,7 @@ class MixedHomeworkFinalizeTest {
 
         HomeworkAnswer refreshedManual = freeTextAnswer(manualQ, "texto");
         refreshedManual.setScore(BigDecimal.ONE.setScale(3));
-        refreshedManual.setTeacherValidation("VALIDATED");
+        refreshedManual.setTeacherScorePercent(100);
         HomeworkAnswer autoAnswer = autoAnswer(autoQ, BigDecimal.ONE);
         when(answerRepository.findBySubmission(submissionId))
                 .thenReturn(List.of(autoAnswer, freeTextAnswer(manualQ, "texto")))
@@ -129,22 +155,20 @@ class MixedHomeworkFinalizeTest {
                 .thenReturn(List.of(autoAnswer, refreshedManual));
 
         when(submissionRepository.findDetailById(submissionId))
-                .thenReturn(Optional.of(detail(submissionId, "GRADED")))
-                .thenReturn(Optional.of(detail(submissionId, "GRADED")));
-        // Force ANNOTATED review model for re-edit
-        when(submissionRepository.findDetailById(submissionId))
                 .thenReturn(Optional.of(new HomeworkSubmissionRepository.SubmissionDetailRow(
                         submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
-                        "Tarea", "GRADED", null, null, "ANNOTATED", 50, "MIXED", "AUDIO", Instant.now(), Instant.now())))
+                        "Tarea", "GRADED", null, null, "ANNOTATED", 50, null, "MIXED", "AUDIO", Instant.now(), Instant.now())))
                 .thenReturn(Optional.of(new HomeworkSubmissionRepository.SubmissionDetailRow(
                         submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
-                        "Tarea", "GRADED", null, null, "ANNOTATED", 100, "MIXED", "AUDIO", Instant.now(), Instant.now())));
+                        "Tarea", "GRADED", null, null, "ANNOTATED", 100, null, "MIXED", "AUDIO", Instant.now(), Instant.now())));
 
+        // GRADED re-edit treats as finalize even without finalize:true
         service.saveFeedback(submissionId, new SaveHomeworkFeedbackRequest(
                 null, null, List.of(new SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest(
                         manualQ,
                         List.of(new FormattedTextSegment("texto", null, null, null)),
-                        "VALIDATED")), null));
+                        100)),
+                null, null));
 
         verify(submissionRepository).saveScoredAnnotatedReview(eq(submissionId), any(), any(), eq(100), eq(false));
     }
@@ -201,7 +225,8 @@ class MixedHomeworkFinalizeTest {
                 submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
                 "Tarea", status, null, null,
                 "GRADED".equals(status) ? "ANNOTATED" : null,
-                "GRADED".equals(status) ? 50 : null,
+                "GRADED".equals(status) ? 75 : null,
+                null,
                 "MIXED", "AUDIO",
                 Instant.now(),
                 "GRADED".equals(status) ? Instant.now() : null);

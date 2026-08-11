@@ -4,7 +4,6 @@ import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
-import com.kuky.backend.learning.model.TeacherValidation;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -52,13 +51,26 @@ class HomeworkCompositionSupportTest {
     void combinedScorePercentRoundsMean() {
         // 1.0 + 0.0 → 50%
         assertThat(HomeworkCompositionSupport.scorePercentFromScores(List.of(1.0, 0.0))).isEqualTo(50);
-        // validated + invalidated + partial auto 0.5 → mean 0.5 → 50%
+        // 100% + 0% + partial auto 0.5 → mean 0.5 → 50%
         assertThat(HomeworkCompositionSupport.scorePercentFromScores(List.of(
-                HomeworkCompositionSupport.teacherValidationScore(TeacherValidation.VALIDATED),
-                HomeworkCompositionSupport.teacherValidationScore(TeacherValidation.INVALIDATED),
+                HomeworkCompositionSupport.teacherPercentAsScore(100),
+                HomeworkCompositionSupport.teacherPercentAsScore(0),
                 0.5))).isEqualTo(50);
         // 1 + 1 + 0 → 67%
         assertThat(HomeworkCompositionSupport.scorePercentFromScores(List.of(
                 BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ZERO))).isEqualTo(67);
+        // auto correct + manual 50 → 75%
+        assertThat(HomeworkCompositionSupport.scorePercentFromScores(List.of(
+                1.0, HomeworkCompositionSupport.teacherPercentAsScore(50)))).isEqualTo(75);
+    }
+
+    @Test
+    void fullyCorrectCountOnlyAtOne() {
+        assertThat(HomeworkCompositionSupport.fullyCorrectCount(List.of(
+                1.0, 0.7, HomeworkCompositionSupport.teacherPercentAsScore(100),
+                HomeworkCompositionSupport.teacherPercentAsScore(50), BigDecimal.ONE))).isEqualTo(3);
+        assertThat(HomeworkCompositionSupport.fullyCorrectCount(List.of(0.99, 0.0))).isEqualTo(0);
+        assertThat(HomeworkCompositionSupport.isFullyCorrect(BigDecimal.ONE)).isTrue();
+        assertThat(HomeworkCompositionSupport.isFullyCorrect(BigDecimal.valueOf(0.7))).isFalse();
     }
 }

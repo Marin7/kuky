@@ -379,6 +379,7 @@ export const esDict = {
       notFound: "No se ha encontrado esta tarea de redacción.",
       loadError: "No se pudo cargar la tarea.",
       teacherFeedback: "Comentario de la profesora",
+      scorePercent: "Nota: {{percent}}%",
     },
     readPage: {
       back: "← Volver a mi aprendizaje",
@@ -410,6 +411,7 @@ export const esDict = {
       manualAnswers: "Respuestas abiertas",
       validated: "Correcta",
       invalidated: "Incorrecta",
+      scorePercent: "{{percent}}%",
       pendingValidation: "Pendiente de revisión",
     },
     manualMulti: {
@@ -945,17 +947,18 @@ export const esDict = {
       legacyFrozen:
         "Esta corrección antigua es de solo lectura (modelo anterior).",
       mixedHint:
-        "Valida o invalida cada respuesta libre para calcular la nota final. Las autocorregibles ya están puntuadas.",
+        "Asigna un porcentaje (0–100) a cada respuesta libre para la nota final. Puedes guardar el progreso y finalizar cuando estén todas. Las autocorregibles ya están puntuadas.",
       manualValidationHint:
-        "Valida o invalida cada respuesta para calcular la nota de la tarea.",
+        "Asigna un porcentaje (0–100) a cada respuesta. Puedes guardar el progreso y finalizar cuando estén todas.",
       autoResults: "Preguntas autocorregibles",
       combinedScore: "Nota combinada: {{percent}}%",
-      validate: "Validar",
-      invalidate: "Invalidar",
-      validatedBadge: "Validada",
-      invalidatedBadge: "Invalidada",
-      validationRequired:
-        "Debes validar o invalidar todas las respuestas libres antes de guardar.",
+      percentLabel: "Nota",
+      percentBadge: "{{percent}}%",
+      percentRequired:
+        "Debes indicar un porcentaje (0–100) en todas las respuestas libres antes de finalizar.",
+      percentInvalid: "La puntuación debe ser un entero entre 0 y 100.",
+      saveProgress: "Guardar progreso",
+      finalize: "Finalizar corrección",
       save: "Guardar corrección",
       saving: "Guardando…",
       close: "Cerrar",

@@ -92,9 +92,10 @@ final class HomeworkItems {
         List<ManualAnswerViewDto> answerViews = List.of();
         if (answers != null && !answers.isEmpty()
                 && (composition == HomeworkComposition.ALL_MANUAL || composition == HomeworkComposition.MIXED)) {
+            boolean stripTeacherScores = HomeworkStatus.SUBMITTED.name().equals(status);
             answerViews = answers.stream()
                     .filter(ans -> ans.getPromptSnapshot() != null || ans.getAnswerText() != null)
-                    .map(HomeworkItems::toAnswerView)
+                    .map(ans -> toAnswerView(ans, stripTeacherScores))
                     .toList();
         }
 
@@ -165,10 +166,14 @@ final class HomeworkItems {
                 JsonNodeFactory.instance.objectNode());
     }
 
-    private static ManualAnswerViewDto toAnswerView(HomeworkAnswer a) {
+    private static ManualAnswerViewDto toAnswerView(HomeworkAnswer a, boolean stripTeacherScores) {
+        if (stripTeacherScores) {
+            return ManualAnswerViewDto.fromStored(
+                    a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText());
+        }
         Double score = a.getScore() == null ? null : a.getScore().doubleValue();
         return ManualAnswerViewDto.fromStored(
                 a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
-                a.getTeacherValidation(), score);
+                a.getTeacherScorePercent(), score);
     }
 }

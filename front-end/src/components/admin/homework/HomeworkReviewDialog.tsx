@@ -7,7 +7,6 @@ import {
   type ApiError,
   type HomeworkSubmissionAdmin,
   type SaveHomeworkReviewPayload,
-  type TeacherValidation,
 } from "@/lib/admin";
 import { resolveComposition } from "@/lib/learning";
 import {
@@ -17,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
@@ -65,9 +65,22 @@ function isFreeTextAnswer(a: {
   return !a.kind || a.kind === "FREE_TEXT";
 }
 
+function parsePercentInput(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+  if (!/^\d{1,3}$/.test(trimmed)) return NaN;
+  const n = Number(trimmed);
+  if (!Number.isInteger(n) || n < 0 || n > 100) return NaN;
+  return n;
+}
+
+function percentToInput(value: number | null | undefined): string {
+  return value == null ? "" : String(value);
+}
+
 /**
  * MANUAL / MIXED / WRITE homework review: annotate + optional plain ≤500 note.
- * FREE_TEXT (and WRITE) answers require validate/invalidate to compute the score.
+ * FREE_TEXT (and WRITE) answers use 0–100% teacher scores (partial save or finalize).
  * LEGACY_RICH reviews stay view-only with rich feedback.
  */
 export function HomeworkReviewDialog({
@@ -83,11 +96,8 @@ export function HomeworkReviewDialog({
   const [answerFormats, setAnswerFormats] = useState<
     Record<string, FormattedText>
   >({});
-  const [validations, setValidations] = useState<
-    Record<string, TeacherValidation | null>
-  >({});
-  const [writeValidation, setWriteValidation] =
-    useState<TeacherValidation | null>(null);
+  const [percents, setPercents] = useState<Record<string, string>>({});
+  const [writePercent, setWritePercent] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -98,21 +108,24 @@ export function HomeworkReviewDialog({
     setSubmission(data);
     setResponse(data.response ?? []);
     const map: Record<string, FormattedText> = {};
-    const vals: Record<string, TeacherValidation | null> = {};
+    const pcts: Record<string, string> = {};
     for (const a of data.answers ?? []) {
       const key = a.questionId ?? `null:${a.promptSnapshot}`;
       map[key] = toFormatted(a.text, a.formatted);
-      vals[key] = a.teacherValidation ?? null;
+      pcts[key] = percentToInput(a.teacherScorePercent);
     }
     setAnswerFormats(map);
-    setValidations(vals);
+    setPercents(pcts);
     const composition = resolveComposition(data);
-    if (composition === "WRITE" && data.status === "GRADED") {
-      if (data.scorePercent === 100) setWriteValidation("VALIDATED");
-      else if (data.scorePercent === 0) setWriteValidation("INVALIDATED");
-      else setWriteValidation(null);
+    if (composition === "WRITE") {
+      setWritePercent(
+        percentToInput(
+          data.teacherScorePercent ??
+            (data.status === "GRADED" ? data.scorePercent : null),
+        ),
+      );
     } else {
-      setWriteValidation(null);
+      setWritePercent("");
     }
     setFeedbackText(data.feedbackText ?? "");
   };
@@ -129,36 +142,46 @@ export function HomeworkReviewDialog({
   const hasMultiAnswers = freeTextAnswers.length > 0;
   const composition = submission ? resolveComposition(submission) : null;
   const isMixed = composition === "MIXED";
-  const needsValidation =
+  const needsPercent =
     composition === "MIXED" ||
     composition === "ALL_MANUAL" ||
     composition === "WRITE";
   const legacy = submission?.reviewModel === "LEGACY_RICH";
   const editable = submission ? isEditableReview(submission) : false;
-  const allValidated = !needsValidation
+  const isGraded = submission?.status === "GRADED";
+
+  const allPercentsSet = !needsPercent
     ? true
     : hasMultiAnswers
       ? freeTextAnswers.every((a) => {
           const key = a.questionId ?? `null:${a.promptSnapshot}`;
-          const v = validations[key];
-          return v === "VALIDATED" || v === "INVALIDATED";
+          const n = parsePercentInput(percents[key] ?? "");
+          return n !== null && !Number.isNaN(n);
         })
-      : writeValidation === "VALIDATED" || writeValidation === "INVALIDATED";
+      : (() => {
+          const n = parsePercentInput(writePercent);
+          return n !== null && !Number.isNaN(n);
+        })();
 
-  const handleSave = async () => {
+  const save = async (finalize: boolean) => {
     if (!submission || !editable) return;
     const trimmed = feedbackText.trim();
     if (trimmed.length > MAX_FEEDBACK) {
       setError(t("admin.homeworkReview.feedbackTooLong"));
       return;
     }
-    if (needsValidation && !allValidated) {
-      setError(t("admin.homeworkReview.validationRequired"));
+    if (finalize && needsPercent && !allPercentsSet) {
+      setError(t("admin.homeworkReview.percentRequired"));
+      return;
+    }
+    if (isGraded && !finalize) {
+      setError(t("admin.homeworkReview.percentRequired"));
       return;
     }
 
     const payload: SaveHomeworkReviewPayload = {
       feedbackText: trimmed,
+      finalize: isGraded ? true : finalize,
     };
     if (hasMultiAnswers) {
       payload.answers = freeTextAnswers.map((a) => {
@@ -170,12 +193,11 @@ export function HomeworkReviewDialog({
             formatted:
               formatted.length > 0 ? formatted : [{ text: a.text || "" }],
           };
-        if (needsValidation) {
-          const v = validations[key];
-          if (v === "VALIDATED" || v === "INVALIDATED") {
-            item.teacherValidation = v;
-          }
+        const n = parsePercentInput(percents[key] ?? "");
+        if (Number.isNaN(n)) {
+          throw new Error("INVALID_PERCENT");
         }
+        if (n !== null) item.teacherScorePercent = n;
         return item;
       });
     } else {
@@ -183,12 +205,12 @@ export function HomeworkReviewDialog({
         response.length > 0
           ? response
           : [{ text: plainText(submission.response ?? []) || " " }];
-      if (
-        writeValidation === "VALIDATED" ||
-        writeValidation === "INVALIDATED"
-      ) {
-        payload.teacherValidation = writeValidation;
+      const n = parsePercentInput(writePercent);
+      if (Number.isNaN(n)) {
+        setError(t("admin.homeworkReview.percentInvalid"));
+        return;
       }
+      if (n !== null) payload.teacherScorePercent = n;
     }
 
     setSaving(true);
@@ -198,11 +220,15 @@ export function HomeworkReviewDialog({
       hydrate(updated);
       onReviewed();
     } catch (e) {
+      if (e instanceof Error && e.message === "INVALID_PERCENT") {
+        setError(t("admin.homeworkReview.percentInvalid"));
+        return;
+      }
       const err = e as ApiError;
       if (err.error === "VALIDATION_ERROR") {
         setError(
-          needsValidation
-            ? t("admin.homeworkReview.validationRequired")
+          needsPercent
+            ? t("admin.homeworkReview.percentRequired")
             : t("admin.homeworkReview.validationError"),
         );
       } else if (err.error === "ALREADY_REVIEWED") {
@@ -215,6 +241,39 @@ export function HomeworkReviewDialog({
     } finally {
       setSaving(false);
     }
+  };
+
+  const percentField = (
+    value: string,
+    onChange: (next: string) => void,
+    readOnlyDisplay?: number | null,
+  ) => {
+    if (!editable) {
+      if (readOnlyDisplay == null) return null;
+      return (
+        <p className="mt-2 text-xs font-medium">
+          {t("admin.homeworkReview.percentBadge", { percent: readOnlyDisplay })}
+        </p>
+      );
+    }
+    return (
+      <div className="mt-3 flex items-center gap-2">
+        <label className="text-xs font-medium text-muted-foreground">
+          {t("admin.homeworkReview.percentLabel")}
+        </label>
+        <Input
+          type="text"
+          inputMode="numeric"
+          className="h-8 w-20"
+          value={value}
+          disabled={saving}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="0–100"
+          aria-label={t("admin.homeworkReview.percentLabel")}
+        />
+        <span className="text-xs text-muted-foreground">%</span>
+      </div>
+    );
   };
 
   return (
@@ -252,7 +311,7 @@ export function HomeworkReviewDialog({
               </p>
             )}
 
-            {needsValidation && (
+            {needsPercent && (
               <p className="text-sm text-muted-foreground">
                 {isMixed
                   ? t("admin.homeworkReview.mixedHint")
@@ -298,7 +357,6 @@ export function HomeworkReviewDialog({
                     const key = a.questionId ?? `null:${a.promptSnapshot}`;
                     const formatted =
                       answerFormats[key] ?? toFormatted(a.text, a.formatted);
-                    const validation = validations[key] ?? null;
                     return (
                       <li
                         key={key}
@@ -341,53 +399,16 @@ export function HomeworkReviewDialog({
                             )}
                           </div>
                         )}
-                        {needsValidation && editable && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={
-                                validation === "VALIDATED"
-                                  ? "default"
-                                  : "outline"
-                              }
-                              disabled={saving}
-                              onClick={() =>
-                                setValidations((prev) => ({
-                                  ...prev,
-                                  [key]: "VALIDATED",
-                                }))
-                              }
-                            >
-                              {t("admin.homeworkReview.validate")}
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={
-                                validation === "INVALIDATED"
-                                  ? "destructive"
-                                  : "outline"
-                              }
-                              disabled={saving}
-                              onClick={() =>
-                                setValidations((prev) => ({
-                                  ...prev,
-                                  [key]: "INVALIDATED",
-                                }))
-                              }
-                            >
-                              {t("admin.homeworkReview.invalidate")}
-                            </Button>
-                          </div>
-                        )}
-                        {needsValidation && !editable && validation && (
-                          <p className="mt-2 text-xs font-medium">
-                            {validation === "VALIDATED"
-                              ? t("admin.homeworkReview.validatedBadge")
-                              : t("admin.homeworkReview.invalidatedBadge")}
-                          </p>
-                        )}
+                        {needsPercent &&
+                          percentField(
+                            percents[key] ?? "",
+                            (next) =>
+                              setPercents((prev) => ({
+                                ...prev,
+                                [key]: next,
+                              })),
+                            a.teacherScorePercent,
+                          )}
                       </li>
                     );
                   })}
@@ -407,43 +428,12 @@ export function HomeworkReviewDialog({
                       <RichTextViewer segments={submission.response ?? []} />
                     </div>
                   )}
-                  {needsValidation && editable && (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={
-                          writeValidation === "VALIDATED"
-                            ? "default"
-                            : "outline"
-                        }
-                        disabled={saving}
-                        onClick={() => setWriteValidation("VALIDATED")}
-                      >
-                        {t("admin.homeworkReview.validate")}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={
-                          writeValidation === "INVALIDATED"
-                            ? "destructive"
-                            : "outline"
-                        }
-                        disabled={saving}
-                        onClick={() => setWriteValidation("INVALIDATED")}
-                      >
-                        {t("admin.homeworkReview.invalidate")}
-                      </Button>
-                    </div>
-                  )}
-                  {needsValidation && !editable && writeValidation && (
-                    <p className="text-xs font-medium">
-                      {writeValidation === "VALIDATED"
-                        ? t("admin.homeworkReview.validatedBadge")
-                        : t("admin.homeworkReview.invalidatedBadge")}
-                    </p>
-                  )}
+                  {needsPercent &&
+                    percentField(
+                      writePercent,
+                      setWritePercent,
+                      submission.teacherScorePercent ?? submission.scorePercent,
+                    )}
                 </div>
               )}
             </div>
@@ -481,17 +471,30 @@ export function HomeworkReviewDialog({
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             {editable && (
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-wrap justify-end gap-3">
                 <Button variant="outline" onClick={onClose} disabled={saving}>
                   {t("admin.homeworkReview.close")}
                 </Button>
+                {!isGraded && (
+                  <Button
+                    variant="secondary"
+                    onClick={() => void save(false)}
+                    disabled={saving}
+                  >
+                    {saving
+                      ? t("admin.homeworkReview.saving")
+                      : t("admin.homeworkReview.saveProgress")}
+                  </Button>
+                )}
                 <Button
-                  onClick={handleSave}
-                  disabled={saving || (needsValidation && !allValidated)}
+                  onClick={() => void save(true)}
+                  disabled={saving || (needsPercent && !allPercentsSet)}
                 >
                   {saving
                     ? t("admin.homeworkReview.saving")
-                    : t("admin.homeworkReview.save")}
+                    : isGraded
+                      ? t("admin.homeworkReview.save")
+                      : t("admin.homeworkReview.finalize")}
                 </Button>
               </div>
             )}

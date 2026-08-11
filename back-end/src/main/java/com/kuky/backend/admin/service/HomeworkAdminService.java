@@ -36,7 +36,6 @@ import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.model.QuestionOption;
-import com.kuky.backend.learning.model.TeacherValidation;
 import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
@@ -166,7 +165,7 @@ public class HomeworkAdminService {
         return getExerciseResult(submissionId);
     }
 
-    /** Saves in-place annotations and the optional plain teacher note for a MANUAL or MIXED submission. */
+    /** Saves progress or finalizes percent grades + annotations for a MANUAL / MIXED / WRITE submission. */
     public HomeworkSubmissionAdminDto saveFeedback(UUID submissionId, SaveHomeworkFeedbackRequest request) {
         var row = submissionRepository.findDetailById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
@@ -212,22 +211,16 @@ public class HomeworkAdminService {
         Map<UUID, QuestionKind> kindByQuestion = questions.stream()
                 .collect(Collectors.toMap(HomeworkQuestion::getId, HomeworkQuestion::getKind, (a, b) -> a));
 
+        // GRADED re-edits always finalize; otherwise honor request.finalize (default progress).
+        boolean finalize = scoredReEdit
+                || (request != null && Boolean.TRUE.equals(request.finalizeGrade()));
+
         if (storedAnswers.isEmpty()) {
-            // WRITE — annotate response + required validate/invalidate → GRADED score 0/100
-            List<FormattedTextSegment> response = request == null ? null : request.response();
-            FormattedTextSegment.validate(response);
-            assertUnchangedWording(response, row.responseText());
-            String responseText = FormattedTextSegment.toJson(response);
-            TeacherValidation validation = parseTeacherValidation(
-                    request == null ? null : request.teacherValidation());
-            int scorePercent = (int) Math.round(
-                    HomeworkCompositionSupport.teacherValidationScore(validation) * 100.0);
-            submissionRepository.saveScoredAnnotatedReview(
-                    submissionId, feedbackJson, responseText, scorePercent, firstReview);
+            saveWriteFeedback(submissionId, request, row, feedbackJson, firstReview, finalize);
         } else if (composition == HomeworkComposition.MIXED
                 || composition == HomeworkComposition.ALL_MANUAL) {
-            finalizeWithValidations(submissionId, request, storedAnswers, kindByQuestion, questions,
-                    feedbackJson, firstReview);
+            saveQuestionFeedback(submissionId, request, storedAnswers, kindByQuestion, questions,
+                    feedbackJson, firstReview, finalize);
         } else {
             throw new IllegalStateException("Unexpected composition for manual review: " + composition);
         }
@@ -235,11 +228,36 @@ public class HomeworkAdminService {
         return toSubmissionAdminDto(updated);
     }
 
-    private void finalizeWithValidations(UUID submissionId, SaveHomeworkFeedbackRequest request,
-                               List<com.kuky.backend.learning.model.HomeworkAnswer> storedAnswers,
-                               Map<UUID, QuestionKind> kindByQuestion,
-                               List<HomeworkQuestion> questions,
-                               String feedbackJson, boolean firstReview) {
+    private void saveWriteFeedback(UUID submissionId, SaveHomeworkFeedbackRequest request,
+                                   HomeworkSubmissionRepository.SubmissionDetailRow row,
+                                   String feedbackJson, boolean firstReview, boolean finalize) {
+        List<FormattedTextSegment> response = request == null ? null : request.response();
+        String responseText = null;
+        if (response != null) {
+            FormattedTextSegment.validate(response);
+            assertUnchangedWording(response, row.responseText());
+            responseText = FormattedTextSegment.toJson(response);
+        }
+
+        Integer requestedPercent = request == null ? null : request.teacherScorePercent();
+        Integer effectivePercent = requestedPercent != null ? requestedPercent : row.teacherScorePercent();
+
+        if (!finalize) {
+            Integer draftPercent = requestedPercent == null ? null : parseTeacherPercent(requestedPercent);
+            submissionRepository.saveAnnotatedProgress(submissionId, feedbackJson, responseText, draftPercent);
+            return;
+        }
+
+        int percent = parseTeacherPercent(effectivePercent);
+        submissionRepository.saveScoredAnnotatedReview(
+                submissionId, feedbackJson, responseText, percent, percent, firstReview);
+    }
+
+    private void saveQuestionFeedback(UUID submissionId, SaveHomeworkFeedbackRequest request,
+                                      List<com.kuky.backend.learning.model.HomeworkAnswer> storedAnswers,
+                                      Map<UUID, QuestionKind> kindByQuestion,
+                                      List<HomeworkQuestion> questions,
+                                      String feedbackJson, boolean firstReview, boolean finalize) {
         List<SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> requested =
                 request == null || request.answers() == null ? List.of() : request.answers();
         Map<UUID, SaveHomeworkFeedbackRequest.AnnotatedAnswerRequest> byQuestion = requested.stream()
@@ -255,52 +273,95 @@ public class HomeworkAdminService {
         for (var stored : freeTextAnswers) {
             var annotation = byQuestion.get(stored.getQuestionId());
             if (annotation == null) {
-                throw new IllegalArgumentException("Falta la anotación de una respuesta del alumno.");
+                if (finalize && stored.getTeacherScorePercent() == null) {
+                    throw new IllegalArgumentException(
+                            "Debes asignar una puntuación a cada respuesta de texto libre.");
+                }
+                continue;
             }
-            TeacherValidation validation = parseTeacherValidation(annotation.teacherValidation());
-            FormattedTextSegment.validate(annotation.formatted());
-            assertUnchangedWording(annotation.formatted(), stored.getAnswerText());
-            double score = HomeworkCompositionSupport.teacherValidationScore(validation);
-            answerRepository.updateManualReview(
-                    stored.getId(),
-                    FormattedTextSegment.toJson(annotation.formatted()),
-                    validation.name(),
-                    HomeworkCompositionSupport.scoreAsDecimal(score));
-            stored.setScore(HomeworkCompositionSupport.scoreAsDecimal(score));
-            stored.setTeacherValidation(validation.name());
+
+            if (annotation.formatted() != null) {
+                FormattedTextSegment.validate(annotation.formatted());
+                assertUnchangedWording(annotation.formatted(), stored.getAnswerText());
+            }
+
+            Integer requestedPercent = annotation.teacherScorePercent();
+            if (requestedPercent != null) {
+                int percent = parseTeacherPercent(requestedPercent);
+                String answerText = annotation.formatted() != null
+                        ? FormattedTextSegment.toJson(annotation.formatted())
+                        : stored.getAnswerText();
+                BigDecimal score = HomeworkCompositionSupport.scoreAsDecimal(
+                        HomeworkCompositionSupport.teacherPercentAsScore(percent));
+                answerRepository.updateManualReview(stored.getId(), answerText, percent, score);
+                stored.setTeacherScorePercent(percent);
+                stored.setScore(score);
+                if (annotation.formatted() != null) {
+                    stored.setAnswerText(answerText);
+                }
+            } else if (annotation.formatted() != null) {
+                String answerText = FormattedTextSegment.toJson(annotation.formatted());
+                if (stored.getTeacherScorePercent() != null) {
+                    answerRepository.updateManualReview(
+                            stored.getId(), answerText, stored.getTeacherScorePercent(), stored.getScore());
+                } else if (finalize) {
+                    throw new IllegalArgumentException(
+                            "Debes asignar una puntuación a cada respuesta de texto libre.");
+                } else {
+                    answerRepository.updateAnswerText(stored.getId(), answerText);
+                }
+                stored.setAnswerText(answerText);
+            } else if (finalize && stored.getTeacherScorePercent() == null) {
+                throw new IllegalArgumentException(
+                        "Debes asignar una puntuación a cada respuesta de texto libre.");
+            }
         }
 
-        Map<UUID, com.kuky.backend.learning.model.HomeworkAnswer> answersByQ = storedAnswers.stream()
-                .filter(a -> a.getQuestionId() != null)
-                .collect(Collectors.toMap(com.kuky.backend.learning.model.HomeworkAnswer::getQuestionId,
-                        a -> a, (a, b) -> a));
-        // Re-read after updates for accurate scores on FREE_TEXT
+        if (!finalize) {
+            submissionRepository.saveAnnotatedProgress(submissionId, feedbackJson, null, null);
+            return;
+        }
+
+        Map<UUID, com.kuky.backend.learning.model.HomeworkAnswer> answersByQ = new LinkedHashMap<>();
         for (var refreshed : answerRepository.findBySubmission(submissionId)) {
             if (refreshed.getQuestionId() != null) {
                 answersByQ.put(refreshed.getQuestionId(), refreshed);
             }
         }
 
+        for (var stored : freeTextAnswers) {
+            var refreshed = answersByQ.get(stored.getQuestionId());
+            Integer percent = refreshed == null ? null : refreshed.getTeacherScorePercent();
+            if (percent == null) {
+                throw new IllegalArgumentException(
+                        "Debes asignar una puntuación a cada respuesta de texto libre.");
+            }
+        }
+
         List<BigDecimal> scores = new ArrayList<>();
         for (HomeworkQuestion q : questions) {
             var answer = answersByQ.get(q.getId());
-            scores.add(answer == null || answer.getScore() == null ? BigDecimal.ZERO : answer.getScore());
+            if (q.getKind() == QuestionKind.FREE_TEXT) {
+                int percent = answer.getTeacherScorePercent();
+                scores.add(HomeworkCompositionSupport.scoreAsDecimal(
+                        HomeworkCompositionSupport.teacherPercentAsScore(percent)));
+            } else {
+                scores.add(answer == null || answer.getScore() == null ? BigDecimal.ZERO : answer.getScore());
+            }
         }
         int scorePercent = HomeworkCompositionSupport.scorePercentFromScores(scores);
         submissionRepository.saveScoredAnnotatedReview(submissionId, feedbackJson, null, scorePercent, firstReview);
     }
 
-    private static TeacherValidation parseTeacherValidation(String raw) {
-        if (raw == null || raw.isBlank()) {
+    private static int parseTeacherPercent(Integer raw) {
+        if (raw == null) {
             throw new IllegalArgumentException(
-                    "Debes validar o invalidar cada respuesta de texto libre.");
+                    "Debes asignar una puntuación a cada respuesta de texto libre.");
         }
-        try {
-            return TeacherValidation.valueOf(raw.strip().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "Debes validar o invalidar cada respuesta de texto libre.");
+        if (raw < 0 || raw > 100) {
+            throw new IllegalArgumentException("La puntuación debe ser un entero entre 0 y 100.");
         }
+        return raw;
     }
 
     private static void assertUnchangedWording(List<FormattedTextSegment> incoming, String stored) {
@@ -315,7 +376,7 @@ public class HomeworkAdminService {
                 .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
                 .map(a -> ManualAnswerViewDto.fromStored(
                         a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
-                        a.getTeacherValidation(),
+                        a.getTeacherScorePercent(),
                         a.getScore() == null ? null : a.getScore().doubleValue()))
                 .toList();
         List<FormattedTextSegment> response = answers.isEmpty()
@@ -345,6 +406,7 @@ public class HomeworkAdminService {
                 "ANNOTATED".equals(row.reviewModel())
                         ? FormattedTextSegment.decodePlainFeedback(row.feedback()) : null,
                 row.scorePercent(),
+                row.teacherScorePercent(),
                 row.submittedAt(), row.reviewedAt());
     }
 

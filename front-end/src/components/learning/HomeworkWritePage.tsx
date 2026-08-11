@@ -85,6 +85,14 @@ export function HomeworkWritePage({ homeworkId }: Props) {
             }
           />
 
+          {item.status === "GRADED" && item.scorePercent != null ? (
+            <p className="mt-4 text-sm font-medium text-foreground">
+              {t("learning.writePage.scorePercent", {
+                percent: item.scorePercent,
+              })}
+            </p>
+          ) : null}
+
           {item.feedbackText ? (
             <div className="mt-6 space-y-2">
               <p className="text-base font-medium text-foreground">

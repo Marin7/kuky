@@ -14,8 +14,8 @@ public class HomeworkAnswer {
     private String answerJson;        // structured kinds; null for choice / FREE_TEXT
     private String answerText;        // FREE_TEXT plain answer; null for EXERCISE
     private String promptSnapshot;    // FREE_TEXT prompt at submit time; null for EXERCISE
-    private BigDecimal score;         // per-question score in [0,1] (0 for FREE_TEXT until validated)
-    private String teacherValidation; // VALIDATED | INVALIDATED | null (FREE_TEXT on MIXED)
+    private BigDecimal score;         // per-question score in [0,1] (null/0 for FREE_TEXT until scored)
+    private Integer teacherScorePercent; // 0–100 or null (FREE_TEXT until teacher scores)
     private List<UUID> selectedOptionIds = new ArrayList<>();
 
     public UUID getId() { return id; }
@@ -32,8 +32,8 @@ public class HomeworkAnswer {
     public void setPromptSnapshot(String promptSnapshot) { this.promptSnapshot = promptSnapshot; }
     public BigDecimal getScore() { return score; }
     public void setScore(BigDecimal score) { this.score = score; }
-    public String getTeacherValidation() { return teacherValidation; }
-    public void setTeacherValidation(String teacherValidation) { this.teacherValidation = teacherValidation; }
+    public Integer getTeacherScorePercent() { return teacherScorePercent; }
+    public void setTeacherScorePercent(Integer teacherScorePercent) { this.teacherScorePercent = teacherScorePercent; }
     public List<UUID> getSelectedOptionIds() { return selectedOptionIds; }
     public void setSelectedOptionIds(List<UUID> selectedOptionIds) { this.selectedOptionIds = selectedOptionIds; }
 }

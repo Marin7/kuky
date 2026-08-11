@@ -377,6 +377,7 @@ export const roDict = {
       notFound: "Această temă de redactare nu a putut fi găsită.",
       loadError: "Nu s-a putut încărca tema.",
       teacherFeedback: "Feedback-ul profesoarei",
+      scorePercent: "Nota: {{percent}}%",
     },
     readPage: {
       back: "← Înapoi la învățarea mea",
@@ -408,6 +409,7 @@ export const roDict = {
       manualAnswers: "Răspunsuri libere",
       validated: "Corect",
       invalidated: "Incorect",
+      scorePercent: "{{percent}}%",
       pendingValidation: "În așteptarea revizuirii",
     },
     manualMulti: {
@@ -942,17 +944,18 @@ export const roDict = {
       legacyFrozen:
         "Această corectură veche este doar pentru citire (model anterior).",
       mixedHint:
-        "Validează sau invalidează fiecare răspuns liber pentru nota finală. Cele autocorectabile sunt deja notate.",
+        "Atribuie un procent (0–100) fiecărui răspuns liber pentru nota finală. Poți salva progresul și finaliza când sunt toate notate. Cele autocorectabile sunt deja notate.",
       manualValidationHint:
-        "Validează sau invalidează fiecare răspuns pentru nota temei.",
+        "Atribuie un procent (0–100) fiecărui răspuns. Poți salva progresul și finaliza când sunt toate notate.",
       autoResults: "Întrebări autocorectabile",
       combinedScore: "Notă combinată: {{percent}}%",
-      validate: "Validează",
-      invalidate: "Invalidează",
-      validatedBadge: "Validat",
-      invalidatedBadge: "Invalidat",
-      validationRequired:
-        "Trebuie să validezi sau să invalidezi toate răspunsurile libere înainte de a salva.",
+      percentLabel: "Notă",
+      percentBadge: "{{percent}}%",
+      percentRequired:
+        "Trebuie să indici un procent (0–100) pentru toate răspunsurile libere înainte de a finaliza.",
+      percentInvalid: "Nota trebuie să fie un număr întreg între 0 și 100.",
+      saveProgress: "Salvează progresul",
+      finalize: "Finalizează corectura",
       save: "Salvează feedback-ul",
       saving: "Se salvează…",
       close: "Închide",

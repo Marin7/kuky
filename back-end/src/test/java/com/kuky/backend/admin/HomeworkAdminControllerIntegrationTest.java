@@ -126,14 +126,16 @@ class HomeworkAdminControllerIntegrationTest {
     }
 
     @Test
-    void saveFeedback_happyPath_transitionsToReviewedAndLeavesQueue() throws Exception {
+    void saveFeedback_happyPath_finalizesWriteAndLeavesQueue() throws Exception {
         mockMvc.perform(put("/api/v1/admin/homework/submissions/" + submissionId + "/feedback")
                         .with(authentication(adminPrincipal(adminEmail)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"feedbackText\":\"Muy bien\",\"response\":[{\"text\":\"Mi respuesta\",\"color\":\"red\",\"highlight\":\"yellow\",\"strike\":true}]}"))
+                        .content("{\"finalize\":true,\"teacherScorePercent\":85,\"feedbackText\":\"Muy bien\",\"response\":[{\"text\":\"Mi respuesta\",\"color\":\"red\",\"highlight\":\"yellow\",\"strike\":true}]}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("REVIEWED"))
+                .andExpect(jsonPath("$.status").value("GRADED"))
                 .andExpect(jsonPath("$.reviewModel").value("ANNOTATED"))
+                .andExpect(jsonPath("$.scorePercent").value(85))
+                .andExpect(jsonPath("$.teacherScorePercent").value(85))
                 .andExpect(jsonPath("$.feedbackText").value("Muy bien"))
                 .andExpect(jsonPath("$.response[0].color").value("red"))
                 .andExpect(jsonPath("$.response[0].highlight").value("yellow"))

@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ public class HomeworkSubmissionRepository {
         s.setStatus(rs.getString("status"));
         s.setResponseText(rs.getString("response_text"));
         s.setScorePercent(rs.getObject("score_percent", Integer.class));
+        s.setTeacherScorePercent(rs.getObject("teacher_score_percent", Integer.class));
         s.setFeedback(rs.getString("feedback"));
         s.setReviewModel(rs.getString("review_model"));
         Timestamp submittedAt = rs.getTimestamp("submitted_at");
@@ -158,7 +160,8 @@ public class HomeworkSubmissionRepository {
     public record SubmissionDetailRow(UUID submissionId, UUID studentId, String studentEmail,
                                       String studentFirstName, String studentLastName, String studentUsername,
                                       String assignmentTitle, String status, String responseText, String feedback,
-                                      String reviewModel, Integer scorePercent, String format, String homeworkType,
+                                      String reviewModel, Integer scorePercent, Integer teacherScorePercent,
+                                      String format, String homeworkType,
                                       Instant submittedAt, Instant reviewedAt) {}
 
     /** Full detail of a single submission, joined with its student and assignment, for the review screen. */
@@ -168,6 +171,7 @@ public class HomeworkSubmissionRepository {
                        u.first_name AS student_first_name, u.last_name AS student_last_name,
                        u.username AS student_username, ha.title AS assignment_title,
                        s.status, s.response_text, s.feedback, s.review_model, s.score_percent,
+                       s.teacher_score_percent,
                        ha.format, ha.homework_type,
                        s.submitted_at, s.reviewed_at
                 FROM homework_submissions s
@@ -191,6 +195,7 @@ public class HomeworkSubmissionRepository {
                     rs.getString("feedback"),
                     rs.getString("review_model"),
                     rs.getObject("score_percent", Integer.class),
+                    rs.getObject("teacher_score_percent", Integer.class),
                     rs.getString("format"),
                     rs.getString("homework_type"),
                     submittedAt == null ? null : submittedAt.toInstant(),
@@ -245,15 +250,19 @@ public class HomeworkSubmissionRepository {
 
     /**
      * Finalizes (or re-edits) a scored annotated review: combined score, {@code GRADED}.
-     * Used for MIXED, ALL_MANUAL (with validations), and WRITE.
+     * Used for MIXED, ALL_MANUAL (with percents), and WRITE.
+     * {@code teacherScorePercent} is set for WRITE; pass {@code null} for question-based reviews.
      */
     public int saveScoredAnnotatedReview(UUID submissionId, String feedbackJson, String responseTextOrKeep,
-                                         int scorePercent, boolean firstReview) {
+                                         int scorePercent, Integer teacherScorePercent, boolean firstReview) {
         String sql = firstReview ? """
                 UPDATE homework_submissions
                 SET feedback = :feedback,
                     response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
                     score_percent = :scorePercent,
+                    teacher_score_percent = CASE
+                        WHEN :hasTeacherPercent THEN :teacherScorePercent
+                        ELSE teacher_score_percent END,
                     status = 'GRADED',
                     review_model = 'ANNOTATED',
                     reviewed_at = :now,
@@ -264,6 +273,9 @@ public class HomeworkSubmissionRepository {
                 SET feedback = :feedback,
                     response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
                     score_percent = :scorePercent,
+                    teacher_score_percent = CASE
+                        WHEN :hasTeacherPercent THEN :teacherScorePercent
+                        ELSE teacher_score_percent END,
                     updated_at = :now
                 WHERE id = :id AND status = 'GRADED' AND review_model = 'ANNOTATED'
                 """;
@@ -274,13 +286,51 @@ public class HomeworkSubmissionRepository {
                 .addValue("hasResponse", responseTextOrKeep != null)
                 .addValue("responseText", responseTextOrKeep)
                 .addValue("scorePercent", scorePercent)
+                .addValue("hasTeacherPercent", teacherScorePercent != null)
+                .addValue("teacherScorePercent", teacherScorePercent, Types.INTEGER)
+                .addValue("now", Timestamp.from(now)));
+    }
+
+    /** Convenience overload without WRITE teacher percent. */
+    public int saveScoredAnnotatedReview(UUID submissionId, String feedbackJson, String responseTextOrKeep,
+                                         int scorePercent, boolean firstReview) {
+        return saveScoredAnnotatedReview(submissionId, feedbackJson, responseTextOrKeep, scorePercent, null, firstReview);
+    }
+
+    /**
+     * Progress save while awaiting teacher: annotations / draft percent, stay {@code SUBMITTED},
+     * clear final {@code score_percent}, set {@code review_model = ANNOTATED}. Does not set {@code reviewed_at}.
+     */
+    public int saveAnnotatedProgress(UUID submissionId, String feedbackJson, String responseTextOrKeep,
+                                     Integer teacherScorePercent) {
+        String sql = """
+                UPDATE homework_submissions
+                SET feedback = :feedback,
+                    response_text = CASE WHEN :hasResponse THEN :responseText ELSE response_text END,
+                    teacher_score_percent = CASE
+                        WHEN :hasTeacherPercent THEN :teacherScorePercent
+                        ELSE teacher_score_percent END,
+                    score_percent = NULL,
+                    status = 'SUBMITTED',
+                    review_model = 'ANNOTATED',
+                    updated_at = :now
+                WHERE id = :id AND status = 'SUBMITTED'
+                """;
+        Instant now = Instant.now();
+        return jdbc.update(sql, new MapSqlParameterSource()
+                .addValue("id", submissionId)
+                .addValue("feedback", feedbackJson)
+                .addValue("hasResponse", responseTextOrKeep != null)
+                .addValue("responseText", responseTextOrKeep)
+                .addValue("hasTeacherPercent", teacherScorePercent != null)
+                .addValue("teacherScorePercent", teacherScorePercent, Types.INTEGER)
                 .addValue("now", Timestamp.from(now)));
     }
 
     /** @deprecated use {@link #saveScoredAnnotatedReview} */
     public int saveMixedGradedReview(UUID submissionId, String feedbackJson, int scorePercent,
                                      boolean firstReview) {
-        return saveScoredAnnotatedReview(submissionId, feedbackJson, null, scorePercent, firstReview);
+        return saveScoredAnnotatedReview(submissionId, feedbackJson, null, scorePercent, null, firstReview);
     }
 
     /**

@@ -369,6 +369,7 @@ export const enDict = {
       notFound: "This writing assignment could not be found.",
       loadError: "Could not load the assignment.",
       teacherFeedback: "Teacher's feedback",
+      scorePercent: "Score: {{percent}}%",
     },
     readPage: {
       back: "← Back to my learning",
@@ -400,6 +401,7 @@ export const enDict = {
       manualAnswers: "Free-text answers",
       validated: "Correct",
       invalidated: "Incorrect",
+      scorePercent: "{{percent}}%",
       pendingValidation: "Awaiting review",
     },
     manualMulti: {
@@ -834,7 +836,7 @@ export const enDict = {
         promptLabel: "Prompt",
         promptPlaceholder: "E.g. The plural of «el lápiz»",
         freeTextHint:
-          "The student will write a free-text answer that you validate or invalidate when reviewing.",
+          "The student will write a free-text answer that you score with a percentage when reviewing.",
         acceptedAnswers: "Accepted answers",
         acceptedAnswersHint:
           "The student is correct if their answer matches any of these (case-insensitive, but accent-sensitive).",
@@ -931,17 +933,18 @@ export const enDict = {
       feedbackTooLong: "The note is too long (maximum 500 characters).",
       legacyFrozen: "This older review is read-only (previous feedback model).",
       mixedHint:
-        "Validate or invalidate every free-text answer to compute the final score. Auto-graded items are already scored.",
+        "Assign a percentage (0–100) to each free-text answer for the final score. You can save progress and finalize when all are scored. Auto-graded items are already scored.",
       manualValidationHint:
-        "Validate or invalidate each answer to compute the homework score.",
+        "Assign a percentage (0–100) to each answer. You can save progress and finalize when all are scored.",
       autoResults: "Auto-graded questions",
       combinedScore: "Combined score: {{percent}}%",
-      validate: "Validate",
-      invalidate: "Invalidate",
-      validatedBadge: "Validated",
-      invalidatedBadge: "Invalidated",
-      validationRequired:
-        "You must validate or invalidate every free-text answer before saving.",
+      percentLabel: "Score",
+      percentBadge: "{{percent}}%",
+      percentRequired:
+        "Enter a percentage (0–100) for every free-text answer before finalizing.",
+      percentInvalid: "Score must be a whole number between 0 and 100.",
+      saveProgress: "Save progress",
+      finalize: "Finalize review",
       save: "Save feedback",
       saving: "Saving…",
       close: "Close",

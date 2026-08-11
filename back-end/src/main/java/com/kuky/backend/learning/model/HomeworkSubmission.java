@@ -11,6 +11,7 @@ public class HomeworkSubmission {
     private String status; // one of HomeworkStatus
     private String responseText; // nullable — JSON-encoded List<FormattedTextSegment>
     private Integer scorePercent; // nullable — set only when status = GRADED
+    private Integer teacherScorePercent; // nullable — WRITE draft/grade percent (0–100)
     private String feedback; // nullable — JSON-encoded List<FormattedTextSegment>, set once REVIEWED
     private String reviewModel; // nullable — LEGACY_RICH | ANNOTATED
     private Instant submittedAt; // nullable
@@ -29,6 +30,8 @@ public class HomeworkSubmission {
     public void setResponseText(String responseText) { this.responseText = responseText; }
     public Integer getScorePercent() { return scorePercent; }
     public void setScorePercent(Integer scorePercent) { this.scorePercent = scorePercent; }
+    public Integer getTeacherScorePercent() { return teacherScorePercent; }
+    public void setTeacherScorePercent(Integer teacherScorePercent) { this.teacherScorePercent = teacherScorePercent; }
     public String getFeedback() { return feedback; }
     public void setFeedback(String feedback) { this.feedback = feedback; }
     public String getReviewModel() { return reviewModel; }

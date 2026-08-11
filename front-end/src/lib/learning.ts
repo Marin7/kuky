@@ -18,7 +18,6 @@ export type MediaSourceKind =
   | "UPLOADED_FILE"
   | "VIDEO_PAGE"
   | "YOUTUBE";
-export type TeacherValidation = "VALIDATED" | "INVALIDATED";
 export type QuestionKind =
   | "SINGLE_CHOICE"
   | "MULTI_CHOICE"
@@ -47,7 +46,8 @@ export interface ManualAnswerItem {
   text: string;
   formatted?: FormattedText | null;
   kind?: QuestionKind | null;
-  teacherValidation?: TeacherValidation | null;
+  /** Present after GRADED; omitted while SUBMITTED even if teacher saved drafts. */
+  teacherScorePercent?: number | null;
   score?: number | null;
   correct?: boolean | null;
 }
