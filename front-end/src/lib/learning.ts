@@ -3,6 +3,11 @@ import type { FormattedText } from "@/components/learning/richtext/types";
 const API_BASE = `${API_ORIGIN}/api/v1`;
 
 export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
+
+/** Student may edit answers only while the submission is still PENDING. */
+export function isStudentHomeworkEditable(status: HomeworkStatus): boolean {
+  return status === "PENDING";
+}
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type HomeworkFormat = "MANUAL" | "EXERCISE" | "MIXED";

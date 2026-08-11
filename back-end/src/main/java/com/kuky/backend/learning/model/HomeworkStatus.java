@@ -2,9 +2,9 @@ package com.kuky.backend.learning.model;
 
 /**
  * Lifecycle of a student's homework submission.
- * Manual homework: the student drives PENDING → SUBMITTED; REVIEWED is the
- * teacher's manual-review terminal state. Exercise homework: a single submit
- * transitions straight to GRADED (auto-graded, terminal, locked).
+ * Student drives PENDING → SUBMITTED (or straight to GRADED for all-auto).
+ * After SUBMITTED / REVIEWED / GRADED the student answer is locked.
+ * Manual/WRITE/mixed: teacher finalize → GRADED (REVIEWED is legacy terminal).
  */
 public enum HomeworkStatus {
     PENDING,

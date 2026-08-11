@@ -126,20 +126,25 @@ class HomeworkSubmissionServiceTest {
     }
 
     @Test
-    void submit_whenAlreadySubmitted_isIdempotentUpdate() {
+    void submit_whenAlreadySubmitted_throwsNotAllowed() {
         HomeworkAssignment a = assignment(null);
-        List<FormattedTextSegment> updated = plain("actualizada");
         when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId))
                 .thenReturn(Optional.of(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(plain("anterior")))));
-        when(submissionRepository.upsert(eq(userId), eq(assignmentId),
-                eq(HomeworkStatus.SUBMITTED.name()), eq(FormattedTextSegment.toJson(updated)), any()))
-                .thenReturn(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(updated)));
 
-        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, updated, null);
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("actualizada"), null))
+                .isInstanceOf(SubmissionNotAllowedException.class);
+    }
 
-        assertThat(result.status()).isEqualTo("SUBMITTED");
-        assertThat(result.response()).isEqualTo(updated);
+    @Test
+    void submit_whenGraded_throwsNotAllowed() {
+        HomeworkAssignment a = assignment(null);
+        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(submissionRepository.findByUserAndAssignment(userId, assignmentId))
+                .thenReturn(Optional.of(submission(HomeworkStatus.GRADED, FormattedTextSegment.toJson(plain("ya corregida")))));
+
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("nuevo intento"), null))
+                .isInstanceOf(SubmissionNotAllowedException.class);
     }
 
     @Test

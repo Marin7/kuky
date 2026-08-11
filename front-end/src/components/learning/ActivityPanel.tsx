@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   getActivity,
   resolveComposition,
+  isStudentHomeworkEditable,
   submitActivity,
   submitActivityAnswers,
   submitActivityAnswersItem,
@@ -215,7 +216,7 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
               prompt: q.prompt,
             }))}
             initialAnswers={item.answers}
-            readOnly={item.status === "REVIEWED" || item.status === "GRADED"}
+            readOnly={!isStudentHomeworkEditable(item.status)}
             submitAnswer={(id, _response, answers) =>
               submitActivity(id, undefined, answers)
             }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
-import { getLearning, type HomeworkItem } from "@/lib/learning";
+import { getLearning, isStudentHomeworkEditable, type HomeworkItem } from "@/lib/learning";
 import { ManualAnswerForm } from "./ManualAnswerForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 
@@ -63,7 +63,7 @@ export function HomeworkWritePage({ homeworkId }: Props) {
           <ManualAnswerForm
             homeworkId={homeworkId}
             initialResponse={item.response}
-            readOnly={item.status === "REVIEWED"}
+            readOnly={!isStudentHomeworkEditable(item.status)}
             labels={{
               yourAnswer: t("learning.writePage.yourAnswer"),
               placeholder: t("learning.writePage.placeholder"),
@@ -71,6 +71,18 @@ export function HomeworkWritePage({ homeworkId }: Props) {
               submitting: t("learning.writePage.submitting"),
               autosaveHint: t("learning.writePage.autosaveHint"),
             }}
+            onSubmitted={() =>
+              setItem((prev) =>
+                prev == null
+                  ? prev
+                  : {
+                      ...prev,
+                      status: "SUBMITTED",
+                      submittedAt: new Date().toISOString(),
+                      overdue: false,
+                    },
+              )
+            }
           />
 
           {item.feedbackText ? (

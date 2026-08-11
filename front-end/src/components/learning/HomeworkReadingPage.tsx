@@ -6,6 +6,7 @@ import {
   getLearning,
   resolveComposition,
   isAutoTakeComposition,
+  isStudentHomeworkEditable,
   type ExerciseResponse,
   type HomeworkItem,
   type HomeworkFormat,
@@ -113,9 +114,7 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
                   prompt: q.prompt,
                 }))}
                 initialAnswers={item.answers}
-                readOnly={
-                  item.status === "REVIEWED" || item.status === "GRADED"
-                }
+                readOnly={!isStudentHomeworkEditable(item.status)}
               />
               {item.feedbackText ? (
                 <div className="mt-6 space-y-2">

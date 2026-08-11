@@ -149,14 +149,6 @@ public class HomeworkSubmissionService {
         Optional<HomeworkSubmission> existing =
                 submissionRepository.findByUserAndAssignment(user.getId(), assignmentId);
         rejectIfTerminal(existing);
-        if (existing.isPresent() && HomeworkStatus.GRADED.name().equals(existing.get().getStatus())) {
-            throw new SubmissionNotAllowedException(
-                    "Este ejercicio ya ha sido entregado y no puede repetirse.", HttpStatus.CONFLICT);
-        }
-        if (existing.isPresent() && HomeworkStatus.SUBMITTED.name().equals(existing.get().getStatus())) {
-            throw new SubmissionNotAllowedException(
-                    "Esta tarea ya ha sido entregada y no puede modificarse.");
-        }
 
         List<HomeworkQuestion> questions = questionRepository.findByAssignment(assignmentId);
         Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion = indexAnswers(request);
@@ -305,9 +297,23 @@ public class HomeworkSubmissionService {
         return out;
     }
 
+    /** Once delivered (SUBMITTED / REVIEWED / GRADED), the student cannot change answers. */
     private static void rejectIfTerminal(Optional<HomeworkSubmission> existing) {
-        if (existing.isPresent() && HomeworkStatus.REVIEWED.name().equals(existing.get().getStatus())) {
-            throw new SubmissionNotAllowedException("Esta tarea ya ha sido revisada y no puede modificarse.");
+        if (existing.isEmpty()) {
+            return;
+        }
+        String status = existing.get().getStatus();
+        if (HomeworkStatus.REVIEWED.name().equals(status)) {
+            throw new SubmissionNotAllowedException(
+                    "Esta tarea ya ha sido revisada y no puede modificarse.");
+        }
+        if (HomeworkStatus.GRADED.name().equals(status)) {
+            throw new SubmissionNotAllowedException(
+                    "Este ejercicio ya ha sido entregado y no puede repetirse.");
+        }
+        if (HomeworkStatus.SUBMITTED.name().equals(status)) {
+            throw new SubmissionNotAllowedException(
+                    "Esta tarea ya ha sido entregada y no puede modificarse.");
         }
     }
 

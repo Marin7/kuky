@@ -378,7 +378,7 @@ export const esDict = {
         "Tu progreso se guarda automáticamente en este dispositivo.",
       notFound: "No se ha encontrado esta tarea de redacción.",
       loadError: "No se pudo cargar la tarea.",
-      teacherFeedback: "Corrección de la profesora",
+      teacherFeedback: "Comentario de la profesora",
     },
     readPage: {
       back: "← Volver a mi aprendizaje",

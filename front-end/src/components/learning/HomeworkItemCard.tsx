@@ -3,6 +3,7 @@ import {
   resolveComposition,
   isAutoTakeComposition,
   isListeningMediaReady,
+  isStudentHomeworkEditable,
   type HomeworkItem,
   type HomeworkType,
   type HomeworkLevel,
@@ -186,11 +187,10 @@ export function HomeworkItemCard({
               </Link>
             </Button>
           ) : (
-            item.status !== "REVIEWED" &&
-            item.status !== "GRADED" && (
+            isStudentHomeworkEditable(item.status) && (
               <Button
                 asChild
-                variant={item.status === "PENDING" ? "default" : "outline"}
+                variant="default"
                 size="sm"
                 className="h-8 text-xs"
               >
@@ -199,9 +199,7 @@ export function HomeworkItemCard({
                   params={{ homeworkId: item.id }}
                   search={{ format: item.format }}
                 >
-                  {item.status === "PENDING"
-                    ? t("learning.homework.submitHomework")
-                    : t("learning.homework.editResponse")}
+                  {t("learning.homework.submitHomework")}
                 </Link>
               </Button>
             )
@@ -222,11 +220,10 @@ export function HomeworkItemCard({
               </Link>
             </Button>
           ) : (
-            item.status !== "REVIEWED" &&
-            item.status !== "GRADED" && (
+            isStudentHomeworkEditable(item.status) && (
               <Button
                 asChild
-                variant={item.status === "PENDING" ? "default" : "outline"}
+                variant="default"
                 size="sm"
                 className="h-8 text-xs"
               >
@@ -235,9 +232,7 @@ export function HomeworkItemCard({
                   params={{ homeworkId: item.id }}
                   search={{ format: item.format }}
                 >
-                  {item.status === "PENDING"
-                    ? t("learning.homework.submitHomework")
-                    : t("learning.homework.editResponse")}
+                  {t("learning.homework.submitHomework")}
                 </Link>
               </Button>
             )
@@ -252,10 +247,10 @@ export function HomeworkItemCard({
             </Link>
           </Button>
         ) : item.homeworkType === "WRITE" ? (
-          item.status !== "REVIEWED" && (
+          isStudentHomeworkEditable(item.status) && (
             <Button
               asChild
-              variant={item.status === "PENDING" ? "default" : "outline"}
+              variant="default"
               size="sm"
               className="h-8 text-xs"
             >
@@ -263,24 +258,19 @@ export function HomeworkItemCard({
                 to="/aprendizaje/redaccion/$homeworkId"
                 params={{ homeworkId: item.id }}
               >
-                {item.status === "PENDING"
-                  ? t("learning.homework.submitHomework")
-                  : t("learning.homework.editResponse")}
+                {t("learning.homework.submitHomework")}
               </Link>
             </Button>
           )
         ) : (
-          item.status !== "REVIEWED" &&
-          item.status !== "GRADED" && (
+          isStudentHomeworkEditable(item.status) && (
             <Button
-              variant={item.status === "PENDING" ? "default" : "outline"}
+              variant="default"
               size="sm"
               onClick={() => onOpen(item)}
               className="h-8 text-xs"
             >
-              {item.status === "PENDING"
-                ? t("learning.homework.submitHomework")
-                : t("learning.homework.editResponse")}
+              {t("learning.homework.submitHomework")}
             </Button>
           )
         )}

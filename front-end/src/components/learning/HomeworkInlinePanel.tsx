@@ -4,6 +4,7 @@ import {
   getExercise,
   resolveComposition,
   isAutoTakeComposition,
+  isStudentHomeworkEditable,
   type ExerciseResponse,
   type HomeworkItem,
 } from "@/lib/learning";
@@ -161,14 +162,14 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
             prompt: q.prompt,
           }))}
           initialAnswers={item.answers}
-          readOnly={item.status === "REVIEWED" || item.status === "GRADED"}
+          readOnly={!isStudentHomeworkEditable(item.status)}
           onSubmitted={onChanged}
         />
       ) : (
         <ManualAnswerForm
           homeworkId={item.id}
           initialResponse={item.response}
-          readOnly={item.status === "REVIEWED"}
+          readOnly={!isStudentHomeworkEditable(item.status)}
           labels={{
             yourAnswer: t("learning.submitDialog.yourAnswer"),
             placeholder: t("learning.submitDialog.placeholder"),
