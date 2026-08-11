@@ -456,6 +456,25 @@ class HomeworkAdminServiceTest {
     }
 
     @Test
+    void validateAndMapQuestions_preservesQuestionAndOptionIds() {
+        UUID questionId = UUID.randomUUID();
+        UUID optionA = UUID.randomUUID();
+        UUID optionB = UUID.randomUUID();
+        var mapped = service.validateAndMapQuestions(false, List.of(
+                new com.kuky.backend.admin.dto.HomeworkQuestionDto(
+                        questionId, "SINGLE_CHOICE", "¿Tema?",
+                        List.of(
+                                new com.kuky.backend.admin.dto.HomeworkQuestionDto.OptionDto(optionA, "a", true),
+                                new com.kuky.backend.admin.dto.HomeworkQuestionDto.OptionDto(optionB, "b", false)),
+                        null)));
+        assertThat(mapped).hasSize(1);
+        assertThat(mapped.get(0).getId()).isEqualTo(questionId);
+        assertThat(mapped.get(0).getOptions()).hasSize(2);
+        assertThat(mapped.get(0).getOptions().get(0).getId()).isEqualTo(optionA);
+        assertThat(mapped.get(0).getOptions().get(1).getId()).isEqualTo(optionB);
+    }
+
+    @Test
     void validateAndMapQuestions_manualAudioRequiresFreeText() {
         var mapped = service.validateAndMapQuestions(
                 false,

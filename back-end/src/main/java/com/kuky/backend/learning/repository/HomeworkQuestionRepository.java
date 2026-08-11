@@ -9,16 +9,19 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
- * Exercise questions + their options/accepted answers for an assignment. An
- * assignment's questions are stored as a full set; updates replace them wholesale
- * (delete + reinsert), which is safe because {@code homework_answers.question_id}
- * is ON DELETE SET NULL and the recorded grade lives on the submission.
+ * Exercise questions + their options/accepted answers for an assignment.
+ * Updates upsert by id when the client round-trips existing question/option ids,
+ * so {@code homework_answers.question_id} and {@code homework_answer_options}
+ * stay intact for submissions already made. Questions/options omitted from the
+ * incoming set are deleted (cascading answer-option rows for removed options).
  */
 @Repository
 public class HomeworkQuestionRepository {
@@ -74,38 +77,127 @@ public class HomeworkQuestionRepository {
         return questions;
     }
 
-    /** Replace all of an assignment's questions (and options) in one transaction. */
+    /**
+     * Sync an assignment's questions to the given list: update rows whose id
+     * already belongs to this assignment, insert the rest, delete any left over.
+     */
     @Transactional
     public void replaceQuestions(UUID assignmentId, List<HomeworkQuestion> questions) {
-        jdbc.update("DELETE FROM homework_questions WHERE assignment_id = :aid",
-                Map.of("aid", assignmentId));
+        Set<UUID> existingIds = new HashSet<>(jdbc.query(
+                "SELECT id FROM homework_questions WHERE assignment_id = :aid",
+                Map.of("aid", assignmentId),
+                (rs, n) -> rs.getObject("id", UUID.class)));
+
+        Set<UUID> keptIds = new HashSet<>();
         int qPos = 0;
         for (HomeworkQuestion q : questions) {
-            UUID questionId = UUID.randomUUID();
-            jdbc.update("""
-                    INSERT INTO homework_questions (id, assignment_id, position, kind, prompt, structure_json)
-                    VALUES (:id, :aid, :position, :kind, :prompt, CAST(:structureJson AS jsonb))
-                    """, new MapSqlParameterSource()
-                    .addValue("id", questionId)
-                    .addValue("aid", assignmentId)
-                    .addValue("position", qPos++)
-                    .addValue("kind", q.getKind().name())
-                    .addValue("prompt", q.getPrompt())
-                    .addValue("structureJson",
-                            q.getStructureJson() == null || q.getStructureJson().isBlank()
-                                    ? "{}" : q.getStructureJson()));
-            int oPos = 0;
-            for (QuestionOption o : q.getOptions()) {
+            String structureJson = q.getStructureJson() == null || q.getStructureJson().isBlank()
+                    ? "{}" : q.getStructureJson();
+            UUID questionId;
+            if (q.getId() != null && existingIds.contains(q.getId())) {
+                questionId = q.getId();
                 jdbc.update("""
-                        INSERT INTO homework_question_options (id, question_id, position, label, is_correct)
-                        VALUES (:id, :qid, :position, :label, :correct)
+                        UPDATE homework_questions
+                        SET position = :position, kind = :kind, prompt = :prompt,
+                            structure_json = CAST(:structureJson AS jsonb)
+                        WHERE id = :id AND assignment_id = :aid
                         """, new MapSqlParameterSource()
-                        .addValue("id", UUID.randomUUID())
+                        .addValue("id", questionId)
+                        .addValue("aid", assignmentId)
+                        .addValue("position", qPos++)
+                        .addValue("kind", q.getKind().name())
+                        .addValue("prompt", q.getPrompt())
+                        .addValue("structureJson", structureJson));
+                replaceOptions(questionId, q.getOptions());
+            } else {
+                questionId = UUID.randomUUID();
+                jdbc.update("""
+                        INSERT INTO homework_questions (id, assignment_id, position, kind, prompt, structure_json)
+                        VALUES (:id, :aid, :position, :kind, :prompt, CAST(:structureJson AS jsonb))
+                        """, new MapSqlParameterSource()
+                        .addValue("id", questionId)
+                        .addValue("aid", assignmentId)
+                        .addValue("position", qPos++)
+                        .addValue("kind", q.getKind().name())
+                        .addValue("prompt", q.getPrompt())
+                        .addValue("structureJson", structureJson));
+                insertOptions(questionId, q.getOptions());
+            }
+            keptIds.add(questionId);
+        }
+
+        if (keptIds.isEmpty()) {
+            jdbc.update("DELETE FROM homework_questions WHERE assignment_id = :aid",
+                    Map.of("aid", assignmentId));
+        } else {
+            jdbc.update("""
+                    DELETE FROM homework_questions
+                    WHERE assignment_id = :aid AND id NOT IN (:kept)
+                    """, Map.of("aid", assignmentId, "kept", keptIds));
+        }
+    }
+
+    private void replaceOptions(UUID questionId, List<QuestionOption> options) {
+        List<QuestionOption> opts = options == null ? List.of() : options;
+        Set<UUID> existingIds = new HashSet<>(jdbc.query(
+                "SELECT id FROM homework_question_options WHERE question_id = :qid",
+                Map.of("qid", questionId),
+                (rs, n) -> rs.getObject("id", UUID.class)));
+
+        Set<UUID> keptIds = new HashSet<>();
+        int oPos = 0;
+        for (QuestionOption o : opts) {
+            if (o.getId() != null && existingIds.contains(o.getId())) {
+                jdbc.update("""
+                        UPDATE homework_question_options
+                        SET position = :position, label = :label, is_correct = :correct
+                        WHERE id = :id AND question_id = :qid
+                        """, new MapSqlParameterSource()
+                        .addValue("id", o.getId())
                         .addValue("qid", questionId)
                         .addValue("position", oPos++)
                         .addValue("label", o.getLabel())
                         .addValue("correct", o.isCorrect()));
+                keptIds.add(o.getId());
+            } else {
+                UUID optionId = UUID.randomUUID();
+                jdbc.update("""
+                        INSERT INTO homework_question_options (id, question_id, position, label, is_correct)
+                        VALUES (:id, :qid, :position, :label, :correct)
+                        """, new MapSqlParameterSource()
+                        .addValue("id", optionId)
+                        .addValue("qid", questionId)
+                        .addValue("position", oPos++)
+                        .addValue("label", o.getLabel())
+                        .addValue("correct", o.isCorrect()));
+                keptIds.add(optionId);
             }
+        }
+
+        if (keptIds.isEmpty()) {
+            jdbc.update("DELETE FROM homework_question_options WHERE question_id = :qid",
+                    Map.of("qid", questionId));
+        } else {
+            jdbc.update("""
+                    DELETE FROM homework_question_options
+                    WHERE question_id = :qid AND id NOT IN (:kept)
+                    """, Map.of("qid", questionId, "kept", keptIds));
+        }
+    }
+
+    private void insertOptions(UUID questionId, List<QuestionOption> options) {
+        if (options == null || options.isEmpty()) return;
+        int oPos = 0;
+        for (QuestionOption o : options) {
+            jdbc.update("""
+                    INSERT INTO homework_question_options (id, question_id, position, label, is_correct)
+                    VALUES (:id, :qid, :position, :label, :correct)
+                    """, new MapSqlParameterSource()
+                    .addValue("id", UUID.randomUUID())
+                    .addValue("qid", questionId)
+                    .addValue("position", oPos++)
+                    .addValue("label", o.getLabel())
+                    .addValue("correct", o.isCorrect()));
         }
     }
 

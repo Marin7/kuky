@@ -392,7 +392,7 @@ public class HomeworkAdminService {
 
         contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format,
                 audio.url(), audio.fileId(), audio.kind());
-        // Full replace of questions (preserves existing GRADED submissions — they are not re-graded).
+        // Upsert by question/option id so existing submissions keep their answers linked.
         questionRepository.replaceQuestions(id, questions);
         return toItem(requireAssignment(id));
     }
@@ -439,6 +439,8 @@ public class HomeworkAdminService {
             List<HomeworkQuestionDto.OptionDto> opts = q.options() == null ? List.of() : q.options();
 
             HomeworkQuestion model = new HomeworkQuestion();
+            // Preserve client-supplied ids so updates upsert instead of wiping submissions.
+            model.setId(q.id());
             model.setKind(kind);
             model.setPrompt(q.prompt().strip());
 
@@ -470,6 +472,7 @@ public class HomeworkAdminService {
                         throw new IllegalArgumentException("Las opciones y respuestas no pueden estar vacías.");
                     }
                     QuestionOption om = new QuestionOption();
+                    om.setId(o.id());
                     om.setLabel(o.label().strip());
                     om.setCorrect(o.correct());
                     optionModels.add(om);
