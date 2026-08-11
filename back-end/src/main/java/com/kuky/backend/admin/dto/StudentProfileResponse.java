@@ -16,6 +16,5 @@ public record StudentProfileResponse(
         String interestsNote,
         List<StudentProfileBookingDto> bookings,
         List<StudentProfileHomeworkDto> homeworks,
-        List<StudentProfilePresentationDto> presentations,
-        StudentProgressDto progress
+        List<StudentProfilePresentationDto> presentations
 ) {}

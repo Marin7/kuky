@@ -5,13 +5,14 @@ import { getMe } from "@/lib/auth";
 import {
   getStudentProfile,
   getStudentPlacementEvaluation,
+  homeworkBreakdownFromList,
   setBookingNoShow,
   studentDisplayName,
   type StudentProfile,
   type StudentPlacementEvaluation,
+  type StudentProfileHomework,
 } from "@/lib/admin";
 import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
-import { Button } from "@/components/ui/button";
 import { StudentHomeworkBreakdown } from "@/components/admin/students/StudentHomeworkBreakdown";
 import { HomeworkReviewDialog } from "@/components/admin/homework/HomeworkReviewDialog";
 import { ExerciseResultDialog } from "@/components/admin/homework/ExerciseResultDialog";
@@ -96,6 +97,18 @@ function Section({
   );
 }
 
+function sortHomeworks(homeworks: StudentProfileHomework[]) {
+  return [...homeworks].sort((a, b) => {
+    const aPending = a.status === "PENDING";
+    const bPending = b.status === "PENDING";
+    if (aPending !== bPending) return aPending ? -1 : 1;
+    if (aPending) return 0;
+    const aTime = a.submittedAt ? Date.parse(a.submittedAt) : 0;
+    const bTime = b.submittedAt ? Date.parse(b.submittedAt) : 0;
+    return bTime - aTime;
+  });
+}
+
 function StudentProfilePage() {
   const { t } = useTranslation();
   const { studentId } = Route.useParams();
@@ -108,6 +121,7 @@ function StudentProfilePage() {
   const [placement, setPlacement] = useState<StudentPlacementEvaluation | null>(
     null,
   );
+  const [tareasExpanded, setTareasExpanded] = useState(false);
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
   const [openResultId, setOpenResultId] = useState<string | null>(null);
 
@@ -156,6 +170,9 @@ function StudentProfilePage() {
     ) ?? [];
 
   const name = profile ? studentDisplayName(profile) : "…";
+  const homeworkBreakdown = profile
+    ? homeworkBreakdownFromList(profile.homeworks)
+    : { pending: 0, submitted: 0, completed: 0 };
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -193,156 +210,119 @@ function StudentProfilePage() {
             </p>
 
             <div className="mt-6 grid grid-cols-3 gap-4">
-              {[
-                {
-                  label: t("admin.studentProfile.stats.classes"),
-                  value: profile.bookings.filter(
-                    (b) => b.status === "CONFIRMED",
-                  ).length,
-                },
-                {
-                  label: t("admin.studentProfile.stats.homework"),
-                  value: profile.homeworks.length,
-                },
-                {
-                  label: t("admin.studentProfile.stats.presentations"),
-                  value: profile.presentations.length,
-                },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-lg border bg-card p-4 text-center"
-                >
-                  <p className="text-2xl font-semibold">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {stat.label}
-                  </p>
+              <div className="rounded-lg border bg-card p-4 text-center">
+                <p className="text-2xl font-semibold">
+                  {
+                    profile.bookings.filter((b) => b.status === "CONFIRMED")
+                      .length
+                  }
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("admin.studentProfile.stats.classes")}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                aria-expanded={tareasExpanded}
+                onClick={() => setTareasExpanded((open) => !open)}
+                className={`rounded-lg border bg-card p-4 text-center transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                  tareasExpanded ? "ring-2 ring-primary/30" : ""
+                }`}
+              >
+                <p className="text-2xl font-semibold">
+                  {profile.homeworks.length}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("admin.studentProfile.stats.homework")}
+                </p>
+                <div className="mt-3">
+                  <StudentHomeworkBreakdown
+                    pending={homeworkBreakdown.pending}
+                    submitted={homeworkBreakdown.submitted}
+                    completed={homeworkBreakdown.completed}
+                    compact
+                  />
                 </div>
-              ))}
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  {tareasExpanded
+                    ? t("admin.studentProfile.collapseHomework")
+                    : t("admin.studentProfile.expandHomework")}
+                </p>
+              </button>
+
+              <div className="rounded-lg border bg-card p-4 text-center">
+                <p className="text-2xl font-semibold">
+                  {profile.presentations.length}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("admin.studentProfile.stats.presentations")}
+                </p>
+              </div>
             </div>
+
+            {tareasExpanded && (
+              <div className="mt-4">
+                {profile.homeworks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("admin.studentProfile.emptyHomework")}
+                  </p>
+                ) : (
+                  <div className="divide-y rounded-lg border">
+                    {sortHomeworks(profile.homeworks).map((hw) => (
+                      <div
+                        key={hw.id}
+                        className="flex items-center justify-between px-4 py-3 text-sm"
+                      >
+                        <span>{hw.title}</span>
+                        <div className="flex items-center gap-2 ml-4 shrink-0">
+                          {hw.submittedAt && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatDate(hw.submittedAt)}
+                            </span>
+                          )}
+                          <StatusBadge status={hw.status} />
+                          {hw.status === "GRADED" &&
+                            hw.scorePercent !== null && (
+                              <span className="text-xs font-medium text-muted-foreground">
+                                {hw.scorePercent}%
+                              </span>
+                            )}
+                          {hw.hasTeacherFeedback && (
+                            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+                              {t("admin.exerciseResult.hasFeedbackBadge")}
+                            </span>
+                          )}
+                          {hw.needsReview && hw.submissionId && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenSubmissionId(hw.submissionId)
+                              }
+                              className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:underline"
+                            >
+                              {t("admin.homeworkReview.needsReviewBadge")}
+                            </button>
+                          )}
+                          {hw.status === "GRADED" && hw.submissionId && (
+                            <button
+                              type="button"
+                              onClick={() => setOpenResultId(hw.submissionId)}
+                              className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
+                            >
+                              {t("admin.exerciseResult.viewAction")}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-10">
-            <Section
-              title={t("admin.studentProfile.progress.title")}
-              count={profile.progress.units.length}
-            >
-              {profile.progress.units.length === 0 &&
-              profile.progress.homeworkBreakdown.pending === 0 &&
-              profile.progress.homeworkBreakdown.submitted === 0 &&
-              profile.progress.homeworkBreakdown.completed === 0 &&
-              (profile.progress.activityBreakdown?.pending ?? 0) === 0 &&
-              (profile.progress.activityBreakdown?.submitted ?? 0) === 0 &&
-              (profile.progress.activityBreakdown?.completed ?? 0) === 0 &&
-              profile.progress.attendedClasses === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("admin.studentProfile.progress.empty")}
-                </p>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <div className="rounded-lg border bg-card p-3 text-center">
-                      <p className="text-lg font-semibold">
-                        {profile.progress.attendedClasses}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {t("admin.studentProfile.progress.attendedClasses")}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border bg-card p-3 text-center">
-                      <p className="text-lg font-semibold">
-                        {placement?.result?.overallCefr ??
-                          t("admin.studentProfile.progress.noLevel")}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {t("admin.studentProfile.progress.level")}
-                      </p>
-                    </div>
-                  </div>
-
-                  {profile.progress.units.length > 0 && (
-                    <div>
-                      <p className="mb-2 text-xs font-medium text-muted-foreground">
-                        {t("admin.studentProfile.progress.units")}
-                      </p>
-                      <div className="divide-y rounded-lg border">
-                        {profile.progress.units.map((u) => (
-                          <div
-                            key={u.unitId}
-                            className="flex items-center justify-between px-4 py-3 text-sm"
-                          >
-                            <span>
-                              {u.subject}{" "}
-                              <span className="text-xs text-muted-foreground">
-                                ({u.level})
-                              </span>
-                            </span>
-                            <span className="flex items-center gap-2 ml-4 shrink-0">
-                              <span className="text-xs text-muted-foreground">
-                                {u.completedHomeworks}/{u.totalHomeworks}
-                              </span>
-                              <span
-                                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                  u.complete
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                {u.complete
-                                  ? t(
-                                      "admin.studentProfile.progress.unitComplete",
-                                    )
-                                  : t(
-                                      "admin.studentProfile.progress.unitInProgress",
-                                    )}
-                              </span>
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {t("admin.studentProfile.progress.homeworkSection")}
-                    </p>
-                    <StudentHomeworkBreakdown
-                      pending={profile.progress.homeworkBreakdown.pending}
-                      submitted={profile.progress.homeworkBreakdown.submitted}
-                      completed={profile.progress.homeworkBreakdown.completed}
-                    />
-                  </div>
-
-                  {profile.progress.activityBreakdown && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-muted-foreground">
-                        {t("admin.studentProfile.progress.activitiesSection")}
-                      </p>
-                      <StudentHomeworkBreakdown
-                        pending={profile.progress.activityBreakdown.pending}
-                        submitted={
-                          profile.progress.activityBreakdown.submitted
-                        }
-                        completed={
-                          profile.progress.activityBreakdown.completed
-                        }
-                        pendingLabel={t(
-                          "admin.studentProfile.progress.activityPending",
-                        )}
-                        submittedLabel={t(
-                          "admin.studentProfile.progress.activitySubmitted",
-                        )}
-                        completedLabel={t(
-                          "admin.studentProfile.progress.activityCompleted",
-                        )}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </Section>
-
             <Section
               title={t("admin.studentProfile.upcomingClasses")}
               count={upcoming.length}
@@ -411,81 +391,9 @@ function StudentProfilePage() {
                         }`}
                       >
                         {b.noShow
-                          ? t("admin.studentProfile.progress.unmarkNoShow")
-                          : t("admin.studentProfile.progress.markNoShow")}
+                          ? t("admin.studentProfile.unmarkNoShow")
+                          : t("admin.studentProfile.markNoShow")}
                       </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-
-            <Section
-              title={t("admin.studentProfile.homework")}
-              count={profile.homeworks.length}
-            >
-              {profile.homeworks.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("admin.studentProfile.emptyHomework")}
-                </p>
-              ) : (
-                <div className="divide-y rounded-lg border">
-                  {[...profile.homeworks]
-                    .sort((a, b) => {
-                      const aPending = a.status === "PENDING";
-                      const bPending = b.status === "PENDING";
-                      if (aPending !== bPending) return aPending ? -1 : 1;
-                      if (aPending) return 0;
-                      const aTime = a.submittedAt
-                        ? Date.parse(a.submittedAt)
-                        : 0;
-                      const bTime = b.submittedAt
-                        ? Date.parse(b.submittedAt)
-                        : 0;
-                      return bTime - aTime;
-                    })
-                    .map((hw) => (
-                    <div
-                      key={hw.id}
-                      className="flex items-center justify-between px-4 py-3 text-sm"
-                    >
-                      <span>{hw.title}</span>
-                      <div className="flex items-center gap-2 ml-4 shrink-0">
-                        {hw.submittedAt && (
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(hw.submittedAt)}
-                          </span>
-                        )}
-                        <StatusBadge status={hw.status} />
-                        {hw.status === "GRADED" && hw.scorePercent !== null && (
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {hw.scorePercent}%
-                          </span>
-                        )}
-                        {hw.hasTeacherFeedback && (
-                          <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
-                            {t("admin.exerciseResult.hasFeedbackBadge")}
-                          </span>
-                        )}
-                        {hw.needsReview && hw.submissionId && (
-                          <button
-                            type="button"
-                            onClick={() => setOpenSubmissionId(hw.submissionId)}
-                            className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:underline"
-                          >
-                            {t("admin.homeworkReview.needsReviewBadge")}
-                          </button>
-                        )}
-                        {hw.status === "GRADED" && hw.submissionId && (
-                          <button
-                            type="button"
-                            onClick={() => setOpenResultId(hw.submissionId)}
-                            className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
-                          >
-                            {t("admin.exerciseResult.viewAction")}
-                          </button>
-                        )}
-                      </div>
                     </div>
                   ))}
                 </div>

@@ -280,32 +280,31 @@ export interface StudentProfilePresentation {
   level: HomeworkLevel | null;
 }
 
-export interface UnitProgress {
-  unitId: string;
-  subject: string;
-  level: HomeworkLevel;
-  totalHomeworks: number;
-  completedHomeworks: number;
-  complete: boolean;
-}
-
 export interface HomeworkBreakdown {
   pending: number;
   submitted: number;
   completed: number;
 }
 
-export interface ActivityBreakdown {
-  pending: number;
-  submitted: number;
-  completed: number;
-}
+const COMPLETED_HOMEWORK_STATUSES = new Set(["REVIEWED", "GRADED"]);
 
-export interface StudentProgress {
-  units: UnitProgress[];
-  homeworkBreakdown: HomeworkBreakdown;
-  activityBreakdown?: ActivityBreakdown;
-  attendedClasses: number;
+/** Three-bucket homework status counts for the admin student profile Tareas card. */
+export function homeworkBreakdownFromList(
+  homeworks: Pick<StudentProfileHomework, "status">[],
+): HomeworkBreakdown {
+  let pending = 0;
+  let submitted = 0;
+  let completed = 0;
+  for (const hw of homeworks) {
+    if (COMPLETED_HOMEWORK_STATUSES.has(hw.status)) {
+      completed++;
+    } else if (hw.status === "SUBMITTED") {
+      submitted++;
+    } else {
+      pending++;
+    }
+  }
+  return { pending, submitted, completed };
 }
 
 export interface StudentProfile {
@@ -321,7 +320,6 @@ export interface StudentProfile {
   bookings: StudentProfileBooking[];
   homeworks: StudentProfileHomework[];
   presentations: StudentProfilePresentation[];
-  progress: StudentProgress;
 }
 
 export const getStudentProfile = (id: string) =>
