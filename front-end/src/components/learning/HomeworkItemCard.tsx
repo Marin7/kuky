@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
   resolveComposition,
   isAutoTakeComposition,
+  isListeningMediaReady,
   type HomeworkItem,
   type HomeworkType,
   type HomeworkLevel,
@@ -206,7 +207,11 @@ export function HomeworkItemCard({
             )
           )
         ) : item.homeworkType === "AUDIO" ? (
-          autoTake ? (
+          !isListeningMediaReady(item) ? (
+            <p className="text-xs text-muted-foreground">
+              {t("learning.listenPage.mediaIncomplete")}
+            </p>
+          ) : autoTake ? (
             <Button asChild variant="default" size="sm" className="h-8 text-xs">
               <Link
                 to="/aprendizaje/escucha/$homeworkId"

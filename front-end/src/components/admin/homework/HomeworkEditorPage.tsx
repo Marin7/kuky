@@ -48,6 +48,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
   const [level, setLevel] = useState<HomeworkLevel | "">("");
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
   const [audio, setAudio] = useState<AudioSourceValue>({
+    mediaSourceKind: null,
     audioUrl: null,
     audioFileId: null,
     audioFileName: null,
@@ -77,6 +78,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
         setLevel(hw.level ?? "");
         setQuestions(hw.questions ?? []);
         setAudio({
+          mediaSourceKind: hw.mediaSourceKind,
           audioUrl: hw.audioUrl,
           audioFileId: hw.audioFileId,
           audioFileName: hw.audioFileName,
@@ -115,10 +117,29 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       const audioPayload =
         type === "AUDIO"
           ? {
+              mediaSourceKind: audio.mediaSourceKind,
               audioUrl: audio.audioUrl?.trim() ? audio.audioUrl.trim() : null,
               audioFileId: audio.audioFileId,
             }
-          : { audioUrl: null, audioFileId: null };
+          : {
+              mediaSourceKind: null,
+              audioUrl: null,
+              audioFileId: null,
+            };
+      if (type === "AUDIO") {
+        const kind = audio.mediaSourceKind;
+        const hasFile = kind === "UPLOADED_FILE" && !!audio.audioFileId;
+        const hasUrl =
+          (kind === "AUDIO_URL" ||
+            kind === "VIDEO_PAGE" ||
+            kind === "YOUTUBE") &&
+          !!audio.audioUrl?.trim();
+        if (!kind || (!hasFile && !hasUrl)) {
+          setError(t("admin.homework.editor.audioRequired"));
+          setSaving(false);
+          return;
+        }
+      }
       if (homeworkId) {
         await updateHomework(
           homeworkId,

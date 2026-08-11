@@ -59,7 +59,7 @@ class HomeworkExerciseAdminServiceTest {
                 objectMapper);
 
         // For the happy path: insert returns an id and the re-fetch returns an assignment.
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(ASSIGNMENT_ID);
         HomeworkAssignment assignment = new HomeworkAssignment();
         assignment.setId(ASSIGNMENT_ID);
@@ -73,7 +73,7 @@ class HomeworkExerciseAdminServiceTest {
 
     private CreateHomeworkRequest exercise(List<HomeworkQuestionDto> questions) {
         return new CreateHomeworkRequest("Título", "Instrucciones", null, null, null,
-                "EXERCISE", questions, null, null, List.of());
+                "EXERCISE", questions, null, null, null, List.of());
     }
 
     private static HomeworkQuestionDto q(String kind, OptionDto... options) {
@@ -135,7 +135,7 @@ class HomeworkExerciseAdminServiceTest {
                 "MANUAL", List.of(
                         q("SINGLE_CHOICE", new OptionDto(null, "a", true), new OptionDto(null, "b", false)),
                         new HomeworkQuestionDto(null, "FREE_TEXT", "Resume", List.of(), null)),
-                null, null, List.of());
+                "https://example.com/a.mp3", null, "AUDIO_URL", List.of());
         assertThatNoException().isThrownBy(() -> service.create(req));
         verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
     }
@@ -143,7 +143,7 @@ class HomeworkExerciseAdminServiceTest {
     @Test
     void emptyNonWriteIsRejected() {
         var req = new CreateHomeworkRequest("Título", "Instrucciones", null, "AUDIO", null,
-                null, List.of(), null, null, List.of());
+                null, List.of(), null, null, null, List.of());
         assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
     }
 

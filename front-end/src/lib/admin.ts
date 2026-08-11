@@ -434,8 +434,15 @@ export interface HomeworkAdminItem {
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
   audioFileName: string | null; // original filename of the uploaded audio
+  mediaSourceKind: MediaSourceKind | null;
   assignees: Assignee[];
 }
+
+export type MediaSourceKind =
+  | "AUDIO_URL"
+  | "UPLOADED_FILE"
+  | "VIDEO_PAGE"
+  | "YOUTUBE";
 
 export interface AudioUpload {
   id: string;
@@ -450,6 +457,7 @@ export const getHomeworkById = (id: string) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}`);
 
 export interface HomeworkAudio {
+  mediaSourceKind: MediaSourceKind | null;
   audioUrl: string | null;
   audioFileId: string | null;
 }
@@ -475,6 +483,7 @@ export const createHomework = (
       questions,
       audioUrl: audio.audioUrl,
       audioFileId: audio.audioFileId,
+      mediaSourceKind: audio.mediaSourceKind,
       assigneeIds,
     }),
   });
@@ -500,6 +509,7 @@ export const updateHomework = (
       questions,
       audioUrl: audio.audioUrl,
       audioFileId: audio.audioFileId,
+      mediaSourceKind: audio.mediaSourceKind,
     }),
   });
 

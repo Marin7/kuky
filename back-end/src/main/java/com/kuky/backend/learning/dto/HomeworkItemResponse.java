@@ -27,6 +27,7 @@ public record HomeworkItemResponse(
         boolean overdue,
         String audioUrl,          // listening homework external source (nullable)
         UUID audioFileId,         // listening homework uploaded file (nullable)
+        String mediaSourceKind,   // AUDIO_URL | UPLOADED_FILE | VIDEO_PAGE | YOUTUBE | null
         UnitRef unit,             // owning unit for grouping (nullable for legacy/unattached)
         Integer unitPosition,     // rank within unit mixed sequence (nullable when unattached)
         boolean hasTeacherFeedback,

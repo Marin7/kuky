@@ -246,7 +246,8 @@ public class UnitService {
                 .toList();
         return new HomeworkAdminItem(
                 h.id(), h.title(), h.instructions(), h.dueOn(), h.homeworkType(), h.level(), h.format(),
-                h.composition(), h.questions(), h.audioUrl(), h.audioFileId(), h.audioFileName(), assignees);
+                h.composition(), h.questions(), h.audioUrl(), h.audioFileId(), h.audioFileName(),
+                h.mediaSourceKind(), assignees);
     }
 
     private void validateStudents(List<UUID> userIds) {

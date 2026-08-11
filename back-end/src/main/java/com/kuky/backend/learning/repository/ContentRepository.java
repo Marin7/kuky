@@ -4,6 +4,7 @@ import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkLevel;
 import com.kuky.backend.learning.model.HomeworkType;
+import com.kuky.backend.learning.model.MediaSourceKind;
 import com.kuky.backend.learning.model.PastClass;
 import com.kuky.backend.learning.model.PresentationBlock;
 import org.springframework.jdbc.core.RowMapper;
@@ -69,6 +70,8 @@ public class ContentRepository {
         if (format != null) a.setFormat(HomeworkFormat.valueOf(format));
         a.setAudioUrl(rs.getString("audio_url"));
         a.setAudioFileId(rs.getObject("audio_file_id", UUID.class));
+        String mediaKind = rs.getString("media_source_kind");
+        if (mediaKind != null) a.setMediaSourceKind(MediaSourceKind.valueOf(mediaKind));
         return a;
     };
 
@@ -134,7 +137,7 @@ public class ContentRepository {
 
     public UUID insertAssignment(String title, String instructions, LocalDate dueOn,
                                   HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format,
-                                  String audioUrl, UUID audioFileId) {
+                                  String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind) {
         UUID id = UUID.randomUUID();
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("id", id);
@@ -146,18 +149,19 @@ public class ContentRepository {
         params.put("format", (format == null ? HomeworkFormat.MANUAL : format).name());
         params.put("audioUrl", audioUrl);
         params.put("audioFileId", audioFileId);
+        params.put("mediaSourceKind", mediaSourceKind == null ? null : mediaSourceKind.name());
         jdbc.update("""
                 INSERT INTO homework_assignments (id, title, instructions, due_on, homework_type, level, format,
-                                                  audio_url, audio_file_id, published, sort_order)
+                                                  audio_url, audio_file_id, media_source_kind, published, sort_order)
                 VALUES (:id, :title, :instructions, :dueOn, :homeworkType, :level, :format,
-                        :audioUrl, :audioFileId, true, 0)
+                        :audioUrl, :audioFileId, :mediaSourceKind, true, 0)
                 """, params);
         return id;
     }
 
     public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn,
                                 HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format,
-                                String audioUrl, UUID audioFileId) {
+                                String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind) {
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("id", id);
         params.put("title", title);
@@ -168,11 +172,13 @@ public class ContentRepository {
         params.put("format", (format == null ? HomeworkFormat.MANUAL : format).name());
         params.put("audioUrl", audioUrl);
         params.put("audioFileId", audioFileId);
+        params.put("mediaSourceKind", mediaSourceKind == null ? null : mediaSourceKind.name());
         return jdbc.update("""
                 UPDATE homework_assignments
                 SET title = :title, instructions = :instructions, due_on = :dueOn,
                     homework_type = :homeworkType, level = :level, format = :format,
-                    audio_url = :audioUrl, audio_file_id = :audioFileId
+                    audio_url = :audioUrl, audio_file_id = :audioFileId,
+                    media_source_kind = :mediaSourceKind
                 WHERE id = :id
                 """, params);
     }

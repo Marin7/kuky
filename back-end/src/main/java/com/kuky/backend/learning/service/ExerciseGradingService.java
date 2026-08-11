@@ -22,6 +22,7 @@ import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
+import com.kuky.backend.learning.model.ListeningMedia;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.model.QuestionOption;
 import com.kuky.backend.learning.repository.ContentRepository;
@@ -95,6 +96,9 @@ public class ExerciseGradingService {
     public ExerciseResponse getExercise(String email, UUID assignmentId) {
         User user = requireUser(email);
         HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
+        if (!ListeningMedia.isComplete(assignment)) {
+            throw new AssignmentNotFoundException("Tarea no encontrada.");
+        }
         HomeworkComposition composition = HomeworkItems.compositionFromFormat(assignment);
         if (composition != HomeworkComposition.ALL_AUTO && composition != HomeworkComposition.MIXED) {
             // A non-exercise homework is "not found" through the exercise endpoint.
@@ -151,6 +155,7 @@ public class ExerciseGradingService {
                 assignment.getHomeworkType() == null ? null : assignment.getHomeworkType().name(),
                 assignment.getAudioUrl(),
                 assignment.getAudioFileId(),
+                assignment.getMediaSourceKind() == null ? null : assignment.getMediaSourceKind().name(),
                 buildStudentQuestions(questions),
                 result,
                 answerViews,
@@ -218,6 +223,9 @@ public class ExerciseGradingService {
     public ExerciseResultResponse submit(String email, UUID assignmentId, SubmitExerciseRequest request) {
         User user = requireUser(email);
         HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
+        if (!ListeningMedia.isComplete(assignment)) {
+            throw new AssignmentNotFoundException("Tarea no encontrada.");
+        }
         if (HomeworkItems.compositionFromFormat(assignment) != HomeworkComposition.ALL_AUTO) {
             throw new SubmissionNotAllowedException(
                     "Esta tarea no es un ejercicio autocorregible.", HttpStatus.BAD_REQUEST);

@@ -33,6 +33,7 @@ function toExerciseResponse(item: ActivityItem): ExerciseResponse {
     homeworkType: item.homeworkType,
     audioUrl: null,
     audioFileId: null,
+    mediaSourceKind: null,
     questions: item.questions ?? [],
     result: item.result,
     answers: item.answers,

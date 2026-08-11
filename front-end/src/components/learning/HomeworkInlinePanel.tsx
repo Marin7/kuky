@@ -77,7 +77,11 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     return (
       <div className="space-y-3">
         {(audioUrl || audioFileId) && (
-          <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
+          <AudioPlayer
+            mediaSourceKind={exercise.mediaSourceKind}
+            audioUrl={audioUrl}
+            audioFileId={audioFileId}
+          />
         )}
         {exercise.instructions && (
           <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
@@ -108,7 +112,11 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     return (
       <div className="space-y-3">
         {(audioUrl || audioFileId) && (
-          <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
+          <AudioPlayer
+            mediaSourceKind={exercise.mediaSourceKind}
+            audioUrl={audioUrl}
+            audioFileId={audioFileId}
+          />
         )}
         {exercise.instructions && (
           <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
@@ -138,7 +146,11 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
           </p>
         ))}
       {(audioUrl || audioFileId) && (
-        <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
+        <AudioPlayer
+          mediaSourceKind={item.mediaSourceKind}
+          audioUrl={audioUrl}
+          audioFileId={audioFileId}
+        />
       )}
       {composition !== "WRITE" ? (
         <ManualMultiAnswerForm

@@ -397,6 +397,7 @@ export const roDict = {
       submitting: "Se predă…",
       notFound: "Această temă de ascultare nu a putut fi găsită.",
       loadError: "Nu s-a putut încărca audio.",
+      mediaIncomplete: "Această temă de ascultare nu este încă pregătită.",
     },
     mixed: {
       awaitingTeacher:
@@ -423,6 +424,7 @@ export const roDict = {
       title: "Audio temei",
       unsupported: "Browserul tău nu acceptă redarea audio.",
       openExternal: "Deschide audio într-o filă nouă",
+      openVideoPage: "Deschide video într-o filă nouă",
     },
     exerciseResult: {
       correctSingular: "întrebare corectă",
@@ -808,10 +810,19 @@ export const roDict = {
           "Adaugă cel puțin o întrebare (poți combina răspuns liber și tipuri autocorectabile).",
         audioLabel: "Audio (ascultare)",
         audioHint:
-          "Adaugă audio-ul pe care elevul îl va asculta: un link sau un fișier încărcat.",
+          "Adaugă media pe care elevul o va folosi: link audio, fișier, link către o pagină video sau YouTube.",
         audioModeUrl: "Link (URL)",
         audioModeFile: "Fișier încărcat",
-        audioUrlPlaceholder: "https://… (YouTube, Vimeo sau link audio)",
+        audioMode: {
+          AUDIO_URL: "Link (URL)",
+          UPLOADED_FILE: "Fișier încărcat",
+          VIDEO_PAGE: "Link către video",
+          YOUTUBE: "YouTube",
+        },
+        audioUrlPlaceholder: "https://… (link audio direct)",
+        audioVideoPagePlaceholder: "https://… (pagina cu video)",
+        audioYoutubePlaceholder: "https://www.youtube.com/watch?v=…",
+        audioRequired: "Tema de ascultare necesită o sursă media.",
         audioUpload: "Încarcă audio",
         audioUploading: "Se încarcă…",
         audioRemove: "Elimină",

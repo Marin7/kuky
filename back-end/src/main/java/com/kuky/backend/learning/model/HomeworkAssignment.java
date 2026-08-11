@@ -18,6 +18,7 @@ public class HomeworkAssignment {
     private HomeworkFormat format = HomeworkFormat.MANUAL;
     private String audioUrl;           // nullable — listening homework external source
     private UUID audioFileId;          // nullable — listening homework uploaded file
+    private MediaSourceKind mediaSourceKind; // nullable — listening media presentation kind
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -43,4 +44,6 @@ public class HomeworkAssignment {
     public void setAudioUrl(String audioUrl) { this.audioUrl = audioUrl; }
     public UUID getAudioFileId() { return audioFileId; }
     public void setAudioFileId(UUID audioFileId) { this.audioFileId = audioFileId; }
+    public MediaSourceKind getMediaSourceKind() { return mediaSourceKind; }
+    public void setMediaSourceKind(MediaSourceKind mediaSourceKind) { this.mediaSourceKind = mediaSourceKind; }
 }

@@ -86,14 +86,14 @@ class HomeworkAdminServiceTest {
     @Test
     void createAssignsTargetsAndReturnsItem() {
         UUID id = UUID.randomUUID();
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of(
                 new HomeworkTargetRepository.AssigneeView(studentId, "ana@example.com",
                         null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null, false)));
 
         HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
-                "Tarea", "Hazla", LocalDate.of(2026, 6, 20), "WRITE", null, "MANUAL", List.of(), null, null, List.of(studentId)));
+                "Tarea", "Hazla", LocalDate.of(2026, 6, 20), "WRITE", null, "MANUAL", List.of(), null, null, null, List.of(studentId)));
 
         verify(targetRepository).replaceTargets(id, List.of(studentId));
         assertThat(item.assignees()).hasSize(1);
@@ -107,9 +107,9 @@ class HomeworkAdminServiceTest {
         when(userRepository.findById(unknown)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.create(new CreateHomeworkRequest(
-                "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, List.of(unknown))))
+                "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, null, List.of(unknown))))
                 .isInstanceOf(StudentNotFoundException.class);
-        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any());
+        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -136,9 +136,9 @@ class HomeworkAdminServiceTest {
         UUID id = UUID.randomUUID();
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.update(id,
-                new com.kuky.backend.admin.dto.UpdateHomeworkRequest("T", "I", null, "WRITE", null, "MANUAL", List.of(), null, null)))
+                new com.kuky.backend.admin.dto.UpdateHomeworkRequest("T", "I", null, "WRITE", null, "MANUAL", List.of(), null, null, null)))
                 .isInstanceOf(AssignmentNotFoundException.class);
-        verify(contentRepository, never()).updateAssignment(eq(id), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(contentRepository, never()).updateAssignment(eq(id), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     // --- Teacher review of MANUAL submissions --------------------------------

@@ -8,6 +8,11 @@ export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type HomeworkFormat = "MANUAL" | "EXERCISE" | "MIXED";
 /** Preferred UI discriminator — derived server-side from type + question kinds. */
 export type HomeworkComposition = "WRITE" | "ALL_MANUAL" | "ALL_AUTO" | "MIXED";
+export type MediaSourceKind =
+  | "AUDIO_URL"
+  | "UPLOADED_FILE"
+  | "VIDEO_PAGE"
+  | "YOUTUBE";
 export type TeacherValidation = "VALIDATED" | "INVALIDATED";
 export type QuestionKind =
   | "SINGLE_CHOICE"
@@ -69,6 +74,7 @@ export interface HomeworkItem {
   overdue: boolean;
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
+  mediaSourceKind?: MediaSourceKind | null;
   unit: UnitRef | null; // owning unit for grouping (null for legacy/unattached)
   unitPosition?: number | null; // rank within unit mixed sequence
   hasTeacherFeedback: boolean;
@@ -104,6 +110,15 @@ export function resolveComposition(item: {
 
 export function isAutoTakeComposition(c: HomeworkComposition): boolean {
   return c === "ALL_AUTO" || c === "MIXED";
+}
+
+/** AUDIO homework is incomplete when mediaSourceKind is missing (FR-001b). */
+export function isListeningMediaReady(item: {
+  homeworkType?: HomeworkType | null;
+  mediaSourceKind?: MediaSourceKind | null;
+}): boolean {
+  if (item.homeworkType !== "AUDIO") return true;
+  return item.mediaSourceKind != null;
 }
 
 // --- Self-correcting exercises ---------------------------------------------
@@ -205,6 +220,7 @@ export interface ExerciseResponse {
   homeworkType: HomeworkType | null;
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
+  mediaSourceKind?: MediaSourceKind | null;
   questions: StudentQuestion[];
   result: ExerciseResult | null;
   /** FREE_TEXT answers for MIXED (and optional metadata). */

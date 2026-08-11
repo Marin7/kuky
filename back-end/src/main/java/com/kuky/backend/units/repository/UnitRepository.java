@@ -340,7 +340,8 @@ public class UnitRepository {
     public List<HomeworkAdminItem> findHomeworks(UUID unitId) {
         String sql = """
                 SELECT ha.id, ha.title, ha.instructions, ha.due_on, ha.homework_type,
-                       ha.level, ha.format, ha.audio_url, ha.audio_file_id, ha.unit_position
+                       ha.level, ha.format, ha.audio_url, ha.audio_file_id, ha.media_source_kind,
+                       ha.unit_position
                 FROM homework_assignments ha
                 WHERE ha.unit_id = :uid
                 ORDER BY ha.unit_position
@@ -361,6 +362,7 @@ public class UnitRepository {
                     rs.getString("audio_url"),
                     rs.getObject("audio_file_id", UUID.class),
                     null,
+                    rs.getString("media_source_kind"),
                     List.of());
         });
     }

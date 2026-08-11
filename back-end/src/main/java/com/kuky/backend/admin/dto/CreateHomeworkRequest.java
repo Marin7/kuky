@@ -17,5 +17,6 @@ public record CreateHomeworkRequest(
         List<HomeworkQuestionDto> questions, // required non-empty when format == EXERCISE
         @Size(max = 2000) String audioUrl,   // listening homework external source (nullable)
         UUID audioFileId,                    // listening homework uploaded file (nullable)
+        String mediaSourceKind,              // AUDIO_URL | UPLOADED_FILE | VIDEO_PAGE | YOUTUBE
         List<UUID> assigneeIds
 ) {}

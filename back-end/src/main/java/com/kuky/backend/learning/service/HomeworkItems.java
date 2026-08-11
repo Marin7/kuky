@@ -118,6 +118,7 @@ final class HomeworkItems {
                 overdue,
                 a.getAudioUrl(),
                 a.getAudioFileId(),
+                a.getMediaSourceKind() == null ? null : a.getMediaSourceKind().name(),
                 unit,
                 unitPosition,
                 hasTeacherFeedback,

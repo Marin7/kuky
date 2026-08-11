@@ -17,6 +17,7 @@ public record ExerciseResponse(
         String homeworkType,                 // AUDIO | READ | … (nullable)
         String audioUrl,                     // listening homework external source (nullable)
         UUID audioFileId,                    // listening homework uploaded file (nullable)
+        String mediaSourceKind,              // AUDIO_URL | UPLOADED_FILE | VIDEO_PAGE | YOUTUBE | null
         List<ExerciseQuestionDto> questions,
         ExerciseResultResponse result,       // null unless submitted/graded with auto results
         List<ManualAnswerViewDto> answers,   // FREE_TEXT answers for MIXED; else empty

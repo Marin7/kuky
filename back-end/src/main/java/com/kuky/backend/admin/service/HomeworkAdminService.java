@@ -28,6 +28,8 @@ import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkLevel;
+import com.kuky.backend.learning.model.ListeningMedia;
+import com.kuky.backend.learning.model.MediaSourceKind;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
@@ -366,10 +368,10 @@ public class HomeworkAdminService {
         HomeworkComposition composition = HomeworkCompositionSupport.compositionFromQuestions(
                 type, questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
         HomeworkFormat format = HomeworkCompositionSupport.formatFromComposition(composition);
-        Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
+        Audio audio = resolveAudio(type, req.mediaSourceKind(), req.audioUrl(), req.audioFileId());
 
         UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn(), type, level, format,
-                audio.url(), audio.fileId());
+                audio.url(), audio.fileId(), audio.kind());
         questionRepository.replaceQuestions(id, questions);
         if (!assignees.isEmpty()) {
             targetRepository.replaceTargets(id, assignees);
@@ -386,10 +388,10 @@ public class HomeworkAdminService {
         HomeworkComposition composition = HomeworkCompositionSupport.compositionFromQuestions(
                 type, questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
         HomeworkFormat format = HomeworkCompositionSupport.formatFromComposition(composition);
-        Audio audio = resolveAudio(type, req.audioUrl(), req.audioFileId());
+        Audio audio = resolveAudio(type, req.mediaSourceKind(), req.audioUrl(), req.audioFileId());
 
         contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format,
-                audio.url(), audio.fileId());
+                audio.url(), audio.fileId(), audio.kind());
         // Full replace of questions (preserves existing GRADED submissions — they are not re-graded).
         questionRepository.replaceQuestions(id, questions);
         return toItem(requireAssignment(id));
@@ -897,23 +899,53 @@ public class HomeworkAdminService {
 
     // --- audio source -------------------------------------------------------
 
-    private record Audio(String url, UUID fileId) {}
+    private record Audio(String url, UUID fileId, MediaSourceKind kind) {}
 
     /**
-     * Resolves the listening-audio source. Audio is only kept for {@code AUDIO}
-     * homework; for any other type both fields are cleared so a type change does
-     * not leave a dangling source. A blank URL becomes null, and an uploaded file
-     * id is verified to exist (→ VALIDATION_ERROR otherwise).
+     * Resolves listening media. Non-AUDIO types clear all fields. AUDIO requires a
+     * complete {@code mediaSourceKind} + matching payload (see ListeningMedia).
      */
-    private Audio resolveAudio(HomeworkType type, String rawUrl, UUID fileId) {
+    private Audio resolveAudio(HomeworkType type, String rawKind, String rawUrl, UUID fileId) {
         if (type != HomeworkType.AUDIO) {
-            return new Audio(null, null);
+            return new Audio(null, null, null);
+        }
+        MediaSourceKind kind = parseMediaSourceKind(rawKind);
+        if (kind == null) {
+            throw new IllegalArgumentException("La tarea de audio necesita una fuente de medios.");
         }
         String url = rawUrl == null || rawUrl.isBlank() ? null : rawUrl.strip();
-        if (fileId != null && audioFileRepository.findOriginalName(fileId).isEmpty()) {
-            throw new IllegalArgumentException("El audio subido no existe.");
+        return switch (kind) {
+            case UPLOADED_FILE -> {
+                if (fileId == null) {
+                    throw new IllegalArgumentException("Sube un archivo de audio o elige otra fuente.");
+                }
+                if (audioFileRepository.findOriginalName(fileId).isEmpty()) {
+                    throw new IllegalArgumentException("El audio subido no existe.");
+                }
+                yield new Audio(null, fileId, kind);
+            }
+            case AUDIO_URL, VIDEO_PAGE -> {
+                if (url == null) {
+                    throw new IllegalArgumentException("Indica un enlace válido para la fuente de audio.");
+                }
+                yield new Audio(url, null, kind);
+            }
+            case YOUTUBE -> {
+                if (ListeningMedia.extractYouTubeId(url) == null) {
+                    throw new IllegalArgumentException("Indica un enlace de YouTube válido.");
+                }
+                yield new Audio(url, null, kind);
+            }
+        };
+    }
+
+    private static MediaSourceKind parseMediaSourceKind(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return MediaSourceKind.valueOf(raw.strip().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Tipo de fuente de audio no válido.");
         }
-        return new Audio(url, fileId);
     }
 
     // --- helpers -------------------------------------------------------------
@@ -957,7 +989,9 @@ public class HomeworkAdminService {
 
         return new HomeworkAdminItem(a.getId(), a.getTitle(), a.getInstructions(), a.getDueOn(),
                 type, level, format, composition.name(), questions,
-                a.getAudioUrl(), a.getAudioFileId(), audioFileName, assignees);
+                a.getAudioUrl(), a.getAudioFileId(), audioFileName,
+                a.getMediaSourceKind() == null ? null : a.getMediaSourceKind().name(),
+                assignees);
     }
 
     private HomeworkQuestionDto toQuestionDto(HomeworkQuestion q) {

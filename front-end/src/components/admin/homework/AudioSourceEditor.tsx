@@ -1,6 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { uploadHomeworkAudio, type ApiError } from "@/lib/admin";
+import {
+  uploadHomeworkAudio,
+  type ApiError,
+  type MediaSourceKind,
+} from "@/lib/admin";
 import { AudioPlayer } from "@/components/learning/AudioPlayer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export interface AudioSourceValue {
+  mediaSourceKind: MediaSourceKind | null;
   audioUrl: string | null;
   audioFileId: string | null;
   audioFileName: string | null;
@@ -18,29 +23,85 @@ interface Props {
   onChange: (next: AudioSourceValue) => void;
 }
 
+/** Matches YouTube watch / short / embed / youtu.be forms (same as AudioPlayer). */
+function youTubeId(url: string): string | null {
+  const m = url.match(
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/,
+  );
+  return m ? m[1] : null;
+}
+
+const MODES: MediaSourceKind[] = [
+  "AUDIO_URL",
+  "UPLOADED_FILE",
+  "VIDEO_PAGE",
+  "YOUTUBE",
+];
+
 /**
- * Audio-source picker for listening homework: the teacher either pastes an
- * external URL (YouTube, Vimeo, a direct audio link) or uploads an audio file.
- * Only one source is kept at a time.
+ * Listening media picker: audio URL, uploaded file, outbound video-page link,
+ * or YouTube embed. Only one source is kept at a time.
  */
 export function AudioSourceEditor({ value, onChange }: Props) {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<"url" | "file">(
-    value.audioFileId ? "file" : "url",
+  const [mode, setMode] = useState<MediaSourceKind>(
+    value.mediaSourceKind ?? "AUDIO_URL",
   );
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const switchMode = (next: "url" | "file") => {
+  // Sync radio from stored kind when loading an existing homework (never infer YouTube).
+  useEffect(() => {
+    if (value.mediaSourceKind) {
+      setMode(value.mediaSourceKind);
+    }
+  }, [value.mediaSourceKind]);
+
+  const switchMode = (next: MediaSourceKind) => {
     setMode(next);
     setError(null);
-    // Switching source mode clears the other source so only one is ever set.
-    if (next === "url") {
-      onChange({ ...value, audioFileId: null, audioFileName: null });
+    if (next === "UPLOADED_FILE") {
+      onChange({
+        mediaSourceKind: next,
+        audioUrl: null,
+        audioFileId: value.audioFileId,
+        audioFileName: value.audioFileName,
+      });
     } else {
-      onChange({ ...value, audioUrl: null });
+      onChange({
+        mediaSourceKind: next,
+        audioUrl: value.audioUrl,
+        audioFileId: null,
+        audioFileName: null,
+      });
     }
+  };
+
+  const applyUrl = (raw: string, currentMode: MediaSourceKind) => {
+    const trimmed = raw.trim();
+    // Auto-switch to YouTube when pasting into Enlace or video-page (not on legacy load).
+    if (
+      (currentMode === "AUDIO_URL" || currentMode === "VIDEO_PAGE") &&
+      trimmed &&
+      youTubeId(trimmed)
+    ) {
+      setMode("YOUTUBE");
+      setError(null);
+      onChange({
+        mediaSourceKind: "YOUTUBE",
+        audioUrl: trimmed,
+        audioFileId: null,
+        audioFileName: null,
+      });
+      return;
+    }
+    onChange({
+      mediaSourceKind: currentMode,
+      audioUrl: raw.length ? raw : null,
+      audioFileId: null,
+      audioFileName: null,
+    });
   };
 
   const handleUpload = async (file: File | undefined) => {
@@ -50,6 +111,7 @@ export function AudioSourceEditor({ value, onChange }: Props) {
     try {
       const up = await uploadHomeworkAudio(file);
       onChange({
+        mediaSourceKind: "UPLOADED_FILE",
         audioUrl: null,
         audioFileId: up.id,
         audioFileName: up.originalName,
@@ -64,6 +126,18 @@ export function AudioSourceEditor({ value, onChange }: Props) {
     }
   };
 
+  const urlPlaceholder =
+    mode === "YOUTUBE"
+      ? t("admin.homework.editor.audioYoutubePlaceholder")
+      : mode === "VIDEO_PAGE"
+        ? t("admin.homework.editor.audioVideoPagePlaceholder")
+        : t("admin.homework.editor.audioUrlPlaceholder");
+
+  const hasPreview =
+    (mode === "UPLOADED_FILE" && value.audioFileId) ||
+    ((mode === "AUDIO_URL" || mode === "VIDEO_PAGE" || mode === "YOUTUBE") &&
+      value.audioUrl);
+
   return (
     <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
       <div className="space-y-1">
@@ -75,33 +149,18 @@ export function AudioSourceEditor({ value, onChange }: Props) {
 
       <RadioGroup
         value={mode}
-        onValueChange={(v) => switchMode(v as "url" | "file")}
+        onValueChange={(v) => switchMode(v as MediaSourceKind)}
         className="flex flex-wrap gap-4"
       >
-        <label className="flex items-center gap-2 text-sm">
-          <RadioGroupItem value="url" id="audio-mode-url" />
-          {t("admin.homework.editor.audioModeUrl")}
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <RadioGroupItem value="file" id="audio-mode-file" />
-          {t("admin.homework.editor.audioModeFile")}
-        </label>
+        {MODES.map((m) => (
+          <label key={m} className="flex items-center gap-2 text-sm">
+            <RadioGroupItem value={m} id={`audio-mode-${m}`} />
+            {t(`admin.homework.editor.audioMode.${m}`)}
+          </label>
+        ))}
       </RadioGroup>
 
-      {mode === "url" ? (
-        <Input
-          type="url"
-          value={value.audioUrl ?? ""}
-          onChange={(e) =>
-            onChange({
-              audioUrl: e.target.value,
-              audioFileId: null,
-              audioFileName: null,
-            })
-          }
-          placeholder={t("admin.homework.editor.audioUrlPlaceholder")}
-        />
-      ) : (
+      {mode === "UPLOADED_FILE" ? (
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -131,6 +190,7 @@ export function AudioSourceEditor({ value, onChange }: Props) {
                   type="button"
                   onClick={() =>
                     onChange({
+                      mediaSourceKind: "UPLOADED_FILE",
                       audioUrl: null,
                       audioFileId: null,
                       audioFileName: null,
@@ -147,13 +207,21 @@ export function AudioSourceEditor({ value, onChange }: Props) {
             {t("admin.homework.editor.audioFormatsHint")}
           </p>
         </div>
+      ) : (
+        <Input
+          type="url"
+          value={value.audioUrl ?? ""}
+          onChange={(e) => applyUrl(e.target.value, mode)}
+          placeholder={urlPlaceholder}
+        />
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {(value.audioUrl || value.audioFileId) && (
+      {hasPreview && (
         <div className="pt-1">
           <AudioPlayer
+            mediaSourceKind={mode}
             audioUrl={value.audioUrl}
             audioFileId={value.audioFileId}
           />

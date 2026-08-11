@@ -1,13 +1,15 @@
 import { useTranslation } from "react-i18next";
-import { audioFileUrl } from "@/lib/learning";
+import { audioFileUrl, type MediaSourceKind } from "@/lib/learning";
 
 interface Props {
   audioUrl: string | null;
   audioFileId: string | null;
+  /** When set, drives rendering (VIDEO_PAGE = outbound only; YOUTUBE = embed). */
+  mediaSourceKind?: MediaSourceKind | null;
 }
 
 /** Extracts a YouTube video id from the common watch / short / embed URL forms. */
-function youTubeId(url: string): string | null {
+export function youTubeId(url: string): string | null {
   const m = url.match(
     /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/,
   );
@@ -20,14 +22,48 @@ function vimeoId(url: string): string | null {
 }
 
 /**
- * Renders the audio source of a listening homework. Uploaded files and direct
- * audio links play in a native <audio> element; YouTube/Vimeo links embed as an
- * iframe. Returns null when there is no source.
+ * Renders listening homework media. Kind selects presentation; legacy
+ * AUDIO_URL without kind still auto-embeds YouTube/Vimeo when detected.
  */
-export function AudioPlayer({ audioUrl, audioFileId }: Props) {
+export function AudioPlayer({
+  audioUrl,
+  audioFileId,
+  mediaSourceKind,
+}: Props) {
   const { t } = useTranslation();
 
-  if (audioFileId) {
+  if (mediaSourceKind === "VIDEO_PAGE") {
+    if (!audioUrl) return null;
+    return (
+      <a
+        href={audioUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex text-sm font-medium text-primary underline hover:opacity-90"
+      >
+        {t("learning.audioPlayer.openVideoPage")}
+      </a>
+    );
+  }
+
+  if (mediaSourceKind === "YOUTUBE") {
+    const yt = audioUrl ? youTubeId(audioUrl) : null;
+    if (!yt) return null;
+    return (
+      <div className="aspect-video w-full overflow-hidden rounded-lg border">
+        <iframe
+          className="h-full w-full"
+          src={`https://www.youtube.com/embed/${yt}`}
+          title={t("learning.audioPlayer.title")}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
+  if (mediaSourceKind === "UPLOADED_FILE" || audioFileId) {
+    if (!audioFileId) return null;
     return (
       <audio
         controls
@@ -42,6 +78,7 @@ export function AudioPlayer({ audioUrl, audioFileId }: Props) {
 
   if (!audioUrl) return null;
 
+  // AUDIO_URL (or legacy null kind with url): keep YouTube/Vimeo auto-embed.
   const yt = youTubeId(audioUrl);
   if (yt) {
     return (
@@ -72,7 +109,6 @@ export function AudioPlayer({ audioUrl, audioFileId }: Props) {
     );
   }
 
-  // Assume a direct audio link; offer a fallback link to open it elsewhere.
   return (
     <div className="space-y-2">
       <audio controls preload="none" src={audioUrl} className="w-full">

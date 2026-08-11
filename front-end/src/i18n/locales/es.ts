@@ -399,6 +399,7 @@ export const esDict = {
       submitting: "Entregando…",
       notFound: "No se ha encontrado esta tarea de comprensión auditiva.",
       loadError: "No se pudo cargar el audio.",
+      mediaIncomplete: "Esta tarea de audio aún no está lista.",
     },
     mixed: {
       awaitingTeacher:
@@ -425,6 +426,7 @@ export const esDict = {
       title: "Audio de la tarea",
       unsupported: "Tu navegador no admite la reproducción de audio.",
       openExternal: "Abrir el audio en otra pestaña",
+      openVideoPage: "Abrir el vídeo en otra pestaña",
     },
     exerciseResult: {
       correctSingular: "pregunta correcta",
@@ -811,10 +813,19 @@ export const esDict = {
           "Añade al menos una pregunta (puedes mezclar respuesta libre y autocorregibles).",
         audioLabel: "Audio (comprensión auditiva)",
         audioHint:
-          "Añade el audio que el alumno escuchará: un enlace o un archivo subido.",
+          "Añade el medio que el alumno usará: enlace de audio, archivo, enlace a un vídeo o YouTube.",
         audioModeUrl: "Enlace (URL)",
         audioModeFile: "Archivo subido",
-        audioUrlPlaceholder: "https://… (YouTube, Vimeo o enlace de audio)",
+        audioMode: {
+          AUDIO_URL: "Enlace (URL)",
+          UPLOADED_FILE: "Archivo subido",
+          VIDEO_PAGE: "Enlace a vídeo",
+          YOUTUBE: "YouTube",
+        },
+        audioUrlPlaceholder: "https://… (enlace directo de audio)",
+        audioVideoPagePlaceholder: "https://… (página con el vídeo)",
+        audioYoutubePlaceholder: "https://www.youtube.com/watch?v=…",
+        audioRequired: "La tarea de audio necesita una fuente de medios.",
         audioUpload: "Subir audio",
         audioUploading: "Subiendo…",
         audioRemove: "Quitar",

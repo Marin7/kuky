@@ -389,6 +389,7 @@ export const enDict = {
       submitting: "Submitting…",
       notFound: "This listening assignment could not be found.",
       loadError: "Could not load the audio.",
+      mediaIncomplete: "This listening assignment is not ready yet.",
     },
     mixed: {
       awaitingTeacher:
@@ -415,6 +416,7 @@ export const enDict = {
       title: "Homework audio",
       unsupported: "Your browser does not support audio playback.",
       openExternal: "Open the audio in a new tab",
+      openVideoPage: "Open the video in a new tab",
     },
     exerciseResult: {
       correctSingular: "question correct",
@@ -797,10 +799,19 @@ export const enDict = {
           "Add at least one question (you can mix free-text and auto-graded kinds).",
         audioLabel: "Audio (listening)",
         audioHint:
-          "Add the audio the student will listen to: a link or an uploaded file.",
+          "Add the media the student will use: an audio link, uploaded file, video page link, or YouTube.",
         audioModeUrl: "Link (URL)",
         audioModeFile: "Uploaded file",
-        audioUrlPlaceholder: "https://… (YouTube, Vimeo or audio link)",
+        audioMode: {
+          AUDIO_URL: "Link (URL)",
+          UPLOADED_FILE: "Uploaded file",
+          VIDEO_PAGE: "Video page link",
+          YOUTUBE: "YouTube",
+        },
+        audioUrlPlaceholder: "https://… (direct audio link)",
+        audioVideoPagePlaceholder: "https://… (page that hosts the video)",
+        audioYoutubePlaceholder: "https://www.youtube.com/watch?v=…",
+        audioRequired: "Listening homework needs a media source.",
         audioUpload: "Upload audio",
         audioUploading: "Uploading…",
         audioRemove: "Remove",

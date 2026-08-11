@@ -6,6 +6,7 @@ import {
   getLearning,
   resolveComposition,
   isAutoTakeComposition,
+  isListeningMediaReady,
   type ExerciseResponse,
   type HomeworkItem,
   type HomeworkFormat,
@@ -43,6 +44,10 @@ export function HomeworkListeningPage({ homeworkId, format }: Props) {
             setLoadError(t("learning.listenPage.notFound"));
             return;
           }
+          if (!isListeningMediaReady(found)) {
+            setLoadError(t("learning.listenPage.mediaIncomplete"));
+            return;
+          }
           setItem(found);
         });
 
@@ -55,6 +60,8 @@ export function HomeworkListeningPage({ homeworkId, format }: Props) {
   const instructions = exercise?.instructions ?? item?.instructions ?? "";
   const audioUrl = exercise?.audioUrl ?? item?.audioUrl ?? null;
   const audioFileId = exercise?.audioFileId ?? item?.audioFileId ?? null;
+  const mediaSourceKind =
+    exercise?.mediaSourceKind ?? item?.mediaSourceKind ?? null;
   const ready = exercise !== null || item !== null;
   const composition = exercise
     ? resolveComposition(exercise)
@@ -95,7 +102,11 @@ export function HomeworkListeningPage({ homeworkId, format }: Props) {
 
           {(audioUrl || audioFileId) && (
             <div className="mt-3">
-              <AudioPlayer audioUrl={audioUrl} audioFileId={audioFileId} />
+              <AudioPlayer
+                mediaSourceKind={mediaSourceKind}
+                audioUrl={audioUrl}
+                audioFileId={audioFileId}
+              />
             </div>
           )}
 

@@ -18,6 +18,7 @@ import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.model.HomeworkType;
+import com.kuky.backend.learning.model.ListeningMedia;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
@@ -135,6 +136,9 @@ public class HomeworkSubmissionService {
     public HomeworkItemResponse submitAnswers(String userEmail, UUID assignmentId, SubmitExerciseRequest request) {
         User user = requireUser(userEmail);
         HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
+        if (!ListeningMedia.isComplete(assignment)) {
+            throw new AssignmentNotFoundException("Tarea no encontrada.");
+        }
         HomeworkComposition composition = compositionOf(assignment);
 
         if (composition == HomeworkComposition.WRITE) {
