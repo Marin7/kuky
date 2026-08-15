@@ -79,7 +79,7 @@ export function TableFillResult({ structure, unitResults }: Props) {
                         unit?.expectedDisplay &&
                         unit.expectedDisplay.length > 0 && (
                           <p className="text-[11px] opacity-90">
-                            {t("learning.exerciseResult.unitExpected")}{" "}
+                            {t("learning.exerciseResult.unitExpectedSingle")}{" "}
                             {unit.expectedDisplay.join(" / ")}
                           </p>
                         )}

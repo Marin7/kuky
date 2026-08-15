@@ -8,6 +8,20 @@ export type HomeworkStatus = "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
 export function isStudentHomeworkEditable(status: HomeworkStatus): boolean {
   return status === "PENDING";
 }
+
+/** Grammar word-bank takes: show the homework instruction above the bank, not at the top. */
+export function pinInstructionsAboveWordBank(
+  questions: { kind: QuestionKind }[],
+  homeworkType?: HomeworkType | null,
+  status?: HomeworkStatus | null,
+): boolean {
+  if (status != null && !isStudentHomeworkEditable(status)) return false;
+  return (
+    questions.some((q) => q.kind === "DRAG_DROP") &&
+    homeworkType !== "AUDIO" &&
+    homeworkType !== "READ"
+  );
+}
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 export type HomeworkFormat = "MANUAL" | "EXERCISE" | "MIXED";

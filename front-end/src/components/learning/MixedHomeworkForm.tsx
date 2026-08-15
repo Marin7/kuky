@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   isHomeworkUpdatedError,
+  pinInstructionsAboveWordBank,
   submitHomeworkAnswers,
   type ApiError,
   type ExerciseResult as ExerciseResultData,
@@ -10,6 +11,7 @@ import {
   type MatchingAnswer,
   type StudentQuestion,
   type HomeworkStatus,
+  type HomeworkType,
 } from "@/lib/learning";
 import { countBlanks } from "@/lib/blankTokens";
 import { Button } from "@/components/ui/button";
@@ -51,6 +53,8 @@ export interface MixedAssignmentView {
   feedbackText?: string | null;
   teacherFeedback?: string | null;
   contentRevisedAt?: string | null;
+  instructions?: string | null;
+  homeworkType?: HomeworkType | null;
 }
 
 interface Props {
@@ -76,8 +80,14 @@ interface Props {
 function hidesPromptLabel(
   kind: StudentQuestion["kind"],
   inlineChoice: ReturnType<typeof matchClassicInlineSingleChoice>,
+  numbered = false,
 ): boolean {
-  return kind === "MULTI_BLANK" || kind === "DRAG_DROP" || inlineChoice != null;
+  return (
+    kind === "MULTI_BLANK" ||
+    kind === "DRAG_DROP" ||
+    inlineChoice != null ||
+    numbered
+  );
 }
 
 function numberedItems(q: StudentQuestion) {
@@ -123,6 +133,7 @@ export function MixedHomeworkForm({
   showAllAnswers = false,
 }: Props) {
   const { t } = useTranslation();
+  const questionCount = assignment.questions.length;
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(() =>
     Object.fromEntries(
       assignment.questions.map((q) => [q.id, initialAnswerState(q)]),
@@ -162,14 +173,17 @@ export function MixedHomeworkForm({
       },
     }));
 
-  const setItemSelection = (qId: string, number: number, optionId: string) =>
-    setAnswers((prev) => ({
-      ...prev,
-      [qId]: {
-        ...prev[qId],
-        selections: { ...prev[qId].selections, [String(number)]: optionId },
-      },
-    }));
+  const setItemSelection = (
+    qId: string,
+    number: number,
+    optionId: string | null,
+  ) =>
+    setAnswers((prev) => {
+      const selections = { ...prev[qId].selections };
+      if (optionId) selections[String(number)] = optionId;
+      else delete selections[String(number)];
+      return { ...prev, [qId]: { ...prev[qId], selections } };
+    });
 
   const toggleMulti = (qId: string, optionId: string, checked: boolean) =>
     setAnswers((prev) => {
@@ -367,7 +381,11 @@ export function MixedHomeworkForm({
                   >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <QuestionHeading index={i + 1} prompt={q.prompt} />
+                        <QuestionHeading
+                          index={i + 1}
+                          questionCount={questionCount}
+                          prompt={q.prompt}
+                        />
                       </div>
                       {finalized && percent != null && (
                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
@@ -419,6 +437,15 @@ export function MixedHomeworkForm({
     );
   }
 
+  const pinIntro = pinInstructionsAboveWordBank(
+    assignment.questions,
+    assignment.homeworkType,
+    assignment.status,
+  );
+  const bankQuestionId = assignment.questions.find(
+    (q) => q.kind === "DRAG_DROP",
+  )?.id;
+
   return (
     <div className="mt-6 space-y-5">
       <div className="space-y-3">
@@ -437,6 +464,7 @@ export function MixedHomeworkForm({
                   <>
                     <QuestionHeading
                       index={i + 1}
+                      questionCount={questionCount}
                       prompt={q.prompt}
                       htmlFor={`mixed-ft-${q.id}`}
                     />
@@ -462,124 +490,149 @@ export function MixedHomeworkForm({
                     )}
                   </>
                 ) : (
-                  <>
-                    <QuestionHeading
-                      index={i + 1}
-                      prompt={
-                        hidesPromptLabel(q.kind, inlineChoice)
-                          ? undefined
-                          : q.prompt
-                      }
-                    />
+                  (() => {
+                    const hidePrompt = hidesPromptLabel(
+                      q.kind,
+                      inlineChoice,
+                      numbered,
+                    );
+                    const body = (
+                      <>
+                        {numbered && (
+                          <NumberedSingleChoiceQuestion
+                            index={i + 1}
+                            questionCount={questionCount}
+                            prompt={q.prompt}
+                            items={numberedItems(q)}
+                            selections={answers[q.id]?.selections ?? {}}
+                            onChange={(number, optionId) =>
+                              setItemSelection(q.id, number, optionId)
+                            }
+                          />
+                        )}
 
-                    {numbered && (
-                      <NumberedSingleChoiceQuestion
-                        questionId={q.id}
-                        items={numberedItems(q)}
-                        selections={answers[q.id]?.selections ?? {}}
-                        onChange={(number, optionId) =>
-                          setItemSelection(q.id, number, optionId)
-                        }
-                      />
-                    )}
+                        {inlineChoice && (
+                          <InlineSingleChoiceQuestion
+                            index={i + 1}
+                            questionCount={questionCount}
+                            prompt={q.prompt}
+                            match={inlineChoice}
+                            selectedOptionId={
+                              answers[q.id]?.selectedOptionIds[0] ?? null
+                            }
+                            onChange={(optionId) => setSingle(q.id, optionId)}
+                          />
+                        )}
 
-                    {inlineChoice && (
-                      <InlineSingleChoiceQuestion
-                        prompt={q.prompt}
-                        match={inlineChoice}
-                        selectedOptionId={
-                          answers[q.id]?.selectedOptionIds[0] ?? null
-                        }
-                        onChange={(optionId) => setSingle(q.id, optionId)}
-                      />
-                    )}
-
-                    {((q.kind === "SINGLE_CHOICE" &&
-                      !numbered &&
-                      !inlineChoice) ||
-                      q.kind === "TRUE_FALSE") && (
-                      <RadioGroup
-                        value={answers[q.id]?.selectedOptionIds[0] ?? ""}
-                        onValueChange={(v) => setSingle(q.id, v)}
-                      >
-                        {q.options.map((o) => (
-                          <label
-                            key={o.id}
-                            className="flex items-center gap-2.5 text-base leading-snug"
+                        {((q.kind === "SINGLE_CHOICE" &&
+                          !numbered &&
+                          !inlineChoice) ||
+                          q.kind === "TRUE_FALSE") && (
+                          <RadioGroup
+                            value={answers[q.id]?.selectedOptionIds[0] ?? ""}
+                            onValueChange={(v) => setSingle(q.id, v)}
                           >
-                            <RadioGroupItem
-                              value={o.id}
-                              id={`${q.id}-${o.id}`}
-                            />
-                            {q.kind === "TRUE_FALSE"
-                              ? t(
-                                  o.label === "false"
-                                    ? "learning.trueFalse.false"
-                                    : "learning.trueFalse.true",
-                                )
-                              : o.label}
-                          </label>
-                        ))}
-                      </RadioGroup>
-                    )}
+                            {q.options.map((o) => (
+                              <label
+                                key={o.id}
+                                className="flex items-center gap-2.5 text-base leading-snug"
+                              >
+                                <RadioGroupItem
+                                  value={o.id}
+                                  id={`${q.id}-${o.id}`}
+                                />
+                                {q.kind === "TRUE_FALSE"
+                                  ? t(
+                                      o.label === "false"
+                                        ? "learning.trueFalse.false"
+                                        : "learning.trueFalse.true",
+                                    )
+                                  : o.label}
+                              </label>
+                            ))}
+                          </RadioGroup>
+                        )}
 
-                    {q.kind === "MULTI_CHOICE" && (
-                      <div className="space-y-2.5">
-                        {q.options.map((o) => (
-                          <label
-                            key={o.id}
-                            className="flex items-center gap-2.5 text-base leading-snug"
-                          >
-                            <Checkbox
-                              checked={answers[
-                                q.id
-                              ]?.selectedOptionIds.includes(o.id)}
-                              onCheckedChange={(c) =>
-                                toggleMulti(q.id, o.id, c === true)
-                              }
-                            />
-                            {o.label}
-                          </label>
-                        ))}
-                      </div>
-                    )}
+                        {q.kind === "MULTI_CHOICE" && (
+                          <div className="space-y-2.5">
+                            {q.options.map((o) => (
+                              <label
+                                key={o.id}
+                                className="flex items-center gap-2.5 text-base leading-snug"
+                              >
+                                <Checkbox
+                                  checked={answers[
+                                    q.id
+                                  ]?.selectedOptionIds.includes(o.id)}
+                                  onCheckedChange={(c) =>
+                                    toggleMulti(q.id, o.id, c === true)
+                                  }
+                                />
+                                {o.label}
+                              </label>
+                            ))}
+                          </div>
+                        )}
 
-                    {q.kind === "MULTI_BLANK" && (
-                      <MultiBlankQuestion
-                        prompt={q.prompt}
-                        value={answers[q.id]?.blanks ?? []}
-                        onChange={(blanks) => setBlanks(q.id, blanks)}
-                      />
-                    )}
+                        {q.kind === "MULTI_BLANK" && (
+                          <MultiBlankQuestion
+                            index={i + 1}
+                            questionCount={questionCount}
+                            prompt={q.prompt}
+                            value={answers[q.id]?.blanks ?? []}
+                            onChange={(blanks) => setBlanks(q.id, blanks)}
+                          />
+                        )}
 
-                    {q.kind === "DRAG_DROP" && (
-                      <DragDropQuestion
-                        prompt={q.prompt}
-                        bank={q.structure?.bank ?? []}
-                        value={answers[q.id]?.placements ?? []}
-                        onChange={(placements) =>
-                          setPlacements(q.id, placements)
-                        }
-                      />
-                    )}
+                        {q.kind === "DRAG_DROP" && (
+                          <DragDropQuestion
+                            index={i + 1}
+                            questionCount={questionCount}
+                            prompt={q.prompt}
+                            bank={q.structure?.bank ?? []}
+                            value={answers[q.id]?.placements ?? []}
+                            onChange={(placements) =>
+                              setPlacements(q.id, placements)
+                            }
+                            intro={
+                              pinIntro && q.id === bankQuestionId
+                                ? assignment.instructions
+                                : null
+                            }
+                          />
+                        )}
 
-                    {q.kind === "TABLE_FILL" && (
-                      <TableFillQuestion
-                        structure={q.structure ?? {}}
-                        value={answers[q.id]?.cells ?? {}}
-                        onChange={(cells) => setCells(q.id, cells)}
-                      />
-                    )}
+                        {q.kind === "TABLE_FILL" && (
+                          <TableFillQuestion
+                            structure={q.structure ?? {}}
+                            value={answers[q.id]?.cells ?? {}}
+                            onChange={(cells) => setCells(q.id, cells)}
+                          />
+                        )}
 
-                    {q.kind === "MATCHING" && (
-                      <MatchingQuestion
-                        left={q.structure?.left ?? []}
-                        right={q.structure?.right ?? []}
-                        pairs={answers[q.id]?.pairs ?? []}
-                        onChange={(pairs) => setPairs(q.id, pairs)}
-                      />
-                    )}
-                  </>
+                        {q.kind === "MATCHING" && (
+                          <MatchingQuestion
+                            left={q.structure?.left ?? []}
+                            right={q.structure?.right ?? []}
+                            pairs={answers[q.id]?.pairs ?? []}
+                            onChange={(pairs) => setPairs(q.id, pairs)}
+                          />
+                        )}
+                      </>
+                    );
+                    return hidePrompt ? (
+                      body
+                    ) : (
+                      <>
+                        <QuestionHeading
+                          index={i + 1}
+                          questionCount={questionCount}
+                          prompt={q.prompt}
+                        />
+                        {body}
+                      </>
+                    );
+                  })()
                 )}
               </QuestionCard>
             </div>

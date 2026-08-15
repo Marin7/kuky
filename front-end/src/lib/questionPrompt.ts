@@ -14,3 +14,12 @@ export function stripLeadingEnumeration(prompt: string): string {
 export function displayPromptText(prompt: string | null | undefined): string {
   return stripLeadingEnumeration(prompt ?? "").trim();
 }
+
+/** Visible `1. ` prefix when the homework has more than one question. */
+export function questionIndexLabel(
+  index: number,
+  questionCount: number,
+): string {
+  if (questionCount <= 1) return "";
+  return `${index}. `;
+}

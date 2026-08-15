@@ -156,6 +156,7 @@ export function ManualMultiAnswerForm({
             <QuestionCard key={q.id}>
               <QuestionHeading
                 index={i + 1}
+                questionCount={questions.length}
                 prompt={q.prompt}
                 htmlFor={readOnly ? undefined : `manual-ans-${q.id}`}
               />

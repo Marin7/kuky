@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
 import {
   getExercise,
+  pinInstructionsAboveWordBank,
   resolveComposition,
-  isAutoTakeComposition,
   type ExerciseResponse,
 } from "@/lib/learning";
 import { notifyBadgesChanged } from "@/lib/notifications";
@@ -57,9 +57,16 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
           <h1 className="font-display text-2xl font-semibold text-primary sm:text-3xl">
             {exercise.title}
           </h1>
-          <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
-            {exercise.instructions}
-          </p>
+          {exercise.instructions &&
+            !pinInstructionsAboveWordBank(
+              exercise.questions,
+              exercise.homeworkType,
+              exercise.status,
+            ) && (
+              <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
+                {exercise.instructions}
+              </p>
+            )}
 
           {composition === "MIXED" ? (
             <MixedHomeworkForm
@@ -74,6 +81,8 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
                 feedbackText: exercise.feedbackText,
                 teacherFeedback: exercise.teacherFeedback,
                 contentRevisedAt: exercise.contentRevisedAt,
+                instructions: exercise.instructions,
+                homeworkType: exercise.homeworkType,
               }}
               onSubmitted={() =>
                 getExercise(homeworkId)

@@ -360,7 +360,6 @@
       wordBank: "Word bank",
       wordBankMissing:
         "No words in the bank. Check that the exercise was saved correctly.",
-      dropTargets: "Text — drop words into the blanks",
       dropHere: "Drop here",
       emptyBlank: "Empty",
       selectedHint: "Selected: “{{word}}”. Tap a blank to place it.",
@@ -449,6 +448,7 @@
       unitCorrect: "Correct",
       unitIncorrect: "Incorrect",
       unitExpected: "Accepted:",
+      unitExpectedSingle: "Correct:",
       teacherFeedback: "Teacher feedback",
     },
     trueFalse: {

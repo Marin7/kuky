@@ -1,11 +1,14 @@
-import { Fragment } from "react";
-import { useTranslation } from "react-i18next";
 import type { InlineChoiceMatch } from "@/lib/inlineChoice";
-import { stripLeadingEnumeration } from "@/lib/questionPrompt";
-import { cn } from "@/lib/utils";
+import {
+  questionIndexLabel,
+  stripLeadingEnumeration,
+} from "@/lib/questionPrompt";
 import { PassageText } from "./PassageText";
+import { InlineChoiceTokens } from "./InlineChoiceTokens";
 
 interface Props {
+  index: number;
+  questionCount: number;
   prompt: string;
   match: InlineChoiceMatch;
   selectedOptionId: string | null;
@@ -17,48 +20,27 @@ interface Props {
  * of a radio list. Clicking the selected word deselects it.
  */
 export function InlineSingleChoiceQuestion({
+  index,
+  questionCount,
   prompt,
   match,
   selectedOptionId,
   onChange,
 }: Props) {
-  const { t } = useTranslation();
   // Match indices stay on the stored prompt; strip only the visible prefix so
   // worksheet copy like `1. (Soy / Estoy)…` does not become `1. 1. (Soy…`.
   const before = stripLeadingEnumeration(prompt.slice(0, match.start));
   const after = prompt.slice(match.end);
 
   return (
-    <div className="text-base leading-9">
+    <div className="text-base font-medium leading-9">
+      {questionIndexLabel(index, questionCount)}
       <PassageText text={before} />
-      <span
-        role="group"
-        aria-label={t("learning.inlineSingleChoice.groupLabel")}
-      >
-        (
-        {match.tokens.map((token, i) => {
-          const selected = selectedOptionId === token.optionId;
-          return (
-            <Fragment key={token.optionId}>
-              {i > 0 && " / "}
-              <button
-                type="button"
-                aria-pressed={selected}
-                onClick={() => onChange(selected ? null : token.optionId)}
-                className={cn(
-                  "mx-0.5 inline cursor-pointer rounded px-1.5 py-0.5 align-baseline text-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  selected
-                    ? "bg-green-200 text-green-900 ring-1 ring-green-400"
-                    : "bg-muted/70 text-foreground hover:bg-muted",
-                )}
-              >
-                {token.text}
-              </button>
-            </Fragment>
-          );
-        })}
-        )
-      </span>
+      <InlineChoiceTokens
+        tokens={match.tokens}
+        selectedOptionId={selectedOptionId}
+        onChange={onChange}
+      />
       <PassageText text={after} />
     </div>
   );

@@ -368,7 +368,6 @@
       wordBank: "Banca de cuvinte",
       wordBankMissing:
         "Nu există cuvinte în bancă. Verifică dacă exercițiul a fost salvat corect.",
-      dropTargets: "Text — plasează cuvintele în spații",
       dropHere: "Plasează aici",
       emptyBlank: "Gol",
       selectedHint: "Selectat: «{{word}}». Apasă un spațiu pentru a-l plasa.",
@@ -458,6 +457,7 @@
       unitCorrect: "Corect",
       unitIncorrect: "Incorect",
       unitExpected: "Acceptat:",
+      unitExpectedSingle: "Corect:",
       teacherFeedback: "Comentariul profesoarei",
     },
     trueFalse: {

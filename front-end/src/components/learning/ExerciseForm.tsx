@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   isHomeworkUpdatedError,
+  pinInstructionsAboveWordBank,
   submitExercise,
   type ExerciseResponse,
   type ExerciseResult as ExerciseResultData,
@@ -52,8 +53,14 @@ function numberedItems(q: ExerciseResponse["questions"][number]) {
 function hidesPromptLabel(
   kind: ExerciseResponse["questions"][number]["kind"],
   inlineChoice: ReturnType<typeof matchClassicInlineSingleChoice>,
+  numbered = false,
 ): boolean {
-  return kind === "MULTI_BLANK" || kind === "DRAG_DROP" || inlineChoice != null;
+  return (
+    kind === "MULTI_BLANK" ||
+    kind === "DRAG_DROP" ||
+    inlineChoice != null ||
+    numbered
+  );
 }
 
 function initialAnswerState(
@@ -120,14 +127,17 @@ export function ExerciseForm({
       },
     }));
 
-  const setItemSelection = (qId: string, number: number, optionId: string) =>
-    setAnswers((prev) => ({
-      ...prev,
-      [qId]: {
-        ...prev[qId],
-        selections: { ...prev[qId].selections, [String(number)]: optionId },
-      },
-    }));
+  const setItemSelection = (
+    qId: string,
+    number: number,
+    optionId: string | null,
+  ) =>
+    setAnswers((prev) => {
+      const selections = { ...prev[qId].selections };
+      if (optionId) selections[String(number)] = optionId;
+      else delete selections[String(number)];
+      return { ...prev, [qId]: { ...prev[qId], selections } };
+    });
 
   const toggleMulti = (qId: string, optionId: string, checked: boolean) =>
     setAnswers((prev) => {
@@ -222,24 +232,30 @@ export function ExerciseForm({
     );
   }
 
+  const pinIntro = pinInstructionsAboveWordBank(
+    exercise.questions,
+    exercise.homeworkType,
+    exercise.status,
+  );
+  const bankQuestionId = exercise.questions.find(
+    (q) => q.kind === "DRAG_DROP",
+  )?.id;
+  const questionCount = exercise.questions.length;
+
   return (
     <div className="mt-6 space-y-5">
       <div className="space-y-3">
         {exercise.questions.map((q, i) => {
           const inlineChoice = matchClassicInlineSingleChoice(q);
           const numbered = numberedItems(q).length > 0;
-          return (
-            <QuestionCard key={q.id}>
-              <QuestionHeading
-                index={i + 1}
-                prompt={
-                  hidesPromptLabel(q.kind, inlineChoice) ? undefined : q.prompt
-                }
-              />
-
+          const hidePrompt = hidesPromptLabel(q.kind, inlineChoice, numbered);
+          const body = (
+            <>
               {numbered && (
                 <NumberedSingleChoiceQuestion
-                  questionId={q.id}
+                  index={i + 1}
+                  questionCount={questionCount}
+                  prompt={q.prompt}
                   items={numberedItems(q)}
                   selections={answers[q.id]?.selections ?? {}}
                   onChange={(number, optionId) =>
@@ -250,6 +266,8 @@ export function ExerciseForm({
 
               {inlineChoice && (
                 <InlineSingleChoiceQuestion
+                  index={i + 1}
+                  questionCount={questionCount}
                   prompt={q.prompt}
                   match={inlineChoice}
                   selectedOptionId={answers[q.id]?.selectedOptionIds[0] ?? null}
@@ -304,6 +322,8 @@ export function ExerciseForm({
 
               {q.kind === "MULTI_BLANK" && (
                 <MultiBlankQuestion
+                  index={i + 1}
+                  questionCount={questionCount}
                   prompt={q.prompt}
                   value={answers[q.id]?.blanks ?? []}
                   onChange={(blanks) => setBlanks(q.id, blanks)}
@@ -312,10 +332,17 @@ export function ExerciseForm({
 
               {q.kind === "DRAG_DROP" && (
                 <DragDropQuestion
+                  index={i + 1}
+                  questionCount={questionCount}
                   prompt={q.prompt}
                   bank={q.structure?.bank ?? []}
                   value={answers[q.id]?.placements ?? []}
                   onChange={(placements) => setPlacements(q.id, placements)}
+                  intro={
+                    pinIntro && q.id === bankQuestionId
+                      ? exercise.instructions
+                      : null
+                  }
                 />
               )}
 
@@ -334,6 +361,22 @@ export function ExerciseForm({
                   pairs={answers[q.id]?.pairs ?? []}
                   onChange={(pairs) => setPairs(q.id, pairs)}
                 />
+              )}
+            </>
+          );
+          return (
+            <QuestionCard key={q.id}>
+              {hidePrompt ? (
+                body
+              ) : (
+                <>
+                  <QuestionHeading
+                    index={i + 1}
+                    questionCount={questionCount}
+                    prompt={q.prompt}
+                  />
+                  {body}
+                </>
               )}
             </QuestionCard>
           );

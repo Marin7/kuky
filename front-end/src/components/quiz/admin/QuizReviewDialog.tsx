@@ -195,6 +195,7 @@ export function QuizReviewDialog({
                       question={q}
                       result={toQuestionResult(q.id, result)}
                       number={i + 1}
+                      questionCount={detail.questions.length}
                       showAllAnswers
                     />
                   )}

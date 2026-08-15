@@ -1,10 +1,15 @@
 import { useTranslation } from "react-i18next";
 import { splitPromptSegments } from "@/lib/blankTokens";
 import type { UnitResult } from "@/lib/learning";
-import { stripLeadingEnumeration } from "@/lib/questionPrompt";
+import {
+  questionIndexLabel,
+  stripLeadingEnumeration,
+} from "@/lib/questionPrompt";
 import { PassageText } from "./PassageText";
 
 interface Props {
+  index: number;
+  questionCount: number;
   prompt: string;
   unitResults: UnitResult[];
 }
@@ -18,13 +23,19 @@ function displayOrDash(
 }
 
 /** Graded MULTI_BLANK / DRAG_DROP review: passage with filled blanks and per-blank feedback. */
-export function MultiBlankResult({ prompt, unitResults }: Props) {
+export function MultiBlankResult({
+  index,
+  questionCount,
+  prompt,
+  unitResults,
+}: Props) {
   const { t } = useTranslation();
   const noAnswer = t("learning.exerciseResult.noAnswer");
   const segments = splitPromptSegments(stripLeadingEnumeration(prompt));
 
   return (
-    <div className="text-base leading-9">
+    <div className="text-base font-medium leading-9">
+      {questionIndexLabel(index, questionCount)}
       {segments.map((seg, i) => {
         if (seg.type === "text") {
           return <PassageText key={i} text={seg.text} />;
@@ -50,7 +61,7 @@ export function MultiBlankResult({ prompt, unitResults }: Props) {
             <span>{student}</span>
             {expected && (
               <span className="font-normal opacity-90">
-                ({t("learning.exerciseResult.unitExpected")} {expected})
+                ({t("learning.exerciseResult.unitExpectedSingle")} {expected})
               </span>
             )}
           </span>

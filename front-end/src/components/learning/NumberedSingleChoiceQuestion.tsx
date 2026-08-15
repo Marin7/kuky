@@ -1,52 +1,61 @@
-import { useTranslation } from "react-i18next";
 import type { StudentSingleChoiceItem } from "@/lib/learning";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { splitPromptByNumberedMarkers } from "@/lib/singleChoiceMarkers";
+import {
+  questionIndexLabel,
+  stripLeadingEnumeration,
+} from "@/lib/questionPrompt";
+import { PassageText } from "./PassageText";
+import { InlineChoiceTokens } from "./InlineChoiceTokens";
 
 interface Props {
-  questionId: string;
+  index: number;
+  questionCount: number;
+  prompt: string;
   items: StudentSingleChoiceItem[];
   selections: Record<string, string>;
-  onChange: (number: number, optionId: string) => void;
+  onChange: (number: number, optionId: string | null) => void;
 }
 
-/** Stacked radio groups — one pick-one list per numbered `(N)` item. */
+/**
+ * Numbered opción única take: each `(N)` in the prompt becomes a clickable
+ * `(option / option)` group for that item. Clicking the selected word clears it.
+ */
 export function NumberedSingleChoiceQuestion({
-  questionId,
+  index,
+  questionCount,
+  prompt,
   items,
   selections,
   onChange,
 }: Props) {
-  const { t } = useTranslation();
-  const sorted = [...items].sort((a, b) => a.number - b.number);
+  const byNumber = new Map(items.map((item) => [item.number, item]));
+  const parts = splitPromptByNumberedMarkers(prompt);
 
   return (
-    <div className="space-y-4">
-      {sorted.map((item) => (
-        <div key={item.number} className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">
-            {t("learning.numberedSingleChoice.itemLabel", {
-              number: item.number,
-            })}
-          </p>
-          <RadioGroup
-            value={selections[String(item.number)] ?? ""}
-            onValueChange={(v) => onChange(item.number, v)}
-          >
-            {item.options.map((o) => (
-              <label
-                key={o.id}
-                className="flex items-center gap-2.5 text-base leading-snug"
-              >
-                <RadioGroupItem
-                  value={o.id}
-                  id={`${questionId}-${item.number}-${o.id}`}
-                />
-                {o.label}
-              </label>
-            ))}
-          </RadioGroup>
-        </div>
-      ))}
+    <div className="text-base font-medium leading-9">
+      {questionIndexLabel(index, questionCount)}
+      {parts.map((part, i) => {
+        if (part.type === "text") {
+          const text =
+            i === 0 ? stripLeadingEnumeration(part.text) : part.text;
+          return <PassageText key={i} text={text} />;
+        }
+        const item = byNumber.get(part.number);
+        if (!item || item.options.length < 2) {
+          return <span key={i}>({part.number})</span>;
+        }
+        return (
+          <InlineChoiceTokens
+            key={`${part.number}-${i}`}
+            tokens={item.options.map((o) => ({
+              text: o.label,
+              optionId: o.id,
+            }))}
+            selectedOptionId={selections[String(part.number)] ?? null}
+            onChange={(optionId) => onChange(part.number, optionId)}
+          />
+        );
+      })}
     </div>
   );
 }

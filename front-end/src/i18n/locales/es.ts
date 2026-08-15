@@ -369,7 +369,6 @@ export const esDict = {
       wordBank: "Banco de palabras",
       wordBankMissing:
         "No hay palabras en el banco. Revisa que el ejercicio se haya guardado correctamente.",
-      dropTargets: "Texto — suelta las palabras en los huecos",
       dropHere: "Suelta aquí",
       emptyBlank: "Vacío",
       selectedHint: "Seleccionada: «{{word}}». Pulsa un hueco para colocarla.",
@@ -459,6 +458,7 @@ export const esDict = {
       unitCorrect: "Correcto",
       unitIncorrect: "Incorrecto",
       unitExpected: "Aceptado:",
+      unitExpectedSingle: "Correcto:",
       teacherFeedback: "Comentario de la profesora",
     },
     trueFalse: {

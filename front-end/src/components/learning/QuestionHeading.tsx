@@ -1,37 +1,38 @@
 import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import { Label } from "@/components/ui/label";
-import { displayPromptText } from "@/lib/questionPrompt";
+import {
+  displayPromptText,
+  questionIndexLabel,
+} from "@/lib/questionPrompt";
 
 interface HeadingProps {
   index: number;
-  /** Prompt shown on the line below the heading. Omit when the prompt is inline. */
+  questionCount: number;
   prompt?: string | null;
   htmlFor?: string;
 }
 
-/** "Pregunta N" on its own line, then the prompt without a leading `N.` */
-export function QuestionHeading({ index, prompt, htmlFor }: HeadingProps) {
-  const { t } = useTranslation();
-  const text = displayPromptText(prompt);
-  const title = t("learning.manualMulti.questionLabel", { index });
+const PROMPT_CLASS =
+  "whitespace-pre-wrap text-base font-medium leading-9";
 
-  return (
-    <div className="space-y-1">
-      {htmlFor ? (
-        <Label htmlFor={htmlFor} className="block text-sm font-semibold">
-          {title}
-        </Label>
-      ) : (
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-      )}
-      {text ? (
-        <p className="whitespace-pre-wrap text-base font-medium leading-relaxed">
-          {text}
-        </p>
-      ) : null}
-    </div>
-  );
+/** `1. Question text` — same size and line as the prompt. */
+export function QuestionHeading({
+  index,
+  questionCount,
+  prompt,
+  htmlFor,
+}: HeadingProps) {
+  const text = displayPromptText(prompt);
+  const label = `${questionIndexLabel(index, questionCount)}${text}`;
+
+  if (htmlFor) {
+    return (
+      <Label htmlFor={htmlFor} className={`block ${PROMPT_CLASS}`}>
+        {label}
+      </Label>
+    );
+  }
+  return <p className={PROMPT_CLASS}>{label}</p>;
 }
 
 export function QuestionCard({ children }: { children: ReactNode }) {

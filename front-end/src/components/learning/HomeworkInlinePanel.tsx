@@ -5,6 +5,7 @@ import {
   resolveComposition,
   isAutoTakeComposition,
   isStudentHomeworkEditable,
+  pinInstructionsAboveWordBank,
   type ExerciseResponse,
   type HomeworkItem,
 } from "@/lib/learning";
@@ -89,19 +90,24 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
   if (composition === "MIXED" && exercise) {
     const audioUrl = exercise.audioUrl;
     const audioFileId = exercise.audioFileId;
+    const pinIntro = pinInstructionsAboveWordBank(
+      exercise.questions,
+      exercise.homeworkType,
+      exercise.status,
+    );
     return (
       <div className="space-y-3">
+        {exercise.instructions && !pinIntro && (
+          <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
+            {exercise.instructions}
+          </p>
+        )}
         {(audioUrl || audioFileId) && (
           <AudioPlayer
             mediaSourceKind={exercise.mediaSourceKind}
             audioUrl={audioUrl}
             audioFileId={audioFileId}
           />
-        )}
-        {exercise.instructions && (
-          <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
-            {exercise.instructions}
-          </div>
         )}
         <MixedHomeworkForm
           assignment={{
@@ -115,6 +121,8 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
             feedbackText: exercise.feedbackText,
             teacherFeedback: exercise.teacherFeedback,
             contentRevisedAt: exercise.contentRevisedAt,
+            instructions: exercise.instructions,
+            homeworkType: exercise.homeworkType,
           }}
           onSubmitted={onChanged}
           onHomeworkUpdated={onChanged}
@@ -126,19 +134,24 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
   if (composition === "ALL_AUTO" && exercise) {
     const audioUrl = exercise.audioUrl;
     const audioFileId = exercise.audioFileId;
+    const pinIntro = pinInstructionsAboveWordBank(
+      exercise.questions,
+      exercise.homeworkType,
+      exercise.status,
+    );
     return (
       <div className="space-y-3">
+        {exercise.instructions && !pinIntro && (
+          <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
+            {exercise.instructions}
+          </p>
+        )}
         {(audioUrl || audioFileId) && (
           <AudioPlayer
             mediaSourceKind={exercise.mediaSourceKind}
             audioUrl={audioUrl}
             audioFileId={audioFileId}
           />
-        )}
-        {exercise.instructions && (
-          <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
-            {exercise.instructions}
-          </div>
         )}
         <ExerciseForm
           exercise={exercise}
@@ -162,7 +175,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
             {item.instructions}
           </div>
         ) : (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+          <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
             {item.instructions}
           </p>
         ))}

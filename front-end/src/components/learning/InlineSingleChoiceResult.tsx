@@ -1,10 +1,14 @@
-import { Fragment } from "react";
 import type { InlineChoiceMatch } from "@/lib/inlineChoice";
-import { stripLeadingEnumeration } from "@/lib/questionPrompt";
-import { cn } from "@/lib/utils";
+import {
+  questionIndexLabel,
+  stripLeadingEnumeration,
+} from "@/lib/questionPrompt";
 import { PassageText } from "./PassageText";
+import { InlineChoiceTokensResult } from "./InlineChoiceTokens";
 
 interface Props {
+  index: number;
+  questionCount: number;
   prompt: string;
   match: InlineChoiceMatch;
   selectedOptionId: string | null;
@@ -19,6 +23,8 @@ interface Props {
  * (green if right, red if wrong). Wrong answers also mark the expected word.
  */
 export function InlineSingleChoiceResult({
+  index,
+  questionCount,
   prompt,
   match,
   selectedOptionId,
@@ -30,34 +36,16 @@ export function InlineSingleChoiceResult({
   const after = prompt.slice(match.end);
 
   return (
-    <div className="text-base leading-9">
+    <div className="text-base font-medium leading-9">
+      {questionIndexLabel(index, questionCount)}
       <PassageText text={before} />
-      <span>
-        (
-        {match.tokens.map((token, i) => {
-          const selected = token.optionId === selectedOptionId;
-          const isKey = correctOptionIds.includes(token.optionId);
-          const highlightCorrect =
-            (selected && correct) || (!selected && isKey && revealCorrect);
-          const highlightWrong = selected && !correct;
-
-          return (
-            <Fragment key={token.optionId}>
-              {i > 0 && " / "}
-              <span
-                className={cn(
-                  "mx-0.5 inline rounded px-1.5 py-0.5 align-baseline text-base font-medium",
-                  highlightCorrect && "bg-green-100 text-green-700",
-                  highlightWrong && "bg-red-100 text-red-700",
-                )}
-              >
-                {token.text}
-              </span>
-            </Fragment>
-          );
-        })}
-        )
-      </span>
+      <InlineChoiceTokensResult
+        tokens={match.tokens}
+        selectedOptionId={selectedOptionId}
+        correctOptionIds={correctOptionIds}
+        correct={correct}
+        revealCorrect={revealCorrect}
+      />
       <PassageText text={after} />
     </div>
   );

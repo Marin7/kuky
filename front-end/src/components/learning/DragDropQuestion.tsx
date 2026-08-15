@@ -2,22 +2,37 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { StudentBankItem } from "@/lib/learning";
 import { countBlanks, splitPromptSegments } from "@/lib/blankTokens";
-import { stripLeadingEnumeration } from "@/lib/questionPrompt";
+import {
+  questionIndexLabel,
+  stripLeadingEnumeration,
+} from "@/lib/questionPrompt";
 import { shuffle, cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
 
 interface Props {
+  index: number;
+  questionCount: number;
   prompt: string;
   bank: StudentBankItem[];
   value: (string | null)[];
   onChange: (placements: (string | null)[]) => void;
+  /** Homework instruction shown above the word bank. */
+  intro?: string | null;
 }
 
 /**
  * Word-bank → blanks. Bank chips are dragged (or click-selected then click a
  * blank). Visually distinct from MULTI_BLANK typed inputs.
  */
-export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
+export function DragDropQuestion({
+  index,
+  questionCount,
+  prompt,
+  bank,
+  value,
+  onChange,
+  intro = null,
+}: Props) {
   const { t } = useTranslation();
   const blankCount = countBlanks(prompt);
   const bankKey = bank.map((b) => b.id).join(",");
@@ -90,13 +105,20 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
 
   return (
     <div className="space-y-4">
+      {intro?.trim() ? (
+        <p className="whitespace-pre-wrap text-base font-medium leading-relaxed text-foreground">
+          {intro.trim()}
+        </p>
+      ) : null}
+
+      <p className="text-sm text-muted-foreground">
+        {t("learning.exercisePage.dragDropInstructions")}
+      </p>
+
       {/* Word bank first — the defining affordance vs typed fill-gaps */}
       <div className="rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
           {t("learning.exercisePage.wordBank")}
-        </p>
-        <p className="mb-3 text-sm text-muted-foreground">
-          {t("learning.exercisePage.dragDropInstructions")}
         </p>
         <div className="flex min-h-10 flex-wrap gap-2">
           {shuffledBank.length === 0 ? (
@@ -135,10 +157,8 @@ export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
 
       {/* Passage with drop targets — not text inputs */}
       <div className="rounded-lg border bg-card p-3">
-        <p className="mb-2 text-sm font-medium text-muted-foreground">
-          {t("learning.exercisePage.dropTargets")}
-        </p>
-        <div className="text-base leading-10">
+        <div className="text-base font-medium leading-10">
+          {questionIndexLabel(index, questionCount)}
           {segments.map((seg, i) =>
             seg.type === "text" ? (
               <PassageText key={i} text={seg.text} />
