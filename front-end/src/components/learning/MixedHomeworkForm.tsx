@@ -590,6 +590,7 @@ export function MixedHomeworkForm({
                             questionCount={questionCount}
                             prompt={q.prompt}
                             bank={q.structure?.bank ?? []}
+                            bankReusable={q.structure?.bankReusable === true}
                             value={answers[q.id]?.placements ?? []}
                             onChange={(placements) =>
                               setPlacements(q.id, placements)

@@ -16,6 +16,8 @@ interface Props {
   bank: StudentBankItem[];
   value: (string | null)[];
   onChange: (placements: (string | null)[]) => void;
+  /** When true, chips stay available and placing copies instead of moving. */
+  bankReusable?: boolean;
   /** Homework instruction shown above the word bank. */
   intro?: string | null;
 }
@@ -31,6 +33,7 @@ export function DragDropQuestion({
   bank,
   value,
   onChange,
+  bankReusable = false,
   intro = null,
 }: Props) {
   const { t } = useTranslation();
@@ -64,7 +67,12 @@ export function DragDropQuestion({
   };
 
   const place = (blankIndex: number, itemId: string) => {
-    const next = ensureSize(value).map((v) => (v === itemId ? null : v));
+    const next = ensureSize(value);
+    if (!bankReusable) {
+      for (let i = 0; i < next.length; i++) {
+        if (next[i] === itemId) next[i] = null;
+      }
+    }
     next[blankIndex] = itemId;
     onChange(next);
     setSelected(null);
@@ -86,7 +94,7 @@ export function DragDropQuestion({
   };
 
   const onBankItemClick = (id: string) => {
-    if (placedIds.has(id)) return;
+    if (!bankReusable && placedIds.has(id)) return;
     setSelected((prev) => (prev === id ? null : id));
   };
 
@@ -127,20 +135,20 @@ export function DragDropQuestion({
             </p>
           ) : (
             shuffledBank.map((item) => {
-              const placed = placedIds.has(item.id);
+              const occupied = !bankReusable && placedIds.has(item.id);
               return (
                 <button
                   key={item.id}
                   type="button"
-                  draggable={!placed}
+                  draggable={!occupied}
                   onDragStart={(e) => onDragStart(e, item.id)}
                   onDragEnd={() => setSelected(null)}
                   onClick={() => onBankItemClick(item.id)}
-                  disabled={placed}
+                  disabled={occupied}
                   aria-pressed={selected === item.id}
                   className={cn(
                     "rounded-md border px-3 py-2 text-base font-medium shadow-sm transition",
-                    placed
+                    occupied
                       ? "cursor-not-allowed border-dashed bg-muted/40 text-muted-foreground line-through opacity-40"
                       : selected === item.id
                         ? "cursor-grab border-primary bg-primary text-primary-foreground ring-2 ring-primary/30"

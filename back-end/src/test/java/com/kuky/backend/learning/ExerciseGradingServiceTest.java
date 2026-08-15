@@ -365,6 +365,90 @@ class ExerciseGradingServiceTest {
     }
 
     @Test
+    void dragDrop_studentStrip_reusableWhenSameIdOnTwoBlanks() {
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        String id2 = "22222222-2222-2222-2222-222222222222";
+        HomeworkQuestion q = structured(QuestionKind.DRAG_DROP,
+                "Como ___ y ___.",
+                """
+                {"bank":[
+                  {"id":"%s","label":"el"},
+                  {"id":"%s","label":"la"}
+                ],
+                "blanks":[
+                  {"correctBankIds":["%s"]},
+                  {"correctBankIds":["%s"]}
+                ]}
+                """.formatted(id1, id2, id1, id1));
+        var student = service.studentQuestionsFor(List.of(q));
+        assertThat(student).hasSize(1);
+        var structure = student.getFirst().structure();
+        assertThat(structure.path("bankReusable").asBoolean()).isTrue();
+        assertThat(structure.path("bank").isArray()).isTrue();
+        assertThat(structure.has("blanks")).isFalse();
+        assertThat(structure.toString()).doesNotContain("correctBankIds");
+    }
+
+    @Test
+    void dragDrop_studentStrip_exclusiveForCanonicalAndLegacy() {
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        String id2 = "22222222-2222-2222-2222-222222222222";
+        HomeworkQuestion canonical = structured(QuestionKind.DRAG_DROP,
+                "El ___ y la ___.",
+                """
+                {"bank":[
+                  {"id":"%s","label":"perro"},
+                  {"id":"%s","label":"casa"}
+                ],
+                "blanks":[
+                  {"correctBankIds":["%s"]},
+                  {"correctBankIds":["%s"]}
+                ]}
+                """.formatted(id1, id2, id1, id2));
+        var canonicalStrip = service.studentQuestionsFor(List.of(canonical)).getFirst().structure();
+        assertThat(canonicalStrip.path("bankReusable").asBoolean()).isFalse();
+        assertThat(canonicalStrip.has("blanks")).isFalse();
+
+        HomeworkQuestion legacy = structured(QuestionKind.DRAG_DROP,
+                "El ___ y la ___.",
+                """
+                {"bank":[{"id":"%s","label":"perro"},{"id":"%s","label":"casa"}]}
+                """.formatted(id1, id2));
+        var legacyStrip = service.studentQuestionsFor(List.of(legacy)).getFirst().structure();
+        assertThat(legacyStrip.path("bankReusable").asBoolean()).isFalse();
+        assertThat(legacyStrip.has("blanks")).isFalse();
+    }
+
+    @Test
+    void dragDrop_duplicatePlacement_scoresBothBlanksWhenSharedKey() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        String id2 = "22222222-2222-2222-2222-222222222222";
+        HomeworkQuestion q = structured(QuestionKind.DRAG_DROP,
+                "Como ___ y ___.",
+                """
+                {"bank":[
+                  {"id":"%s","label":"el"},
+                  {"id":"%s","label":"la"}
+                ],
+                "blanks":[
+                  {"correctBankIds":["%s"]},
+                  {"correctBankIds":["%s"]}
+                ]}
+                """.formatted(id1, id2, id1, id1));
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(),
+                mapper.readTree("""
+                {"placements":["%s","%s"]}
+                """.formatted(id1, id1))));
+        assertThat(r.scorePercent()).isEqualTo(100);
+        assertThat(r.questions().getFirst().unitResults()).hasSize(2);
+        assertThat(r.questions().getFirst().unitResults().get(0).correct()).isTrue();
+        assertThat(r.questions().getFirst().unitResults().get(1).correct()).isTrue();
+        assertThat(r.questions().getFirst().unitResults().get(0).studentDisplay()).isEqualTo("el");
+        assertThat(r.questions().getFirst().unitResults().get(1).studentDisplay()).isEqualTo("el");
+    }
+
+    @Test
     void multiBlank_showsAllAcceptedWhenCorrectAndMulti() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         HomeworkQuestion q = structured(QuestionKind.MULTI_BLANK,

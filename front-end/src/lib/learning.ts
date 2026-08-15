@@ -183,6 +183,8 @@ export interface StudentSingleChoiceItem {
 
 export interface StudentStructure {
   bank?: StudentBankItem[]; // DRAG_DROP
+  /** True when the same bank item is correct for ≥2 blanks; omit/false = exclusive. */
+  bankReusable?: boolean;
   rowHeaders?: string[]; // TABLE_FILL
   colHeaders?: string[]; // TABLE_FILL
   cells?: StudentTableCell[]; // TABLE_FILL

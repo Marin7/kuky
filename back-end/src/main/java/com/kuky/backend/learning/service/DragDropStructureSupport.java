@@ -5,7 +5,9 @@ import com.kuky.backend.learning.ExerciseStructureLimits;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Dual-read helper for DRAG_DROP {@code structure_json}: canonical
@@ -74,6 +76,22 @@ public final class DragDropStructureSupport {
             }
         }
         return new Resolved(bank, blanks);
+    }
+
+    /**
+     * True when any bank item id is designated correct for two or more blanks.
+     * Legacy positional keys never share an id, so they are exclusive.
+     */
+    public static boolean isBankReusable(Resolved resolved) {
+        if (resolved == null) return false;
+        Set<String> seen = new HashSet<>();
+        for (ResolvedBlank blank : resolved.blanks()) {
+            for (String id : blank.correctBankIds()) {
+                if (id == null || id.isBlank()) continue;
+                if (!seen.add(id)) return true;
+            }
+        }
+        return false;
     }
 
     /** Labels for the given bank item ids, in the same order as {@code ids}. */

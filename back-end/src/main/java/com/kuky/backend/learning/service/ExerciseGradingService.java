@@ -456,7 +456,11 @@ public class ExerciseGradingService {
         JsonNode structure = readStructure(q);
         ObjectNode result = objectMapper.createObjectNode();
         switch (q.getKind()) {
-            case DRAG_DROP -> result.set("bank", arrayOrEmpty(structure.path("bank")));
+            case DRAG_DROP -> {
+                result.set("bank", arrayOrEmpty(structure.path("bank")));
+                result.put("bankReusable", DragDropStructureSupport.isBankReusable(
+                        DragDropStructureSupport.resolve(structure)));
+            }
             case TABLE_FILL -> {
                 result.set("rowHeaders", arrayOrEmpty(structure.path("rowHeaders")));
                 result.set("colHeaders", arrayOrEmpty(structure.path("colHeaders")));
