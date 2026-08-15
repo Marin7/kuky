@@ -373,6 +373,9 @@ export const esDict = {
       itemLabel: "({{number}})",
       allRequired: "Marca una opción en cada número antes de entregar.",
     },
+    inlineSingleChoice: {
+      groupLabel: "Elige la opción correcta en la frase",
+    },
     writePage: {
       back: "← Volver a mi aprendizaje",
       loading: "Cargando tarea…",

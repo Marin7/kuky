@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import type { ExerciseResult, StudentQuestion } from "@/lib/learning";
+import { matchClassicInlineSingleChoice } from "@/lib/inlineChoice";
 import { MultiBlankResult } from "./MultiBlankResult";
+import { InlineSingleChoiceResult } from "./InlineSingleChoiceResult";
 import { TableFillResult } from "./TableFillResult";
 
 interface Props {
@@ -90,9 +92,7 @@ export function ExerciseResult({
         </div>
       )}
 
-      <div
-        className={result.questions.length > 1 ? "space-y-8" : "space-y-3"}
-      >
+      <div className={result.questions.length > 1 ? "space-y-8" : "space-y-3"}>
         {result.questions.map((qr, i) => {
           const question = byId.get(qr.questionId);
           const partial = qr.score > 0 && qr.score < 1;
@@ -131,6 +131,9 @@ export function ExerciseResult({
           // MULTI_BLANK + DRAG_DROP: render filled passage instead of a unit list.
           const isBlankPassage =
             question?.kind === "MULTI_BLANK" || question?.kind === "DRAG_DROP";
+          const inlineChoice = question
+            ? matchClassicInlineSingleChoice(question)
+            : null;
           // TRUE_FALSE always shows the student's pick; never the answer key line.
           const showChoiceDetail =
             showAllAnswers || !qr.correct || partial || isTrueFalse;
@@ -146,6 +149,16 @@ export function ExerciseResult({
                     number={i + 1}
                     prompt={question.prompt}
                     unitResults={unitResults}
+                  />
+                ) : inlineChoice && question ? (
+                  <InlineSingleChoiceResult
+                    number={i + 1}
+                    prompt={question.prompt}
+                    match={inlineChoice}
+                    selectedOptionId={qr.selectedOptionIds?.[0] ?? null}
+                    correctOptionIds={qr.correctOptionIds}
+                    correct={qr.correct}
+                    revealCorrect={showAllAnswers || !qr.correct}
                   />
                 ) : (
                   <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
@@ -201,6 +214,7 @@ export function ExerciseResult({
                 </div>
               ) : (
                 !isBlankPassage &&
+                !inlineChoice &&
                 showChoiceDetail && (
                   <div className="mt-2 space-y-1 text-muted-foreground">
                     <p>

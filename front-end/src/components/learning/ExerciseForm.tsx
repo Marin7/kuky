@@ -15,7 +15,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExerciseResult } from "./ExerciseResult";
+import { matchClassicInlineSingleChoice } from "@/lib/inlineChoice";
 import { NumberedSingleChoiceQuestion } from "./NumberedSingleChoiceQuestion";
+import { InlineSingleChoiceQuestion } from "./InlineSingleChoiceQuestion";
 import { MultiBlankQuestion } from "./MultiBlankQuestion";
 import { DragDropQuestion } from "./DragDropQuestion";
 import { TableFillQuestion } from "./TableFillQuestion";
@@ -43,9 +45,12 @@ interface Props {
   ) => Promise<ExerciseResultData>;
 }
 
-// Passage kinds render the number inline with the prompt; skip the separate
-// numbered label above the question.
-const RENDERS_OWN_PASSAGE = new Set(["MULTI_BLANK", "DRAG_DROP"]);
+function hidesPromptLabel(
+  kind: ExerciseResponse["questions"][number]["kind"],
+  inlineChoice: ReturnType<typeof matchClassicInlineSingleChoice>,
+): boolean {
+  return kind === "MULTI_BLANK" || kind === "DRAG_DROP" || inlineChoice != null;
+}
 
 function numberedItems(q: ExerciseResponse["questions"][number]) {
   return q.kind === "SINGLE_CHOICE" ? (q.structure?.items ?? []) : [];
@@ -106,10 +111,13 @@ export function ExerciseForm({
     prevToken.current = next ?? null;
   }, [exercise.contentRevisedAt, exercise.questions, t]);
 
-  const setSingle = (qId: string, optionId: string) =>
+  const setSingle = (qId: string, optionId: string | null) =>
     setAnswers((prev) => ({
       ...prev,
-      [qId]: { ...prev[qId], selectedOptionIds: [optionId] },
+      [qId]: {
+        ...prev[qId],
+        selectedOptionIds: optionId ? [optionId] : [],
+      },
     }));
 
   const setItemSelection = (qId: string, number: number, optionId: string) =>
@@ -219,105 +227,122 @@ export function ExerciseForm({
       <div
         className={exercise.questions.length > 1 ? "space-y-8" : "space-y-5"}
       >
-        {exercise.questions.map((q, i) => (
-          <div key={q.id} className="space-y-2.5">
-            {!RENDERS_OWN_PASSAGE.has(q.kind) && (
-              <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
-                {`${i + 1}. ${q.prompt}`}
-              </Label>
-            )}
+        {exercise.questions.map((q, i) => {
+          const inlineChoice = matchClassicInlineSingleChoice(q);
+          return (
+            <div key={q.id} className="space-y-2.5">
+              {!hidesPromptLabel(q.kind, inlineChoice) && (
+                <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
+                  {`${i + 1}. ${q.prompt}`}
+                </Label>
+              )}
 
-            {q.kind === "SINGLE_CHOICE" && numberedItems(q).length > 0 && (
-              <NumberedSingleChoiceQuestion
-                questionId={q.id}
-                items={numberedItems(q)}
-                selections={answers[q.id]?.selections ?? {}}
-                onChange={(number, optionId) =>
-                  setItemSelection(q.id, number, optionId)
-                }
-              />
-            )}
+              {q.kind === "SINGLE_CHOICE" && numberedItems(q).length > 0 && (
+                <NumberedSingleChoiceQuestion
+                  questionId={q.id}
+                  items={numberedItems(q)}
+                  selections={answers[q.id]?.selections ?? {}}
+                  onChange={(number, optionId) =>
+                    setItemSelection(q.id, number, optionId)
+                  }
+                />
+              )}
 
-            {((q.kind === "SINGLE_CHOICE" && numberedItems(q).length === 0) ||
-              q.kind === "TRUE_FALSE") && (
-              <RadioGroup
-                value={answers[q.id]?.selectedOptionIds[0] ?? ""}
-                onValueChange={(v) => setSingle(q.id, v)}
-              >
-                {q.options.map((o) => (
-                  <label
-                    key={o.id}
-                    className="flex items-center gap-2.5 text-base leading-snug"
-                  >
-                    <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
-                    {q.kind === "TRUE_FALSE"
-                      ? t(
-                          o.label === "false"
-                            ? "learning.trueFalse.false"
-                            : "learning.trueFalse.true",
-                        )
-                      : o.label}
-                  </label>
-                ))}
-              </RadioGroup>
-            )}
+              {inlineChoice && (
+                <InlineSingleChoiceQuestion
+                  number={i + 1}
+                  prompt={q.prompt}
+                  match={inlineChoice}
+                  selectedOptionId={answers[q.id]?.selectedOptionIds[0] ?? null}
+                  onChange={(optionId) => setSingle(q.id, optionId)}
+                />
+              )}
 
-            {q.kind === "MULTI_CHOICE" && (
-              <div className="space-y-2.5">
-                {q.options.map((o) => (
-                  <label
-                    key={o.id}
-                    className="flex items-center gap-2.5 text-base leading-snug"
-                  >
-                    <Checkbox
-                      checked={answers[q.id]?.selectedOptionIds.includes(o.id)}
-                      onCheckedChange={(c) =>
-                        toggleMulti(q.id, o.id, c === true)
-                      }
-                    />
-                    {o.label}
-                  </label>
-                ))}
-              </div>
-            )}
+              {((q.kind === "SINGLE_CHOICE" &&
+                numberedItems(q).length === 0 &&
+                !inlineChoice) ||
+                q.kind === "TRUE_FALSE") && (
+                <RadioGroup
+                  value={answers[q.id]?.selectedOptionIds[0] ?? ""}
+                  onValueChange={(v) => setSingle(q.id, v)}
+                >
+                  {q.options.map((o) => (
+                    <label
+                      key={o.id}
+                      className="flex items-center gap-2.5 text-base leading-snug"
+                    >
+                      <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
+                      {q.kind === "TRUE_FALSE"
+                        ? t(
+                            o.label === "false"
+                              ? "learning.trueFalse.false"
+                              : "learning.trueFalse.true",
+                          )
+                        : o.label}
+                    </label>
+                  ))}
+                </RadioGroup>
+              )}
 
-            {q.kind === "MULTI_BLANK" && (
-              <MultiBlankQuestion
-                number={i + 1}
-                prompt={q.prompt}
-                value={answers[q.id]?.blanks ?? []}
-                onChange={(blanks) => setBlanks(q.id, blanks)}
-              />
-            )}
+              {q.kind === "MULTI_CHOICE" && (
+                <div className="space-y-2.5">
+                  {q.options.map((o) => (
+                    <label
+                      key={o.id}
+                      className="flex items-center gap-2.5 text-base leading-snug"
+                    >
+                      <Checkbox
+                        checked={answers[q.id]?.selectedOptionIds.includes(
+                          o.id,
+                        )}
+                        onCheckedChange={(c) =>
+                          toggleMulti(q.id, o.id, c === true)
+                        }
+                      />
+                      {o.label}
+                    </label>
+                  ))}
+                </div>
+              )}
 
-            {q.kind === "DRAG_DROP" && (
-              <DragDropQuestion
-                number={i + 1}
-                prompt={q.prompt}
-                bank={q.structure?.bank ?? []}
-                value={answers[q.id]?.placements ?? []}
-                onChange={(placements) => setPlacements(q.id, placements)}
-              />
-            )}
+              {q.kind === "MULTI_BLANK" && (
+                <MultiBlankQuestion
+                  number={i + 1}
+                  prompt={q.prompt}
+                  value={answers[q.id]?.blanks ?? []}
+                  onChange={(blanks) => setBlanks(q.id, blanks)}
+                />
+              )}
 
-            {q.kind === "TABLE_FILL" && (
-              <TableFillQuestion
-                structure={q.structure ?? {}}
-                value={answers[q.id]?.cells ?? {}}
-                onChange={(cells) => setCells(q.id, cells)}
-              />
-            )}
+              {q.kind === "DRAG_DROP" && (
+                <DragDropQuestion
+                  number={i + 1}
+                  prompt={q.prompt}
+                  bank={q.structure?.bank ?? []}
+                  value={answers[q.id]?.placements ?? []}
+                  onChange={(placements) => setPlacements(q.id, placements)}
+                />
+              )}
 
-            {q.kind === "MATCHING" && (
-              <MatchingQuestion
-                left={q.structure?.left ?? []}
-                right={q.structure?.right ?? []}
-                pairs={answers[q.id]?.pairs ?? []}
-                onChange={(pairs) => setPairs(q.id, pairs)}
-              />
-            )}
-          </div>
-        ))}
+              {q.kind === "TABLE_FILL" && (
+                <TableFillQuestion
+                  structure={q.structure ?? {}}
+                  value={answers[q.id]?.cells ?? {}}
+                  onChange={(cells) => setCells(q.id, cells)}
+                />
+              )}
+
+              {q.kind === "MATCHING" && (
+                <MatchingQuestion
+                  left={q.structure?.left ?? []}
+                  right={q.structure?.right ?? []}
+                  pairs={answers[q.id]?.pairs ?? []}
+                  onChange={(pairs) => setPairs(q.id, pairs)}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

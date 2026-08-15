@@ -13,19 +13,19 @@ import { Route as SobreMiRouteImport } from './routes/sobre-mi'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as ReservasRouteImport } from './routes/reservas'
-import { Route as PruebaDeNivelRouteImport } from './routes/prueba-de-nivel'
 import { Route as QuizzesRouteImport } from './routes/quizzes'
+import { Route as PruebaDeNivelRouteImport } from './routes/prueba-de-nivel'
 import { Route as PanelRouteImport } from './routes/panel'
 import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as CondicionesRouteImport } from './routes/condiciones'
 import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as QuizzesQuizIdRouteImport } from './routes/quizzes.$quizId'
 import { Route as AprendizajeOtrosRouteImport } from './routes/aprendizaje_.otros'
 import { Route as PanelTareasNuevaRouteImport } from './routes/panel_.tareas.nueva'
+import { Route as PanelTareasHomeworkIdRouteImport } from './routes/panel_.tareas.$homeworkId'
 import { Route as PanelQuizzesNuevaRouteImport } from './routes/panel_.quizzes.nueva'
 import { Route as PanelQuizzesQuizIdRouteImport } from './routes/panel_.quizzes.$quizId'
-import { Route as QuizzesQuizIdRouteImport } from './routes/quizzes.$quizId'
-import { Route as PanelTareasHomeworkIdRouteImport } from './routes/panel_.tareas.$homeworkId'
 import { Route as PanelAlumnosStudentIdRouteImport } from './routes/panel_.alumnos.$studentId'
 import { Route as PanelActividadesNuevaRouteImport } from './routes/panel_.actividades.nueva'
 import { Route as PanelActividadesActivityIdRouteImport } from './routes/panel_.actividades.$activityId'
@@ -55,6 +55,11 @@ const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
 const ReservasRoute = ReservasRouteImport.update({
   id: '/reservas',
   path: '/reservas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuizzesRoute = QuizzesRouteImport.update({
+  id: '/quizzes',
+  path: '/quizzes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PruebaDeNivelRoute = PruebaDeNivelRouteImport.update({
@@ -87,29 +92,14 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QuizzesQuizIdRoute = QuizzesQuizIdRouteImport.update({
+  id: '/$quizId',
+  path: '/$quizId',
+  getParentRoute: () => QuizzesRoute,
+} as any)
 const AprendizajeOtrosRoute = AprendizajeOtrosRouteImport.update({
   id: '/aprendizaje_/otros',
   path: '/aprendizaje/otros',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuizzesRoute = QuizzesRouteImport.update({
-  id: '/quizzes',
-  path: '/quizzes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PanelQuizzesNuevaRoute = PanelQuizzesNuevaRouteImport.update({
-  id: '/panel_/quizzes/nueva',
-  path: '/panel/quizzes/nueva',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PanelQuizzesQuizIdRoute = PanelQuizzesQuizIdRouteImport.update({
-  id: '/panel_/quizzes/$quizId',
-  path: '/panel/quizzes/$quizId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuizzesQuizIdRoute = QuizzesQuizIdRouteImport.update({
-  id: '/quizzes/$quizId',
-  path: '/quizzes/$quizId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PanelTareasNuevaRoute = PanelTareasNuevaRouteImport.update({
@@ -120,6 +110,16 @@ const PanelTareasNuevaRoute = PanelTareasNuevaRouteImport.update({
 const PanelTareasHomeworkIdRoute = PanelTareasHomeworkIdRouteImport.update({
   id: '/panel_/tareas/$homeworkId',
   path: '/panel/tareas/$homeworkId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelQuizzesNuevaRoute = PanelQuizzesNuevaRouteImport.update({
+  id: '/panel_/quizzes/nueva',
+  path: '/panel/quizzes/nueva',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PanelQuizzesQuizIdRoute = PanelQuizzesQuizIdRouteImport.update({
+  id: '/panel_/quizzes/$quizId',
+  path: '/panel/quizzes/$quizId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PanelAlumnosStudentIdRoute = PanelAlumnosStudentIdRouteImport.update({
@@ -187,13 +187,13 @@ export interface FileRoutesByFullPath {
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
-  '/quizzes': typeof QuizzesRoute
-  '/quizzes/$quizId': typeof QuizzesQuizIdRoute
+  '/quizzes': typeof QuizzesRouteWithChildren
   '/reservas': typeof ReservasRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje/otros': typeof AprendizajeOtrosRoute
+  '/quizzes/$quizId': typeof QuizzesQuizIdRoute
   '/aprendizaje/actividad/$activityId': typeof AprendizajeActividadActivityIdRoute
   '/aprendizaje/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
@@ -203,10 +203,10 @@ export interface FileRoutesByFullPath {
   '/panel/actividades/$activityId': typeof PanelActividadesActivityIdRoute
   '/panel/actividades/nueva': typeof PanelActividadesNuevaRoute
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  '/panel/quizzes/$quizId': typeof PanelQuizzesQuizIdRoute
+  '/panel/quizzes/nueva': typeof PanelQuizzesNuevaRoute
   '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
-  '/panel/quizzes/nueva': typeof PanelQuizzesNuevaRoute
-  '/panel/quizzes/$quizId': typeof PanelQuizzesQuizIdRoute
   '/aprendizaje/presentacion/$presentationId/archivo/$fileId': typeof AprendizajePresentacionPresentationIdArchivoFileIdRoute
 }
 export interface FileRoutesByTo {
@@ -216,13 +216,13 @@ export interface FileRoutesByTo {
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
-  '/quizzes': typeof QuizzesRoute
-  '/quizzes/$quizId': typeof QuizzesQuizIdRoute
+  '/quizzes': typeof QuizzesRouteWithChildren
   '/reservas': typeof ReservasRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje/otros': typeof AprendizajeOtrosRoute
+  '/quizzes/$quizId': typeof QuizzesQuizIdRoute
   '/aprendizaje/actividad/$activityId': typeof AprendizajeActividadActivityIdRoute
   '/aprendizaje/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
@@ -232,10 +232,10 @@ export interface FileRoutesByTo {
   '/panel/actividades/$activityId': typeof PanelActividadesActivityIdRoute
   '/panel/actividades/nueva': typeof PanelActividadesNuevaRoute
   '/panel/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  '/panel/quizzes/$quizId': typeof PanelQuizzesQuizIdRoute
+  '/panel/quizzes/nueva': typeof PanelQuizzesNuevaRoute
   '/panel/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel/tareas/nueva': typeof PanelTareasNuevaRoute
-  '/panel/quizzes/nueva': typeof PanelQuizzesNuevaRoute
-  '/panel/quizzes/$quizId': typeof PanelQuizzesQuizIdRoute
   '/aprendizaje/presentacion/$presentationId/archivo/$fileId': typeof AprendizajePresentacionPresentationIdArchivoFileIdRoute
 }
 export interface FileRoutesById {
@@ -246,13 +246,13 @@ export interface FileRoutesById {
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
-  '/quizzes': typeof QuizzesRoute
-  '/quizzes/$quizId': typeof QuizzesQuizIdRoute
+  '/quizzes': typeof QuizzesRouteWithChildren
   '/reservas': typeof ReservasRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje_/otros': typeof AprendizajeOtrosRoute
+  '/quizzes/$quizId': typeof QuizzesQuizIdRoute
   '/aprendizaje_/actividad/$activityId': typeof AprendizajeActividadActivityIdRoute
   '/aprendizaje_/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje_/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
@@ -262,10 +262,10 @@ export interface FileRoutesById {
   '/panel_/actividades/$activityId': typeof PanelActividadesActivityIdRoute
   '/panel_/actividades/nueva': typeof PanelActividadesNuevaRoute
   '/panel_/alumnos/$studentId': typeof PanelAlumnosStudentIdRoute
+  '/panel_/quizzes/$quizId': typeof PanelQuizzesQuizIdRoute
+  '/panel_/quizzes/nueva': typeof PanelQuizzesNuevaRoute
   '/panel_/tareas/$homeworkId': typeof PanelTareasHomeworkIdRoute
   '/panel_/tareas/nueva': typeof PanelTareasNuevaRoute
-  '/panel_/quizzes/nueva': typeof PanelQuizzesNuevaRoute
-  '/panel_/quizzes/$quizId': typeof PanelQuizzesQuizIdRoute
   '/aprendizaje_/presentacion/$presentationId/archivo/$fileId': typeof AprendizajePresentacionPresentationIdArchivoFileIdRoute
 }
 export interface FileRouteTypes {
@@ -278,12 +278,12 @@ export interface FileRouteTypes {
     | '/panel'
     | '/prueba-de-nivel'
     | '/quizzes'
-    | '/quizzes/$quizId'
     | '/reservas'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje/otros'
+    | '/quizzes/$quizId'
     | '/aprendizaje/actividad/$activityId'
     | '/aprendizaje/escucha/$homeworkId'
     | '/aprendizaje/lectura/$homeworkId'
@@ -293,10 +293,10 @@ export interface FileRouteTypes {
     | '/panel/actividades/$activityId'
     | '/panel/actividades/nueva'
     | '/panel/alumnos/$studentId'
+    | '/panel/quizzes/$quizId'
+    | '/panel/quizzes/nueva'
     | '/panel/tareas/$homeworkId'
     | '/panel/tareas/nueva'
-    | '/panel/quizzes/nueva'
-    | '/panel/quizzes/$quizId'
     | '/aprendizaje/presentacion/$presentationId/archivo/$fileId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -307,12 +307,12 @@ export interface FileRouteTypes {
     | '/panel'
     | '/prueba-de-nivel'
     | '/quizzes'
-    | '/quizzes/$quizId'
     | '/reservas'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje/otros'
+    | '/quizzes/$quizId'
     | '/aprendizaje/actividad/$activityId'
     | '/aprendizaje/escucha/$homeworkId'
     | '/aprendizaje/lectura/$homeworkId'
@@ -322,10 +322,10 @@ export interface FileRouteTypes {
     | '/panel/actividades/$activityId'
     | '/panel/actividades/nueva'
     | '/panel/alumnos/$studentId'
+    | '/panel/quizzes/$quizId'
+    | '/panel/quizzes/nueva'
     | '/panel/tareas/$homeworkId'
     | '/panel/tareas/nueva'
-    | '/panel/quizzes/nueva'
-    | '/panel/quizzes/$quizId'
     | '/aprendizaje/presentacion/$presentationId/archivo/$fileId'
   id:
     | '__root__'
@@ -336,12 +336,12 @@ export interface FileRouteTypes {
     | '/panel'
     | '/prueba-de-nivel'
     | '/quizzes'
-    | '/quizzes/$quizId'
     | '/reservas'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje_/otros'
+    | '/quizzes/$quizId'
     | '/aprendizaje_/actividad/$activityId'
     | '/aprendizaje_/escucha/$homeworkId'
     | '/aprendizaje_/lectura/$homeworkId'
@@ -351,10 +351,10 @@ export interface FileRouteTypes {
     | '/panel_/actividades/$activityId'
     | '/panel_/actividades/nueva'
     | '/panel_/alumnos/$studentId'
+    | '/panel_/quizzes/$quizId'
+    | '/panel_/quizzes/nueva'
     | '/panel_/tareas/$homeworkId'
     | '/panel_/tareas/nueva'
-    | '/panel_/quizzes/nueva'
-    | '/panel_/quizzes/$quizId'
     | '/aprendizaje_/presentacion/$presentationId/archivo/$fileId'
   fileRoutesById: FileRoutesById
 }
@@ -365,6 +365,7 @@ export interface RootRouteChildren {
   CuentaRoute: typeof CuentaRoute
   PanelRoute: typeof PanelRoute
   PruebaDeNivelRoute: typeof PruebaDeNivelRoute
+  QuizzesRoute: typeof QuizzesRouteWithChildren
   ReservasRoute: typeof ReservasRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -379,12 +380,10 @@ export interface RootRouteChildren {
   PanelActividadesActivityIdRoute: typeof PanelActividadesActivityIdRoute
   PanelActividadesNuevaRoute: typeof PanelActividadesNuevaRoute
   PanelAlumnosStudentIdRoute: typeof PanelAlumnosStudentIdRoute
+  PanelQuizzesQuizIdRoute: typeof PanelQuizzesQuizIdRoute
+  PanelQuizzesNuevaRoute: typeof PanelQuizzesNuevaRoute
   PanelTareasHomeworkIdRoute: typeof PanelTareasHomeworkIdRoute
   PanelTareasNuevaRoute: typeof PanelTareasNuevaRoute
-  PanelQuizzesNuevaRoute: typeof PanelQuizzesNuevaRoute
-  PanelQuizzesQuizIdRoute: typeof PanelQuizzesQuizIdRoute
-  QuizzesRoute: typeof QuizzesRoute
-  QuizzesQuizIdRoute: typeof QuizzesQuizIdRoute
   AprendizajePresentacionPresentationIdArchivoFileIdRoute: typeof AprendizajePresentacionPresentationIdArchivoFileIdRoute
 }
 
@@ -418,13 +417,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReservasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/prueba-de-nivel': {
-      id: '/prueba-de-nivel'
-      path: '/prueba-de-nivel'
-      fullPath: '/prueba-de-nivel'
-      preLoaderRoute: typeof PruebaDeNivelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/quizzes': {
       id: '/quizzes'
       path: '/quizzes'
@@ -432,11 +424,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QuizzesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/quizzes/$quizId': {
-      id: '/quizzes/$quizId'
-      path: '/quizzes/$quizId'
-      fullPath: '/quizzes/$quizId'
-      preLoaderRoute: typeof QuizzesQuizIdRouteImport
+    '/prueba-de-nivel': {
+      id: '/prueba-de-nivel'
+      path: '/prueba-de-nivel'
+      fullPath: '/prueba-de-nivel'
+      preLoaderRoute: typeof PruebaDeNivelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/panel': {
@@ -474,6 +466,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/quizzes/$quizId': {
+      id: '/quizzes/$quizId'
+      path: '/$quizId'
+      fullPath: '/quizzes/$quizId'
+      preLoaderRoute: typeof QuizzesQuizIdRouteImport
+      parentRoute: typeof QuizzesRoute
+    }
     '/aprendizaje_/otros': {
       id: '/aprendizaje_/otros'
       path: '/aprendizaje/otros'
@@ -488,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PanelTareasNuevaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panel_/tareas/$homeworkId': {
+      id: '/panel_/tareas/$homeworkId'
+      path: '/panel/tareas/$homeworkId'
+      fullPath: '/panel/tareas/$homeworkId'
+      preLoaderRoute: typeof PanelTareasHomeworkIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/panel_/quizzes/nueva': {
       id: '/panel_/quizzes/nueva'
       path: '/panel/quizzes/nueva'
@@ -500,13 +506,6 @@ declare module '@tanstack/react-router' {
       path: '/panel/quizzes/$quizId'
       fullPath: '/panel/quizzes/$quizId'
       preLoaderRoute: typeof PanelQuizzesQuizIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/panel_/tareas/$homeworkId': {
-      id: '/panel_/tareas/$homeworkId'
-      path: '/panel/tareas/$homeworkId'
-      fullPath: '/panel/tareas/$homeworkId'
-      preLoaderRoute: typeof PanelTareasHomeworkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/panel_/alumnos/$studentId': {
@@ -582,6 +581,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface QuizzesRouteChildren {
+  QuizzesQuizIdRoute: typeof QuizzesQuizIdRoute
+}
+
+const QuizzesRouteChildren: QuizzesRouteChildren = {
+  QuizzesQuizIdRoute: QuizzesQuizIdRoute,
+}
+
+const QuizzesRouteWithChildren =
+  QuizzesRoute._addFileChildren(QuizzesRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AprendizajeRoute: AprendizajeRoute,
@@ -589,8 +599,7 @@ const rootRouteChildren: RootRouteChildren = {
   CuentaRoute: CuentaRoute,
   PanelRoute: PanelRoute,
   PruebaDeNivelRoute: PruebaDeNivelRoute,
-  QuizzesRoute: QuizzesRoute,
-  QuizzesQuizIdRoute: QuizzesQuizIdRoute,
+  QuizzesRoute: QuizzesRouteWithChildren,
   ReservasRoute: ReservasRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
@@ -605,10 +614,10 @@ const rootRouteChildren: RootRouteChildren = {
   PanelActividadesActivityIdRoute: PanelActividadesActivityIdRoute,
   PanelActividadesNuevaRoute: PanelActividadesNuevaRoute,
   PanelAlumnosStudentIdRoute: PanelAlumnosStudentIdRoute,
+  PanelQuizzesQuizIdRoute: PanelQuizzesQuizIdRoute,
+  PanelQuizzesNuevaRoute: PanelQuizzesNuevaRoute,
   PanelTareasHomeworkIdRoute: PanelTareasHomeworkIdRoute,
   PanelTareasNuevaRoute: PanelTareasNuevaRoute,
-  PanelQuizzesNuevaRoute: PanelQuizzesNuevaRoute,
-  PanelQuizzesQuizIdRoute: PanelQuizzesQuizIdRoute,
   AprendizajePresentacionPresentationIdArchivoFileIdRoute:
     AprendizajePresentacionPresentationIdArchivoFileIdRoute,
 }

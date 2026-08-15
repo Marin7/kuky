@@ -373,6 +373,9 @@
       allRequired:
         "Selectează o opțiune pentru fiecare număr înainte de a preda.",
     },
+    inlineSingleChoice: {
+      groupLabel: "Alege opțiunea corectă din frază",
+    },
     writePage: {
       back: "← Înapoi la învățarea mea",
       loading: "Se încarcă tema…",
