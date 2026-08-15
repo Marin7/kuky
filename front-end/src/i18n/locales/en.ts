@@ -364,6 +364,9 @@ export const enDict = {
       itemLabel: "({{number}})",
       allRequired: "Select an option for every number before submitting.",
     },
+    inlineSingleChoice: {
+      groupLabel: "Choose the correct option in the sentence",
+    },
     writePage: {
       back: "← Back to my learning",
       loading: "Loading assignment…",
