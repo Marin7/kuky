@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   HomeworkItem,
@@ -211,6 +211,13 @@ function submittedAtDesc(a: HomeworkItem, b: HomeworkItem): number {
   return bTime - aTime;
 }
 
+function scrollToHomework(homeworkId: string) {
+  document.getElementById(`unit-homework-${homeworkId}`)?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}
+
 export function UnitDetailContent({
   presentations,
   homework,
@@ -219,11 +226,23 @@ export function UnitDetailContent({
   const { t } = useTranslation();
   // Controlled Radix accordion: use "" (not undefined) so collapse stays controlled.
   const [openItem, setOpenItem] = useState("");
+  const pendingScrollHomeworkId = useRef<string | null>(null);
 
-  const handleHomeworkChanged = () => {
-    setOpenItem("");
+  const handleHomeworkChanged = (homeworkId: string) => {
+    pendingScrollHomeworkId.current = homeworkId;
     onHomeworkChanged();
+    scrollToHomework(homeworkId);
   };
+
+  // After the list refresh, the completed homework may move (pending → submitted).
+  useLayoutEffect(() => {
+    const homeworkId = pendingScrollHomeworkId.current;
+    if (!homeworkId) return;
+    const updated = homework.find((h) => h.id === homeworkId);
+    if (!updated || updated.status === "PENDING") return;
+    pendingScrollHomeworkId.current = null;
+    scrollToHomework(homeworkId);
+  }, [homework]);
 
   const byUnitPosition = (a: number, b: number) => a - b;
 
@@ -306,7 +325,8 @@ export function UnitDetailContent({
           <AccordionItem
             key={`h-${item.homework.id}`}
             value={`h-${item.homework.id}`}
-            className="rounded-lg border border-border bg-card px-4"
+            id={`unit-homework-${item.homework.id}`}
+            className="scroll-mt-24 rounded-lg border border-border bg-card px-4"
           >
             <AccordionTrigger className="hover:no-underline">
               <div className="min-w-0 flex-1 space-y-0.5 text-left">
@@ -319,7 +339,7 @@ export function UnitDetailContent({
             <AccordionContent className="overflow-visible">
               <HomeworkInlinePanel
                 item={item.homework}
-                onChanged={handleHomeworkChanged}
+                onChanged={() => handleHomeworkChanged(item.homework.id)}
               />
             </AccordionContent>
           </AccordionItem>
