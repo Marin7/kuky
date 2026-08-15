@@ -1,4 +1,4 @@
-// API client for the teacher-only backoffice (/api/v1/admin/**).
+﻿// API client for the teacher-only backoffice (/api/v1/admin/**).
 // Mirrors lib/auth.ts: cookie-based auth (credentials: "include"), {error,message} errors.
 // Methods are added per feature area (availability, homework, presentations).
 
@@ -1017,133 +1017,122 @@ export const setUnitAssignees = (id: string, studentIds: string[]) =>
   });
 
 // ---------------------------------------------------------------------------
-// Placement test authoring (User Story 3) — /api/v1/admin/placement/**
+// Quizzes — /api/v1/admin/quizzes/**
 // ---------------------------------------------------------------------------
 
-export type PlacementSkill = "READING" | "LISTENING" | "GRAMMAR";
-export type PlacementQuestionKind =
-  | "SINGLE_CHOICE"
-  | "MULTI_CHOICE"
-  | "FILL_BLANK";
+export type QuizSkill = "READING" | "WRITING" | "GRAMMAR" | "LISTENING";
 
-export interface PlacementConfig {
-  readingTimeSeconds: number;
-  listeningTimeSeconds: number;
-  grammarTimeSeconds: number;
-  writingTimeSeconds: number;
-  writingPrompt: string;
+export interface QuizAdminQuestion extends AdminQuestion {
+  skill: QuizSkill;
+  mediaSourceKind?: MediaSourceKind | null;
+  audioUrl?: string | null;
+  audioFileId?: string | null;
 }
 
-export type CefrLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
-
-export interface PlacementLevelThreshold {
-  level: CefrLevel;
-  minScorePercent: number;
-}
-
-export interface AdminPlacementOption {
-  id?: string;
-  label: string;
-  isCorrect: boolean;
-}
-
-export interface AdminPlacementQuestion {
+export interface QuizAdminListItem {
   id: string;
-  skill: PlacementSkill;
-  position: number;
-  kind: PlacementQuestionKind;
-  prompt: string;
-  audioUrl: string | null;
-  audioFileId: string | null;
-  active: boolean;
-  options: AdminPlacementOption[];
+  title: string;
+  questionCount: number;
+  assigneeCount: number;
+  attemptCount: number;
 }
 
-export interface UpsertPlacementQuestion {
-  skill: PlacementSkill;
-  kind: PlacementQuestionKind;
-  prompt: string;
-  audioUrl: string | null;
-  audioFileId: string | null;
-  active: boolean;
-  options: { label: string; isCorrect: boolean }[];
-}
-
-export interface PlacementSkillResult {
-  skill: PlacementSkill;
-  scorePercent: number;
-  cefrLevel: string;
-}
-
-export interface PlacementWritingSubmission {
+export interface QuizAssignee {
   id: string;
-  body: string;
-  submittedAt: string;
+  name: string;
+  email: string;
 }
 
-export interface StudentPlacementEvaluation {
-  result: {
-    overallCefr: string | null;
-    completedAt: string | null;
-    skills: PlacementSkillResult[];
-  } | null;
-  writing: PlacementWritingSubmission[];
+export interface QuizAdminDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  questions: QuizAdminQuestion[];
+  assignees: QuizAssignee[];
 }
 
-export const getPlacementConfig = () =>
-  apiCall<PlacementConfig>("/placement/config");
+export interface QuizAttemptListItem {
+  id: string;
+  userId: string;
+  studentName: string;
+  email: string | null;
+  status: string;
+  scorePercent: number | null;
+  submittedAt: string | null;
+}
 
-export const updatePlacementConfig = (config: PlacementConfig) =>
-  apiCall<PlacementConfig>("/placement/config", {
-    method: "PUT",
-    body: JSON.stringify(config),
-  });
+export interface StudentQuizSummary {
+  quizId: string;
+  attemptId: string;
+  title: string;
+  status: string;
+  scorePercent: number | null;
+  submittedAt: string | null;
+  skills: {
+    skill: QuizSkill;
+    scorePercent: number | null;
+    fullyCorrectCount: number | null;
+    questionUnitCount: number;
+    awaitingTeacher: boolean;
+  }[];
+}
 
-export const getPlacementQuestions = (skill: PlacementSkill) =>
-  apiCall<AdminPlacementQuestion[]>(`/placement/questions?skill=${skill}`);
+export const listAdminQuizzes = () =>
+  apiCall<QuizAdminListItem[]>("/quizzes");
 
-export const createPlacementQuestion = (question: UpsertPlacementQuestion) =>
-  apiCall<AdminPlacementQuestion>("/placement/questions", {
+export const createQuiz = (title: string, description?: string | null) =>
+  apiCall<QuizAdminDetail>("/quizzes", {
     method: "POST",
-    body: JSON.stringify(question),
+    body: JSON.stringify({ title, description: description ?? null }),
   });
 
-export const updatePlacementQuestion = (
+export const getAdminQuiz = (id: string) =>
+  apiCall<QuizAdminDetail>(`/quizzes/${id}`);
+
+export const updateQuiz = (
   id: string,
-  question: UpsertPlacementQuestion,
+  title: string,
+  description: string | null,
+  questions: QuizAdminQuestion[],
 ) =>
-  apiCall<AdminPlacementQuestion>(`/placement/questions/${id}`, {
+  apiCall<QuizAdminDetail>(`/quizzes/${id}`, {
     method: "PUT",
-    body: JSON.stringify(question),
+    body: JSON.stringify({ title, description, questions }),
   });
 
-export const deletePlacementQuestion = (id: string) =>
-  apiCall<void>(`/placement/questions/${id}`, { method: "DELETE" });
+export const deleteQuiz = (id: string) =>
+  apiCall<void>(`/quizzes/${id}`, { method: "DELETE" });
 
-export const reorderPlacementQuestions = (
-  skill: PlacementSkill,
-  orderedIds: string[],
-) =>
-  apiCall<void>(`/placement/questions/reorder?skill=${skill}`, {
+export const setQuizAssignees = (id: string, studentIds: string[]) =>
+  apiCall<QuizAdminDetail>(`/quizzes/${id}/assignees`, {
     method: "PUT",
-    body: JSON.stringify({ orderedIds }),
+    body: JSON.stringify({ studentIds }),
   });
 
-export const getStudentPlacementEvaluation = (studentId: string) =>
-  apiCall<StudentPlacementEvaluation>(
-    `/placement/students/${studentId}/evaluation`,
+export const listQuizAttempts = (id: string) =>
+  apiCall<QuizAttemptListItem[]>(`/quizzes/${id}/attempts`);
+
+export const getQuizAttempt = (quizId: string, attemptId: string) =>
+  apiCall<import("@/lib/quiz").QuizTakeResponse>(
+    `/quizzes/${quizId}/attempts/${attemptId}`,
   );
 
-export const getPlacementLevelThresholds = () =>
-  apiCall<PlacementLevelThreshold[]>("/placement/levels");
-
-export const updatePlacementLevelThresholds = (
-  thresholds: PlacementLevelThreshold[],
+export const reviewQuizAttempt = (
+  quizId: string,
+  attemptId: string,
+  body: {
+    answers?: { questionId: string; teacherScorePercent?: number | null }[];
+    feedbackText?: string | null;
+    finalize?: boolean;
+  },
 ) =>
-  apiCall<PlacementLevelThreshold[]>("/placement/levels", {
-    method: "PUT",
-    body: JSON.stringify(thresholds),
-  });
+  apiCall<import("@/lib/quiz").QuizTakeResponse>(
+    `/quizzes/${quizId}/attempts/${attemptId}/review`,
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+
+export const getStudentQuizzes = (studentId: string) =>
+  apiCall<StudentQuizSummary[]>(`/students/${studentId}/quizzes`);
 
 // ---------------------------------------------------------------------------
 // Testimonials review/curation

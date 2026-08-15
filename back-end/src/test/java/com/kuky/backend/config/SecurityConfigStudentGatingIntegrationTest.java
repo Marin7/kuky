@@ -25,9 +25,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Verifies the student-only access gate added to SecurityConfig for booking creation
- * and coursework (/api/v1/learning/**), and that browsing/history endpoints
- * remain unaffected by role.
+ * Verifies the student-only access gate added to SecurityConfig for booking creation,
+ * coursework (/api/v1/learning/**), and quizzes (/api/v1/quizzes/**), and that
+ * browsing/history endpoints remain unaffected by role.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("local")
@@ -105,6 +105,17 @@ class SecurityConfigStudentGatingIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void quizzesList_anonymous_returns401() throws Exception {
+        mvc().perform(get("/api/v1/quizzes")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void quizzesList_userRole_returns403() throws Exception {
+        mvc().perform(get("/api/v1/quizzes").with(authentication(principal("USER"))))
+                .andExpect(status().isForbidden());
+    }
+
     // --- Gated actions: STUDENT and ADMIN pass the gate (may still fail business validation) ---
 
     @Test
@@ -132,6 +143,14 @@ class SecurityConfigStudentGatingIntegrationTest {
     @Test
     void learningOverview_studentRole_passesGate() throws Exception {
         mvc().perform(get("/api/v1/learning")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                studentEmail, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void quizzesList_studentRole_passesGate() throws Exception {
+        mvc().perform(get("/api/v1/quizzes")
                         .with(authentication(new UsernamePasswordAuthenticationToken(
                                 studentEmail, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
                 .andExpect(status().isOk());

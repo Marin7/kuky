@@ -182,6 +182,10 @@ export interface StudentQuestion {
   prompt: string;
   options: StudentOption[]; // legacy choice only; else []
   structure?: StudentStructure;
+  skill?: string;
+  mediaSourceKind?: MediaSourceKind | null;
+  audioUrl?: string | null;
+  audioFileId?: string | null;
 }
 
 // --- Student answer JSON shapes by structured kind (submit payload) ---

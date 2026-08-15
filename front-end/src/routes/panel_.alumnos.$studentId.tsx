@@ -4,12 +4,12 @@ import { useTranslation } from "react-i18next";
 import { getMe } from "@/lib/auth";
 import {
   getStudentProfile,
-  getStudentPlacementEvaluation,
+  getStudentQuizzes,
   homeworkBreakdownFromList,
   setBookingNoShow,
   studentDisplayName,
   type StudentProfile,
-  type StudentPlacementEvaluation,
+  type StudentQuizSummary,
   type StudentProfileHomework,
 } from "@/lib/admin";
 import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
@@ -118,9 +118,7 @@ function StudentProfilePage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [placement, setPlacement] = useState<StudentPlacementEvaluation | null>(
-    null,
-  );
+  const [quizzes, setQuizzes] = useState<StudentQuizSummary[]>([]);
   const [tareasExpanded, setTareasExpanded] = useState(false);
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
   const [openResultId, setOpenResultId] = useState<string | null>(null);
@@ -140,9 +138,9 @@ function StudentProfilePage() {
       .then(setProfile)
       .catch(() => setError(t("admin.studentProfile.loadError")))
       .finally(() => setLoading(false));
-    getStudentPlacementEvaluation(studentId)
-      .then(setPlacement)
-      .catch(() => setPlacement(null));
+    getStudentQuizzes(studentId)
+      .then(setQuizzes)
+      .catch(() => setQuizzes([]));
   }, [studentId]);
 
   const handleToggleNoShow = (
@@ -427,55 +425,44 @@ function StudentProfilePage() {
               )}
             </Section>
 
-            {placement && (
-              <Section
-                title={t("placement.admin.studentEvaluation.title")}
-                count={placement.writing.length}
-              >
-                {placement.result ? (
-                  <div className="mb-4 rounded-lg border bg-card p-4">
-                    <p className="text-sm font-medium">
-                      {t("placement.admin.studentEvaluation.overall")}:{" "}
-                      {placement.result.overallCefr ?? "—"}
-                    </p>
-                    <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
-                      {placement.result.skills.map((s) => (
-                        <div key={s.skill} className="rounded border p-2">
-                          <p className="font-medium">{s.skill}</p>
-                          <p>
-                            {s.cefrLevel} ({s.scorePercent}%)
-                          </p>
+            <Section
+              title={t("quiz.admin.studentQuizzes")}
+              count={quizzes.length}
+            >
+              {quizzes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t("quiz.admin.noStudentQuizzes")}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {quizzes.map((q) => (
+                    <div key={q.attemptId} className="rounded-lg border p-3 text-sm">
+                      <p className="font-medium">{q.title}</p>
+                      <p className="text-muted-foreground">
+                        {t(`quiz.status.${q.status}` as never)}
+                        {q.scorePercent != null ? ` · ${q.scorePercent}%` : ""}
+                      </p>
+                      {q.skills.length > 0 && (
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                          {q.skills.map((s) => (
+                            <div key={s.skill} className="rounded border p-2">
+                              <p className="font-medium">
+                                {t(`quiz.skills.${s.skill}`)}
+                              </p>
+                              <p>
+                                {s.awaitingTeacher
+                                  ? t("quiz.skillAwaiting")
+                                  : `${s.scorePercent}%`}
+                              </p>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {t("placement.admin.studentEvaluation.noResult")}
-                  </p>
-                )}
-
-                {placement.writing.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t("placement.admin.studentEvaluation.noWriting")}
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {placement.writing.map((w) => (
-                      <div
-                        key={w.id}
-                        className="rounded-lg border bg-muted/40 p-3 text-sm"
-                      >
-                        <p className="mb-1 text-xs text-muted-foreground">
-                          {formatDate(w.submittedAt)}
-                        </p>
-                        <p className="whitespace-pre-line">{w.body}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Section>
-            )}
+                  ))}
+                </div>
+              )}
+            </Section>
           </div>
         </>
       )}

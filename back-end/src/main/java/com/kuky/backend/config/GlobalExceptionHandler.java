@@ -22,9 +22,9 @@ import com.kuky.backend.learning.exception.InvalidAudioException;
 import com.kuky.backend.learning.exception.NotSubmittedException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
 import com.kuky.backend.learning.exception.SubmissionNotFoundException;
-import com.kuky.backend.placement.exception.PlacementNotFoundException;
-import com.kuky.backend.placement.exception.SectionAlreadySubmittedException;
-import com.kuky.backend.placement.exception.SectionNotStartedException;
+import com.kuky.backend.quiz.exception.QuizAlreadySubmittedException;
+import com.kuky.backend.quiz.exception.QuizNotAssignedException;
+import com.kuky.backend.quiz.exception.QuizNotFoundException;
 import com.kuky.backend.presentations.exception.InvalidImageException;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.units.exception.InvalidContentOrderException;
@@ -290,24 +290,22 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "INVALID_AUDIO", "message", ex.getMessage()));
     }
 
-    // Placement test exceptions
-
-    @ExceptionHandler(PlacementNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handlePlacementNotFound(PlacementNotFoundException ex) {
+    @ExceptionHandler(QuizNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleQuizNotFound(QuizNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "PLACEMENT_NOT_FOUND", "message", ex.getMessage()));
+                .body(Map.of("error", "QUIZ_NOT_FOUND", "message", ex.getMessage()));
     }
 
-    @ExceptionHandler(SectionAlreadySubmittedException.class)
-    public ResponseEntity<Map<String, String>> handleSectionAlreadySubmitted(SectionAlreadySubmittedException ex) {
+    @ExceptionHandler(QuizNotAssignedException.class)
+    public ResponseEntity<Map<String, String>> handleQuizNotAssigned(QuizNotAssignedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "QUIZ_NOT_ASSIGNED", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(QuizAlreadySubmittedException.class)
+    public ResponseEntity<Map<String, String>> handleQuizAlreadySubmitted(QuizAlreadySubmittedException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "SECTION_ALREADY_SUBMITTED", "message", ex.getMessage()));
-    }
-
-    @ExceptionHandler(SectionNotStartedException.class)
-    public ResponseEntity<Map<String, String>> handleSectionNotStarted(SectionNotStartedException ex) {
-        return ResponseEntity.badRequest()
-                .body(Map.of("error", "SECTION_NOT_STARTED", "message", ex.getMessage()));
+                .body(Map.of("error", "QUIZ_ALREADY_SUBMITTED", "message", ex.getMessage()));
     }
 
     // Testimonials exceptions

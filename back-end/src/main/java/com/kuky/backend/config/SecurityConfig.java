@@ -50,6 +50,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/bookings").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers("/api/v1/learning/**").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers("/api/v1/quizzes/**").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/testimonials").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/testimonials/me").hasAnyRole("STUDENT", "ADMIN")
                         .anyRequest().authenticated()

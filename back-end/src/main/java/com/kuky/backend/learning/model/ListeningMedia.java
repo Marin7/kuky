@@ -15,14 +15,17 @@ public final class ListeningMedia {
         if (a == null || a.getHomeworkType() != HomeworkType.AUDIO) {
             return true;
         }
-        MediaSourceKind kind = a.getMediaSourceKind();
+        return isComplete(a.getMediaSourceKind(), a.getAudioUrl(), a.getAudioFileId());
+    }
+
+    public static boolean isComplete(MediaSourceKind kind, String audioUrl, java.util.UUID audioFileId) {
         if (kind == null) {
             return false;
         }
         return switch (kind) {
-            case UPLOADED_FILE -> a.getAudioFileId() != null;
-            case AUDIO_URL, VIDEO_PAGE -> a.getAudioUrl() != null && !a.getAudioUrl().isBlank();
-            case YOUTUBE -> extractYouTubeId(a.getAudioUrl()) != null;
+            case UPLOADED_FILE -> audioFileId != null;
+            case AUDIO_URL, VIDEO_PAGE -> audioUrl != null && !audioUrl.isBlank();
+            case YOUTUBE -> extractYouTubeId(audioUrl) != null;
         };
     }
 

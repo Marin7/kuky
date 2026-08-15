@@ -1,0 +1,7 @@
+package com.kuky.backend.quiz.model;
+
+public enum QuizAttemptStatus {
+    IN_PROGRESS,
+    SUBMITTED,
+    GRADED
+}

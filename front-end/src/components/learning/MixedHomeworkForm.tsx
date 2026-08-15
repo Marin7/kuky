@@ -24,6 +24,7 @@ import { DragDropQuestion } from "./DragDropQuestion";
 import { TableFillQuestion } from "./TableFillQuestion";
 import { MatchingQuestion } from "./MatchingQuestion";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { AudioPlayer } from "./AudioPlayer";
 
 interface AnswerState {
   selectedOptionIds: string[];
@@ -385,6 +386,19 @@ export function MixedHomeworkForm({
       >
         {assignment.questions.map((q, i) => (
           <div key={q.id} className="space-y-2.5">
+            {q.skill &&
+              q.skill !== assignment.questions[i - 1]?.skill && (
+                <h3 className="font-display text-lg font-semibold text-primary">
+                  {t(`quiz.skills.${q.skill}` as never)}
+                </h3>
+              )}
+            {(q.audioUrl || q.audioFileId) && (
+              <AudioPlayer
+                audioUrl={q.audioUrl ?? null}
+                audioFileId={q.audioFileId ?? null}
+                mediaSourceKind={q.mediaSourceKind}
+              />
+            )}
             {isFreeText(q.kind) ? (
               <>
                 <Label
