@@ -2,6 +2,7 @@ package com.kuky.backend.learning.dto;
 
 import com.kuky.backend.learning.model.FormattedTextSegment;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -10,5 +11,10 @@ import java.util.List;
  */
 public record SubmitHomeworkRequest(
         List<FormattedTextSegment> response,
-        List<ManualAnswerDto> answers
-) {}
+        List<ManualAnswerDto> answers,
+        Instant contentRevisedAt
+) {
+    public SubmitHomeworkRequest(List<FormattedTextSegment> response, List<ManualAnswerDto> answers) {
+        this(response, answers, null);
+    }
+}

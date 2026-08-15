@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.UUID;
 
@@ -92,10 +93,15 @@ class LearningControllerIntegrationTest {
                 "INSERT INTO homework_targets (assignment_id, user_id) SELECT ?, id FROM users WHERE email = ?",
                 testAssignmentId, testEmail);
 
+        Timestamp revised = jdbcTemplate.queryForObject(
+                "SELECT content_revised_at FROM homework_assignments WHERE id = ?",
+                Timestamp.class, testAssignmentId);
+        String token = revised.toInstant().toString();
+
         mockMvc.perform(put("/api/v1/learning/homework/" + testAssignmentId)
                         .with(authentication(principal(testEmail)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"response\":[{\"text\":\"Mi respuesta de prueba.\",\"color\":\"blue\"}]}"))
+                        .content("{\"response\":[{\"text\":\"Mi respuesta de prueba.\",\"color\":\"blue\"}],\"contentRevisedAt\":\"" + token + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUBMITTED"))
                 .andExpect(jsonPath("$.response[0].text").value("Mi respuesta de prueba."))

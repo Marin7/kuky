@@ -13,6 +13,7 @@ public class QuestionOption {
     private int position;
     private String label;
     private boolean isCorrect;
+    private boolean retired;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -24,4 +25,6 @@ public class QuestionOption {
     public void setLabel(String label) { this.label = label; }
     public boolean isCorrect() { return isCorrect; }
     public void setCorrect(boolean correct) { isCorrect = correct; }
+    public boolean isRetired() { return retired; }
+    public void setRetired(boolean retired) { this.retired = retired; }
 }

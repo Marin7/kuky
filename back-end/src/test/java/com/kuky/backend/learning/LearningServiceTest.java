@@ -64,6 +64,7 @@ class LearningServiceTest {
         lenient().when(activityStudentService.summariesForPresentations(any(), any())).thenReturn(java.util.Map.of());
         service = new LearningService(contentRepository, submissionRepository, questionRepository, answerRepository,
                 userRepository, presentationRepository, presentationFileStore, activityStudentService,
+                new com.kuky.backend.learning.service.AssignmentSnapshot(new com.fasterxml.jackson.databind.ObjectMapper()),
                 new SchedulingProperties());
         User user = new User();
         user.setId(userId);

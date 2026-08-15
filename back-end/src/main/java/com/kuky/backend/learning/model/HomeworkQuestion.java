@@ -15,6 +15,7 @@ public class HomeworkQuestion {
     /** Kind-specific JSON payload (answer key for structured kinds); "{}" for legacy. */
     private String structureJson = "{}";
     private List<QuestionOption> options = new ArrayList<>();
+    private boolean retired;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -32,4 +33,6 @@ public class HomeworkQuestion {
     }
     public List<QuestionOption> getOptions() { return options; }
     public void setOptions(List<QuestionOption> options) { this.options = options; }
+    public boolean isRetired() { return retired; }
+    public void setRetired(boolean retired) { this.retired = retired; }
 }

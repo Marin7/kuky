@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
+  isHomeworkUpdatedError,
   submitHomework,
   type ApiError,
   type ManualAnswerItem,
@@ -25,6 +26,8 @@ interface Props {
   onSubmitted?: () => void;
   /** Where to go after a successful submit. Default: stay on the page. */
   redirectTo?: "/aprendizaje" | null;
+  contentRevisedAt?: string | null;
+  onHomeworkUpdated?: () => void;
   /** Override default homework submit (e.g. presentation activities). */
   submitAnswer?: (
     id: string,
@@ -62,6 +65,8 @@ export function ManualMultiAnswerForm({
   readOnly,
   onSubmitted,
   redirectTo = null,
+  contentRevisedAt,
+  onHomeworkUpdated,
   submitAnswer,
 }: Props) {
   const { t } = useTranslation();
@@ -71,6 +76,16 @@ export function ManualMultiAnswerForm({
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prevToken = useRef(contentRevisedAt);
+
+  useEffect(() => {
+    const next = contentRevisedAt;
+    if (prevToken.current && next && prevToken.current !== next) {
+      setTexts(initialTextMap(questions, null));
+      setError(t("learning.homeworkUpdated"));
+    }
+    prevToken.current = next ?? null;
+  }, [contentRevisedAt, questions, t]);
 
   const setText = (questionId: string, value: string) => {
     setTexts((prev) => ({ ...prev, [questionId]: value }));
@@ -89,15 +104,22 @@ export function ManualMultiAnswerForm({
     setSubmitting(true);
     setError(null);
     try {
-      const submit = submitAnswer ?? submitHomework;
-      await submit(homeworkId, undefined, answers);
+      if (submitAnswer) {
+        await submitAnswer(homeworkId, undefined, answers);
+      } else {
+        await submitHomework(homeworkId, undefined, answers, contentRevisedAt);
+      }
       onSubmitted?.();
       if (redirectTo != null) {
         await navigate({ to: redirectTo });
       }
     } catch (e) {
       const err = e as ApiError;
-      if (err.error === "VALIDATION_ERROR") {
+      if (!submitAnswer && isHomeworkUpdatedError(e)) {
+        setTexts(initialTextMap(questions, null));
+        setError(t("learning.homeworkUpdated"));
+        onHomeworkUpdated?.();
+      } else if (err.error === "VALIDATION_ERROR") {
         setError(t("learning.manualMulti.allRequired"));
       } else if (err.error === "SUBMISSION_NOT_ALLOWED") {
         setError(t("learning.submitDialog.submissionNotAllowedError"));
@@ -123,61 +145,64 @@ export function ManualMultiAnswerForm({
         {t("learning.manualMulti.title")}
       </p>
 
-      <div
-        className={questions.length > 1 ? "space-y-8" : "space-y-4"}
-      >
-      {questions.map((q, i) => {
-        const answerText = texts[q.id] ?? "";
-        const readOnlyAnswer =
-          initialAnswers?.find((a) => a.questionId === q.id)?.text ??
-          answerText;
+      <div className={questions.length > 1 ? "space-y-8" : "space-y-4"}>
+        {questions.map((q, i) => {
+          const answerText = texts[q.id] ?? "";
+          const readOnlyAnswer =
+            initialAnswers?.find((a) => a.questionId === q.id)?.text ??
+            answerText;
 
-        return (
-          <div key={q.id} className="space-y-1.5">
-            <Label htmlFor={`manual-ans-${q.id}`} className="text-sm font-medium">
-              {t("learning.manualMulti.questionLabel", { index: i + 1 })}
-              {q.prompt ? ` — ${q.prompt}` : ""}
-            </Label>
-            {readOnly ? (
-              <div className="space-y-1.5">
-                {(() => {
-                  const ans = initialAnswers?.find((a) => a.questionId === q.id);
-                  const percent = ans?.teacherScorePercent;
-                  return (
-                    <>
-                      {percent != null && (
-                        <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
-                          {t("learning.mixed.scorePercent", { percent })}
-                        </span>
-                      )}
-                      <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm break-all [overflow-wrap:anywhere]">
-                        {ans?.formatted && ans.formatted.length > 0 ? (
-                          <RichTextViewer segments={ans.formatted} />
-                        ) : (
-                          <p className="whitespace-pre-wrap">
-                            {readOnlyAnswer ||
-                              t("learning.manualMulti.emptyAnswer")}
-                          </p>
+          return (
+            <div key={q.id} className="space-y-1.5">
+              <Label
+                htmlFor={`manual-ans-${q.id}`}
+                className="text-sm font-medium"
+              >
+                {t("learning.manualMulti.questionLabel", { index: i + 1 })}
+                {q.prompt ? ` — ${q.prompt}` : ""}
+              </Label>
+              {readOnly ? (
+                <div className="space-y-1.5">
+                  {(() => {
+                    const ans = initialAnswers?.find(
+                      (a) => a.questionId === q.id,
+                    );
+                    const percent = ans?.teacherScorePercent;
+                    return (
+                      <>
+                        {percent != null && (
+                          <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
+                            {t("learning.mixed.scorePercent", { percent })}
+                          </span>
                         )}
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            ) : (
-              <Textarea
-                id={`manual-ans-${q.id}`}
-                value={answerText}
-                onChange={(e) => setText(q.id, e.target.value)}
-                rows={2}
-                disabled={submitting}
-                placeholder={t("learning.manualMulti.placeholder")}
-                maxLength={2000}
-              />
-            )}
-          </div>
-        );
-      })}
+                        <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm break-all [overflow-wrap:anywhere]">
+                          {ans?.formatted && ans.formatted.length > 0 ? (
+                            <RichTextViewer segments={ans.formatted} />
+                          ) : (
+                            <p className="whitespace-pre-wrap">
+                              {readOnlyAnswer ||
+                                t("learning.manualMulti.emptyAnswer")}
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <Textarea
+                  id={`manual-ans-${q.id}`}
+                  value={answerText}
+                  onChange={(e) => setText(q.id, e.target.value)}
+                  rows={2}
+                  disabled={submitting}
+                  placeholder={t("learning.manualMulti.placeholder")}
+                  maxLength={2000}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

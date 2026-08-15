@@ -58,11 +58,14 @@ class HomeworkSubmissionServiceTest {
     private final UUID userId = UUID.randomUUID();
     private final UUID assignmentId = UUID.randomUUID();
     private static final String EMAIL = "student@example.com";
+    private static final Instant REVISED = Instant.parse("2026-08-15T12:00:00Z");
 
     @BeforeEach
     void setUp() {
         service = new HomeworkSubmissionService(contentRepository, submissionRepository, questionRepository,
-                answerRepository, targetRepository, userRepository, gradingService, new SchedulingProperties());
+                answerRepository, targetRepository, userRepository, gradingService,
+                new com.kuky.backend.learning.service.AssignmentSnapshot(new com.fasterxml.jackson.databind.ObjectMapper()),
+                new SchedulingProperties());
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);
@@ -77,13 +80,13 @@ class HomeworkSubmissionServiceTest {
     void submit_newSubmission_setsSubmittedWithResponse() {
         HomeworkAssignment a = assignment(LocalDate.now().minusDays(1));
         List<FormattedTextSegment> response = plain("Mi respuesta");
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
         when(submissionRepository.upsert(eq(userId), eq(assignmentId),
                 eq(HomeworkStatus.SUBMITTED.name()), eq(FormattedTextSegment.toJson(response)), any()))
                 .thenReturn(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(response)));
 
-        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, response, null);
+        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, response, null, REVISED);
 
         assertThat(result.status()).isEqualTo("SUBMITTED");
         assertThat(result.response()).isEqualTo(response);
@@ -94,13 +97,13 @@ class HomeworkSubmissionServiceTest {
     @Test
     void submit_markDoneWithoutText_setsSubmitted() {
         HomeworkAssignment a = assignment(null);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
         when(submissionRepository.upsert(eq(userId), eq(assignmentId),
                 eq(HomeworkStatus.SUBMITTED.name()), isNull(), any()))
                 .thenReturn(submission(HomeworkStatus.SUBMITTED, null));
 
-        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, null, null);
+        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, null, null, REVISED);
 
         assertThat(result.status()).isEqualTo("SUBMITTED");
         assertThat(result.response()).isNull();
@@ -108,75 +111,73 @@ class HomeworkSubmissionServiceTest {
 
     @Test
     void submit_unknownAssignment_throwsNotFound() {
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("x"), null))
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("x"), null, REVISED))
                 .isInstanceOf(AssignmentNotFoundException.class);
     }
 
     @Test
     void submit_whenReviewed_throwsNotAllowed() {
         HomeworkAssignment a = assignment(null);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId))
                 .thenReturn(Optional.of(submission(HomeworkStatus.REVIEWED, FormattedTextSegment.toJson(plain("ya revisada")))));
 
-        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("nuevo intento"), null))
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("nuevo intento"), null, REVISED))
                 .isInstanceOf(SubmissionNotAllowedException.class);
     }
 
     @Test
     void submit_whenAlreadySubmitted_throwsNotAllowed() {
         HomeworkAssignment a = assignment(null);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId))
                 .thenReturn(Optional.of(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(plain("anterior")))));
 
-        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("actualizada"), null))
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("actualizada"), null, REVISED))
                 .isInstanceOf(SubmissionNotAllowedException.class);
     }
 
     @Test
     void submit_whenGraded_throwsNotAllowed() {
         HomeworkAssignment a = assignment(null);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId))
                 .thenReturn(Optional.of(submission(HomeworkStatus.GRADED, FormattedTextSegment.toJson(plain("ya corregida")))));
 
-        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("nuevo intento"), null))
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain("nuevo intento"), null, REVISED))
                 .isInstanceOf(SubmissionNotAllowedException.class);
     }
 
     @Test
     void submit_rejectsInvalidColor() {
         HomeworkAssignment a = assignment(null);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.submit(EMAIL, assignmentId,
-                List.of(new FormattedTextSegment("hola", "purple", null, null)), null))
+                List.of(new FormattedTextSegment("hola", "purple", null, null)), null, REVISED))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void submit_rejectsInvalidHighlight() {
         HomeworkAssignment a = assignment(null);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.submit(EMAIL, assignmentId,
-                List.of(new FormattedTextSegment("hola", null, "orange", null)), null))
+                List.of(new FormattedTextSegment("hola", null, "orange", null)), null, REVISED))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void submit_rejectsAnswerOverVisibleLengthLimit_regardlessOfMarkupSize() {
         HomeworkAssignment a = assignment(null);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
         String tooLong = "a".repeat(FormattedTextSegment.MAX_VISIBLE_LENGTH + 1);
 
-        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain(tooLong), null))
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain(tooLong), null, REVISED))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -186,7 +187,7 @@ class HomeworkSubmissionServiceTest {
         a.setHomeworkType(null); // non-WRITE MANUAL
         UUID q1 = UUID.randomUUID();
         UUID q2 = UUID.randomUUID();
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
         com.kuky.backend.learning.model.HomeworkQuestion hq1 = new com.kuky.backend.learning.model.HomeworkQuestion();
         hq1.setId(q1);
@@ -199,7 +200,7 @@ class HomeworkSubmissionServiceTest {
         when(questionRepository.findByAssignment(assignmentId)).thenReturn(List.of(hq1, hq2));
 
         assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, null,
-                List.of(new com.kuky.backend.learning.dto.ManualAnswerDto(q1, "solo una"))))
+                List.of(new com.kuky.backend.learning.dto.ManualAnswerDto(q1, "solo una")), REVISED))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("todas");
     }
@@ -214,6 +215,7 @@ class HomeworkSubmissionServiceTest {
         a.setDueOn(dueOn);
         a.setPublished(true);
         a.setHomeworkType(HomeworkType.WRITE);
+        a.setContentRevisedAt(REVISED);
         return a;
     }
 

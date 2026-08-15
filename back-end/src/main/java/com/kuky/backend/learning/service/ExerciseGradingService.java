@@ -76,6 +76,7 @@ public class ExerciseGradingService {
     private final HomeworkTargetRepository targetRepository;
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
+    private final AssignmentSnapshot assignmentSnapshot;
 
     public ExerciseGradingService(ContentRepository contentRepository,
                                   HomeworkQuestionRepository questionRepository,
@@ -91,6 +92,7 @@ public class ExerciseGradingService {
         this.targetRepository = targetRepository;
         this.userRepository = userRepository;
         this.objectMapper = objectMapper;
+        this.assignmentSnapshot = new AssignmentSnapshot(objectMapper);
     }
 
     /** Fetch an exercise to take (or re-render read-only when already graded). */
@@ -105,10 +107,23 @@ public class ExerciseGradingService {
             // A non-exercise homework is "not found" through the exercise endpoint.
             throw new AssignmentNotFoundException("Tarea no encontrada.");
         }
-        List<HomeworkQuestion> questions = questionRepository.findByAssignment(assignmentId);
-
         Optional<HomeworkSubmission> existing =
                 submissionRepository.findByUserAndAssignment(user.getId(), assignmentId);
+
+        List<HomeworkQuestion> questions;
+        Instant contentRevisedAt = null;
+        boolean submittedWithSnapshot = existing.isPresent()
+                && !HomeworkStatus.PENDING.name().equals(existing.get().getStatus())
+                && assignmentSnapshot.present(existing.get());
+        if (submittedWithSnapshot) {
+            assignmentSnapshot.applyContent(assignment, existing.get());
+            questions = assignmentSnapshot.questionsOf(existing.get());
+        } else {
+            questions = questionRepository.findByAssignment(assignmentId);
+            if (existing.isEmpty() || HomeworkStatus.PENDING.name().equals(existing.get().getStatus())) {
+                contentRevisedAt = assignment.getContentRevisedAt();
+            }
+        }
 
         ExerciseResultResponse result = null;
         String status = HomeworkStatus.PENDING.name();
@@ -167,7 +182,8 @@ public class ExerciseGradingService {
                 scorePercent,
                 provisionalScorePercent,
                 feedbackText,
-                teacherFeedback);
+                teacherFeedback,
+                contentRevisedAt);
     }
 
     /**
@@ -234,20 +250,21 @@ public class ExerciseGradingService {
     @Transactional
     public ExerciseResultResponse submit(String email, UUID assignmentId, SubmitExerciseRequest request) {
         User user = requireUser(email);
-        HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
+        HomeworkAssignment assignment = lockAssigned(assignmentId, user.getId());
+        Optional<HomeworkSubmission> existing =
+                submissionRepository.findByUserAndAssignment(user.getId(), assignmentId);
+        if (existing.isPresent() && HomeworkStatus.GRADED.name().equals(existing.get().getStatus())) {
+            throw new SubmissionNotAllowedException(
+                    "Este ejercicio ya ha sido entregado y no puede repetirse.", HttpStatus.CONFLICT);
+        }
+        assignmentSnapshot.requireCurrentRevision(assignment,
+                request == null ? null : request.contentRevisedAt());
         if (!ListeningMedia.isComplete(assignment)) {
             throw new AssignmentNotFoundException("Tarea no encontrada.");
         }
         if (HomeworkItems.compositionFromFormat(assignment) != HomeworkComposition.ALL_AUTO) {
             throw new SubmissionNotAllowedException(
                     "Esta tarea no es un ejercicio autocorregible.", HttpStatus.BAD_REQUEST);
-        }
-
-        Optional<HomeworkSubmission> existing =
-                submissionRepository.findByUserAndAssignment(user.getId(), assignmentId);
-        if (existing.isPresent() && HomeworkStatus.GRADED.name().equals(existing.get().getStatus())) {
-            throw new SubmissionNotAllowedException(
-                    "Este ejercicio ya ha sido entregado y no puede repetirse.", HttpStatus.CONFLICT);
         }
 
         List<HomeworkQuestion> questions = questionRepository.findByAssignment(assignmentId);
@@ -263,6 +280,7 @@ public class ExerciseGradingService {
         HomeworkSubmission saved = submissionRepository.upsertGraded(
                 user.getId(), assignmentId, scorePercent, Instant.now());
         answerRepository.saveAll(saved.getId(), graded.structuredAnswers());
+        persistSnapshot(assignment, questions, saved);
 
         return graded.toProvisionalResult();
     }
@@ -287,8 +305,30 @@ public class ExerciseGradingService {
     public record GradedExerciseView(List<ExerciseQuestionDto> questions, ExerciseResultResponse result) {}
 
     public GradedExerciseView viewGradedSubmission(HomeworkSubmission submission) {
-        List<HomeworkQuestion> questions = questionRepository.findByAssignment(submission.getAssignmentId());
+        List<HomeworkQuestion> questions = questionsForResult(submission);
         return new GradedExerciseView(buildStudentQuestions(questions), buildStoredResult(questions, submission, false));
+    }
+
+    private List<HomeworkQuestion> questionsForResult(HomeworkSubmission submission) {
+        if (assignmentSnapshot.present(submission)) {
+            return assignmentSnapshot.questionsOf(submission);
+        }
+        return questionRepository.findByAssignment(submission.getAssignmentId());
+    }
+
+    private void persistSnapshot(HomeworkAssignment assignment, List<HomeworkQuestion> questions,
+                                 HomeworkSubmission saved) {
+        submissionRepository.setAssignmentSnapshotIfAbsent(
+                saved.getId(), assignmentSnapshot.serialize(assignment, questions));
+    }
+
+    private HomeworkAssignment lockAssigned(UUID assignmentId, UUID userId) {
+        HomeworkAssignment assignment = contentRepository.lockAssignment(assignmentId)
+                .orElseThrow(() -> new AssignmentNotFoundException("Tarea no encontrada."));
+        if (!assignment.isPublished() || !targetRepository.isAssignedTo(assignmentId, userId)) {
+            throw new AssignmentNotFoundException("Tarea no encontrada.");
+        }
+        return assignment;
     }
 
     // --- grading --------------------------------------------------------------

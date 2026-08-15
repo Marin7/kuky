@@ -17,6 +17,7 @@ public class HomeworkSubmission {
     private Instant submittedAt; // nullable
     private Instant reviewedAt; // nullable — set when feedback is saved
     private Instant updatedAt;
+    private String assignmentSnapshot; // JSONB; null until submit
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -42,4 +43,6 @@ public class HomeworkSubmission {
     public void setReviewedAt(Instant reviewedAt) { this.reviewedAt = reviewedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public String getAssignmentSnapshot() { return assignmentSnapshot; }
+    public void setAssignmentSnapshot(String assignmentSnapshot) { this.assignmentSnapshot = assignmentSnapshot; }
 }

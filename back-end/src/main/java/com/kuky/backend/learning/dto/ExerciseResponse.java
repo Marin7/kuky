@@ -1,5 +1,6 @@
 package com.kuky.backend.learning.dto;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,5 +25,6 @@ public record ExerciseResponse(
         Integer scorePercent,                // final combined when GRADED
         Integer provisionalScorePercent,     // auto-only while MIXED SUBMITTED
         String feedbackText,                 // ANNOTATED plain note when present
-        String teacherFeedback               // plain teacher comment; null unless present
+        String teacherFeedback,              // plain teacher comment; null unless present
+        Instant contentRevisedAt             // present while PENDING; omitted after submit
 ) {}

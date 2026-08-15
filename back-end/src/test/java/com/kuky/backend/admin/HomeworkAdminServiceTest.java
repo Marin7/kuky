@@ -141,6 +141,24 @@ class HomeworkAdminServiceTest {
         verify(contentRepository, never()).updateAssignment(eq(id), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
+    @Test
+    void updateDueDateOnlyDoesNotBumpContentRevisedAt() {
+        UUID id = UUID.randomUUID();
+        HomeworkAssignment existing = assignment(id);
+        existing.setHomeworkType(com.kuky.backend.learning.model.HomeworkType.WRITE);
+        existing.setInstructions("Hazla");
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(existing));
+        when(questionRepository.findByAssignment(id)).thenReturn(List.of());
+        when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
+
+        service.update(id, new com.kuky.backend.admin.dto.UpdateHomeworkRequest(
+                "Tarea", "Hazla", LocalDate.of(2026, 7, 1), "WRITE", null, "MANUAL",
+                List.of(), null, null, null));
+
+        verify(contentRepository).updateAssignment(eq(id), eq("Tarea"), eq("Hazla"),
+                eq(LocalDate.of(2026, 7, 1)), any(), any(), any(), any(), any(), any(), isNull());
+    }
+
     // --- Teacher review of MANUAL submissions --------------------------------
     // Note: the review queue's actual MANUAL/SUBMITTED filtering happens in the
     // repository's SQL (verified by HomeworkAdminControllerIntegrationTest against

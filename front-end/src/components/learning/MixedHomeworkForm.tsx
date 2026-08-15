@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  isHomeworkUpdatedError,
   submitHomeworkAnswers,
   type ApiError,
   type ExerciseResult as ExerciseResultData,
@@ -44,11 +45,14 @@ export interface MixedAssignmentView {
   provisionalScorePercent?: number | null;
   feedbackText?: string | null;
   teacherFeedback?: string | null;
+  contentRevisedAt?: string | null;
 }
 
 interface Props {
   assignment: MixedAssignmentView;
   onSubmitted?: () => void;
+  /** Reload live homework after Paula updates it (homework takes only). */
+  onHomeworkUpdated?: () => void;
   /** Override default homework submit (e.g. presentation activities). */
   submitAnswers?: (
     id: string,
@@ -92,6 +96,7 @@ function isFreeText(kind: StudentQuestion["kind"]): boolean {
 export function MixedHomeworkForm({
   assignment,
   onSubmitted,
+  onHomeworkUpdated,
   submitAnswers,
 }: Props) {
   const { t } = useTranslation();
@@ -102,6 +107,20 @@ export function MixedHomeworkForm({
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prevToken = useRef(assignment.contentRevisedAt);
+
+  useEffect(() => {
+    const next = assignment.contentRevisedAt;
+    if (prevToken.current && next && prevToken.current !== next) {
+      setAnswers(
+        Object.fromEntries(
+          assignment.questions.map((q) => [q.id, initialAnswerState(q)]),
+        ),
+      );
+      setError(t("learning.homeworkUpdated"));
+    }
+    prevToken.current = next ?? null;
+  }, [assignment.contentRevisedAt, assignment.questions, t]);
 
   const submitted = assignment.status !== "PENDING";
   const finalized =
@@ -178,13 +197,16 @@ export function MixedHomeworkForm({
           }
           let answerJson: unknown = null;
           const items = numberedItems(q);
-          if (items.length > 0) answerJson = { selections: a?.selections ?? {} };
-          else if (q.kind === "MULTI_BLANK") answerJson = { blanks: a?.blanks ?? [] };
+          if (items.length > 0)
+            answerJson = { selections: a?.selections ?? {} };
+          else if (q.kind === "MULTI_BLANK")
+            answerJson = { blanks: a?.blanks ?? [] };
           else if (q.kind === "DRAG_DROP")
             answerJson = { placements: a?.placements ?? [] };
           else if (q.kind === "TABLE_FILL")
             answerJson = { cells: a?.cells ?? {} };
-          else if (q.kind === "MATCHING") answerJson = { pairs: a?.pairs ?? [] };
+          else if (q.kind === "MATCHING")
+            answerJson = { pairs: a?.pairs ?? [] };
           return {
             questionId: q.id,
             selectedOptionIds: a?.selectedOptionIds ?? [],
@@ -192,19 +214,32 @@ export function MixedHomeworkForm({
           };
         },
       );
-      const submitFn = submitAnswers ?? submitHomeworkAnswers;
-      await submitFn(assignment.id, payload);
+      if (submitAnswers) {
+        await submitAnswers(assignment.id, payload);
+      } else {
+        await submitHomeworkAnswers(
+          assignment.id,
+          payload,
+          assignment.contentRevisedAt,
+        );
+      }
       onSubmitted?.();
     } catch (e) {
       const err = e as ApiError;
-      if (err.error === "VALIDATION_ERROR") {
+      if (!submitAnswers && isHomeworkUpdatedError(e)) {
+        setAnswers(
+          Object.fromEntries(
+            assignment.questions.map((q) => [q.id, initialAnswerState(q)]),
+          ),
+        );
+        setError(t("learning.homeworkUpdated"));
+        onHomeworkUpdated?.();
+      } else if (err.error === "VALIDATION_ERROR") {
         setError(t("learning.manualMulti.allRequired"));
       } else if (err.error === "SUBMISSION_NOT_ALLOWED") {
         setError(t("learning.submitDialog.submissionNotAllowedError"));
       } else {
-        setError(
-          err.message ?? t("learning.exercisePage.submitError"),
-        );
+        setError(err.message ?? t("learning.exercisePage.submitError"));
       }
     } finally {
       setSubmitting(false);
@@ -265,9 +300,7 @@ export function MixedHomeworkForm({
                       totalQuestions: autoQuestions.length,
                     }
               }
-              teacherFeedback={
-                finalized ? null : assignment.teacherFeedback
-              }
+              teacherFeedback={finalized ? null : assignment.teacherFeedback}
             />
           </div>
         )}
@@ -348,133 +381,132 @@ export function MixedHomeworkForm({
   return (
     <div className="mt-6 space-y-5">
       <div
-        className={
-          assignment.questions.length > 1 ? "space-y-8" : "space-y-5"
-        }
+        className={assignment.questions.length > 1 ? "space-y-8" : "space-y-5"}
       >
-      {assignment.questions.map((q, i) => (
-        <div key={q.id} className="space-y-2.5">
-          {isFreeText(q.kind) ? (
-            <>
-              <Label
-                htmlFor={`mixed-ft-${q.id}`}
-                className="block whitespace-pre-wrap text-base font-medium leading-relaxed"
-              >
-                {`${i + 1}. ${q.prompt}`}
-              </Label>
-              <Textarea
-                id={`mixed-ft-${q.id}`}
-                value={answers[q.id]?.text ?? ""}
-                onChange={(e) => setText(q.id, e.target.value)}
-                rows={3}
-                disabled={submitting}
-                placeholder={t("learning.manualMulti.placeholder")}
-                maxLength={2000}
-              />
-            </>
-          ) : (
-            <>
-              {!RENDERS_OWN_PASSAGE.has(q.kind) && (
-                <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
+        {assignment.questions.map((q, i) => (
+          <div key={q.id} className="space-y-2.5">
+            {isFreeText(q.kind) ? (
+              <>
+                <Label
+                  htmlFor={`mixed-ft-${q.id}`}
+                  className="block whitespace-pre-wrap text-base font-medium leading-relaxed"
+                >
                   {`${i + 1}. ${q.prompt}`}
                 </Label>
-              )}
-
-              {q.kind === "SINGLE_CHOICE" && numberedItems(q).length > 0 && (
-                <NumberedSingleChoiceQuestion
-                  questionId={q.id}
-                  items={numberedItems(q)}
-                  selections={answers[q.id]?.selections ?? {}}
-                  onChange={(number, optionId) =>
-                    setItemSelection(q.id, number, optionId)
-                  }
+                <Textarea
+                  id={`mixed-ft-${q.id}`}
+                  value={answers[q.id]?.text ?? ""}
+                  onChange={(e) => setText(q.id, e.target.value)}
+                  rows={3}
+                  disabled={submitting}
+                  placeholder={t("learning.manualMulti.placeholder")}
+                  maxLength={2000}
                 />
-              )}
+              </>
+            ) : (
+              <>
+                {!RENDERS_OWN_PASSAGE.has(q.kind) && (
+                  <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
+                    {`${i + 1}. ${q.prompt}`}
+                  </Label>
+                )}
 
-              {((q.kind === "SINGLE_CHOICE" && numberedItems(q).length === 0) ||
-                q.kind === "TRUE_FALSE") && (
-                <RadioGroup
-                  value={answers[q.id]?.selectedOptionIds[0] ?? ""}
-                  onValueChange={(v) => setSingle(q.id, v)}
-                >
-                  {q.options.map((o) => (
-                    <label
-                      key={o.id}
-                      className="flex items-center gap-2.5 text-base leading-snug"
-                    >
-                      <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
-                      {q.kind === "TRUE_FALSE"
-                        ? t(
-                            o.label === "false"
-                              ? "learning.trueFalse.false"
-                              : "learning.trueFalse.true",
-                          )
-                        : o.label}
-                    </label>
-                  ))}
-                </RadioGroup>
-              )}
+                {q.kind === "SINGLE_CHOICE" && numberedItems(q).length > 0 && (
+                  <NumberedSingleChoiceQuestion
+                    questionId={q.id}
+                    items={numberedItems(q)}
+                    selections={answers[q.id]?.selections ?? {}}
+                    onChange={(number, optionId) =>
+                      setItemSelection(q.id, number, optionId)
+                    }
+                  />
+                )}
 
-              {q.kind === "MULTI_CHOICE" && (
-                <div className="space-y-2.5">
-                  {q.options.map((o) => (
-                    <label
-                      key={o.id}
-                      className="flex items-center gap-2.5 text-base leading-snug"
-                    >
-                      <Checkbox
-                        checked={answers[q.id]?.selectedOptionIds.includes(
-                          o.id,
-                        )}
-                        onCheckedChange={(c) =>
-                          toggleMulti(q.id, o.id, c === true)
-                        }
-                      />
-                      {o.label}
-                    </label>
-                  ))}
-                </div>
-              )}
+                {((q.kind === "SINGLE_CHOICE" &&
+                  numberedItems(q).length === 0) ||
+                  q.kind === "TRUE_FALSE") && (
+                  <RadioGroup
+                    value={answers[q.id]?.selectedOptionIds[0] ?? ""}
+                    onValueChange={(v) => setSingle(q.id, v)}
+                  >
+                    {q.options.map((o) => (
+                      <label
+                        key={o.id}
+                        className="flex items-center gap-2.5 text-base leading-snug"
+                      >
+                        <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
+                        {q.kind === "TRUE_FALSE"
+                          ? t(
+                              o.label === "false"
+                                ? "learning.trueFalse.false"
+                                : "learning.trueFalse.true",
+                            )
+                          : o.label}
+                      </label>
+                    ))}
+                  </RadioGroup>
+                )}
 
-              {q.kind === "MULTI_BLANK" && (
-                <MultiBlankQuestion
-                  number={i + 1}
-                  prompt={q.prompt}
-                  value={answers[q.id]?.blanks ?? []}
-                  onChange={(blanks) => setBlanks(q.id, blanks)}
-                />
-              )}
+                {q.kind === "MULTI_CHOICE" && (
+                  <div className="space-y-2.5">
+                    {q.options.map((o) => (
+                      <label
+                        key={o.id}
+                        className="flex items-center gap-2.5 text-base leading-snug"
+                      >
+                        <Checkbox
+                          checked={answers[q.id]?.selectedOptionIds.includes(
+                            o.id,
+                          )}
+                          onCheckedChange={(c) =>
+                            toggleMulti(q.id, o.id, c === true)
+                          }
+                        />
+                        {o.label}
+                      </label>
+                    ))}
+                  </div>
+                )}
 
-              {q.kind === "DRAG_DROP" && (
-                <DragDropQuestion
-                  number={i + 1}
-                  prompt={q.prompt}
-                  bank={q.structure?.bank ?? []}
-                  value={answers[q.id]?.placements ?? []}
-                  onChange={(placements) => setPlacements(q.id, placements)}
-                />
-              )}
+                {q.kind === "MULTI_BLANK" && (
+                  <MultiBlankQuestion
+                    number={i + 1}
+                    prompt={q.prompt}
+                    value={answers[q.id]?.blanks ?? []}
+                    onChange={(blanks) => setBlanks(q.id, blanks)}
+                  />
+                )}
 
-              {q.kind === "TABLE_FILL" && (
-                <TableFillQuestion
-                  structure={q.structure ?? {}}
-                  value={answers[q.id]?.cells ?? {}}
-                  onChange={(cells) => setCells(q.id, cells)}
-                />
-              )}
+                {q.kind === "DRAG_DROP" && (
+                  <DragDropQuestion
+                    number={i + 1}
+                    prompt={q.prompt}
+                    bank={q.structure?.bank ?? []}
+                    value={answers[q.id]?.placements ?? []}
+                    onChange={(placements) => setPlacements(q.id, placements)}
+                  />
+                )}
 
-              {q.kind === "MATCHING" && (
-                <MatchingQuestion
-                  left={q.structure?.left ?? []}
-                  right={q.structure?.right ?? []}
-                  pairs={answers[q.id]?.pairs ?? []}
-                  onChange={(pairs) => setPairs(q.id, pairs)}
-                />
-              )}
-            </>
-          )}
-        </div>
-      ))}
+                {q.kind === "TABLE_FILL" && (
+                  <TableFillQuestion
+                    structure={q.structure ?? {}}
+                    value={answers[q.id]?.cells ?? {}}
+                    onChange={(cells) => setCells(q.id, cells)}
+                  />
+                )}
+
+                {q.kind === "MATCHING" && (
+                  <MatchingQuestion
+                    left={q.structure?.left ?? []}
+                    right={q.structure?.right ?? []}
+                    pairs={answers[q.id]?.pairs ?? []}
+                    onChange={(pairs) => setPairs(q.id, pairs)}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        ))}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

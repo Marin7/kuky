@@ -66,7 +66,10 @@ class ExerciseGradingServiceTest {
         assignment.setTitle("Ejercicio");
         assignment.setInstructions("Responde");
         assignment.setFormat(HomeworkFormat.EXERCISE);
+        assignment.setPublished(true);
+        assignment.setContentRevisedAt(java.time.Instant.parse("2026-08-15T12:00:00Z"));
         when(contentRepository.findPublishedAssignmentById(ASSIGNMENT_ID)).thenReturn(Optional.of(assignment));
+        when(contentRepository.lockAssignment(ASSIGNMENT_ID)).thenReturn(Optional.of(assignment));
         when(targetRepository.isAssignedTo(ASSIGNMENT_ID, USER_ID)).thenReturn(true);
         when(submissionRepository.findByUserAndAssignment(USER_ID, ASSIGNMENT_ID)).thenReturn(Optional.empty());
 
@@ -98,7 +101,7 @@ class ExerciseGradingServiceTest {
     private ExerciseResultResponse grade(HomeworkQuestion question, AnswerDto answer) {
         when(questionRepository.findByAssignment(ASSIGNMENT_ID)).thenReturn(List.of(question));
         return service.submit(EMAIL, ASSIGNMENT_ID,
-                new SubmitExerciseRequest(List.of(answer)));
+                new SubmitExerciseRequest(List.of(answer), java.time.Instant.parse("2026-08-15T12:00:00Z")));
     }
 
     private static double scoreOf(ExerciseResultResponse r) {
@@ -241,7 +244,8 @@ class ExerciseGradingServiceTest {
         // q1 correct, q2 wrong → 1 of 2 fully correct, 50%
         ExerciseResultResponse r = service.submit(EMAIL, ASSIGNMENT_ID, new SubmitExerciseRequest(List.of(
                 new AnswerDto(q1.getId(), List.of(b.getId()), null),
-                new AnswerDto(q2.getId(), List.of(), mapper.readTree("{\"blanks\":[\"no\"]}")))));
+                new AnswerDto(q2.getId(), List.of(), mapper.readTree("{\"blanks\":[\"no\"]}"))),
+                java.time.Instant.parse("2026-08-15T12:00:00Z")));
 
         assertThat(r.totalQuestions()).isEqualTo(2);
         assertThat(r.fullyCorrectCount()).isEqualTo(1);
@@ -505,7 +509,8 @@ class ExerciseGradingServiceTest {
                 service.submit(EMAIL, ASSIGNMENT_ID, new SubmitExerciseRequest(List.of(
                         new AnswerDto(q.getId(), List.of(), mapper.readTree("""
                                 {"selections":{"1":"%s","2":"%s"}}
-                                """.formatted(id1a, id2b)))))))
+                                """.formatted(id1a, id2b)))),
+                        java.time.Instant.parse("2026-08-15T12:00:00Z"))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("todas las preguntas");
     }
@@ -564,7 +569,8 @@ class ExerciseGradingServiceTest {
                 new AnswerDto(numbered.getId(), List.of(), mapper.readTree("""
                         {"selections":{"1":"%s","2":"%s","3":"%s"}}
                         """.formatted(id1a, id2b, id3a))),
-                new AnswerDto(classic.getId(), List.of(right.getId()), null))));
+                new AnswerDto(classic.getId(), List.of(right.getId()), null)),
+                java.time.Instant.parse("2026-08-15T12:00:00Z")));
 
         assertThat(r.totalQuestions()).isEqualTo(4);
         assertThat(r.fullyCorrectCount()).isEqualTo(4);

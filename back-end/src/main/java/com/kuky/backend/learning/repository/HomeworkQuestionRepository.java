@@ -54,10 +54,10 @@ public class HomeworkQuestionRepository {
         return o;
     };
 
-    /** Questions (with options) for an assignment, ordered by position. */
+    /** Questions (with options) for an assignment, ordered by position. Live editor/take omit retired rows. */
     public List<HomeworkQuestion> findByAssignment(UUID assignmentId) {
         List<HomeworkQuestion> questions = jdbc.query(
-                "SELECT * FROM homework_questions WHERE assignment_id = :aid ORDER BY position",
+                "SELECT * FROM homework_questions WHERE assignment_id = :aid AND retired = false ORDER BY position",
                 Map.of("aid", assignmentId), QUESTION_MAPPER);
         if (questions.isEmpty()) return questions;
 
@@ -67,7 +67,7 @@ public class HomeworkQuestionRepository {
         List<QuestionOption> options = jdbc.query("""
                 SELECT o.* FROM homework_question_options o
                 JOIN homework_questions q ON q.id = o.question_id
-                WHERE q.assignment_id = :aid
+                WHERE q.assignment_id = :aid AND q.retired = false AND o.retired = false
                 ORDER BY o.position
                 """, Map.of("aid", assignmentId), OPTION_MAPPER);
         for (QuestionOption o : options) {
@@ -79,7 +79,9 @@ public class HomeworkQuestionRepository {
 
     /**
      * Sync an assignment's questions to the given list: update rows whose id
-     * already belongs to this assignment, insert the rest, delete any left over.
+     * already belongs to this assignment, insert the rest. Leftovers referenced
+     * by answers are retired (so CASCADE cannot wipe selections); unreferenced
+     * leftovers are deleted.
      */
     @Transactional
     public void replaceQuestions(UUID assignmentId, List<HomeworkQuestion> questions) {
@@ -99,7 +101,7 @@ public class HomeworkQuestionRepository {
                 jdbc.update("""
                         UPDATE homework_questions
                         SET position = :position, kind = :kind, prompt = :prompt,
-                            structure_json = CAST(:structureJson AS jsonb)
+                            structure_json = CAST(:structureJson AS jsonb), retired = false
                         WHERE id = :id AND assignment_id = :aid
                         """, new MapSqlParameterSource()
                         .addValue("id", questionId)
@@ -126,14 +128,30 @@ public class HomeworkQuestionRepository {
             keptIds.add(questionId);
         }
 
-        if (keptIds.isEmpty()) {
-            jdbc.update("DELETE FROM homework_questions WHERE assignment_id = :aid",
-                    Map.of("aid", assignmentId));
-        } else {
-            jdbc.update("""
-                    DELETE FROM homework_questions
-                    WHERE assignment_id = :aid AND id NOT IN (:kept)
-                    """, Map.of("aid", assignmentId, "kept", keptIds));
+        Set<UUID> leftover = new HashSet<>(existingIds);
+        leftover.removeAll(keptIds);
+        retireOrDeleteQuestions(leftover);
+    }
+
+    private void retireOrDeleteQuestions(Set<UUID> leftover) {
+        if (leftover.isEmpty()) return;
+        Set<UUID> referenced = new HashSet<>(jdbc.query("""
+                SELECT DISTINCT question_id FROM homework_answers
+                WHERE question_id IN (:ids)
+                """, Map.of("ids", leftover),
+                (rs, n) -> rs.getObject("question_id", UUID.class)));
+        Set<UUID> toRetire = new HashSet<>(referenced);
+        toRetire.retainAll(leftover);
+        Set<UUID> toDelete = new HashSet<>(leftover);
+        toDelete.removeAll(toRetire);
+        if (!toRetire.isEmpty()) {
+            jdbc.update("UPDATE homework_questions SET retired = true WHERE id IN (:ids)",
+                    Map.of("ids", toRetire));
+            jdbc.update("UPDATE homework_question_options SET retired = true WHERE question_id IN (:ids)",
+                    Map.of("ids", toRetire));
+        }
+        if (!toDelete.isEmpty()) {
+            jdbc.update("DELETE FROM homework_questions WHERE id IN (:ids)", Map.of("ids", toDelete));
         }
     }
 
@@ -150,7 +168,7 @@ public class HomeworkQuestionRepository {
             if (o.getId() != null && existingIds.contains(o.getId())) {
                 jdbc.update("""
                         UPDATE homework_question_options
-                        SET position = :position, label = :label, is_correct = :correct
+                        SET position = :position, label = :label, is_correct = :correct, retired = false
                         WHERE id = :id AND question_id = :qid
                         """, new MapSqlParameterSource()
                         .addValue("id", o.getId())
@@ -174,14 +192,28 @@ public class HomeworkQuestionRepository {
             }
         }
 
-        if (keptIds.isEmpty()) {
-            jdbc.update("DELETE FROM homework_question_options WHERE question_id = :qid",
-                    Map.of("qid", questionId));
-        } else {
-            jdbc.update("""
-                    DELETE FROM homework_question_options
-                    WHERE question_id = :qid AND id NOT IN (:kept)
-                    """, Map.of("qid", questionId, "kept", keptIds));
+        Set<UUID> leftover = new HashSet<>(existingIds);
+        leftover.removeAll(keptIds);
+        retireOrDeleteOptions(leftover);
+    }
+
+    private void retireOrDeleteOptions(Set<UUID> leftover) {
+        if (leftover.isEmpty()) return;
+        Set<UUID> referenced = new HashSet<>(jdbc.query("""
+                SELECT DISTINCT option_id FROM homework_answer_options
+                WHERE option_id IN (:ids)
+                """, Map.of("ids", leftover),
+                (rs, n) -> rs.getObject("option_id", UUID.class)));
+        Set<UUID> toRetire = new HashSet<>(referenced);
+        toRetire.retainAll(leftover);
+        Set<UUID> toDelete = new HashSet<>(leftover);
+        toDelete.removeAll(toRetire);
+        if (!toRetire.isEmpty()) {
+            jdbc.update("UPDATE homework_question_options SET retired = true WHERE id IN (:ids)",
+                    Map.of("ids", toRetire));
+        }
+        if (!toDelete.isEmpty()) {
+            jdbc.update("DELETE FROM homework_question_options WHERE id IN (:ids)", Map.of("ids", toDelete));
         }
     }
 

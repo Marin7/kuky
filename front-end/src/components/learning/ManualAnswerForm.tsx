@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
-import { submitHomework, type ApiError } from "@/lib/learning";
+import {
+  clearHomeworkDraft,
+  homeworkDraftKey,
+  isHomeworkUpdatedError,
+  submitHomework,
+  type ApiError,
+} from "@/lib/learning";
 import { Button } from "@/components/ui/button";
 import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
@@ -10,7 +16,7 @@ import {
   type FormattedText,
 } from "@/components/learning/richtext/types";
 
-const draftKey = (homeworkId: string) => `kuky:homework-draft:${homeworkId}`;
+const draftKey = homeworkDraftKey;
 
 interface Labels {
   yourAnswer: string;
@@ -28,6 +34,8 @@ interface Props {
   onSubmitted?: () => void;
   /** Where to go after a successful submit. Default: stay on the page. */
   redirectTo?: "/aprendizaje" | null;
+  contentRevisedAt?: string | null;
+  onHomeworkUpdated?: () => void;
   /** Override default homework submit (e.g. presentation activities). */
   submitAnswer?: (
     id: string,
@@ -59,6 +67,8 @@ export function ManualAnswerForm({
   labels,
   onSubmitted,
   redirectTo = null,
+  contentRevisedAt,
+  onHomeworkUpdated,
   submitAnswer,
 }: Props) {
   const { t } = useTranslation();
@@ -74,6 +84,17 @@ export function ManualAnswerForm({
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prevToken = useRef(contentRevisedAt);
+
+  useEffect(() => {
+    const next = contentRevisedAt;
+    if (prevToken.current && next && prevToken.current !== next) {
+      clearHomeworkDraft(homeworkId);
+      setAnswer([]);
+      setError(t("learning.homeworkUpdated"));
+    }
+    prevToken.current = next ?? null;
+  }, [contentRevisedAt, homeworkId, t]);
 
   const handleChange = (value: FormattedText) => {
     setAnswer(value);
@@ -91,7 +112,16 @@ export function ManualAnswerForm({
     try {
       const hasContent = plainText(answer).trim().length > 0;
       const submit = submitAnswer ?? submitHomework;
-      await submit(homeworkId, hasContent ? answer : undefined);
+      if (submitAnswer) {
+        await submitAnswer(homeworkId, hasContent ? answer : undefined);
+      } else {
+        await submitHomework(
+          homeworkId,
+          hasContent ? answer : undefined,
+          undefined,
+          contentRevisedAt,
+        );
+      }
       try {
         localStorage.removeItem(draftKey(homeworkId));
       } catch {
@@ -103,7 +133,12 @@ export function ManualAnswerForm({
       }
     } catch (e) {
       const err = e as ApiError;
-      if (err.error === "VALIDATION_ERROR") {
+      if (!submitAnswer && isHomeworkUpdatedError(e)) {
+        clearHomeworkDraft(homeworkId);
+        setAnswer([]);
+        setError(t("learning.homeworkUpdated"));
+        onHomeworkUpdated?.();
+      } else if (err.error === "VALIDATION_ERROR") {
         setError(t("learning.submitDialog.validationError"));
       } else if (err.error === "SUBMISSION_NOT_ALLOWED") {
         setError(t("learning.submitDialog.submissionNotAllowedError"));

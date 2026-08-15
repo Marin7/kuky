@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  isHomeworkUpdatedError,
   submitExercise,
   type ExerciseResponse,
   type ExerciseResult as ExerciseResultData,
@@ -33,6 +34,8 @@ interface Props {
   exercise: ExerciseResponse;
   /** Called after a successful grade so parents can refresh list badges. */
   onGraded?: () => void;
+  /** Reload live homework after Paula updates it (homework takes only). */
+  onHomeworkUpdated?: () => void;
   /** Override default homework submit (e.g. presentation activities). */
   submitAnswers?: (
     id: string,
@@ -71,7 +74,12 @@ function initialAnswerState(
  * Renders the answerable questions of an auto-graded exercise (or its result
  * once graded). Shared by the grammar exercise page and the reading page.
  */
-export function ExerciseForm({ exercise, onGraded, submitAnswers }: Props) {
+export function ExerciseForm({
+  exercise,
+  onGraded,
+  onHomeworkUpdated,
+  submitAnswers,
+}: Props) {
   const { t } = useTranslation();
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(() =>
     Object.fromEntries(
@@ -83,6 +91,20 @@ export function ExerciseForm({ exercise, onGraded, submitAnswers }: Props) {
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prevToken = useRef(exercise.contentRevisedAt);
+
+  useEffect(() => {
+    const next = exercise.contentRevisedAt;
+    if (prevToken.current && next && prevToken.current !== next) {
+      setAnswers(
+        Object.fromEntries(
+          exercise.questions.map((q) => [q.id, initialAnswerState(q)]),
+        ),
+      );
+      setError(t("learning.homeworkUpdated"));
+    }
+    prevToken.current = next ?? null;
+  }, [exercise.contentRevisedAt, exercise.questions, t]);
 
   const setSingle = (qId: string, optionId: string) =>
     setAnswers((prev) => ({
@@ -139,7 +161,8 @@ export function ExerciseForm({ exercise, onGraded, submitAnswers }: Props) {
         let answerJson: unknown = null;
         const items = numberedItems(q);
         if (items.length > 0) answerJson = { selections: a?.selections ?? {} };
-        else if (q.kind === "MULTI_BLANK") answerJson = { blanks: a?.blanks ?? [] };
+        else if (q.kind === "MULTI_BLANK")
+          answerJson = { blanks: a?.blanks ?? [] };
         else if (q.kind === "DRAG_DROP")
           answerJson = { placements: a?.placements ?? [] };
         else if (q.kind === "TABLE_FILL")
@@ -152,14 +175,25 @@ export function ExerciseForm({ exercise, onGraded, submitAnswers }: Props) {
           answerJson,
         };
       });
-      const submit = submitAnswers ?? submitExercise;
-      const res = await submit(exercise.id, payload);
+      const res = submitAnswers
+        ? await submitAnswers(exercise.id, payload)
+        : await submitExercise(exercise.id, payload, exercise.contentRevisedAt);
       setResult(res);
       onGraded?.();
     } catch (e) {
-      setError(
-        (e as ApiError).message ?? t("learning.exercisePage.submitError"),
-      );
+      if (!submitAnswers && isHomeworkUpdatedError(e)) {
+        setAnswers(
+          Object.fromEntries(
+            exercise.questions.map((q) => [q.id, initialAnswerState(q)]),
+          ),
+        );
+        setError(t("learning.homeworkUpdated"));
+        onHomeworkUpdated?.();
+      } else {
+        setError(
+          (e as ApiError).message ?? t("learning.exercisePage.submitError"),
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -183,107 +217,107 @@ export function ExerciseForm({ exercise, onGraded, submitAnswers }: Props) {
   return (
     <div className="mt-6 space-y-5">
       <div
-        className={
-          exercise.questions.length > 1 ? "space-y-8" : "space-y-5"
-        }
+        className={exercise.questions.length > 1 ? "space-y-8" : "space-y-5"}
       >
-      {exercise.questions.map((q, i) => (
-        <div key={q.id} className="space-y-2.5">
-          {!RENDERS_OWN_PASSAGE.has(q.kind) && (
-            <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
-              {`${i + 1}. ${q.prompt}`}
-            </Label>
-          )}
+        {exercise.questions.map((q, i) => (
+          <div key={q.id} className="space-y-2.5">
+            {!RENDERS_OWN_PASSAGE.has(q.kind) && (
+              <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
+                {`${i + 1}. ${q.prompt}`}
+              </Label>
+            )}
 
-          {(q.kind === "SINGLE_CHOICE" && numberedItems(q).length > 0) && (
-            <NumberedSingleChoiceQuestion
-              questionId={q.id}
-              items={numberedItems(q)}
-              selections={answers[q.id]?.selections ?? {}}
-              onChange={(number, optionId) =>
-                setItemSelection(q.id, number, optionId)
-              }
-            />
-          )}
+            {q.kind === "SINGLE_CHOICE" && numberedItems(q).length > 0 && (
+              <NumberedSingleChoiceQuestion
+                questionId={q.id}
+                items={numberedItems(q)}
+                selections={answers[q.id]?.selections ?? {}}
+                onChange={(number, optionId) =>
+                  setItemSelection(q.id, number, optionId)
+                }
+              />
+            )}
 
-          {((q.kind === "SINGLE_CHOICE" && numberedItems(q).length === 0) ||
-            q.kind === "TRUE_FALSE") && (
-            <RadioGroup
-              value={answers[q.id]?.selectedOptionIds[0] ?? ""}
-              onValueChange={(v) => setSingle(q.id, v)}
-            >
-              {q.options.map((o) => (
-                <label
-                  key={o.id}
-                  className="flex items-center gap-2.5 text-base leading-snug"
-                >
-                  <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
-                  {q.kind === "TRUE_FALSE"
-                    ? t(
-                        o.label === "false"
-                          ? "learning.trueFalse.false"
-                          : "learning.trueFalse.true",
-                      )
-                    : o.label}
-                </label>
-              ))}
-            </RadioGroup>
-          )}
+            {((q.kind === "SINGLE_CHOICE" && numberedItems(q).length === 0) ||
+              q.kind === "TRUE_FALSE") && (
+              <RadioGroup
+                value={answers[q.id]?.selectedOptionIds[0] ?? ""}
+                onValueChange={(v) => setSingle(q.id, v)}
+              >
+                {q.options.map((o) => (
+                  <label
+                    key={o.id}
+                    className="flex items-center gap-2.5 text-base leading-snug"
+                  >
+                    <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
+                    {q.kind === "TRUE_FALSE"
+                      ? t(
+                          o.label === "false"
+                            ? "learning.trueFalse.false"
+                            : "learning.trueFalse.true",
+                        )
+                      : o.label}
+                  </label>
+                ))}
+              </RadioGroup>
+            )}
 
-          {q.kind === "MULTI_CHOICE" && (
-            <div className="space-y-2.5">
-              {q.options.map((o) => (
-                <label
-                  key={o.id}
-                  className="flex items-center gap-2.5 text-base leading-snug"
-                >
-                  <Checkbox
-                    checked={answers[q.id]?.selectedOptionIds.includes(o.id)}
-                    onCheckedChange={(c) => toggleMulti(q.id, o.id, c === true)}
-                  />
-                  {o.label}
-                </label>
-              ))}
-            </div>
-          )}
+            {q.kind === "MULTI_CHOICE" && (
+              <div className="space-y-2.5">
+                {q.options.map((o) => (
+                  <label
+                    key={o.id}
+                    className="flex items-center gap-2.5 text-base leading-snug"
+                  >
+                    <Checkbox
+                      checked={answers[q.id]?.selectedOptionIds.includes(o.id)}
+                      onCheckedChange={(c) =>
+                        toggleMulti(q.id, o.id, c === true)
+                      }
+                    />
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            )}
 
-          {q.kind === "MULTI_BLANK" && (
-            <MultiBlankQuestion
-              number={i + 1}
-              prompt={q.prompt}
-              value={answers[q.id]?.blanks ?? []}
-              onChange={(blanks) => setBlanks(q.id, blanks)}
-            />
-          )}
+            {q.kind === "MULTI_BLANK" && (
+              <MultiBlankQuestion
+                number={i + 1}
+                prompt={q.prompt}
+                value={answers[q.id]?.blanks ?? []}
+                onChange={(blanks) => setBlanks(q.id, blanks)}
+              />
+            )}
 
-          {q.kind === "DRAG_DROP" && (
-            <DragDropQuestion
-              number={i + 1}
-              prompt={q.prompt}
-              bank={q.structure?.bank ?? []}
-              value={answers[q.id]?.placements ?? []}
-              onChange={(placements) => setPlacements(q.id, placements)}
-            />
-          )}
+            {q.kind === "DRAG_DROP" && (
+              <DragDropQuestion
+                number={i + 1}
+                prompt={q.prompt}
+                bank={q.structure?.bank ?? []}
+                value={answers[q.id]?.placements ?? []}
+                onChange={(placements) => setPlacements(q.id, placements)}
+              />
+            )}
 
-          {q.kind === "TABLE_FILL" && (
-            <TableFillQuestion
-              structure={q.structure ?? {}}
-              value={answers[q.id]?.cells ?? {}}
-              onChange={(cells) => setCells(q.id, cells)}
-            />
-          )}
+            {q.kind === "TABLE_FILL" && (
+              <TableFillQuestion
+                structure={q.structure ?? {}}
+                value={answers[q.id]?.cells ?? {}}
+                onChange={(cells) => setCells(q.id, cells)}
+              />
+            )}
 
-          {q.kind === "MATCHING" && (
-            <MatchingQuestion
-              left={q.structure?.left ?? []}
-              right={q.structure?.right ?? []}
-              pairs={answers[q.id]?.pairs ?? []}
-              onChange={(pairs) => setPairs(q.id, pairs)}
-            />
-          )}
-        </div>
-      ))}
+            {q.kind === "MATCHING" && (
+              <MatchingQuestion
+                left={q.structure?.left ?? []}
+                right={q.structure?.right ?? []}
+                pairs={answers[q.id]?.pairs ?? []}
+                onChange={(pairs) => setPairs(q.id, pairs)}
+              />
+            )}
+          </div>
+        ))}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

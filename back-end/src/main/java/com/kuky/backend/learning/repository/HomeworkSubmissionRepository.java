@@ -47,6 +47,7 @@ public class HomeworkSubmissionRepository {
             s.setReviewedAt(reviewedAt.toInstant());
         }
         s.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
+        s.setAssignmentSnapshot(rs.getString("assignment_snapshot"));
         return s;
     };
 
@@ -123,6 +124,17 @@ public class HomeworkSubmissionRepository {
                 .addValue("submittedAt", submittedAt == null ? null : Timestamp.from(submittedAt))
                 .addValue("updatedAt", Timestamp.from(now));
         return jdbc.query(sql, params, SUBMISSION_MAPPER).stream().findFirst().orElseThrow();
+    }
+
+    /** Writes the frozen homework copy once; later teacher edits must not overwrite it. */
+    public int setAssignmentSnapshotIfAbsent(UUID submissionId, String snapshotJson) {
+        return jdbc.update("""
+                UPDATE homework_submissions
+                SET assignment_snapshot = CAST(:snapshot AS jsonb)
+                WHERE id = :id AND assignment_snapshot IS NULL
+                """, new MapSqlParameterSource()
+                .addValue("id", submissionId)
+                .addValue("snapshot", snapshotJson));
     }
 
     // --- Teacher review of MANUAL submissions --------------------------------

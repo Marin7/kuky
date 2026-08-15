@@ -68,7 +68,8 @@ public class LearningController {
             @Valid @RequestBody(required = false) SubmitHomeworkRequest request) {
         var response = request == null ? null : request.response();
         var answers = request == null ? null : request.answers();
-        return ResponseEntity.ok(submissionService.submit(email, assignmentId, response, answers));
+        var contentRevisedAt = request == null ? null : request.contentRevisedAt();
+        return ResponseEntity.ok(submissionService.submit(email, assignmentId, response, answers, contentRevisedAt));
     }
 
     @GetMapping("/homework/{assignmentId}")

@@ -61,6 +61,7 @@ public class HomeworkSubmissionService {
     private final HomeworkTargetRepository targetRepository;
     private final UserRepository userRepository;
     private final ExerciseGradingService gradingService;
+    private final AssignmentSnapshot assignmentSnapshot;
     private final SchedulingProperties props;
 
     public HomeworkSubmissionService(ContentRepository contentRepository,
@@ -70,6 +71,7 @@ public class HomeworkSubmissionService {
                                      HomeworkTargetRepository targetRepository,
                                      UserRepository userRepository,
                                      ExerciseGradingService gradingService,
+                                     AssignmentSnapshot assignmentSnapshot,
                                      SchedulingProperties props) {
         this.contentRepository = contentRepository;
         this.submissionRepository = submissionRepository;
@@ -78,6 +80,7 @@ public class HomeworkSubmissionService {
         this.targetRepository = targetRepository;
         this.userRepository = userRepository;
         this.gradingService = gradingService;
+        this.assignmentSnapshot = assignmentSnapshot;
         this.props = props;
     }
 
@@ -85,9 +88,10 @@ public class HomeworkSubmissionService {
     @Transactional
     public HomeworkItemResponse submit(String userEmail, UUID assignmentId,
                                        List<FormattedTextSegment> response,
-                                       List<ManualAnswerDto> answers) {
+                                       List<ManualAnswerDto> answers,
+                                       Instant contentRevisedAt) {
         User user = requireUser(userEmail);
-        HomeworkAssignment assignment = requirePublished(assignmentId);
+        HomeworkAssignment assignment = lockPublished(assignmentId);
         HomeworkComposition composition = compositionOf(assignment);
 
         if (composition == HomeworkComposition.ALL_AUTO || composition == HomeworkComposition.MIXED) {
@@ -98,8 +102,10 @@ public class HomeworkSubmissionService {
         Optional<HomeworkSubmission> existing =
                 submissionRepository.findByUserAndAssignment(user.getId(), assignmentId);
         rejectIfTerminal(existing);
+        assignmentSnapshot.requireCurrentRevision(assignment, contentRevisedAt);
 
         HomeworkSubmission saved;
+        List<HomeworkQuestion> snapshotQuestions = List.of();
         if (composition == HomeworkComposition.ALL_MANUAL) {
             if (response != null && !response.isEmpty()) {
                 throw new IllegalArgumentException("Esta tarea se entrega con respuestas por pregunta.");
@@ -109,6 +115,7 @@ public class HomeworkSubmissionService {
             saved = submissionRepository.upsert(
                     user.getId(), assignmentId, HomeworkStatus.SUBMITTED.name(), null, Instant.now());
             answerRepository.saveAll(saved.getId(), mapped);
+            snapshotQuestions = questions;
         } else {
             // WRITE
             if (answers != null && !answers.isEmpty()) {
@@ -124,6 +131,7 @@ public class HomeworkSubmissionService {
                     FormattedTextSegment.toJson(response),
                     Instant.now());
         }
+        persistSnapshot(assignment, snapshotQuestions, saved);
 
         return toItem(assignment, saved);
     }
@@ -135,7 +143,12 @@ public class HomeworkSubmissionService {
     @Transactional
     public HomeworkItemResponse submitAnswers(String userEmail, UUID assignmentId, SubmitExerciseRequest request) {
         User user = requireUser(userEmail);
-        HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
+        HomeworkAssignment assignment = lockAssigned(assignmentId, user.getId());
+        Optional<HomeworkSubmission> existing =
+                submissionRepository.findByUserAndAssignment(user.getId(), assignmentId);
+        rejectIfTerminal(existing);
+        assignmentSnapshot.requireCurrentRevision(assignment,
+                request == null ? null : request.contentRevisedAt());
         if (!ListeningMedia.isComplete(assignment)) {
             throw new AssignmentNotFoundException("Tarea no encontrada.");
         }
@@ -145,10 +158,6 @@ public class HomeworkSubmissionService {
             throw new SubmissionNotAllowedException(
                     "Esta tarea de escritura no se entrega por preguntas.", HttpStatus.BAD_REQUEST);
         }
-
-        Optional<HomeworkSubmission> existing =
-                submissionRepository.findByUserAndAssignment(user.getId(), assignmentId);
-        rejectIfTerminal(existing);
 
         List<HomeworkQuestion> questions = questionRepository.findByAssignment(assignmentId);
         Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion = indexAnswers(request);
@@ -167,6 +176,7 @@ public class HomeworkSubmissionService {
                 HomeworkSubmission saved = submissionRepository.upsertGraded(
                         user.getId(), assignmentId, graded.provisionalScorePercent(), Instant.now());
                 answerRepository.saveAll(saved.getId(), allAnswers);
+                persistSnapshot(assignment, questions, saved);
                 return toItem(assignment, saved, questions, allAnswers,
                         gradingService.studentQuestionsFor(questions), autoResult);
             }
@@ -176,6 +186,7 @@ public class HomeworkSubmissionService {
             HomeworkSubmission saved = submissionRepository.upsert(
                     user.getId(), assignmentId, HomeworkStatus.SUBMITTED.name(), null, Instant.now());
             answerRepository.saveAll(saved.getId(), allAnswers);
+            persistSnapshot(assignment, questions, saved);
             return toItem(assignment, saved, questions, allAnswers,
                     gradingService.studentQuestionsFor(questions), autoResult);
         }
@@ -187,14 +198,23 @@ public class HomeworkSubmissionService {
         HomeworkSubmission saved = submissionRepository.upsert(
                 user.getId(), assignmentId, HomeworkStatus.SUBMITTED.name(), null, Instant.now());
         answerRepository.saveAll(saved.getId(), mapped);
+        persistSnapshot(assignment, questions, saved);
         return toItem(assignment, saved, questions, mapped,
                 gradingService.studentQuestionsFor(questions), null);
     }
 
     HomeworkItemResponse toItem(HomeworkAssignment assignment, HomeworkSubmission submission) {
-        List<HomeworkQuestion> questions = assignment.getHomeworkType() == HomeworkType.WRITE
-                ? List.of()
-                : questionRepository.findByAssignment(assignment.getId());
+        List<HomeworkQuestion> questions;
+        if (assignment.getHomeworkType() == HomeworkType.WRITE) {
+            questions = List.of();
+        } else if (assignmentSnapshot.present(submission)) {
+            questions = assignmentSnapshot.questionsOf(submission);
+        } else {
+            questions = questionRepository.findByAssignment(assignment.getId());
+        }
+        if (assignmentSnapshot.present(submission)) {
+            assignmentSnapshot.applyContent(assignment, submission);
+        }
         List<HomeworkAnswer> answers = submission == null
                 ? List.of()
                 : answerRepository.findBySubmission(submission.getId());
@@ -318,17 +338,27 @@ public class HomeworkSubmissionService {
         }
     }
 
-    private HomeworkAssignment requirePublished(UUID assignmentId) {
-        return contentRepository.findPublishedAssignmentById(assignmentId)
+    private HomeworkAssignment lockPublished(UUID assignmentId) {
+        HomeworkAssignment assignment = contentRepository.lockAssignment(assignmentId)
                 .orElseThrow(() -> new AssignmentNotFoundException("Tarea no encontrada."));
+        if (!assignment.isPublished()) {
+            throw new AssignmentNotFoundException("Tarea no encontrada.");
+        }
+        return assignment;
     }
 
-    private HomeworkAssignment requireAssigned(UUID assignmentId, UUID userId) {
-        HomeworkAssignment assignment = requirePublished(assignmentId);
+    private HomeworkAssignment lockAssigned(UUID assignmentId, UUID userId) {
+        HomeworkAssignment assignment = lockPublished(assignmentId);
         if (!targetRepository.isAssignedTo(assignmentId, userId)) {
             throw new AssignmentNotFoundException("Tarea no encontrada.");
         }
         return assignment;
+    }
+
+    private void persistSnapshot(HomeworkAssignment assignment, List<HomeworkQuestion> questions,
+                                 HomeworkSubmission saved) {
+        submissionRepository.setAssignmentSnapshotIfAbsent(
+                saved.getId(), assignmentSnapshot.serialize(assignment, questions));
     }
 
     private User requireUser(String email) {

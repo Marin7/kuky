@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
+  isHomeworkUpdatedError,
   submitHomework,
   type HomeworkItem,
   type ApiError,
@@ -52,12 +53,17 @@ export function HomeworkSubmitDialog({
       const updated = await submitHomework(
         item.id,
         hasContent ? answer : undefined,
+        undefined,
+        item.contentRevisedAt,
       );
       onSubmitted(updated);
       onClose();
     } catch (e) {
       const err = e as ApiError;
-      if (err.error === "VALIDATION_ERROR") {
+      if (isHomeworkUpdatedError(e)) {
+        setError(t("learning.homeworkUpdated"));
+        setAnswer([]);
+      } else if (err.error === "VALIDATION_ERROR") {
         setError(t("learning.submitDialog.validationError"));
       } else if (err.error === "SUBMISSION_NOT_ALLOWED") {
         setError(t("learning.submitDialog.submissionNotAllowedError"));

@@ -67,7 +67,9 @@ class PerQuestionGradingSubmitTest {
         gradingService = new ExerciseGradingService(contentRepository, questionRepository,
                 submissionRepository, answerRepository, targetRepository, userRepository, new ObjectMapper());
         service = new HomeworkSubmissionService(contentRepository, submissionRepository, questionRepository,
-                answerRepository, targetRepository, userRepository, gradingService, new SchedulingProperties());
+                answerRepository, targetRepository, userRepository, gradingService,
+                new com.kuky.backend.learning.service.AssignmentSnapshot(new ObjectMapper()),
+                new SchedulingProperties());
 
         User user = new User();
         user.setId(userId);
@@ -92,7 +94,8 @@ class PerQuestionGradingSubmitTest {
         UUID correct = auto.getOptions().stream().filter(QuestionOption::isCorrect).findFirst().orElseThrow().getId();
         HomeworkItemResponse result = service.submitAnswers(EMAIL, assignmentId, new SubmitExerciseRequest(List.of(
                 new SubmitExerciseRequest.AnswerDto(autoQ, List.of(correct), null, null),
-                new SubmitExerciseRequest.AnswerDto(manualQ, List.of(), null, "Resumen"))));
+                new SubmitExerciseRequest.AnswerDto(manualQ, List.of(), null, "Resumen")),
+                Instant.parse("2026-08-15T12:00:00Z")));
 
         assertThat(result.status()).isEqualTo("SUBMITTED");
         assertThat(result.composition()).isEqualTo("MIXED");
@@ -124,7 +127,8 @@ class PerQuestionGradingSubmitTest {
 
         UUID correct = q.getOptions().stream().filter(QuestionOption::isCorrect).findFirst().orElseThrow().getId();
         HomeworkItemResponse result = service.submitAnswers(EMAIL, assignmentId, new SubmitExerciseRequest(List.of(
-                new SubmitExerciseRequest.AnswerDto(qid, List.of(correct), null, null))));
+                new SubmitExerciseRequest.AnswerDto(qid, List.of(correct), null, null)),
+                Instant.parse("2026-08-15T12:00:00Z")));
 
         assertThat(result.status()).isEqualTo("GRADED");
         assertThat(result.composition()).isEqualTo("ALL_AUTO");
@@ -143,7 +147,8 @@ class PerQuestionGradingSubmitTest {
                 eq(HomeworkStatus.SUBMITTED.name()), isNull(), any())).thenReturn(saved);
 
         HomeworkItemResponse result = service.submitAnswers(EMAIL, assignmentId, new SubmitExerciseRequest(List.of(
-                new SubmitExerciseRequest.AnswerDto(qid, List.of(), null, "texto"))));
+                new SubmitExerciseRequest.AnswerDto(qid, List.of(), null, "texto")),
+                Instant.parse("2026-08-15T12:00:00Z")));
 
         assertThat(result.status()).isEqualTo("SUBMITTED");
         assertThat(result.composition()).isEqualTo("ALL_MANUAL");
@@ -161,7 +166,8 @@ class PerQuestionGradingSubmitTest {
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.submitAnswers(EMAIL, assignmentId, new SubmitExerciseRequest(List.of(
-                new SubmitExerciseRequest.AnswerDto(autoQ, List.of(), null, null)))))
+                new SubmitExerciseRequest.AnswerDto(autoQ, List.of(), null, null)),
+                Instant.parse("2026-08-15T12:00:00Z"))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("todas");
     }
@@ -186,14 +192,16 @@ class PerQuestionGradingSubmitTest {
         a.setFormat(HomeworkFormat.MANUAL);
         a.setHomeworkType(HomeworkType.WRITE);
         a.setPublished(true);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
+        a.setContentRevisedAt(Instant.parse("2026-08-15T12:00:00Z"));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
         HomeworkSubmission saved = submitted(null);
         when(submissionRepository.upsert(eq(userId), eq(assignmentId),
                 eq(HomeworkStatus.SUBMITTED.name()), any(), any())).thenReturn(saved);
 
         HomeworkItemResponse result = service.submit(EMAIL, assignmentId,
-                List.of(new com.kuky.backend.learning.model.FormattedTextSegment("hola", null, null, null)), null);
+                List.of(new com.kuky.backend.learning.model.FormattedTextSegment("hola", null, null, null)),
+                null, Instant.parse("2026-08-15T12:00:00Z"));
 
         assertThat(result.status()).isEqualTo("SUBMITTED");
         assertThat(result.composition()).isEqualTo("WRITE");
@@ -207,8 +215,9 @@ class PerQuestionGradingSubmitTest {
         a.setFormat(format);
         a.setHomeworkType(type);
         a.setPublished(true);
-        when(contentRepository.findPublishedAssignmentById(assignmentId)).thenReturn(Optional.of(a));
-        when(questionRepository.findByAssignment(assignmentId)).thenReturn(questions);
+        a.setContentRevisedAt(Instant.parse("2026-08-15T12:00:00Z"));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
+        org.mockito.Mockito.lenient().when(questionRepository.findByAssignment(assignmentId)).thenReturn(questions);
     }
 
     private HomeworkSubmission submitted(Integer scorePercent) {

@@ -331,6 +331,8 @@ export const roDict = {
         GRAMMAR: "Gramatică",
       },
     },
+    homeworkUpdated:
+      "Tema a fost actualizată. Începe din nou cu versiunea actuală.",
     submitDialog: {
       yourAnswer: "Răspunsul tău (opțional)",
       placeholder: "Scrie răspunsul tău aici…",
@@ -368,7 +370,8 @@ export const roDict = {
     },
     numberedSingleChoice: {
       itemLabel: "({{number}})",
-      allRequired: "Selectează o opțiune pentru fiecare număr înainte de a preda.",
+      allRequired:
+        "Selectează o opțiune pentru fiecare număr înainte de a preda.",
     },
     writePage: {
       back: "← Înapoi la învățarea mea",

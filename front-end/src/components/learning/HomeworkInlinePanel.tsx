@@ -100,8 +100,10 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
             provisionalScorePercent: exercise.provisionalScorePercent,
             feedbackText: exercise.feedbackText,
             teacherFeedback: exercise.teacherFeedback,
+            contentRevisedAt: exercise.contentRevisedAt,
           }}
           onSubmitted={onChanged}
+          onHomeworkUpdated={onChanged}
         />
       </div>
     );
@@ -124,7 +126,11 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
             {exercise.instructions}
           </div>
         )}
-        <ExerciseForm exercise={exercise} onGraded={onChanged} />
+        <ExerciseForm
+          exercise={exercise}
+          onGraded={onChanged}
+          onHomeworkUpdated={onChanged}
+        />
       </div>
     );
   }
@@ -163,13 +169,17 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
           }))}
           initialAnswers={item.answers}
           readOnly={!isStudentHomeworkEditable(item.status)}
+          contentRevisedAt={item.contentRevisedAt}
           onSubmitted={onChanged}
+          onHomeworkUpdated={onChanged}
         />
       ) : (
         <ManualAnswerForm
           homeworkId={item.id}
           initialResponse={item.response}
           readOnly={!isStudentHomeworkEditable(item.status)}
+          contentRevisedAt={item.contentRevisedAt}
+          onHomeworkUpdated={onChanged}
           labels={{
             yourAnswer: t("learning.submitDialog.yourAnswer"),
             placeholder: t("learning.submitDialog.placeholder"),

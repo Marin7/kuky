@@ -42,6 +42,7 @@ public class LearningService {
     private final PresentationRepository presentationRepository;
     private final PresentationFileStore presentationFileStore;
     private final ActivityStudentService activityStudentService;
+    private final AssignmentSnapshot assignmentSnapshot;
     private final SchedulingProperties props;
 
     public LearningService(ContentRepository contentRepository,
@@ -52,6 +53,7 @@ public class LearningService {
                            PresentationRepository presentationRepository,
                            PresentationFileStore presentationFileStore,
                            ActivityStudentService activityStudentService,
+                           AssignmentSnapshot assignmentSnapshot,
                            SchedulingProperties props) {
         this.contentRepository = contentRepository;
         this.submissionRepository = submissionRepository;
@@ -61,6 +63,7 @@ public class LearningService {
         this.presentationRepository = presentationRepository;
         this.presentationFileStore = presentationFileStore;
         this.activityStudentService = activityStudentService;
+        this.assignmentSnapshot = assignmentSnapshot;
         this.props = props;
     }
 
@@ -97,7 +100,12 @@ public class LearningService {
                             : new UnitRef(au.unitId(), au.level(), au.subject(), au.position());
                     Integer unitPosition = au == null ? null : au.unitPosition();
                     HomeworkSubmission submission = submissionsByAssignment.get(a.getId());
-                    List<HomeworkQuestion> questions = questionRepository.findByAssignment(a.getId());
+                    List<HomeworkQuestion> questions;
+                    if (assignmentSnapshot.present(submission)) {
+                        questions = assignmentSnapshot.questionsOf(submission);
+                    } else {
+                        questions = questionRepository.findByAssignment(a.getId());
+                    }
                     List<HomeworkAnswer> answers = submission == null
                             ? List.of()
                             : answerRepository.findBySubmission(submission.getId());

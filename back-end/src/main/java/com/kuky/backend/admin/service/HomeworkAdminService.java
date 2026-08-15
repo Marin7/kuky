@@ -42,6 +42,7 @@ import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.learning.service.AssignmentSnapshot;
 import com.kuky.backend.learning.service.BlankPassageParser;
 import com.kuky.backend.learning.service.ExerciseGradingService;
 import com.kuky.backend.learning.service.HomeworkCompositionSupport;
@@ -50,6 +51,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -76,6 +78,7 @@ public class HomeworkAdminService {
     private final HomeworkSubmissionRepository submissionRepository;
     private final ExerciseGradingService exerciseGradingService;
     private final ObjectMapper objectMapper;
+    private final AssignmentSnapshot assignmentSnapshot;
 
     public HomeworkAdminService(ContentRepository contentRepository,
                                 HomeworkTargetRepository targetRepository,
@@ -95,6 +98,7 @@ public class HomeworkAdminService {
         this.submissionRepository = submissionRepository;
         this.exerciseGradingService = exerciseGradingService;
         this.objectMapper = objectMapper;
+        this.assignmentSnapshot = new AssignmentSnapshot(objectMapper);
     }
 
     // --- Teacher review of MANUAL submissions --------------------------------
@@ -130,6 +134,9 @@ public class HomeworkAdminService {
         }
         User student = userRepository.findById(submission.getUserId())
                 .orElseThrow(() -> new StudentNotFoundException("Alumno no encontrado."));
+        if (assignmentSnapshot.present(submission)) {
+            assignmentSnapshot.applyContent(assignment, submission);
+        }
         ExerciseGradingService.GradedExerciseView view =
                 exerciseGradingService.viewGradedSubmission(submission);
         return new ExerciseSubmissionResultAdminDto(
@@ -178,7 +185,11 @@ public class HomeworkAdminService {
                 submissionRepository.findById(submissionId)
                         .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."))
                         .getAssignmentId());
-        List<HomeworkQuestion> questions = questionRepository.findByAssignment(assignment.getId());
+        HomeworkSubmission submissionEntity = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
+        List<HomeworkQuestion> questions = assignmentSnapshot.present(submissionEntity)
+                ? assignmentSnapshot.questionsOf(submissionEntity)
+                : questionRepository.findByAssignment(assignment.getId());
         HomeworkComposition composition = HomeworkCompositionSupport.compositionFromQuestions(
                 assignment.getHomeworkType(),
                 questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
@@ -388,9 +399,17 @@ public class HomeworkAdminService {
         } else {
             composition = HomeworkComposition.ALL_MANUAL;
         }
+        String title = row.assignmentTitle();
+        HomeworkSubmission submission = submissionRepository.findById(row.submissionId()).orElse(null);
+        if (assignmentSnapshot.present(submission)) {
+            HomeworkAssignment overlay = new HomeworkAssignment();
+            overlay.setTitle(title);
+            assignmentSnapshot.applyContent(overlay, submission);
+            title = overlay.getTitle();
+        }
         return new HomeworkSubmissionAdminDto(
                 row.submissionId(), row.studentId(), row.studentEmail(), row.studentFirstName(),
-                row.studentLastName(), row.studentUsername(), row.assignmentTitle(), row.status(),
+                row.studentLastName(), row.studentUsername(), title, row.status(),
                 format.name(),
                 composition.name(),
                 row.reviewModel(),
@@ -436,7 +455,7 @@ public class HomeworkAdminService {
     }
 
     public HomeworkAdminItem update(UUID id, UpdateHomeworkRequest req) {
-        requireAssignment(id);
+        HomeworkAssignment existing = requireAssignment(id);
         HomeworkType type = parseType(req.homeworkType());
         HomeworkLevel level = parseLevel(req.level());
         boolean write = type == HomeworkType.WRITE;
@@ -446,11 +465,61 @@ public class HomeworkAdminService {
         HomeworkFormat format = HomeworkCompositionSupport.formatFromComposition(composition);
         Audio audio = resolveAudio(type, req.mediaSourceKind(), req.audioUrl(), req.audioFileId());
 
+        Instant contentRevisedAt = contentChanged(existing, req, type, level, audio, questions)
+                ? Instant.now() : null;
         contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format,
-                audio.url(), audio.fileId(), audio.kind());
+                audio.url(), audio.fileId(), audio.kind(), contentRevisedAt);
         // Upsert by question/option id so existing submissions keep their answers linked.
         questionRepository.replaceQuestions(id, questions);
         return toItem(requireAssignment(id));
+    }
+
+    private boolean contentChanged(HomeworkAssignment existing, UpdateHomeworkRequest req,
+                                   HomeworkType type, HomeworkLevel level, Audio audio,
+                                   List<HomeworkQuestion> incoming) {
+        if (!Objects.equals(existing.getTitle(), req.title())) return true;
+        if (!Objects.equals(existing.getInstructions(), req.instructions())) return true;
+        if (!Objects.equals(existing.getHomeworkType(), type)) return true;
+        if (!Objects.equals(existing.getLevel(), level)) return true;
+        if (!Objects.equals(existing.getAudioUrl(), audio.url())) return true;
+        if (!Objects.equals(existing.getAudioFileId(), audio.fileId())) return true;
+        if (!Objects.equals(existing.getMediaSourceKind(), audio.kind())) return true;
+        return !questionsMatch(questionRepository.findByAssignment(existing.getId()), incoming);
+    }
+
+    private boolean questionsMatch(List<HomeworkQuestion> live, List<HomeworkQuestion> incoming) {
+        List<HomeworkQuestion> a = live == null ? List.of() : live;
+        List<HomeworkQuestion> b = incoming == null ? List.of() : incoming;
+        if (a.size() != b.size()) return false;
+        for (int i = 0; i < a.size(); i++) {
+            HomeworkQuestion left = a.get(i);
+            HomeworkQuestion right = b.get(i);
+            if (!Objects.equals(left.getId(), right.getId())) return false;
+            if (left.getKind() != right.getKind()) return false;
+            if (!Objects.equals(left.getPrompt(), right.getPrompt())) return false;
+            if (!structureEquals(left.getStructureJson(), right.getStructureJson())) return false;
+            List<QuestionOption> lo = left.getOptions() == null ? List.of() : left.getOptions();
+            List<QuestionOption> ro = right.getOptions() == null ? List.of() : right.getOptions();
+            if (lo.size() != ro.size()) return false;
+            for (int j = 0; j < lo.size(); j++) {
+                QuestionOption ol = lo.get(j);
+                QuestionOption or = ro.get(j);
+                if (!Objects.equals(ol.getId(), or.getId())) return false;
+                if (!Objects.equals(ol.getLabel(), or.getLabel())) return false;
+                if (ol.isCorrect() != or.isCorrect()) return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean structureEquals(String left, String right) {
+        String l = left == null || left.isBlank() ? "{}" : left;
+        String r = right == null || right.isBlank() ? "{}" : right;
+        try {
+            return objectMapper.readTree(l).equals(objectMapper.readTree(r));
+        } catch (JsonProcessingException e) {
+            return Objects.equals(l, r);
+        }
     }
 
     public HomeworkAdminItem setAssignees(UUID id, List<UUID> assigneeIds) {

@@ -90,6 +90,8 @@ export interface HomeworkItem {
   /** Auto-graded subset results (ALL_AUTO / MIXED after submit). */
   result?: ExerciseResult | null;
   teacherFeedback?: string | null;
+  /** Present while PENDING; echo on submit. Omitted after submit. */
+  contentRevisedAt?: string | null;
 }
 
 /** Resolve composition preferring the server field, else format / questions. */
@@ -251,6 +253,8 @@ export interface ExerciseResponse {
   feedbackText?: string | null;
   feedback?: FormattedText | null;
   teacherFeedback: string | null;
+  /** Present while PENDING; echo on submit. Omitted after submit. */
+  contentRevisedAt?: string | null;
 }
 
 export interface AnswerPayload {
@@ -346,11 +350,17 @@ export const submitHomework = (
   assignmentId: string,
   response?: FormattedText | null,
   answers?: ManualAnswerPayload[],
+  contentRevisedAt?: string | null,
 ) =>
   apiCall<HomeworkItem>(`/learning/homework/${assignmentId}`, {
     method: "PUT",
     body: JSON.stringify(
-      answers != null ? { answers } : { response: response ?? null },
+      answers != null
+        ? { answers, contentRevisedAt: contentRevisedAt ?? null }
+        : {
+            response: response ?? null,
+            contentRevisedAt: contentRevisedAt ?? null,
+          },
     ),
   });
 
@@ -361,12 +371,16 @@ export const getExercise = (assignmentId: string) =>
 export const submitExercise = async (
   assignmentId: string,
   answers: HeterogeneousAnswerPayload[],
+  contentRevisedAt?: string | null,
 ): Promise<ExerciseResult> => {
   const item = await apiCall<HomeworkItem>(
     `/learning/homework/${assignmentId}/answers`,
     {
       method: "PUT",
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({
+        answers,
+        contentRevisedAt: contentRevisedAt ?? null,
+      }),
     },
   );
   if (!item.result) {
@@ -379,11 +393,32 @@ export const submitExercise = async (
 export const submitHomeworkAnswers = (
   assignmentId: string,
   answers: HeterogeneousAnswerPayload[],
+  contentRevisedAt?: string | null,
 ) =>
   apiCall<HomeworkItem>(`/learning/homework/${assignmentId}/answers`, {
     method: "PUT",
-    body: JSON.stringify({ answers }),
+    body: JSON.stringify({
+      answers,
+      contentRevisedAt: contentRevisedAt ?? null,
+    }),
   });
+
+export const isHomeworkUpdatedError = (e: unknown): boolean =>
+  typeof e === "object" &&
+  e !== null &&
+  (e as ApiError).error === "HOMEWORK_UPDATED";
+
+export const homeworkDraftKey = (homeworkId: string) =>
+  `kuky:homework-draft:${homeworkId}`;
+
+export function clearHomeworkDraft(homeworkId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(homeworkDraftKey(homeworkId));
+  } catch {
+    // ignore
+  }
+}
 
 /** On-site view eligibility: only application/pdf (PPTX stays download-only). */
 export const isPresentationPdf = (contentType: string): boolean =>

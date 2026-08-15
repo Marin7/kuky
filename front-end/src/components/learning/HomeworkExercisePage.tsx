@@ -68,13 +68,28 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
                 provisionalScorePercent: exercise.provisionalScorePercent,
                 feedbackText: exercise.feedbackText,
                 teacherFeedback: exercise.teacherFeedback,
+                contentRevisedAt: exercise.contentRevisedAt,
               }}
               onSubmitted={() =>
-                getExercise(homeworkId).then(setExercise).catch(() => {})
+                getExercise(homeworkId)
+                  .then(setExercise)
+                  .catch(() => {})
+              }
+              onHomeworkUpdated={() =>
+                getExercise(homeworkId)
+                  .then(setExercise)
+                  .catch(() => {})
               }
             />
           ) : (
-            <ExerciseForm exercise={exercise} />
+            <ExerciseForm
+              exercise={exercise}
+              onHomeworkUpdated={() =>
+                getExercise(homeworkId)
+                  .then(setExercise)
+                  .catch(() => {})
+              }
+            />
           )}
         </>
       )}

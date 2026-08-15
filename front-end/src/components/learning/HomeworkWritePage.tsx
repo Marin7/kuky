@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "@tanstack/react-router";
-import { getLearning, isStudentHomeworkEditable, type HomeworkItem } from "@/lib/learning";
+import {
+  getLearning,
+  isStudentHomeworkEditable,
+  type HomeworkItem,
+} from "@/lib/learning";
 import { ManualAnswerForm } from "./ManualAnswerForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 
@@ -19,9 +23,7 @@ export function HomeworkWritePage({ homeworkId }: Props) {
   useEffect(() => {
     getLearning()
       .then((data) => {
-        const found = data.homework.find(
-          (h) => h.id === homeworkId,
-        );
+        const found = data.homework.find((h) => h.id === homeworkId);
         if (!found) {
           setLoadError(t("learning.writePage.notFound"));
           return;
@@ -64,6 +66,15 @@ export function HomeworkWritePage({ homeworkId }: Props) {
             homeworkId={homeworkId}
             initialResponse={item.response}
             readOnly={!isStudentHomeworkEditable(item.status)}
+            contentRevisedAt={item.contentRevisedAt}
+            onHomeworkUpdated={() => {
+              getLearning()
+                .then((data) => {
+                  const found = data.homework.find((h) => h.id === homeworkId);
+                  if (found) setItem(found);
+                })
+                .catch(() => {});
+            }}
             labels={{
               yourAnswer: t("learning.writePage.yourAnswer"),
               placeholder: t("learning.writePage.placeholder"),

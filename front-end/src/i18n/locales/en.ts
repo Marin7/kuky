@@ -323,6 +323,8 @@ export const enDict = {
         GRAMMAR: "Grammar",
       },
     },
+    homeworkUpdated:
+      "This homework has been updated. Please start again with the current version.",
     submitDialog: {
       yourAnswer: "Your answer (optional)",
       placeholder: "Write your answer here…",

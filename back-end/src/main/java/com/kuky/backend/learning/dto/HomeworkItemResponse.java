@@ -33,5 +33,6 @@ public record HomeworkItemResponse(
         boolean hasTeacherFeedback,
         List<ExerciseQuestionDto> questions,
         List<ManualAnswerViewDto> answers,
-        ExerciseResultResponse result  // auto / mixed auto-subset results after submit
+        ExerciseResultResponse result,  // auto / mixed auto-subset results after submit
+        Instant contentRevisedAt        // present while PENDING; omitted after submit
 ) {}

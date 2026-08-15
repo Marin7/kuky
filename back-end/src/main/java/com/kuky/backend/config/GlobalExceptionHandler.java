@@ -17,6 +17,7 @@ import com.kuky.backend.learning.exception.ActivityReorderInvalidException;
 import com.kuky.backend.learning.exception.ActivityValidationException;
 import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
+import com.kuky.backend.learning.exception.HomeworkUpdatedException;
 import com.kuky.backend.learning.exception.InvalidAudioException;
 import com.kuky.backend.learning.exception.NotSubmittedException;
 import com.kuky.backend.learning.exception.SubmissionNotAllowedException;
@@ -213,6 +214,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleAssignmentNotFound(AssignmentNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", "ASSIGNMENT_NOT_FOUND", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(HomeworkUpdatedException.class)
+    public ResponseEntity<Map<String, String>> handleHomeworkUpdated(HomeworkUpdatedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "HOMEWORK_UPDATED", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(SubmissionNotAllowedException.class)

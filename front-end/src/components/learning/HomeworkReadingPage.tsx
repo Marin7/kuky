@@ -101,10 +101,23 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
                 provisionalScorePercent: exercise.provisionalScorePercent,
                 feedbackText: exercise.feedbackText,
                 teacherFeedback: exercise.teacherFeedback,
+                contentRevisedAt: exercise.contentRevisedAt,
               }}
+              onHomeworkUpdated={() =>
+                getExercise(homeworkId)
+                  .then(setExercise)
+                  .catch(() => {})
+              }
             />
           ) : composition === "ALL_AUTO" && exercise ? (
-            <ExerciseForm exercise={exercise} />
+            <ExerciseForm
+              exercise={exercise}
+              onHomeworkUpdated={() =>
+                getExercise(homeworkId)
+                  .then(setExercise)
+                  .catch(() => {})
+              }
+            />
           ) : item ? (
             <>
               <ManualMultiAnswerForm
@@ -115,6 +128,17 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
                 }))}
                 initialAnswers={item.answers}
                 readOnly={!isStudentHomeworkEditable(item.status)}
+                contentRevisedAt={item.contentRevisedAt}
+                onHomeworkUpdated={() =>
+                  getLearning()
+                    .then((data) => {
+                      const found = data.homework.find(
+                        (h) => h.id === homeworkId,
+                      );
+                      if (found) setItem(found);
+                    })
+                    .catch(() => {})
+                }
               />
               {item.feedbackText ? (
                 <div className="mt-6 space-y-2">

@@ -331,6 +331,8 @@ export const esDict = {
         GRAMMAR: "Gramática",
       },
     },
+    homeworkUpdated:
+      "Esta tarea se ha actualizado. Debes empezar de nuevo con la versión actual.",
     submitDialog: {
       yourAnswer: "Tu respuesta (opcional)",
       placeholder: "Escribe tu respuesta aquí…",

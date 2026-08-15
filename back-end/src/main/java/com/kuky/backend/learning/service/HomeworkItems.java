@@ -17,6 +17,7 @@ import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -81,6 +82,8 @@ final class HomeworkItems {
         }
         boolean hasTeacherFeedback = submission != null
                 && FormattedTextSegment.hasTeacherFeedback(submission.getFeedback());
+        Instant contentRevisedAt = HomeworkStatus.PENDING.name().equals(status)
+                ? a.getContentRevisedAt() : null;
 
         List<ExerciseQuestionDto> questionDtos = studentQuestions != null
                 ? studentQuestions
@@ -125,7 +128,8 @@ final class HomeworkItems {
                 hasTeacherFeedback,
                 questionDtos,
                 answerViews,
-                result
+                result,
+                contentRevisedAt
         );
     }
 
