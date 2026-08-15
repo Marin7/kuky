@@ -8,6 +8,7 @@ import {
   getPresentation,
   uploadPresentationFile,
   deletePresentationFile,
+  downloadPresentationFile,
   setPresentationLevel,
   getStudents,
   studentDisplayName,
@@ -195,6 +196,7 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(item.title);
   const [uploading, setUploading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareDeck, setShareDeck] = useState<PresentationDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -255,6 +257,20 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
       setError(
         (err as ApiError).message ?? t("admin.presentations.deleteFileError"),
       );
+    }
+  };
+
+  const handleDownloadFile = async (fileId: string, displayName: string) => {
+    setDownloadingId(fileId);
+    setError(null);
+    try {
+      await downloadPresentationFile(item.id, fileId, displayName);
+    } catch (err) {
+      setError(
+        (err as ApiError).message ?? t("admin.presentations.downloadError"),
+      );
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -386,9 +402,20 @@ function PresentationCard({ item, onDeleted, onUpdated }: CardProps) {
                   <Button
                     variant="ghost"
                     size="sm"
+                    className="h-6 px-1.5 text-xs"
+                    onClick={() => handleDownloadFile(f.id, f.displayName)}
+                    disabled={uploading || downloadingId === f.id}
+                  >
+                    {downloadingId === f.id
+                      ? t("admin.presentations.downloading")
+                      : t("admin.presentations.download")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-6 px-1.5 text-xs text-destructive"
                     onClick={() => handleDeleteFile(f.id)}
-                    disabled={uploading}
+                    disabled={uploading || downloadingId === f.id}
                   >
                     {t("admin.presentations.remove")}
                   </Button>

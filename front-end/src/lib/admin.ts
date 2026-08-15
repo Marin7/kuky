@@ -737,6 +737,29 @@ export const uploadPresentationFile = async (
 export const deletePresentationFile = (id: string, fileId: string) =>
   apiCall<void>(`/presentations/${id}/files/${fileId}`, { method: "DELETE" });
 
+export const downloadPresentationFile = async (
+  id: string,
+  fileId: string,
+  fileName: string,
+): Promise<void> => {
+  const res = await fetch(`${API_BASE}/presentations/${id}/files/${fileId}`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw data as ApiError;
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 // ---------------------------------------------------------------------------
 // Presentation Activities
 // ---------------------------------------------------------------------------

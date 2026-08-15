@@ -9,6 +9,7 @@ import {
   setUnitHomeworks,
   uploadPresentationFile,
   deletePresentationFile,
+  downloadPresentationFile,
   setPresentationLevel,
   reorderUnitContents,
   type UnitDetail,
@@ -279,6 +280,7 @@ function PresentationRow({
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -311,6 +313,20 @@ function PresentationRow({
       });
     } catch {
       setRowError(t("admin.units.contents.deleteFileError"));
+    }
+  };
+
+  const handleDownloadFile = async (fileId: string, displayName: string) => {
+    setDownloadingId(fileId);
+    setRowError(null);
+    try {
+      await downloadPresentationFile(p.id, fileId, displayName);
+    } catch (err) {
+      setRowError(
+        (err as ApiError).message ?? t("admin.units.contents.downloadError"),
+      );
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -365,9 +381,20 @@ function PresentationRow({
               <Button
                 variant="ghost"
                 size="sm"
+                className="h-6 px-1 text-xs"
+                onClick={() => handleDownloadFile(f.id, f.displayName)}
+                disabled={uploading || downloadingId === f.id}
+              >
+                {downloadingId === f.id
+                  ? t("admin.units.contents.downloading")
+                  : t("admin.units.contents.download")}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-6 px-1 text-xs text-destructive"
                 onClick={() => handleDeleteFile(f.id)}
-                disabled={uploading}
+                disabled={uploading || downloadingId === f.id}
               >
                 {t("admin.units.contents.deleteFile")}
               </Button>
