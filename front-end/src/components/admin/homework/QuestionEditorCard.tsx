@@ -7,6 +7,7 @@ import type {
   DragDropStructure,
   TableFillStructure,
   MatchingStructure,
+  SingleChoiceStructure,
 } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,11 @@ import { MultiBlankEditor } from "./MultiBlankEditor";
 import { DragDropEditor } from "./DragDropEditor";
 import { TableFillEditor } from "./TableFillEditor";
 import { MatchingEditor } from "./MatchingEditor";
+import { SingleChoiceItemsEditor } from "./SingleChoiceItemsEditor";
+import {
+  distinctMarkerNumbers,
+} from "@/lib/singleChoiceMarkers";
+import { genId } from "@/lib/utils";
 
 const KINDS: QuestionKind[] = [
   "SINGLE_CHOICE",
@@ -72,7 +78,73 @@ export function QuestionEditorCard({
     });
   };
 
-  const setPrompt = (prompt: string) => onChange({ ...question, prompt });
+  const setPrompt = (prompt: string) => {
+    if (question.kind !== "SINGLE_CHOICE") {
+      onChange({ ...question, prompt });
+      return;
+    }
+    const prevNumbers = distinctMarkerNumbers(question.prompt);
+    const nextNumbers = distinctMarkerNumbers(prompt);
+    const wasNumbered = prevNumbers.length > 0;
+    const isNumbered = nextNumbers.length > 0;
+    const existingItems =
+      (question.structure as SingleChoiceStructure | undefined)?.items ?? [];
+
+    const withIds = (options: AdminOption[]): AdminOption[] =>
+      options.map((o) => ({
+        ...o,
+        id: o.id ?? genId(),
+      }));
+
+    const emptyItem = (number: number) => ({
+      number,
+      options: [
+        { id: genId(), label: "", correct: false },
+        { id: genId(), label: "", correct: false },
+      ],
+    });
+
+    if (!wasNumbered && isNumbered) {
+      const classic =
+        question.options.length >= 2
+          ? withIds(question.options)
+          : emptyItem(1).options;
+      const items = nextNumbers.map((n) =>
+        n === 1 ? { number: 1, options: classic } : emptyItem(n),
+      );
+      onChange({ ...question, prompt, options: [], structure: { items } });
+      return;
+    }
+
+    if (wasNumbered && !isNumbered) {
+      const item1 = existingItems.find((i) => i.number === 1);
+      onChange({
+        ...question,
+        prompt,
+        options:
+          item1?.options && item1.options.length >= 2
+            ? item1.options.map(({ id, label, correct }) => ({
+                id,
+                label,
+                correct,
+              }))
+            : defaultOptionsForKind("SINGLE_CHOICE"),
+        structure: {},
+      });
+      return;
+    }
+
+    if (isNumbered) {
+      const byNumber = new Map(existingItems.map((i) => [i.number, i]));
+      const items = nextNumbers.map(
+        (n) => byNumber.get(n) ?? emptyItem(n),
+      );
+      onChange({ ...question, prompt, options: [], structure: { items } });
+      return;
+    }
+
+    onChange({ ...question, prompt });
+  };
 
   const setOption = (i: number, patch: Partial<AdminOption>) => {
     const options = question.options.map((o, idx) =>
@@ -122,6 +194,9 @@ export function QuestionEditorCard({
   const structured = isStructuredKind(question.kind);
   const isPassageKind =
     question.kind === "MULTI_BLANK" || question.kind === "DRAG_DROP";
+  const numberedSingleChoice =
+    question.kind === "SINGLE_CHOICE" &&
+    distinctMarkerNumbers(question.prompt).length > 0;
   const singleCorrectIndex = question.options.findIndex((o) => o.correct);
 
   return (
@@ -193,7 +268,9 @@ export function QuestionEditorCard({
           <p className="text-xs text-muted-foreground">
             {isPassageKind
               ? t("admin.homework.questions.promptBlanksHint")
-              : question.kind === "FREE_TEXT"
+              : question.kind === "SINGLE_CHOICE"
+                ? t("admin.homework.questions.promptSingleChoiceHint")
+                : question.kind === "FREE_TEXT"
                 ? t("admin.homework.questions.freeTextHint")
                 : question.kind === "TABLE_FILL" || question.kind === "MATCHING"
                   ? t("admin.homework.questions.promptOptionalHint")
@@ -246,6 +323,18 @@ export function QuestionEditorCard({
         />
       )}
 
+      {numberedSingleChoice && (
+        <SingleChoiceItemsEditor
+          prompt={question.prompt}
+          structure={
+            (question.structure as SingleChoiceStructure | undefined) ?? {
+              items: [],
+            }
+          }
+          onChange={(structure) => onChange({ ...question, structure })}
+        />
+      )}
+
       {question.kind === "TRUE_FALSE" && (
         <div className="space-y-2">
           <Label>{t("admin.homework.questions.optionsLabel")}</Label>
@@ -274,6 +363,7 @@ export function QuestionEditorCard({
       )}
 
       {!structured &&
+        !numberedSingleChoice &&
         question.kind !== "TRUE_FALSE" &&
         question.kind !== "FREE_TEXT" && (
         <div className="space-y-2">

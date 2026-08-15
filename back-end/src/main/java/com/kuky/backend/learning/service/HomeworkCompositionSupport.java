@@ -1,12 +1,15 @@
 package com.kuky.backend.learning.service;
 
+import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
+import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkType;
 import com.kuky.backend.learning.model.QuestionKind;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -114,6 +117,42 @@ public final class HomeworkCompositionSupport {
 
     public static BigDecimal scoreAsDecimal(double score) {
         return BigDecimal.valueOf(score).setScale(3, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Overall-% contributions for one question row. Numbered SINGLE_CHOICE expands
+     * to N times 0/1 (one per {@code (N)} item). Other kinds contribute a single score
+     * (the stored mean, or teacher percent for FREE_TEXT). Do not treat the numbered
+     * entry's mean {@code answer.score} as one contribution.
+     */
+    public static List<BigDecimal> contributions(HomeworkQuestion question, HomeworkAnswer answer) {
+        if (question != null && SingleChoiceItems.isNumbered(question)) {
+            return SingleChoiceItems.itemContributions(question, answer);
+        }
+        if (question != null && question.getKind() == QuestionKind.FREE_TEXT) {
+            Integer percent = answer == null ? null : answer.getTeacherScorePercent();
+            if (percent == null) return List.of(scoreAsDecimal(0.0));
+            return List.of(scoreAsDecimal(teacherPercentAsScore(percent)));
+        }
+        BigDecimal score = answer == null || answer.getScore() == null ? BigDecimal.ZERO : answer.getScore();
+        return List.of(score);
+    }
+
+    /**
+     * Live auto-grade expansion: numbered SINGLE_CHOICE uses per-unit 0/1;
+     * otherwise a single mean score.
+     */
+    public static List<BigDecimal> autoContributions(
+            HomeworkQuestion question, double meanScore, List<Double> unitScores) {
+        if (question != null && SingleChoiceItems.isNumbered(question)
+                && unitScores != null && !unitScores.isEmpty()) {
+            List<BigDecimal> out = new ArrayList<>();
+            for (Double s : unitScores) {
+                out.add(scoreAsDecimal(s == null ? 0.0 : s));
+            }
+            return out;
+        }
+        return List.of(scoreAsDecimal(meanScore));
     }
 
     private static List<QuestionKind> kindsOf(Collection<? extends HasKind> questions) {

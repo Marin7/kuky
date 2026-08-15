@@ -3,7 +3,7 @@ package com.kuky.backend.learning.model;
 /**
  * Question kinds for homework/activity items.
  * <ul>
- *   <li>{@code SINGLE_CHOICE} — radio; scored 0/1 (selected set must equal the one correct option).</li>
+ *   <li>{@code SINGLE_CHOICE} — radio; scored 0/1. Prompt {@code (1)}…{@code (N)} markers switch to numbered mode: N pick-one items in {@code structure_json}, each a full question in overall %.</li>
  *   <li>{@code MULTI_CHOICE} — checkboxes; partial credit over all options.</li>
  *   <li>{@code MULTI_BLANK} — passage with 1–20 {@code ___} blanks; typed answers.</li>
  *   <li>{@code DRAG_DROP} — passage with ≥2 blanks; word bank placed by id (bank order = correct order).</li>

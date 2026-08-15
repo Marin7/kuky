@@ -34,6 +34,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -201,11 +202,17 @@ public class ExerciseGradingService {
 
         for (HomeworkQuestion q : questions) {
             if (!HomeworkCompositionSupport.isAutoGradable(q.getKind())) continue;
-            structuredCount++;
             SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
+            SingleChoiceItems.requireCompleteSelections(q, given);
             GradedAnswer graded = gradeQuestion(q, given);
-            scoreSum += graded.score();
-            if (graded.score() >= 1.0) fullyCorrect++;
+            List<Double> unitScores = graded.unitResults().stream()
+                    .map(ExerciseResultResponse.UnitResultDto::score)
+                    .toList();
+            for (var contrib : HomeworkCompositionSupport.autoContributions(q, graded.score(), unitScores)) {
+                structuredCount++;
+                scoreSum += contrib.doubleValue();
+                if (HomeworkCompositionSupport.isFullyCorrect(contrib)) fullyCorrect++;
+            }
 
             HomeworkAnswer answer = new HomeworkAnswer();
             answer.setQuestionId(q.getId());
@@ -216,7 +223,8 @@ public class ExerciseGradingService {
 
             questionResults.add(new ExerciseResultResponse.QuestionResultDto(
                     q.getId(), graded.score(), graded.score() >= 1.0,
-                    correctOptionIds(q), List.of(), graded.unitResults(),
+                    SingleChoiceItems.isNumbered(q) ? List.of() : correctOptionIds(q),
+                    List.of(), graded.unitResults(),
                     graded.selectedOptionIds()));
         }
         return new StructuredGradeResult(answers, questionResults, scoreSum, fullyCorrect, structuredCount);
@@ -304,6 +312,10 @@ public class ExerciseGradingService {
     }
 
     private GradedAnswer gradeSingleChoice(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {
+        if (SingleChoiceItems.isNumbered(q)) {
+            SingleChoiceItems.GradedNumbered numbered = SingleChoiceItems.grade(q, given);
+            return new GradedAnswer(numbered.meanScore(), List.of(), numbered.answerJson(), numbered.unitResults());
+        }
         Set<UUID> selected = selectedFor(q, given);
         Set<UUID> correct = q.getOptions().stream()
                 .filter(QuestionOption::isCorrect).map(QuestionOption::getId)
@@ -570,16 +582,22 @@ public class ExerciseGradingService {
                 continue;
             }
             HomeworkAnswer a = byQuestion.get(q.getId());
+            boolean numbered = SingleChoiceItems.isNumbered(q);
+            List<BigDecimal> contribs = HomeworkCompositionSupport.contributions(q, a);
+            for (BigDecimal c : contribs) {
+                counted++;
+                scoreSum += c.doubleValue();
+                if (HomeworkCompositionSupport.isFullyCorrect(c)) fullyCorrect++;
+            }
             double score = a == null || a.getScore() == null ? 0.0 : a.getScore().doubleValue();
             boolean correct = score >= 1.0;
-            if (correct) fullyCorrect++;
-            scoreSum += score;
-            counted++;
             List<ExerciseResultResponse.UnitResultDto> unitResults =
-                    q.getKind().isStructured() ? recomputeUnitResults(q, a) : List.of();
+                    numbered || q.getKind().isStructured() ? recomputeUnitResults(q, a) : List.of();
             List<UUID> selected = a == null ? List.of() : a.getSelectedOptionIds();
             results.add(new ExerciseResultResponse.QuestionResultDto(
-                    q.getId(), score, correct, correctOptionIds(q), List.of(), unitResults,
+                    q.getId(), score, correct,
+                    numbered ? List.of() : correctOptionIds(q),
+                    List.of(), unitResults,
                     selected));
         }
         int scorePercent;
@@ -606,15 +624,23 @@ public class ExerciseGradingService {
 
     private List<ExerciseQuestionDto> buildStudentQuestions(List<HomeworkQuestion> questions) {
         return questions.stream().map(q -> {
-            boolean hasOptions = q.getKind() == QuestionKind.SINGLE_CHOICE
+            boolean numbered = SingleChoiceItems.isNumbered(q);
+            boolean hasOptions = !numbered && (q.getKind() == QuestionKind.SINGLE_CHOICE
                     || q.getKind() == QuestionKind.MULTI_CHOICE
-                    || q.getKind() == QuestionKind.TRUE_FALSE;
+                    || q.getKind() == QuestionKind.TRUE_FALSE);
             List<ExerciseQuestionDto.StudentOptionDto> options = hasOptions
                     ? q.getOptions().stream()
                         .map(o -> new ExerciseQuestionDto.StudentOptionDto(o.getId(), o.getLabel()))
                         .toList()
                     : List.of();
-            JsonNode structure = q.getKind().isStructured() ? stripStructureForStudent(q) : null;
+            JsonNode structure;
+            if (numbered) {
+                structure = SingleChoiceItems.stripForStudent(q);
+            } else if (q.getKind().isStructured()) {
+                structure = stripStructureForStudent(q);
+            } else {
+                structure = null;
+            }
             return new ExerciseQuestionDto(q.getId(), q.getKind().name(), q.getPrompt(), options, structure);
         }).toList();
     }

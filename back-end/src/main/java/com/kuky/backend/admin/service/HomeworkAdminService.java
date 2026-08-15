@@ -45,6 +45,7 @@ import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.learning.service.BlankPassageParser;
 import com.kuky.backend.learning.service.ExerciseGradingService;
 import com.kuky.backend.learning.service.HomeworkCompositionSupport;
+import com.kuky.backend.learning.service.SingleChoiceMarkerParser;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -340,14 +341,7 @@ public class HomeworkAdminService {
 
         List<BigDecimal> scores = new ArrayList<>();
         for (HomeworkQuestion q : questions) {
-            var answer = answersByQ.get(q.getId());
-            if (q.getKind() == QuestionKind.FREE_TEXT) {
-                int percent = answer.getTeacherScorePercent();
-                scores.add(HomeworkCompositionSupport.scoreAsDecimal(
-                        HomeworkCompositionSupport.teacherPercentAsScore(percent)));
-            } else {
-                scores.add(answer == null || answer.getScore() == null ? BigDecimal.ZERO : answer.getScore());
-            }
+            scores.addAll(HomeworkCompositionSupport.contributions(q, answersByQ.get(q.getId())));
         }
         int scorePercent = HomeworkCompositionSupport.scorePercentFromScores(scores);
         submissionRepository.saveScoredAnnotatedReview(submissionId, feedbackJson, null, scorePercent, firstReview);
@@ -515,6 +509,8 @@ public class HomeworkAdminService {
                 }
                 model.setStructureJson("{}");
                 model.setOptions(List.of());
+            } else if (kind == QuestionKind.SINGLE_CHOICE) {
+                mapSingleChoice(model, model.getPrompt(), opts, q.structure());
             } else if (kind.isStructured()) {
                 if (!opts.isEmpty()) {
                     throw new IllegalArgumentException("Este tipo de pregunta no admite opciones.");
@@ -556,6 +552,133 @@ public class HomeworkAdminService {
             return validateAndMapQuestions(true, dtos);
         }
         return validateAndMapQuestions(false, dtos);
+    }
+
+    /**
+     * Numbered mode when the prompt has {@code (N)} markers: persist {@code structure.items}
+     * and zero options-table rows. No markers: classic options and {@code {}}.
+     */
+    private void mapSingleChoice(HomeworkQuestion model, String prompt,
+                                 List<HomeworkQuestionDto.OptionDto> opts, JsonNode structure) {
+        SingleChoiceMarkerParser.ParseResult parsed = SingleChoiceMarkerParser.parse(prompt);
+        if (parsed.numbered()) {
+            if (!parsed.valid()) {
+                throw new IllegalArgumentException(parsed.errorMessage());
+            }
+            JsonNode itemsNode = structure == null ? null : structure.get("items");
+            JsonNode normalized = validateNumberedSingleChoice(parsed.n(), itemsNode, opts);
+            model.setStructureJson(writeStructure(normalized));
+            model.setOptions(List.of());
+            return;
+        }
+        model.setStructureJson("{}");
+        validateOptions(QuestionKind.SINGLE_CHOICE, opts);
+        List<QuestionOption> optionModels = new ArrayList<>();
+        for (HomeworkQuestionDto.OptionDto o : opts) {
+            if (o.label() == null || o.label().isBlank()) {
+                throw new IllegalArgumentException("Las opciones y respuestas no pueden estar vacías.");
+            }
+            QuestionOption om = new QuestionOption();
+            om.setId(o.id());
+            om.setLabel(o.label().strip());
+            om.setCorrect(o.correct());
+            optionModels.add(om);
+        }
+        model.setOptions(optionModels);
+    }
+
+    private JsonNode validateNumberedSingleChoice(
+            int n, JsonNode itemsNode, List<HomeworkQuestionDto.OptionDto> classicOpts) {
+        Map<Integer, JsonNode> byNumber = new LinkedHashMap<>();
+        if (itemsNode != null && itemsNode.isArray()) {
+            for (JsonNode item : itemsNode) {
+                int number = item.path("number").asInt(0);
+                if (number >= 1) byNumber.put(number, item);
+            }
+        }
+        JsonNode item1 = byNumber.get(1);
+        boolean item1Empty = item1 == null || !item1.path("options").isArray()
+                || item1.path("options").isEmpty();
+        if (item1Empty && classicOpts != null && !classicOpts.isEmpty()) {
+            ObjectNode seeded = objectMapper.createObjectNode();
+            seeded.put("number", 1);
+            ArrayNode seededOpts = objectMapper.createArrayNode();
+            for (HomeworkQuestionDto.OptionDto o : classicOpts) {
+                ObjectNode opt = objectMapper.createObjectNode();
+                if (o.id() != null) opt.put("id", o.id().toString());
+                opt.put("label", o.label() == null ? "" : o.label());
+                opt.put("correct", o.correct());
+                seededOpts.add(opt);
+            }
+            seeded.set("options", seededOpts);
+            byNumber.put(1, seeded);
+        }
+
+        ArrayNode items = objectMapper.createArrayNode();
+        for (int i = 1; i <= n; i++) {
+            JsonNode src = byNumber.get(i);
+            if (src == null) {
+                throw new IllegalArgumentException("Faltan las opciones del ítem (" + i + ").");
+            }
+            JsonNode optsNode = src.path("options");
+            if (!optsNode.isArray()) {
+                throw new IllegalArgumentException(
+                        "El ítem (" + i + ") necesita al menos dos opciones.");
+            }
+            List<HomeworkQuestionDto.OptionDto> mapped = new ArrayList<>();
+            ArrayNode normalizedOpts = objectMapper.createArrayNode();
+            for (JsonNode opt : optsNode) {
+                String label = opt.path("label").asText("");
+                boolean correct = opt.path("correct").asBoolean(false);
+                String id = normalizeOrGenerateId(opt);
+                mapped.add(new HomeworkQuestionDto.OptionDto(parseOptionUuid(id), label, correct));
+                ObjectNode out = objectMapper.createObjectNode();
+                out.put("id", id);
+                out.put("label", label);
+                out.put("correct", correct);
+                normalizedOpts.add(out);
+            }
+            try {
+                validateOptions(QuestionKind.SINGLE_CHOICE, mapped);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(itemizeSingleChoiceError(i, e.getMessage()));
+            }
+            for (int j = 0; j < mapped.size(); j++) {
+                HomeworkQuestionDto.OptionDto o = mapped.get(j);
+                if (o.label() == null || o.label().isBlank()) {
+                    throw new IllegalArgumentException(
+                            "Las opciones del ítem (" + i + ") no pueden estar vacías.");
+                }
+                ((ObjectNode) normalizedOpts.get(j)).put("label", o.label().strip());
+            }
+            ObjectNode item = objectMapper.createObjectNode();
+            item.put("number", i);
+            item.set("options", normalizedOpts);
+            items.add(item);
+        }
+        ObjectNode structure = objectMapper.createObjectNode();
+        structure.set("items", items);
+        return structure;
+    }
+
+    private static UUID parseOptionUuid(String id) {
+        if (id == null || id.isBlank()) return null;
+        try {
+            return UUID.fromString(id.strip());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static String itemizeSingleChoiceError(int itemNumber, String message) {
+        if (message == null) return "El ítem (" + itemNumber + ") no es válido.";
+        if (message.contains("al menos dos opciones")) {
+            return "El ítem (" + itemNumber + ") necesita al menos dos opciones.";
+        }
+        if (message.contains("exactamente una opción correcta")) {
+            return "Marca exactamente una opción correcta en el ítem (" + itemNumber + ").";
+        }
+        return message;
     }
 
     private void validateOptions(QuestionKind kind, List<HomeworkQuestionDto.OptionDto> opts) {

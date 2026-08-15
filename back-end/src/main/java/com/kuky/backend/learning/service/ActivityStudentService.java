@@ -359,6 +359,7 @@ public class ActivityStudentService {
                     throw new IllegalArgumentException("Una de las respuestas es demasiado larga.");
                 }
             }
+            SingleChoiceItems.requireCompleteSelections(q, given);
         }
         if (!byQuestion.keySet().equals(questions.stream().map(HomeworkQuestion::getId).collect(Collectors.toSet()))) {
             throw new IllegalArgumentException("Las respuestas no coinciden con las preguntas actuales.");

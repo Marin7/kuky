@@ -436,14 +436,8 @@ public class ActivityAdminService {
 
         List<BigDecimal> scores = new ArrayList<>();
         for (ActivityQuestion q : questions) {
-            var answer = answersByQ.get(q.getId());
-            if (q.getKind() == QuestionKind.FREE_TEXT) {
-                int percent = answer.getTeacherScorePercent();
-                scores.add(HomeworkCompositionSupport.scoreAsDecimal(
-                        HomeworkCompositionSupport.teacherPercentAsScore(percent)));
-            } else {
-                scores.add(answer == null || answer.getScore() == null ? BigDecimal.ZERO : answer.getScore());
-            }
+            scores.addAll(HomeworkCompositionSupport.contributions(
+                    q.toHomeworkQuestion(), answersByQ.get(q.getId())));
         }
         int scorePercent = HomeworkCompositionSupport.scorePercentFromScores(scores);
         submissionRepository.saveScoredAnnotatedReview(submissionId, feedbackJson, scorePercent, firstReview);

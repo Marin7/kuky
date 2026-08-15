@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -408,6 +409,166 @@ class ExerciseGradingServiceTest {
                 """)));
         assertThat(half.questions().getFirst().score()).isEqualTo(0.5);
         assertThat(half.fullyCorrectCount()).isEqualTo(0);
+    }
+
+    // --- numbered SINGLE_CHOICE ----------------------------------------------
+
+    private static HomeworkQuestion numberedSingleChoice(
+            String prompt, String structureJson) {
+        return structured(QuestionKind.SINGLE_CHOICE, prompt, structureJson);
+    }
+
+    private static String threeItemStructure(String id1a, String id1b,
+                                             String id2a, String id2b,
+                                             String id3a, String id3b) {
+        return """
+                {"items":[
+                  {"number":1,"options":[
+                    {"id":"%s","label":"ser","correct":true},
+                    {"id":"%s","label":"estar","correct":false}]},
+                  {"number":2,"options":[
+                    {"id":"%s","label":"por","correct":false},
+                    {"id":"%s","label":"para","correct":true}]},
+                  {"number":3,"options":[
+                    {"id":"%s","label":"muy","correct":true},
+                    {"id":"%s","label":"mucho","correct":false}]}
+                ]}
+                """.formatted(id1a, id1b, id2a, id2b, id3a, id3b);
+    }
+
+    @Test
+    void numberedSingleChoiceTwoOfThreeIsSixtySeven() throws Exception {
+        String id1a = UUID.randomUUID().toString();
+        String id1b = UUID.randomUUID().toString();
+        String id2a = UUID.randomUUID().toString();
+        String id2b = UUID.randomUUID().toString();
+        String id3a = UUID.randomUUID().toString();
+        String id3b = UUID.randomUUID().toString();
+        HomeworkQuestion q = numberedSingleChoice(
+                "Elige: (1) ser/estar (2) por/para (3) muy/mucho",
+                threeItemStructure(id1a, id1b, id2a, id2b, id3a, id3b));
+        ObjectMapper mapper = new ObjectMapper();
+        // items 1 and 2 correct, item 3 wrong
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), mapper.readTree("""
+                {"selections":{"1":"%s","2":"%s","3":"%s"}}
+                """.formatted(id1a, id2b, id3b))));
+
+        assertThat(r.scorePercent()).isEqualTo(67);
+        assertThat(r.fullyCorrectCount()).isEqualTo(2);
+        assertThat(r.totalQuestions()).isEqualTo(3);
+        assertThat(r.questions()).hasSize(1);
+        assertThat(r.questions().getFirst().score()).isCloseTo(2.0 / 3.0, org.assertj.core.data.Offset.offset(1e-9));
+        assertThat(r.questions().getFirst().correct()).isFalse();
+        assertThat(r.questions().getFirst().correctOptionIds()).isEmpty();
+        assertThat(r.questions().getFirst().unitResults()).hasSize(3);
+        assertThat(r.questions().getFirst().unitResults().get(2).correct()).isFalse();
+        assertThat(r.questions().getFirst().unitResults().get(2).expectedDisplay()).contains("muy");
+    }
+
+    @Test
+    void numberedSingleChoiceAllCorrectIsThreeOfThree() throws Exception {
+        String id1a = UUID.randomUUID().toString();
+        String id1b = UUID.randomUUID().toString();
+        String id2a = UUID.randomUUID().toString();
+        String id2b = UUID.randomUUID().toString();
+        String id3a = UUID.randomUUID().toString();
+        String id3b = UUID.randomUUID().toString();
+        HomeworkQuestion q = numberedSingleChoice(
+                "Elige: (1) ser/estar (2) por/para (3) muy/mucho",
+                threeItemStructure(id1a, id1b, id2a, id2b, id3a, id3b));
+        ObjectMapper mapper = new ObjectMapper();
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(), mapper.readTree("""
+                {"selections":{"1":"%s","2":"%s","3":"%s"}}
+                """.formatted(id1a, id2b, id3a))));
+
+        assertThat(r.scorePercent()).isEqualTo(100);
+        assertThat(r.fullyCorrectCount()).isEqualTo(3);
+        assertThat(r.totalQuestions()).isEqualTo(3);
+        assertThat(r.questions().getFirst().correct()).isTrue();
+    }
+
+    @Test
+    void numberedSingleChoiceIncompleteSubmitIsRejected() throws Exception {
+        String id1a = UUID.randomUUID().toString();
+        String id1b = UUID.randomUUID().toString();
+        String id2a = UUID.randomUUID().toString();
+        String id2b = UUID.randomUUID().toString();
+        String id3a = UUID.randomUUID().toString();
+        String id3b = UUID.randomUUID().toString();
+        HomeworkQuestion q = numberedSingleChoice(
+                "Elige: (1) a (2) b (3) c",
+                threeItemStructure(id1a, id1b, id2a, id2b, id3a, id3b));
+        ObjectMapper mapper = new ObjectMapper();
+        when(questionRepository.findByAssignment(ASSIGNMENT_ID)).thenReturn(List.of(q));
+
+        assertThatThrownBy(() ->
+                service.submit(EMAIL, ASSIGNMENT_ID, new SubmitExerciseRequest(List.of(
+                        new AnswerDto(q.getId(), List.of(), mapper.readTree("""
+                                {"selections":{"1":"%s","2":"%s"}}
+                                """.formatted(id1a, id2b)))))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("todas las preguntas");
+    }
+
+    @Test
+    void numberedStudentGetStripsCorrectFlags() {
+        String id1a = UUID.randomUUID().toString();
+        String id1b = UUID.randomUUID().toString();
+        HomeworkQuestion q = numberedSingleChoice("Solo (1) esto",
+                """
+                {"items":[{"number":1,"options":[
+                  {"id":"%s","label":"sí","correct":true},
+                  {"id":"%s","label":"no","correct":false}]}]}
+                """.formatted(id1a, id1b));
+        var student = service.studentQuestionsFor(List.of(q));
+        assertThat(student).hasSize(1);
+        assertThat(student.getFirst().options()).isEmpty();
+        assertThat(student.getFirst().structure().path("items").isArray()).isTrue();
+        assertThat(student.getFirst().structure().toString()).doesNotContain("correct");
+        assertThat(student.getFirst().structure().path("items").get(0).path("options").get(0).path("label").asText())
+                .isEqualTo("sí");
+    }
+
+    @Test
+    void classicSingleChoiceStillOneContribution() {
+        QuestionOption a = option("mal", false);
+        QuestionOption b = option("bien", true);
+        HomeworkQuestion q = question(QuestionKind.SINGLE_CHOICE, List.of(a, b));
+        q.setPrompt("El plural de lápiz");
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(b.getId()), null));
+        assertThat(r.totalQuestions()).isEqualTo(1);
+        assertThat(r.fullyCorrectCount()).isEqualTo(1);
+        assertThat(r.scorePercent()).isEqualTo(100);
+        assertThat(r.questions().getFirst().unitResults()).isEmpty();
+    }
+
+    @Test
+    void numberedPlusClassicIsFourContributions() throws Exception {
+        String id1a = UUID.randomUUID().toString();
+        String id1b = UUID.randomUUID().toString();
+        String id2a = UUID.randomUUID().toString();
+        String id2b = UUID.randomUUID().toString();
+        String id3a = UUID.randomUUID().toString();
+        String id3b = UUID.randomUUID().toString();
+        HomeworkQuestion numbered = numberedSingleChoice(
+                "Elige: (1) a (2) b (3) c",
+                threeItemStructure(id1a, id1b, id2a, id2b, id3a, id3b));
+        QuestionOption wrong = option("mal", false);
+        QuestionOption right = option("bien", true);
+        HomeworkQuestion classic = question(QuestionKind.SINGLE_CHOICE, List.of(wrong, right));
+        classic.setPrompt("Sin números");
+        when(questionRepository.findByAssignment(ASSIGNMENT_ID)).thenReturn(List.of(numbered, classic));
+
+        ObjectMapper mapper = new ObjectMapper();
+        ExerciseResultResponse r = service.submit(EMAIL, ASSIGNMENT_ID, new SubmitExerciseRequest(List.of(
+                new AnswerDto(numbered.getId(), List.of(), mapper.readTree("""
+                        {"selections":{"1":"%s","2":"%s","3":"%s"}}
+                        """.formatted(id1a, id2b, id3a))),
+                new AnswerDto(classic.getId(), List.of(right.getId()), null))));
+
+        assertThat(r.totalQuestions()).isEqualTo(4);
+        assertThat(r.fullyCorrectCount()).isEqualTo(4);
+        assertThat(r.scorePercent()).isEqualTo(100);
     }
 
     private static HomeworkQuestion structured(QuestionKind kind, String prompt, String structureJson) {

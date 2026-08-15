@@ -12,5 +12,8 @@ public final class ExerciseStructureLimits {
     /** Max items in a DRAG_DROP word bank. */
     public static final int MAX_BANK_ITEMS = 30;
 
+    /** Max numbered {@code (1)}…{@code (N)} items on one SINGLE_CHOICE. */
+    public static final int MAX_SINGLE_CHOICE_ITEMS = 20;
+
     private ExerciseStructureLimits() {}
 }

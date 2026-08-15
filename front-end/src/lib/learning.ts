@@ -153,6 +153,16 @@ export interface StudentMatchItem {
   label: string;
 }
 
+export interface StudentSingleChoiceItemOption {
+  id: string;
+  label: string;
+}
+
+export interface StudentSingleChoiceItem {
+  number: number;
+  options: StudentSingleChoiceItemOption[];
+}
+
 export interface StudentStructure {
   bank?: StudentBankItem[]; // DRAG_DROP
   rowHeaders?: string[]; // TABLE_FILL
@@ -160,6 +170,7 @@ export interface StudentStructure {
   cells?: StudentTableCell[]; // TABLE_FILL
   left?: StudentMatchItem[]; // MATCHING
   right?: StudentMatchItem[]; // MATCHING
+  items?: StudentSingleChoiceItem[]; // numbered SINGLE_CHOICE (no `correct`)
   // MULTI_BLANK carries no extra structure — blanks render from `___` in prompt.
 }
 
@@ -188,6 +199,11 @@ export interface TableFillAnswer {
 
 export interface MatchingAnswer {
   pairs: { leftId: string; rightId: string }[];
+}
+
+/** Numbered SINGLE_CHOICE: option id per item number (`"1"` → option id). */
+export interface SingleChoiceSelectionsAnswer {
+  selections: Record<string, string>;
 }
 
 export interface UnitResult {

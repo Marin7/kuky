@@ -400,20 +400,37 @@ export interface MatchingStructure {
   pairs: MatchingPair[];
 }
 
+/** Numbered opción única: one pick-one list per `(N)` marker. */
+export interface SingleChoiceItemOption {
+  id?: string;
+  label: string;
+  correct: boolean;
+}
+
+export interface SingleChoiceItem {
+  number: number;
+  options: SingleChoiceItemOption[];
+}
+
+export interface SingleChoiceStructure {
+  items: SingleChoiceItem[];
+}
+
 export type QuestionStructure =
   | MultiBlankStructure
   | DragDropStructure
   | TableFillStructure
   | MatchingStructure
+  | SingleChoiceStructure
   | Record<string, never>; // legacy kinds: {}
 
 export interface AdminQuestion {
   id?: string;
   kind: QuestionKind;
   prompt: string;
-  /** Legacy kinds only; empty for the four structured kinds. */
+  /** Choice kinds (classic SINGLE_CHOICE / MULTI_CHOICE / TRUE_FALSE); empty when numbered or structured. */
   options: AdminOption[];
-  /** Required shape for structured kinds; {} (or omitted) for legacy kinds. */
+  /** Structured kinds and numbered SINGLE_CHOICE items; {} for classic choice / FREE_TEXT. */
   structure?: QuestionStructure;
 }
 

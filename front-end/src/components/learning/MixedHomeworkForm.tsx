@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExerciseResult } from "./ExerciseResult";
+import { NumberedSingleChoiceQuestion } from "./NumberedSingleChoiceQuestion";
 import { MultiBlankQuestion } from "./MultiBlankQuestion";
 import { DragDropQuestion } from "./DragDropQuestion";
 import { TableFillQuestion } from "./TableFillQuestion";
@@ -25,6 +26,7 @@ import { RichTextViewer } from "./richtext/RichTextViewer";
 
 interface AnswerState {
   selectedOptionIds: string[];
+  selections: Record<string, string>;
   blanks: string[];
   placements: (string | null)[];
   cells: Record<string, string>;
@@ -56,9 +58,14 @@ interface Props {
 
 const RENDERS_OWN_PASSAGE = new Set(["MULTI_BLANK", "DRAG_DROP"]);
 
+function numberedItems(q: StudentQuestion) {
+  return q.kind === "SINGLE_CHOICE" ? (q.structure?.items ?? []) : [];
+}
+
 function initialAnswerState(q: StudentQuestion): AnswerState {
   return {
     selectedOptionIds: [],
+    selections: {},
     blanks:
       q.kind === "MULTI_BLANK" ? Array(countBlanks(q.prompt)).fill("") : [],
     placements:
@@ -110,6 +117,15 @@ export function MixedHomeworkForm({
       [qId]: { ...prev[qId], selectedOptionIds: [optionId] },
     }));
 
+  const setItemSelection = (qId: string, number: number, optionId: string) =>
+    setAnswers((prev) => ({
+      ...prev,
+      [qId]: {
+        ...prev[qId],
+        selections: { ...prev[qId].selections, [String(number)]: optionId },
+      },
+    }));
+
   const toggleMulti = (qId: string, optionId: string, checked: boolean) =>
     setAnswers((prev) => {
       const current = prev[qId].selectedOptionIds;
@@ -141,6 +157,15 @@ export function MixedHomeworkForm({
         return;
       }
     }
+    for (const q of autoQuestions) {
+      const items = numberedItems(q);
+      if (items.length === 0) continue;
+      const selections = answers[q.id]?.selections ?? {};
+      if (items.some((item) => !selections[String(item.number)])) {
+        setError(t("learning.numberedSingleChoice.allRequired"));
+        return;
+      }
+    }
 
     setSubmitting(true);
     setError(null);
@@ -152,7 +177,9 @@ export function MixedHomeworkForm({
             return { questionId: q.id, text: (a?.text ?? "").trim() };
           }
           let answerJson: unknown = null;
-          if (q.kind === "MULTI_BLANK") answerJson = { blanks: a?.blanks ?? [] };
+          const items = numberedItems(q);
+          if (items.length > 0) answerJson = { selections: a?.selections ?? {} };
+          else if (q.kind === "MULTI_BLANK") answerJson = { blanks: a?.blanks ?? [] };
           else if (q.kind === "DRAG_DROP")
             answerJson = { placements: a?.placements ?? [] };
           else if (q.kind === "TABLE_FILL")
@@ -353,7 +380,19 @@ export function MixedHomeworkForm({
                 </Label>
               )}
 
-              {(q.kind === "SINGLE_CHOICE" || q.kind === "TRUE_FALSE") && (
+              {q.kind === "SINGLE_CHOICE" && numberedItems(q).length > 0 && (
+                <NumberedSingleChoiceQuestion
+                  questionId={q.id}
+                  items={numberedItems(q)}
+                  selections={answers[q.id]?.selections ?? {}}
+                  onChange={(number, optionId) =>
+                    setItemSelection(q.id, number, optionId)
+                  }
+                />
+              )}
+
+              {((q.kind === "SINGLE_CHOICE" && numberedItems(q).length === 0) ||
+                q.kind === "TRUE_FALSE") && (
                 <RadioGroup
                   value={answers[q.id]?.selectedOptionIds[0] ?? ""}
                   onValueChange={(v) => setSingle(q.id, v)}

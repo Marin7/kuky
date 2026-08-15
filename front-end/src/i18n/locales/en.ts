@@ -358,6 +358,10 @@ export const enDict = {
       leftColumn: "Left",
       rightColumn: "Right",
     },
+    numberedSingleChoice: {
+      itemLabel: "({{number}})",
+      allRequired: "Select an option for every number before submitting.",
+    },
     writePage: {
       back: "← Back to my learning",
       loading: "Loading assignment…",
@@ -847,6 +851,14 @@ export const enDict = {
         addAnswer: "Add answer",
         optionsLabel: "Options",
         singleHint: "Mark the single correct option.",
+        promptSingleChoiceHint:
+          "Optional: type (1), (2), (3)… in the prompt to put several single-choice questions in one entry.",
+        singleChoiceItemsHint:
+          "Each number is its own single-choice question: at least two options and exactly one correct.",
+        singleChoiceItemLabel: "Item ({{number}})",
+        singleChoiceSequenceWarning:
+          "Numbers in parentheses must be consecutive from (1) with no gaps. Saving is blocked until they are.",
+        optionPlaceholder: "Option {{index}}",
         multiHint: "Mark all correct options.",
         addOption: "Add option",
         remove: "Remove",

@@ -367,6 +367,10 @@ export const esDict = {
       leftColumn: "Izquierda",
       rightColumn: "Derecha",
     },
+    numberedSingleChoice: {
+      itemLabel: "({{number}})",
+      allRequired: "Marca una opción en cada número antes de entregar.",
+    },
     writePage: {
       back: "← Volver a mi aprendizaje",
       loading: "Cargando tarea…",
@@ -861,6 +865,14 @@ export const esDict = {
         addAnswer: "Añadir respuesta",
         optionsLabel: "Opciones",
         singleHint: "Marca la única opción correcta.",
+        promptSingleChoiceHint:
+          "Opcional: escribe (1), (2), (3)… en el enunciado para varias preguntas de opción única en una sola entrada.",
+        singleChoiceItemsHint:
+          "Cada número es una pregunta de opción única: al menos dos opciones y exactamente una correcta.",
+        singleChoiceItemLabel: "Ítem ({{number}})",
+        singleChoiceSequenceWarning:
+          "Los números entre paréntesis deben ser consecutivos desde (1), sin huecos. No se puede guardar hasta que estén completos.",
+        optionPlaceholder: "Opción {{index}}",
         multiHint: "Marca todas las opciones correctas.",
         addOption: "Añadir opción",
         remove: "Eliminar",

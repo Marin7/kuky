@@ -9,6 +9,7 @@ import com.kuky.backend.admin.service.HomeworkAdminService;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.model.HomeworkAssignment;
 import com.kuky.backend.learning.model.HomeworkFormat;
+import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -297,5 +299,97 @@ class HomeworkExerciseAdminServiceTest {
         structure.set("blanks", blanks);
         var req = exercise(List.of(dragDrop("El ___ y la ___.", structure)));
         assertThatThrownBy(() -> service.create(req)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private HomeworkQuestionDto numberedSingleChoice(String prompt, ObjectNode structure) {
+        return new HomeworkQuestionDto(null, "SINGLE_CHOICE", prompt, List.of(), structure);
+    }
+
+    private ObjectNode twoOptions(boolean firstCorrect, String a, String b) {
+        ObjectNode item = objectMapper.createObjectNode();
+        var opts = objectMapper.createArrayNode();
+        ObjectNode o1 = objectMapper.createObjectNode();
+        o1.put("id", UUID.randomUUID().toString());
+        o1.put("label", a);
+        o1.put("correct", firstCorrect);
+        ObjectNode o2 = objectMapper.createObjectNode();
+        o2.put("id", UUID.randomUUID().toString());
+        o2.put("label", b);
+        o2.put("correct", !firstCorrect);
+        opts.add(o1);
+        opts.add(o2);
+        item.set("options", opts);
+        return item;
+    }
+
+    @Test
+    void numberedSingleChoicePersistsItemsAndEmptyOptions() {
+        ObjectNode item1 = twoOptions(true, "ser", "estar");
+        item1.put("number", 1);
+        ObjectNode item2 = twoOptions(false, "por", "para");
+        item2.put("number", 2);
+        ObjectNode item3 = twoOptions(true, "muy", "mucho");
+        item3.put("number", 3);
+        ObjectNode structure = objectMapper.createObjectNode();
+        structure.set("items", objectMapper.createArrayNode().add(item1).add(item2).add(item3));
+
+        List<HomeworkQuestion> mapped = service.validateAndMapQuestions(false, List.of(
+                numberedSingleChoice("Elige: (1) ser/estar (2) por/para (3) muy/mucho", structure)));
+
+        assertThat(mapped).hasSize(1);
+        assertThat(mapped.getFirst().getOptions()).isEmpty();
+        assertThat(mapped.getFirst().getStructureJson()).contains("\"number\":1");
+        assertThat(mapped.getFirst().getStructureJson()).contains("\"number\":3");
+        assertThat(mapped.getFirst().getStructureJson()).doesNotContain("\"number\":4");
+    }
+
+    @Test
+    void numberedSingleChoiceGapIsRejected() {
+        ObjectNode item1 = twoOptions(true, "a", "b");
+        item1.put("number", 1);
+        ObjectNode item3 = twoOptions(true, "c", "d");
+        item3.put("number", 3);
+        ObjectNode structure = objectMapper.createObjectNode();
+        structure.set("items", objectMapper.createArrayNode().add(item1).add(item3));
+
+        assertThatThrownBy(() -> service.validateAndMapQuestions(false, List.of(
+                numberedSingleChoice("(1) uno (3) tres", structure))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("consecutivos");
+    }
+
+    @Test
+    void unmarkedSingleChoiceStillRequiresOneCorrect() {
+        assertThatThrownBy(() -> service.validateAndMapQuestions(false, List.of(
+                q("SINGLE_CHOICE", new OptionDto(null, "a", false), new OptionDto(null, "b", false)))))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void loneMarkerIsNumberedMode() {
+        ObjectNode item1 = twoOptions(true, "sí", "no");
+        item1.put("number", 1);
+        ObjectNode structure = objectMapper.createObjectNode();
+        structure.set("items", objectMapper.createArrayNode().add(item1));
+
+        List<HomeworkQuestion> mapped = service.validateAndMapQuestions(false, List.of(
+                numberedSingleChoice("Elige (1) la forma correcta", structure)));
+
+        assertThat(mapped.getFirst().getOptions()).isEmpty();
+        assertThat(mapped.getFirst().getStructureJson()).contains("\"number\":1");
+    }
+
+    @Test
+    void classicIgnoresStaleItemsInStructure() throws Exception {
+        ObjectNode stale = objectMapper.readValue("""
+                {"items":[{"number":1,"options":[{"id":"x","label":"stale","correct":true}]}]}
+                """, ObjectNode.class);
+        HomeworkQuestionDto dto = new HomeworkQuestionDto(null, "SINGLE_CHOICE", "El plural de lápiz",
+                List.of(new OptionDto(null, "lápizes", false), new OptionDto(null, "lápices", true)),
+                stale);
+
+        List<HomeworkQuestion> mapped = service.validateAndMapQuestions(false, List.of(dto));
+        assertThat(mapped.getFirst().getOptions()).hasSize(2);
+        assertThat(mapped.getFirst().getStructureJson()).isEqualTo("{}");
     }
 }

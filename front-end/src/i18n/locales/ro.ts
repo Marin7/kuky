@@ -366,6 +366,10 @@ export const roDict = {
       leftColumn: "Stânga",
       rightColumn: "Dreapta",
     },
+    numberedSingleChoice: {
+      itemLabel: "({{number}})",
+      allRequired: "Selectează o opțiune pentru fiecare număr înainte de a preda.",
+    },
     writePage: {
       back: "← Înapoi la învățarea mea",
       loading: "Se încarcă tema…",
@@ -858,6 +862,14 @@ export const roDict = {
         addAnswer: "Adaugă răspuns",
         optionsLabel: "Opțiuni",
         singleHint: "Marchează singura opțiune corectă.",
+        promptSingleChoiceHint:
+          "Opțional: scrie (1), (2), (3)… în enunț pentru mai multe întrebări cu alegere unică într-o singură intrare.",
+        singleChoiceItemsHint:
+          "Fiecare număr este o întrebare cu alegere unică: cel puțin două opțiuni și exact una corectă.",
+        singleChoiceItemLabel: "Item ({{number}})",
+        singleChoiceSequenceWarning:
+          "Numerele dintre paranteze trebuie să fie consecutive de la (1), fără goluri. Salvarea este blocată până sunt complete.",
+        optionPlaceholder: "Opțiunea {{index}}",
         multiHint: "Marchează toate opțiunile corecte.",
         addOption: "Adaugă opțiune",
         remove: "Șterge",
