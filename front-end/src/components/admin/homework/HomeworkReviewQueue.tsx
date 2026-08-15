@@ -6,6 +6,8 @@ import {
   type HomeworkReviewQueueItem,
 } from "@/lib/admin";
 import { HomeworkReviewDialog } from "./HomeworkReviewDialog";
+import { NotificationDot } from "@/components/NotificationDot";
+import { notifyBadgesChanged } from "@/lib/notifications";
 
 /** Cross-student queue of Writing submissions awaiting teacher feedback (FR-010). */
 export function HomeworkReviewQueue() {
@@ -28,6 +30,7 @@ export function HomeworkReviewQueue() {
   const handleReviewed = () => {
     setOpenSubmissionId(null);
     load();
+    notifyBadgesChanged();
   };
 
   return (
@@ -55,7 +58,12 @@ export function HomeworkReviewQueue() {
               className="flex items-center justify-between px-4 py-3 text-sm"
             >
               <div>
-                <p className="font-medium">{item.assignmentTitle}</p>
+                <p className="inline-flex items-center gap-1.5 font-medium">
+                  {item.assignmentTitle}
+                  {item.unseen && (
+                    <NotificationDot label={t("notification.row")} />
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {studentDisplayName({
                     firstName: item.studentFirstName,

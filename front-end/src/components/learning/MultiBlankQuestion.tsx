@@ -1,4 +1,5 @@
 import { splitPromptSegments } from "@/lib/blankTokens";
+import { promptHasLeadingEnumeration } from "@/lib/questionPrompt";
 import { Input } from "@/components/ui/input";
 import { PassageText } from "./PassageText";
 
@@ -19,9 +20,12 @@ export function MultiBlankQuestion({ number, prompt, value, onChange }: Props) {
     onChange(next);
   };
 
+  // Self-numbered passages (e.g. "1. …\n2. …") keep their own indices.
+  const showOuterNumber = !promptHasLeadingEnumeration(prompt);
+
   return (
     <div className="text-base leading-9">
-      <span className="font-medium">{number}. </span>
+      {showOuterNumber && <span className="font-medium">{number}. </span>}
       {segments.map((seg, i) =>
         seg.type === "text" ? (
           <PassageText key={i} text={seg.text} />

@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import type { InlineChoiceMatch } from "@/lib/inlineChoice";
+import { stripLeadingEnumeration } from "@/lib/questionPrompt";
 import { cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
 
@@ -24,7 +25,9 @@ export function InlineSingleChoiceQuestion({
   onChange,
 }: Props) {
   const { t } = useTranslation();
-  const before = prompt.slice(0, match.start);
+  // Match indices stay on the stored prompt; strip only the visible prefix so
+  // worksheet copy like `1. (Soy / Estoy)…` does not become `1. 1. (Soy…`.
+  const before = stripLeadingEnumeration(prompt.slice(0, match.start));
   const after = prompt.slice(match.end);
 
   return (

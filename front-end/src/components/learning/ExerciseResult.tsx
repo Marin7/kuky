@@ -8,6 +8,7 @@ import {
   matchClassicInlineSingleChoice,
   classicSingleChoiceResultPrompt,
 } from "@/lib/inlineChoice";
+import { numberedPromptLabel } from "@/lib/questionPrompt";
 import { MultiBlankResult } from "./MultiBlankResult";
 import { InlineSingleChoiceResult } from "./InlineSingleChoiceResult";
 import { TableFillResult } from "./TableFillResult";
@@ -94,6 +95,9 @@ export function QuestionResultBlock({
         ? optionLabels(question, qr.correctOptionIds, localizeTrueFalse)
         : "";
   const unitResults = qr.unitResults ?? [];
+  const numberedSingleChoice =
+    question?.kind === "SINGLE_CHOICE" &&
+    (question.structure?.items?.length ?? 0) > 0;
   const studentChoiceText =
     question && (qr.selectedOptionIds?.length ?? 0) > 0
       ? optionLabels(question, qr.selectedOptionIds ?? [], localizeTrueFalse)
@@ -145,16 +149,22 @@ export function QuestionResultBlock({
               },
             ]}
           />
+        ) : numberedSingleChoice && question ? (
+          <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
+            {question.prompt}
+          </p>
         ) : (
           <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
-            {number}. {question?.prompt}
+            {numberedPromptLabel(number, question?.prompt ?? "")}
           </p>
         )}
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${badge.cls}`}
-        >
-          {badge.text}
-        </span>
+        {!numberedSingleChoice && (
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${badge.cls}`}
+          >
+            {badge.text}
+          </span>
+        )}
       </div>
       {unitResults.length > 0 &&
       question?.kind === "TABLE_FILL" &&
@@ -175,7 +185,11 @@ export function QuestionResultBlock({
               }`}
             >
               <span className="font-medium">
-                {u.index + 1}.{" "}
+                {numberedSingleChoice
+                  ? t("learning.numberedSingleChoice.itemLabel", {
+                      number: u.index + 1,
+                    })
+                  : `${u.index + 1}.`}{" "}
                 {u.correct
                   ? t("learning.exerciseResult.unitCorrect")
                   : t("learning.exerciseResult.unitIncorrect")}

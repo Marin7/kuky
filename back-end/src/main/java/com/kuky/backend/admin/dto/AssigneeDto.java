@@ -14,5 +14,6 @@ public record AssigneeDto(
         Instant submittedAt,
         Integer scorePercent,  // set for GRADED exercise submissions; null otherwise
         UUID submissionId,     // null when the student has not submitted yet
-        boolean hasTeacherFeedback
+        boolean hasTeacherFeedback,
+        boolean unseen
 ) {}

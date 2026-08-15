@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityTab } from "@/components/admin/availability/AvailabilityTab";
@@ -10,6 +11,12 @@ import { PresentationsTab } from "@/components/admin/presentations/Presentations
 import { ActivitiesTab } from "@/components/admin/activities/ActivitiesTab";
 import { QuizTab } from "@/components/quiz/admin/QuizTab";
 import { TestimonialsTab } from "@/components/admin/testimonials/TestimonialsTab";
+import { NotificationDot } from "@/components/NotificationDot";
+import {
+  getBadges,
+  onBadgesInvalidate,
+  type BadgeSummary,
+} from "@/lib/notifications";
 
 const VALID_TABS = [
   "bookings",
@@ -24,10 +31,32 @@ const VALID_TABS = [
   "testimonials",
 ];
 
+const EMPTY_BADGES: BadgeSummary = {
+  panel: false,
+  homework: false,
+  quiz: false,
+  learning: false,
+};
+
 export function AdminPanel({ initialTab }: { initialTab?: string }) {
   const { t } = useTranslation();
+  const [badges, setBadges] = useState<BadgeSummary>(EMPTY_BADGES);
   const defaultTab =
     initialTab && VALID_TABS.includes(initialTab) ? initialTab : "bookings";
+
+  useEffect(() => {
+    let active = true;
+    const load = () => {
+      getBadges().then((b) => {
+        if (active) setBadges(b);
+      });
+    };
+    load();
+    return onBadgesInvalidate(() => {
+      load();
+    });
+  }, []);
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
       <h1 className="font-display text-3xl font-semibold text-primary">
@@ -44,14 +73,22 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
             {t("admin.tabs.availability")}
           </TabsTrigger>
           <TabsTrigger value="units">{t("admin.tabs.units")}</TabsTrigger>
-          <TabsTrigger value="homework">{t("admin.tabs.homework")}</TabsTrigger>
+          <TabsTrigger value="homework" className="gap-1.5">
+            {t("admin.tabs.homework")}
+            {badges.homework && (
+              <NotificationDot label={t("notification.homework")} />
+            )}
+          </TabsTrigger>
           <TabsTrigger value="presentations">
             {t("admin.tabs.presentations")}
           </TabsTrigger>
           <TabsTrigger value="activities">
             {t("admin.tabs.activities")}
           </TabsTrigger>
-          <TabsTrigger value="quizzes">{t("admin.tabs.quizzes")}</TabsTrigger>
+          <TabsTrigger value="quizzes" className="gap-1.5">
+            {t("admin.tabs.quizzes")}
+            {badges.quiz && <NotificationDot label={t("notification.quiz")} />}
+          </TabsTrigger>
           <TabsTrigger value="testimonials">
             {t("admin.tabs.testimonials")}
           </TabsTrigger>

@@ -11,6 +11,7 @@ import {
   type Student,
 } from "@/lib/admin";
 import { HomeworkAssignDialog } from "@/components/admin/homework/HomeworkAssignDialog";
+import { NotificationDot } from "@/components/NotificationDot";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -163,8 +164,11 @@ export function HomeworkAdminList() {
               <CardHeader className="px-3 pb-1.5 pt-0">
                 <div className="flex flex-col gap-1.5">
                   <div className="flex flex-wrap items-center gap-1">
-                    <CardTitle className="text-sm leading-snug">
+                    <CardTitle className="inline-flex items-center gap-1.5 text-sm leading-snug">
                       {item.title}
+                      {item.hasUnseenSubmissions && (
+                        <NotificationDot label={t("notification.item")} />
+                      )}
                     </CardTitle>
                     {item.homeworkType && (
                       <span

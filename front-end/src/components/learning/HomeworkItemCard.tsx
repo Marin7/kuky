@@ -11,6 +11,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { NotificationDot } from "@/components/NotificationDot";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
 
 function formatDate(iso: string): string {
@@ -94,7 +95,12 @@ export function HomeworkItemCard({
         )}
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <p className="font-medium text-foreground">{item.title}</p>
+            <p className="inline-flex items-center gap-1.5 font-medium text-foreground">
+              <span>{item.title}</span>
+              {item.unseen && (
+                <NotificationDot label={t("notification.item")} />
+              )}
+            </p>
             <div className="flex flex-wrap items-center gap-1">
               {item.homeworkType && (
                 <span

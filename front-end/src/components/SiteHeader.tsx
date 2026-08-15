@@ -9,14 +9,28 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getMe } from "@/lib/auth";
+import {
+  getBadges,
+  onBadgesInvalidate,
+  type BadgeSummary,
+} from "@/lib/notifications";
+import { NotificationDot } from "@/components/NotificationDot";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import logoUrl from "@/assets/logo.png";
+
+const EMPTY_BADGES: BadgeSummary = {
+  panel: false,
+  homework: false,
+  quiz: false,
+  learning: false,
+};
 
 export function SiteHeader() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [badges, setBadges] = useState<BadgeSummary>(EMPTY_BADGES);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -32,6 +46,7 @@ export function SiteHeader() {
           if (!active) return;
           setAuthed(false);
           setIsAdmin(false);
+          setBadges(EMPTY_BADGES);
         });
     check();
     window.addEventListener("auth-changed", check);
@@ -41,20 +56,65 @@ export function SiteHeader() {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    if (!authed) {
+      setBadges(EMPTY_BADGES);
+      return;
+    }
+    let active = true;
+    const load = () => {
+      getBadges().then((b) => {
+        if (active) setBadges(b);
+      });
+    };
+    load();
+    return onBadgesInvalidate(load);
+  }, [authed, pathname]);
+
   const nav = [
-    { to: "/", label: t("nav.home") },
+    { to: "/", label: t("nav.home"), dot: false as boolean, aria: "" },
     ...(isAdmin
       ? []
       : [
-          { to: "/sobre-mi", label: t("nav.about") },
-          ...(authed ? [{ to: "/reservas", label: t("nav.schedule") }] : []),
+          {
+            to: "/sobre-mi",
+            label: t("nav.about"),
+            dot: false,
+            aria: "",
+          },
+          ...(authed
+            ? [
+                {
+                  to: "/reservas",
+                  label: t("nav.schedule"),
+                  dot: false,
+                  aria: "",
+                },
+              ]
+            : []),
         ]),
     ...(authed && !isAdmin
-      ? [{ to: "/aprendizaje", label: t("nav.learning") }]
+      ? [
+          {
+            to: "/aprendizaje",
+            label: t("nav.learning"),
+            dot: badges.learning,
+            aria: t("notification.learning"),
+          },
+        ]
       : []),
-    ...(isAdmin ? [{ to: "/panel", label: t("nav.panel") }] : []),
-    { to: "/cuenta", label: t("nav.account") },
-  ] as const;
+    ...(isAdmin
+      ? [
+          {
+            to: "/panel",
+            label: t("nav.panel"),
+            dot: badges.panel,
+            aria: t("notification.panel"),
+          },
+        ]
+      : []),
+    { to: "/cuenta", label: t("nav.account"), dot: false, aria: "" },
+  ];
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
@@ -67,19 +127,20 @@ export function SiteHeader() {
           />
         </Link>
 
-        {/* Desktop nav */}
         <nav className="hidden gap-1 text-base md:flex">
           {nav.map((n) => (
             <Link
               key={n.to}
               to={n.to}
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
               activeProps={{
-                className: "rounded-md px-3 py-1.5 text-foreground font-medium",
+                className:
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-foreground font-medium",
               }}
               activeOptions={{ exact: n.to === "/" }}
             >
               {n.label}
+              {n.dot && <NotificationDot label={n.aria} />}
             </Link>
           ))}
         </nav>
@@ -87,7 +148,6 @@ export function SiteHeader() {
         <div className="flex items-center gap-1">
           <LanguageSwitcher />
 
-          {/* Mobile nav */}
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <button
@@ -109,17 +169,18 @@ export function SiteHeader() {
                     key={n.to}
                     to={n.to}
                     onClick={() => setOpen(false)}
-                    className="rounded-md px-3 py-2 text-base text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
+                    className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
                     activeProps={{
                       className:
-                        "rounded-md px-3 py-2 text-base bg-accent/20 text-foreground font-medium",
+                        "inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-base bg-accent/20 text-foreground font-medium",
                     }}
                     activeOptions={{ exact: n.to === "/" }}
                   >
                     {n.label}
+                    {n.dot && <NotificationDot label={n.aria} />}
                   </Link>
                 ))}
-                <div className="pt-2 border-t border-border/40 mt-2">
+                <div className="border-t border-border/40 mt-2 pt-2">
                   <LanguageSwitcher />
                 </div>
               </nav>

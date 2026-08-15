@@ -36,6 +36,7 @@ import com.kuky.backend.quiz.repository.QuizAssigneeRepository;
 import com.kuky.backend.quiz.repository.QuizAttemptRepository;
 import com.kuky.backend.quiz.repository.QuizQuestionRepository;
 import com.kuky.backend.quiz.repository.QuizRepository;
+import com.kuky.backend.notification.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,6 +61,7 @@ public class QuizAdminService {
     private final QuizSnapshot quizSnapshot;
     private final QuizGradingService gradingService;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
 
     public QuizAdminService(QuizRepository quizRepository,
                             QuizQuestionRepository questionRepository,
@@ -69,7 +71,8 @@ public class QuizAdminService {
                             HomeworkAdminService homeworkAdminService,
                             QuizSnapshot quizSnapshot,
                             QuizGradingService gradingService,
-                            ObjectMapper objectMapper) {
+                            ObjectMapper objectMapper,
+                            NotificationService notificationService) {
         this.quizRepository = quizRepository;
         this.questionRepository = questionRepository;
         this.assigneeRepository = assigneeRepository;
@@ -79,11 +82,13 @@ public class QuizAdminService {
         this.quizSnapshot = quizSnapshot;
         this.gradingService = gradingService;
         this.objectMapper = objectMapper;
+        this.notificationService = notificationService;
     }
 
     public List<QuizAdminListItem> list() {
         return quizRepository.listWithCounts().stream()
-                .map(r -> new QuizAdminListItem(r.id(), r.title(), r.questionCount(), r.assigneeCount(), r.attemptCount()))
+                .map(r -> new QuizAdminListItem(r.id(), r.title(), r.questionCount(), r.assigneeCount(),
+                        r.attemptCount(), r.hasUnseenAttempts()))
                 .toList();
     }
 
@@ -146,7 +151,7 @@ public class QuizAdminService {
                 .map(r -> new QuizReviewQueueItemDto(
                         r.attemptId(), r.quizId(), r.quizTitle(), r.studentId(),
                         r.studentEmail(), r.studentFirstName(), r.studentLastName(),
-                        r.studentUsername(), r.submittedAt()))
+                        r.studentUsername(), r.submittedAt(), r.unseen()))
                 .toList();
     }
 
@@ -156,6 +161,8 @@ public class QuizAdminService {
                 .filter(a -> a.getStatus() != QuizAttemptStatus.IN_PROGRESS)
                 .map(a -> {
                     User u = userRepository.findById(a.getUserId()).orElse(null);
+                    boolean unseen = a.getStatus() != QuizAttemptStatus.IN_PROGRESS
+                            && a.getTeacherSeenAt() == null;
                     return new QuizAttemptListItem(
                             a.getId(),
                             a.getUserId(),
@@ -163,13 +170,15 @@ public class QuizAdminService {
                             u == null ? null : u.getEmail(),
                             a.getStatus().name(),
                             a.getScorePercent(),
-                            a.getSubmittedAt());
+                            a.getSubmittedAt(),
+                            unseen);
                 })
                 .toList();
     }
 
     public QuizTakeResponse getAttempt(UUID quizId, UUID attemptId) {
         QuizAttempt attempt = requireAttempt(quizId, attemptId);
+        notificationService.markQuizAttemptSeen(attempt.getId());
         List<QuizQuestion> questions = quizSnapshot.questionsOf(attempt.getQuizSnapshot());
         List<QuizAnswer> answers = attemptRepository.findAnswers(attempt.getId());
         QuizGradingService.GradeOutcome outcome = gradingService.summarize(questions, answers, false);
@@ -279,7 +288,8 @@ public class QuizAdminService {
                             a.getStatus().name(),
                             a.getScorePercent(),
                             a.getSubmittedAt(),
-                            skills);
+                            skills,
+                            a.getTeacherSeenAt() == null);
                 })
                 .toList();
     }

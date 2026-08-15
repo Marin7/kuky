@@ -8,5 +8,6 @@ public record QuizAdminListItem(
         String title,
         int questionCount,
         int assigneeCount,
-        int attemptCount
+        int attemptCount,
+        boolean hasUnseenAttempts
 ) {}

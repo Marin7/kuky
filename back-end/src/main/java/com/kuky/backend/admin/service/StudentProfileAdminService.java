@@ -44,7 +44,7 @@ public class StudentProfileAdminService {
                 .findAssignmentsForStudent(studentId).stream()
                 .map(v -> new StudentProfileHomeworkDto(v.assignmentId(), v.title(), v.status(), v.submittedAt(),
                         "MANUAL".equals(v.format()) && "SUBMITTED".equals(v.status()), v.submissionId(),
-                        v.scorePercent(), v.hasTeacherFeedback()))
+                        v.scorePercent(), v.hasTeacherFeedback(), v.unseen()))
                 .toList();
 
         List<StudentProfilePresentationDto> presentations = presentationRepository

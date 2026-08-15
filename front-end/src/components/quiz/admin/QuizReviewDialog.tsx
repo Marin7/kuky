@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getQuizAttempt, reviewQuizAttempt } from "@/lib/admin";
 import type { QuizTakeResponse } from "@/lib/quiz";
+import { notifyBadgesChanged } from "@/lib/notifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +75,7 @@ export function QuizReviewDialog({
       }
       setPercents(next);
       setFormats(nextFormats);
+      notifyBadgesChanged();
     });
   }, [quizId, attemptId]);
 

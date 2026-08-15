@@ -30,6 +30,7 @@ import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.notification.service.NotificationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,6 +72,7 @@ public class ExerciseGradingService {
     private final HomeworkAnswerRepository answerRepository;
     private final HomeworkTargetRepository targetRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
     private final AssignmentSnapshot assignmentSnapshot;
     private final QuestionScoring questionScoring;
@@ -81,6 +83,7 @@ public class ExerciseGradingService {
                                   HomeworkAnswerRepository answerRepository,
                                   HomeworkTargetRepository targetRepository,
                                   UserRepository userRepository,
+                                  NotificationService notificationService,
                                   ObjectMapper objectMapper) {
         this.contentRepository = contentRepository;
         this.questionRepository = questionRepository;
@@ -88,6 +91,7 @@ public class ExerciseGradingService {
         this.answerRepository = answerRepository;
         this.targetRepository = targetRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
         this.objectMapper = objectMapper;
         this.assignmentSnapshot = new AssignmentSnapshot(objectMapper);
         this.questionScoring = new QuestionScoring(objectMapper);
@@ -97,6 +101,7 @@ public class ExerciseGradingService {
     public ExerciseResponse getExercise(String email, UUID assignmentId) {
         User user = requireUser(email);
         HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
+        notificationService.markHomeworkSeen(assignmentId, user.getId());
         if (!ListeningMedia.isComplete(assignment)) {
             throw new AssignmentNotFoundException("Tarea no encontrada.");
         }

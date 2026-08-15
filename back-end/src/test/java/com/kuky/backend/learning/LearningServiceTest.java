@@ -62,10 +62,13 @@ class LearningServiceTest {
     void setUp() {
         ActivityStudentService activityStudentService = mock(ActivityStudentService.class);
         lenient().when(activityStudentService.summariesForPresentations(any(), any())).thenReturn(java.util.Map.of());
+        com.kuky.backend.notification.service.NotificationService notifications =
+                mock(com.kuky.backend.notification.service.NotificationService.class);
+        lenient().when(notifications.unseenUnitIds(any())).thenReturn(java.util.Set.of());
         service = new LearningService(contentRepository, submissionRepository, questionRepository, answerRepository,
                 userRepository, presentationRepository, presentationFileStore, activityStudentService,
                 new com.kuky.backend.learning.service.AssignmentSnapshot(new com.fasterxml.jackson.databind.ObjectMapper()),
-                new SchedulingProperties());
+                new SchedulingProperties(), notifications);
         User user = new User();
         user.setId(userId);
         user.setEmail(EMAIL);

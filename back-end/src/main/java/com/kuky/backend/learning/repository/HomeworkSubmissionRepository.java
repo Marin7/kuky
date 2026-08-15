@@ -84,7 +84,11 @@ public class HomeworkSubmissionRepository {
                     status = EXCLUDED.status,
                     response_text = EXCLUDED.response_text,
                     submitted_at = EXCLUDED.submitted_at,
-                    updated_at = EXCLUDED.updated_at
+                    updated_at = EXCLUDED.updated_at,
+                    teacher_seen_at = CASE
+                        WHEN EXCLUDED.status IN ('SUBMITTED', 'REVIEWED', 'GRADED') THEN NULL
+                        ELSE homework_submissions.teacher_seen_at
+                    END
                 RETURNING *
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -114,7 +118,8 @@ public class HomeworkSubmissionRepository {
                     response_text = EXCLUDED.response_text,
                     score_percent = EXCLUDED.score_percent,
                     submitted_at = EXCLUDED.submitted_at,
-                    updated_at = EXCLUDED.updated_at
+                    updated_at = EXCLUDED.updated_at,
+                    teacher_seen_at = NULL
                 RETURNING *
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -141,14 +146,15 @@ public class HomeworkSubmissionRepository {
 
     public record ReviewQueueRow(UUID submissionId, UUID studentId, String studentEmail, String studentFirstName,
                                  String studentLastName, String studentUsername, String assignmentTitle,
-                                 Instant submittedAt) {}
+                                 Instant submittedAt, boolean unseen) {}
 
     /** Every MANUAL/MIXED submission currently awaiting teacher feedback, oldest first. */
     public List<ReviewQueueRow> findSubmittedManualQueue() {
         String sql = """
                 SELECT s.id AS submission_id, u.id AS student_id, u.email AS student_email,
                        u.first_name AS student_first_name, u.last_name AS student_last_name,
-                       u.username AS student_username, ha.title AS assignment_title, s.submitted_at
+                       u.username AS student_username, ha.title AS assignment_title, s.submitted_at,
+                       (s.teacher_seen_at IS NULL) AS unseen
                 FROM homework_submissions s
                 JOIN users u ON u.id = s.user_id
                 JOIN homework_assignments ha ON ha.id = s.assignment_id
@@ -165,7 +171,8 @@ public class HomeworkSubmissionRepository {
                     rs.getString("student_last_name"),
                     rs.getString("student_username"),
                     rs.getString("assignment_title"),
-                    submittedAt == null ? null : submittedAt.toInstant());
+                    submittedAt == null ? null : submittedAt.toInstant(),
+                    rs.getBoolean("unseen"));
         });
     }
 

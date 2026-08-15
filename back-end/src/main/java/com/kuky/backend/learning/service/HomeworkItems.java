@@ -31,12 +31,12 @@ final class HomeworkItems {
     private HomeworkItems() {}
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission, LocalDate today) {
-        return toResponse(a, submission, today, null, null, List.of(), List.of(), null, null);
+        return toResponse(a, submission, today, null, null, List.of(), List.of(), null, null, false);
     }
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
                                            LocalDate today, UnitRef unit, Integer unitPosition) {
-        return toResponse(a, submission, today, unit, unitPosition, List.of(), List.of(), null, null);
+        return toResponse(a, submission, today, unit, unitPosition, List.of(), List.of(), null, null, false);
     }
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
@@ -45,6 +45,17 @@ final class HomeworkItems {
                                            List<HomeworkAnswer> answers,
                                            List<ExerciseQuestionDto> studentQuestions,
                                            ExerciseResultResponse result) {
+        return toResponse(a, submission, today, unit, unitPosition, questions, answers,
+                studentQuestions, result, false);
+    }
+
+    static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
+                                           LocalDate today, UnitRef unit, Integer unitPosition,
+                                           List<HomeworkQuestion> questions,
+                                           List<HomeworkAnswer> answers,
+                                           List<ExerciseQuestionDto> studentQuestions,
+                                           ExerciseResultResponse result,
+                                           boolean unseen) {
         HomeworkComposition composition = HomeworkCompositionSupport.compositionFromQuestions(
                 a.getHomeworkType(), questions == null ? List.of() : questions.stream()
                         .map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
@@ -126,6 +137,7 @@ final class HomeworkItems {
                 unit,
                 unitPosition,
                 hasTeacherFeedback,
+                unseen,
                 questionDtos,
                 answerViews,
                 result,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { StudentBankItem } from "@/lib/learning";
 import { countBlanks, splitPromptSegments } from "@/lib/blankTokens";
+import { promptHasLeadingEnumeration } from "@/lib/questionPrompt";
 import { shuffle, cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
 
@@ -145,7 +146,9 @@ export function DragDropQuestion({
           {t("learning.exercisePage.dropTargets")}
         </p>
         <div className="text-base leading-10">
-          <span className="font-medium">{number}. </span>
+          {!promptHasLeadingEnumeration(prompt) && (
+            <span className="font-medium">{number}. </span>
+          )}
           {segments.map((seg, i) =>
             seg.type === "text" ? (
               <PassageText key={i} text={seg.text} />

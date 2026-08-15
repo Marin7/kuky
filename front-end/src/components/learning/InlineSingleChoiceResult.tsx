@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import type { InlineChoiceMatch } from "@/lib/inlineChoice";
+import { stripLeadingEnumeration } from "@/lib/questionPrompt";
 import { cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
 
@@ -27,7 +28,7 @@ export function InlineSingleChoiceResult({
   correct,
   revealCorrect,
 }: Props) {
-  const before = prompt.slice(0, match.start);
+  const before = stripLeadingEnumeration(prompt.slice(0, match.start));
   const after = prompt.slice(match.end);
 
   return (

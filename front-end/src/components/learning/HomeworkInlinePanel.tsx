@@ -8,6 +8,7 @@ import {
   type ExerciseResponse,
   type HomeworkItem,
 } from "@/lib/learning";
+import { markHomeworkSeen, notifyBadgesChanged } from "@/lib/notifications";
 import { ExerciseForm } from "./ExerciseForm";
 import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { ManualAnswerForm } from "./ManualAnswerForm";
@@ -36,6 +37,14 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
   useEffect(() => {
     if (!needsFetch) {
       setLoading(false);
+      if (item.unseen) {
+        markHomeworkSeen(item.id)
+          .then(() => {
+            notifyBadgesChanged();
+            onChanged();
+          })
+          .catch(() => {});
+      }
       return;
     }
     let cancelled = false;
@@ -45,7 +54,12 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     setLoadError(null);
     getExercise(item.id)
       .then((data) => {
-        if (!cancelled) setExercise(data);
+        if (cancelled) return;
+        setExercise(data);
+        if (item.unseen) {
+          notifyBadgesChanged();
+          onChanged();
+        }
       })
       .catch(() => {
         if (!cancelled) setLoadError(t("learning.units.inlineLoadError"));
@@ -58,7 +72,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     };
     // Re-fetch when homework status changes (e.g. after grade refresh).
     // eslint-disable-next-line react-hooks/exhaustive-deps -- exercise kept for silent refresh
-  }, [item.id, composition, item.status, t]);
+  }, [item.id, composition, item.status, item.unseen, t]);
 
   if (loading) {
     return (

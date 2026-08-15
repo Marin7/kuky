@@ -23,6 +23,7 @@ import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.learning.service.ExerciseGradingService;
 import com.kuky.backend.learning.service.HomeworkSubmissionService;
+import com.kuky.backend.notification.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,7 +66,8 @@ class PerQuestionGradingSubmitTest {
     @BeforeEach
     void setUp() {
         gradingService = new ExerciseGradingService(contentRepository, questionRepository,
-                submissionRepository, answerRepository, targetRepository, userRepository, new ObjectMapper());
+                submissionRepository, answerRepository, targetRepository, userRepository,
+                org.mockito.Mockito.mock(NotificationService.class), new ObjectMapper());
         service = new HomeworkSubmissionService(contentRepository, submissionRepository, questionRepository,
                 answerRepository, targetRepository, userRepository, gradingService,
                 new com.kuky.backend.learning.service.AssignmentSnapshot(new ObjectMapper()),

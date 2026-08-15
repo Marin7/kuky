@@ -17,6 +17,7 @@ export interface QuizListItem {
   title: string;
   description: string | null;
   status: QuizStatus;
+  unseen?: boolean;
 }
 
 export interface QuizStudentQuestion extends StudentQuestion {

@@ -17,6 +17,7 @@ import com.kuky.backend.units.repository.UnitRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -158,8 +159,10 @@ public class UnitService {
 
         repository.setHomeworks(id, List.copyOf(desired));
 
+        // Already-seen: student is notified by the unit assignment (or already had the unit).
+        Instant seen = Instant.now();
         for (UUID hw : repository.findHomeworkIds(id)) {
-            targetRepository.addTargets(hw, assignees);
+            targetRepository.addTargets(hw, assignees, seen);
         }
         return detail(id);
     }
@@ -168,6 +171,8 @@ public class UnitService {
      * Replaces unit assignees. Newly assigned students receive every homework in the
      * unit (via {@code homework_targets}); removed students lose those targets.
      * Presentations remain accessible via {@code unit_assignments} as before.
+     * Homework targets created here are marked seen — the unit assignment carries the
+     * student notification (direct homework assign from Tareas creates unseen targets).
      */
     public UnitDetail setAssignees(UUID id, List<UUID> studentIds) {
         requireUnit(id);
@@ -181,8 +186,9 @@ public class UnitService {
         Set<UUID> nextSet = new HashSet<>(next);
         List<UUID> added = next.stream().filter(s -> !prevSet.contains(s)).toList();
         List<UUID> removed = previous.stream().filter(s -> !nextSet.contains(s)).toList();
+        Instant seen = Instant.now();
         for (UUID hw : repository.findHomeworkIds(id)) {
-            targetRepository.addTargets(hw, added);
+            targetRepository.addTargets(hw, added, seen);
             targetRepository.removeTargets(hw, removed);
         }
         return detail(id);
@@ -242,12 +248,12 @@ public class UnitService {
         List<AssigneeDto> assignees = targetRepository.findAssigneesWithSubmissions(h.id()).stream()
                 .map(v -> new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
                         v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId(),
-                        v.hasTeacherFeedback()))
+                        v.hasTeacherFeedback(), v.unseen()))
                 .toList();
         return new HomeworkAdminItem(
                 h.id(), h.title(), h.instructions(), h.dueOn(), h.homeworkType(), h.level(), h.format(),
                 h.composition(), h.questions(), h.audioUrl(), h.audioFileId(), h.audioFileName(),
-                h.mediaSourceKind(), assignees);
+                h.mediaSourceKind(), assignees, assignees.stream().anyMatch(AssigneeDto::unseen));
     }
 
     private void validateStudents(List<UUID> userIds) {

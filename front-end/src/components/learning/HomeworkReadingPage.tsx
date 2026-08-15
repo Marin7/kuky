@@ -11,6 +11,7 @@ import {
   type HomeworkItem,
   type HomeworkFormat,
 } from "@/lib/learning";
+import { markHomeworkSeen, notifyBadgesChanged } from "@/lib/notifications";
 import { ExerciseForm } from "./ExerciseForm";
 import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
@@ -36,7 +37,10 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
   useEffect(() => {
     const compositionHint = resolveComposition({ format });
     const load = isAutoTakeComposition(compositionHint)
-      ? getExercise(homeworkId).then(setExercise)
+      ? getExercise(homeworkId).then((data) => {
+          setExercise(data);
+          notifyBadgesChanged();
+        })
       : getLearning().then((data) => {
           const found = data.homework.find((h) => h.id === homeworkId);
           if (!found) {
@@ -44,6 +48,7 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
             return;
           }
           setItem(found);
+          return markHomeworkSeen(homeworkId).then(() => notifyBadgesChanged());
         });
 
     load

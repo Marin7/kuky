@@ -82,12 +82,12 @@ npm run lint && npm run format
 | `/sobre-mi` | Paula's bio |
 | `/cuenta` | Register / login / forgot+reset password |
 | `/reservas` | Public schedule, book 1-on-1 with Zoom, manage bookings |
-| `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise), submit/view own testimonial. Unit assignment grants the unit's presentations and homeworks (mixed sequence on the unit page). |
+| `/aprendizaje` | Student: presentations, past classes, homework (submit/take exercise), submit/view own testimonial. Unit assignment grants the unit's presentations and homeworks (mixed sequence on the unit page). Unseen dots on **Mi aprendizaje** for newly assigned units/quizzes (clear when opening the unit or quiz page). |
 | `/quizzes` | Assigned-only quizzes (mixed skills, one attempt, snapshot at start). `/prueba-de-nivel` redirects here. |
-| `/panel` | Admin: availability editor, Units tab (create/reorder units, mixed ordered presentations & homeworks via drag-and-drop, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Quizzes tab (author/assign standalone quizzes, review attempts), Testimonios tab (review/approve/reject/edit/reorder/unpublish student testimonials), student profile (curriculum/homework/attendance/quiz attempts, mark/unmark class no-shows) |
+| `/panel` | Admin: availability editor, Units tab (create/reorder units, mixed ordered presentations & homeworks via drag-and-drop, assign students), Homework tab (author homeworks), Presentations tab (author presentations), Quizzes tab (author/assign standalone quizzes, review attempts), Testimonios tab (review/approve/reject/edit/reorder/unpublish student testimonials), student profile (curriculum/homework/attendance/quiz attempts, mark/unmark class no-shows). In-site unseen dots on **Panel** / **Tareas** / **Pruebas de evaluación** for submitted homework and quizzes (not email/inbox). |
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/040-quiz-terminology/plan.md`
+`specs/041-notification-system/plan.md`
 <!-- SPECKIT END -->

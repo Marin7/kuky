@@ -25,6 +25,7 @@ import {
   plainText,
   type FormattedText,
 } from "@/components/learning/richtext/types";
+import { notifyBadgesChanged } from "@/lib/notifications";
 
 const MAX_FEEDBACK = 500;
 
@@ -132,7 +133,10 @@ export function HomeworkReviewDialog({
 
   useEffect(() => {
     getHomeworkSubmission(submissionId)
-      .then(hydrate)
+      .then((data) => {
+        hydrate(data);
+        notifyBadgesChanged();
+      })
       .catch(() => setLoadError(t("admin.homeworkReview.loadError")))
       .finally(() => setLoading(false));
   }, [submissionId, t]);

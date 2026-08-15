@@ -10,6 +10,7 @@ import com.kuky.backend.learning.service.ActivityStudentService;
 import com.kuky.backend.learning.service.ExerciseGradingService;
 import com.kuky.backend.learning.service.HomeworkSubmissionService;
 import com.kuky.backend.learning.service.LearningService;
+import com.kuky.backend.notification.dto.UnitSeenResponse;
 import com.kuky.backend.presentations.model.PresentationFile;
 import jakarta.validation.Valid;
 import org.springframework.http.ContentDisposition;
@@ -44,6 +45,20 @@ public class LearningController {
     @GetMapping
     public ResponseEntity<LearningResponse> getOverview(@AuthenticationPrincipal String email) {
         return ResponseEntity.ok(learningService.getOverview(email));
+    }
+
+    @PostMapping("/units/{unitId}/seen")
+    public ResponseEntity<UnitSeenResponse> markUnitSeen(
+            @AuthenticationPrincipal String email,
+            @PathVariable UUID unitId) {
+        return ResponseEntity.ok(learningService.markUnitSeen(email, unitId));
+    }
+
+    @PostMapping("/homework/{assignmentId}/seen")
+    public ResponseEntity<UnitSeenResponse> markHomeworkSeen(
+            @AuthenticationPrincipal String email,
+            @PathVariable UUID assignmentId) {
+        return ResponseEntity.ok(learningService.markHomeworkSeen(email, assignmentId));
     }
 
     @GetMapping("/presentations/{id}/files/{fileId}")

@@ -16,6 +16,9 @@ import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
 import { StudentHomeworkBreakdown } from "@/components/admin/students/StudentHomeworkBreakdown";
 import { HomeworkReviewDialog } from "@/components/admin/homework/HomeworkReviewDialog";
 import { ExerciseResultDialog } from "@/components/admin/homework/ExerciseResultDialog";
+import { QuizReviewDialog } from "@/components/quiz/admin/QuizReviewDialog";
+import { NotificationDot } from "@/components/NotificationDot";
+import { notifyBadgesChanged } from "@/lib/notifications";
 
 export const Route = createFileRoute("/panel_/alumnos/$studentId")({
   component: StudentProfilePage,
@@ -122,6 +125,16 @@ function StudentProfilePage() {
   const [tareasExpanded, setTareasExpanded] = useState(false);
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
   const [openResultId, setOpenResultId] = useState<string | null>(null);
+  const [openQuizAttempt, setOpenQuizAttempt] = useState<{
+    quizId: string;
+    attemptId: string;
+  } | null>(null);
+
+  const reloadProfile = () => {
+    getStudentProfile(studentId).then(setProfile);
+    getStudentQuizzes(studentId).then(setQuizzes).catch(() => setQuizzes([]));
+    notifyBadgesChanged();
+  };
 
   useEffect(() => {
     getMe()
@@ -272,7 +285,12 @@ function StudentProfilePage() {
                         key={hw.id}
                         className="flex items-center justify-between px-4 py-3 text-sm"
                       >
-                        <span>{hw.title}</span>
+                        <span className="inline-flex items-center gap-1.5">
+                          {hw.title}
+                          {hw.unseen && (
+                            <NotificationDot label={t("notification.row")} />
+                          )}
+                        </span>
                         <div className="flex items-center gap-2 ml-4 shrink-0">
                           {hw.submittedAt && (
                             <span className="text-xs text-muted-foreground">
@@ -302,6 +320,20 @@ function StudentProfilePage() {
                               {t("admin.homeworkReview.needsReviewBadge")}
                             </button>
                           )}
+                          {!hw.needsReview &&
+                            hw.unseen &&
+                            hw.submissionId &&
+                            hw.status !== "GRADED" && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setOpenSubmissionId(hw.submissionId)
+                                }
+                                className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
+                              >
+                                {t("admin.homeworkReview.reviewAction")}
+                              </button>
+                            )}
                           {hw.status === "GRADED" && hw.submissionId && (
                             <button
                               type="button"
@@ -437,11 +469,36 @@ function StudentProfilePage() {
                 <div className="space-y-3">
                   {quizzes.map((q) => (
                     <div key={q.attemptId} className="rounded-lg border p-3 text-sm">
-                      <p className="font-medium">{q.title}</p>
-                      <p className="text-muted-foreground">
-                        {t(`quiz.status.${q.status}` as never)}
-                        {q.scorePercent != null ? ` · ${q.scorePercent}%` : ""}
-                      </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="inline-flex items-center gap-1.5 font-medium">
+                            {q.title}
+                            {q.unseen && (
+                              <NotificationDot label={t("notification.row")} />
+                            )}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {t(`quiz.status.${q.status}` as never)}
+                            {q.scorePercent != null
+                              ? ` · ${q.scorePercent}%`
+                              : ""}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenQuizAttempt({
+                              quizId: q.quizId,
+                              attemptId: q.attemptId,
+                            })
+                          }
+                          className="shrink-0 text-xs font-medium text-primary hover:underline"
+                        >
+                          {q.status === "GRADED"
+                            ? t("quiz.admin.view")
+                            : t("quiz.admin.review")}
+                        </button>
+                      </div>
                       {q.skills.length > 0 && (
                         <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                           {q.skills.map((s) => (
@@ -473,7 +530,7 @@ function StudentProfilePage() {
           onClose={() => setOpenSubmissionId(null)}
           onReviewed={() => {
             setOpenSubmissionId(null);
-            getStudentProfile(studentId).then(setProfile);
+            reloadProfile();
           }}
         />
       )}
@@ -481,7 +538,15 @@ function StudentProfilePage() {
         <ExerciseResultDialog
           submissionId={openResultId}
           onClose={() => setOpenResultId(null)}
-          onFeedbackSaved={() => getStudentProfile(studentId).then(setProfile)}
+          onFeedbackSaved={reloadProfile}
+        />
+      )}
+      {openQuizAttempt && (
+        <QuizReviewDialog
+          quizId={openQuizAttempt.quizId}
+          attemptId={openQuizAttempt.attemptId}
+          onClose={() => setOpenQuizAttempt(null)}
+          onSaved={reloadProfile}
         />
       )}
     </div>

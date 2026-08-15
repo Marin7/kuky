@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ExerciseResult } from "@/components/learning/ExerciseResult";
+import { notifyBadgesChanged } from "@/lib/notifications";
 
 interface Props {
   submissionId: string;
@@ -46,6 +47,7 @@ export function ExerciseResultDialog({
       .then((result) => {
         setData(result);
         setFeedbackDraft(result.teacherFeedback ?? "");
+        notifyBadgesChanged();
       })
       .catch(() => setLoadError(t("admin.exerciseResult.loadError")))
       .finally(() => setLoading(false));

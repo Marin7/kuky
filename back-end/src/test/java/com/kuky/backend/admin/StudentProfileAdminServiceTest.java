@@ -74,13 +74,13 @@ class StudentProfileAdminServiceTest {
     void profileReturnsAllHomeworkStatusesWithoutProgressAggregate() {
         when(homeworkTargetRepository.findAssignmentsForStudent(studentId)).thenReturn(List.of(
                 new HomeworkTargetRepository.StudentAssignmentView(
-                        UUID.randomUUID(), "Tarea 1", "PENDING", null, "MANUAL", null, null, false),
+                        UUID.randomUUID(), "Tarea 1", "PENDING", null, "MANUAL", null, null, false, false),
                 new HomeworkTargetRepository.StudentAssignmentView(
-                        UUID.randomUUID(), "Tarea 2", "SUBMITTED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false),
+                        UUID.randomUUID(), "Tarea 2", "SUBMITTED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false),
                 new HomeworkTargetRepository.StudentAssignmentView(
-                        UUID.randomUUID(), "Tarea 3", "REVIEWED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false),
+                        UUID.randomUUID(), "Tarea 3", "REVIEWED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false),
                 new HomeworkTargetRepository.StudentAssignmentView(
-                        UUID.randomUUID(), "Tarea 4", "GRADED", Instant.now(), "EXERCISE", UUID.randomUUID(), 90, false)));
+                        UUID.randomUUID(), "Tarea 4", "GRADED", Instant.now(), "EXERCISE", UUID.randomUUID(), 90, false, false)));
 
         StudentProfileResponse response = service.getProfile(studentId);
 
@@ -96,10 +96,10 @@ class StudentProfileAdminServiceTest {
         UUID manualReviewed = UUID.randomUUID();
         UUID exerciseSubmittedEquivalent = UUID.randomUUID();
         when(homeworkTargetRepository.findAssignmentsForStudent(studentId)).thenReturn(List.of(
-                new HomeworkTargetRepository.StudentAssignmentView(manualSubmitted, "Escritura", "SUBMITTED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false),
-                new HomeworkTargetRepository.StudentAssignmentView(manualPending, "Escritura 2", "PENDING", null, "MANUAL", null, null, false),
-                new HomeworkTargetRepository.StudentAssignmentView(manualReviewed, "Escritura 3", "REVIEWED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false),
-                new HomeworkTargetRepository.StudentAssignmentView(exerciseSubmittedEquivalent, "Ejercicio", "GRADED", Instant.now(), "EXERCISE", UUID.randomUUID(), 80, false)));
+                new HomeworkTargetRepository.StudentAssignmentView(manualSubmitted, "Escritura", "SUBMITTED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false),
+                new HomeworkTargetRepository.StudentAssignmentView(manualPending, "Escritura 2", "PENDING", null, "MANUAL", null, null, false, false),
+                new HomeworkTargetRepository.StudentAssignmentView(manualReviewed, "Escritura 3", "REVIEWED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false),
+                new HomeworkTargetRepository.StudentAssignmentView(exerciseSubmittedEquivalent, "Ejercicio", "GRADED", Instant.now(), "EXERCISE", UUID.randomUUID(), 80, false, false)));
 
         StudentProfileResponse response = service.getProfile(studentId);
 

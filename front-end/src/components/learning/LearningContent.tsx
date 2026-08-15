@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { HomeworkItem, SharedPresentationSummary } from "@/lib/learning";
 import { Card, CardContent } from "@/components/ui/card";
+import { NotificationDot } from "@/components/NotificationDot";
 import { buildGroups, type UnitGroup } from "./unitGroups";
 
 interface Props {
@@ -21,7 +22,12 @@ function UnitCardBody({ group }: { group: UnitGroup }) {
     <Card className="transition-colors hover:bg-muted/40">
       <CardContent className="flex items-center justify-between gap-3 pt-4">
         <div className="min-w-0 space-y-1.5">
-          <p className="truncate font-medium text-foreground">{title}</p>
+          <p className="inline-flex max-w-full items-center gap-1.5 truncate font-medium text-foreground">
+            <span className="truncate">{title}</span>
+            {group.unseen && (
+              <NotificationDot label={t("notification.item")} />
+            )}
+          </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {group.presentations.length > 0 && (
               <span>

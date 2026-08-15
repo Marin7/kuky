@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExerciseResult } from "./ExerciseResult";
 import { matchClassicInlineSingleChoice } from "@/lib/inlineChoice";
+import { numberedPromptLabel } from "@/lib/questionPrompt";
 import { NumberedSingleChoiceQuestion } from "./NumberedSingleChoiceQuestion";
 import { InlineSingleChoiceQuestion } from "./InlineSingleChoiceQuestion";
 import { MultiBlankQuestion } from "./MultiBlankQuestion";
@@ -45,15 +46,15 @@ interface Props {
   ) => Promise<ExerciseResultData>;
 }
 
+function numberedItems(q: ExerciseResponse["questions"][number]) {
+  return q.kind === "SINGLE_CHOICE" ? (q.structure?.items ?? []) : [];
+}
+
 function hidesPromptLabel(
   kind: ExerciseResponse["questions"][number]["kind"],
   inlineChoice: ReturnType<typeof matchClassicInlineSingleChoice>,
 ): boolean {
   return kind === "MULTI_BLANK" || kind === "DRAG_DROP" || inlineChoice != null;
-}
-
-function numberedItems(q: ExerciseResponse["questions"][number]) {
-  return q.kind === "SINGLE_CHOICE" ? (q.structure?.items ?? []) : [];
 }
 
 function initialAnswerState(
@@ -229,15 +230,16 @@ export function ExerciseForm({
       >
         {exercise.questions.map((q, i) => {
           const inlineChoice = matchClassicInlineSingleChoice(q);
+          const numbered = numberedItems(q).length > 0;
           return (
             <div key={q.id} className="space-y-2.5">
               {!hidesPromptLabel(q.kind, inlineChoice) && (
                 <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
-                  {`${i + 1}. ${q.prompt}`}
+                  {numbered ? q.prompt : numberedPromptLabel(i + 1, q.prompt)}
                 </Label>
               )}
 
-              {q.kind === "SINGLE_CHOICE" && numberedItems(q).length > 0 && (
+              {numbered && (
                 <NumberedSingleChoiceQuestion
                   questionId={q.id}
                   items={numberedItems(q)}
@@ -258,9 +260,7 @@ export function ExerciseForm({
                 />
               )}
 
-              {((q.kind === "SINGLE_CHOICE" &&
-                numberedItems(q).length === 0 &&
-                !inlineChoice) ||
+              {((q.kind === "SINGLE_CHOICE" && !numbered && !inlineChoice) ||
                 q.kind === "TRUE_FALSE") && (
                 <RadioGroup
                   value={answers[q.id]?.selectedOptionIds[0] ?? ""}

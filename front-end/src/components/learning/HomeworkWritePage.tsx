@@ -6,6 +6,7 @@ import {
   isStudentHomeworkEditable,
   type HomeworkItem,
 } from "@/lib/learning";
+import { markHomeworkSeen, notifyBadgesChanged } from "@/lib/notifications";
 import { ManualAnswerForm } from "./ManualAnswerForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 
@@ -32,6 +33,12 @@ export function HomeworkWritePage({ homeworkId }: Props) {
       })
       .catch(() => setLoadError(t("learning.writePage.loadError")))
       .finally(() => setLoading(false));
+  }, [homeworkId]);
+
+  useEffect(() => {
+    markHomeworkSeen(homeworkId)
+      .then(() => notifyBadgesChanged())
+      .catch(() => {});
   }, [homeworkId]);
 
   return (

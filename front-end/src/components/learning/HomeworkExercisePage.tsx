@@ -4,8 +4,10 @@ import { Link } from "@tanstack/react-router";
 import {
   getExercise,
   resolveComposition,
+  isAutoTakeComposition,
   type ExerciseResponse,
 } from "@/lib/learning";
+import { notifyBadgesChanged } from "@/lib/notifications";
 import { ExerciseForm } from "./ExerciseForm";
 import { MixedHomeworkForm } from "./MixedHomeworkForm";
 
@@ -21,7 +23,10 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
 
   useEffect(() => {
     getExercise(homeworkId)
-      .then(setExercise)
+      .then((data) => {
+        setExercise(data);
+        notifyBadgesChanged();
+      })
       .catch(() => setError(t("learning.exercisePage.loadError")))
       .finally(() => setLoading(false));
   }, [homeworkId, t]);

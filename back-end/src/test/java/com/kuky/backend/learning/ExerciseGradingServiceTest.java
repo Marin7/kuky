@@ -16,6 +16,7 @@ import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.notification.service.NotificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuky.backend.learning.service.ExerciseGradingService;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,8 +55,10 @@ class ExerciseGradingServiceTest {
         answerRepository = mock(HomeworkAnswerRepository.class);
         targetRepository = mock(HomeworkTargetRepository.class);
         userRepository = mock(UserRepository.class);
+        NotificationService notificationService = mock(NotificationService.class);
         service = new ExerciseGradingService(contentRepository, questionRepository,
-                submissionRepository, answerRepository, targetRepository, userRepository, new ObjectMapper());
+                submissionRepository, answerRepository, targetRepository, userRepository,
+                notificationService, new ObjectMapper());
 
         User user = mock(User.class);
         when(user.getId()).thenReturn(USER_ID);

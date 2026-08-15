@@ -13,6 +13,14 @@ export const esDict = {
     menuTitle: "Menú de navegación",
     footer: "Clases de español para estudiantes rumanos.",
   },
+  notification: {
+    panel: "Hay novedades en el panel",
+    homework: "Hay tareas nuevas por revisar",
+    quiz: "Hay pruebas de evaluación nuevas por revisar",
+    learning: "Hay trabajo nuevo",
+    item: "Hay novedades",
+    row: "Hay una entrega sin abrir",
+  },
   common: {
     loading: "Cargando…",
     cancel: "Cancelar",

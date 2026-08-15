@@ -6,6 +6,8 @@ import {
   type QuizReviewQueueItem,
 } from "@/lib/admin";
 import { QuizReviewDialog } from "./QuizReviewDialog";
+import { NotificationDot } from "@/components/NotificationDot";
+import { notifyBadgesChanged } from "@/lib/notifications";
 
 export function QuizReviewQueue() {
   const { t } = useTranslation();
@@ -50,7 +52,12 @@ export function QuizReviewQueue() {
               className="flex items-center justify-between px-4 py-3 text-sm"
             >
               <div>
-                <p className="font-medium">{item.quizTitle}</p>
+                <p className="inline-flex items-center gap-1.5 font-medium">
+                  {item.quizTitle}
+                  {item.unseen && (
+                    <NotificationDot label={t("notification.row")} />
+                  )}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {studentDisplayName({
                     firstName: item.studentFirstName,
@@ -77,7 +84,10 @@ export function QuizReviewQueue() {
           quizId={open.quizId}
           attemptId={open.attemptId}
           onClose={() => setOpen(null)}
-          onSaved={load}
+          onSaved={() => {
+            load();
+            notifyBadgesChanged();
+          }}
         />
       )}
     </div>

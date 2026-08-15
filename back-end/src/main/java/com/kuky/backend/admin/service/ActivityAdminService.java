@@ -253,7 +253,7 @@ public class ActivityAdminService {
         return submissionRepository.findSubmittedManualQueue().stream()
                 .map(r -> new HomeworkReviewQueueItemDto(
                         r.submissionId(), r.studentId(), r.studentEmail(), r.studentFirstName(),
-                        r.studentLastName(), r.studentUsername(), r.activityTitle(), r.submittedAt()))
+                        r.studentLastName(), r.studentUsername(), r.activityTitle(), r.submittedAt(), false))
                 .toList();
     }
 

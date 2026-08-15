@@ -10,6 +10,7 @@ import com.kuky.backend.learning.dto.PastClassResponse;
 import com.kuky.backend.learning.dto.PresentationBlockResponse;
 import com.kuky.backend.learning.dto.SharedPresentationSummary;
 import com.kuky.backend.learning.dto.UnitRef;
+import com.kuky.backend.learning.exception.AssignmentNotFoundException;
 import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkSubmission;
@@ -17,6 +18,8 @@ import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
+import com.kuky.backend.notification.dto.UnitSeenResponse;
+import com.kuky.backend.notification.service.NotificationService;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.presentations.model.PresentationFile;
 import com.kuky.backend.presentations.repository.PresentationRepository;
@@ -28,6 +31,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -44,6 +48,7 @@ public class LearningService {
     private final ActivityStudentService activityStudentService;
     private final AssignmentSnapshot assignmentSnapshot;
     private final SchedulingProperties props;
+    private final NotificationService notificationService;
 
     public LearningService(ContentRepository contentRepository,
                            HomeworkSubmissionRepository submissionRepository,
@@ -54,7 +59,8 @@ public class LearningService {
                            PresentationFileStore presentationFileStore,
                            ActivityStudentService activityStudentService,
                            AssignmentSnapshot assignmentSnapshot,
-                           SchedulingProperties props) {
+                           SchedulingProperties props,
+                           NotificationService notificationService) {
         this.contentRepository = contentRepository;
         this.submissionRepository = submissionRepository;
         this.questionRepository = questionRepository;
@@ -65,10 +71,13 @@ public class LearningService {
         this.activityStudentService = activityStudentService;
         this.assignmentSnapshot = assignmentSnapshot;
         this.props = props;
+        this.notificationService = notificationService;
     }
 
     public LearningResponse getOverview(String userEmail) {
         User user = requireUser(userEmail);
+        Set<UUID> unseenUnits = notificationService.unseenUnitIds(user.getId());
+        Set<UUID> unseenHomework = notificationService.unseenHomeworkIds(user.getId());
 
         List<PresentationBlockResponse> presentation = contentRepository.findPublishedPresentation().stream()
                 .map(p -> new PresentationBlockResponse(p.getHeading(), p.getBody()))
@@ -97,7 +106,8 @@ public class LearningService {
                 .map(a -> {
                     ContentRepository.AssignmentUnit au = assignmentUnits.get(a.getId());
                     UnitRef unit = au == null ? null
-                            : new UnitRef(au.unitId(), au.level(), au.subject(), au.position());
+                            : new UnitRef(au.unitId(), au.level(), au.subject(), au.position(),
+                                    unseenUnits.contains(au.unitId()));
                     Integer unitPosition = au == null ? null : au.unitPosition();
                     HomeworkSubmission submission = submissionsByAssignment.get(a.getId());
                     List<HomeworkQuestion> questions;
@@ -110,7 +120,7 @@ public class LearningService {
                             ? List.of()
                             : answerRepository.findBySubmission(submission.getId());
                     return HomeworkItems.toResponse(a, submission, today, unit, unitPosition,
-                            questions, answers, null, null);
+                            questions, answers, null, null, unseenHomework.contains(a.getId()));
                 })
                 .toList();
 
@@ -128,12 +138,28 @@ public class LearningService {
                         s.unit() == null ? null
                                 : new UnitRef(
                                         s.unit().id(), s.unit().level(), s.unit().subject(),
-                                        s.unit().position()),
+                                        s.unit().position(), unseenUnits.contains(s.unit().id())),
                         s.contentUnitPosition(),
                         activitiesByPresentation.getOrDefault(s.id(), List.of())))
                 .toList();
 
         return new LearningResponse(presentation, pastClasses, homework, sharedPresentations);
+    }
+
+    public UnitSeenResponse markUnitSeen(String userEmail, UUID unitId) {
+        User user = requireUser(userEmail);
+        if (!notificationService.markUnitSeen(unitId, user.getId())) {
+            throw new com.kuky.backend.units.exception.UnitNotFoundException("Unidad no encontrada.");
+        }
+        return new UnitSeenResponse(false);
+    }
+
+    public UnitSeenResponse markHomeworkSeen(String userEmail, UUID assignmentId) {
+        User user = requireUser(userEmail);
+        if (!notificationService.markHomeworkSeen(assignmentId, user.getId())) {
+            throw new AssignmentNotFoundException("Tarea no encontrada.");
+        }
+        return new UnitSeenResponse(false);
     }
 
     /** Downloads one file for a shared presentation (PPTX or PDF). Enforces share-gate. */

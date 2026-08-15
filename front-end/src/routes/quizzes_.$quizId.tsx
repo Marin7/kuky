@@ -8,6 +8,7 @@ import {
   type QuizQuestionResult,
   type QuizTakeResponse,
 } from "@/lib/quiz";
+import { notifyBadgesChanged } from "@/lib/notifications";
 import { MixedHomeworkForm } from "@/components/learning/MixedHomeworkForm";
 import { ExerciseResult } from "@/components/learning/ExerciseResult";
 import { seo } from "@/lib/seo";
@@ -154,7 +155,10 @@ function QuizTakePage() {
 
   const load = () => {
     getQuiz(quizId)
-      .then(setQuiz)
+      .then((q) => {
+        setQuiz(q);
+        notifyBadgesChanged();
+      })
       .catch((e: { message?: string }) =>
         setError(e.message ?? t("quiz.loadError")),
       );

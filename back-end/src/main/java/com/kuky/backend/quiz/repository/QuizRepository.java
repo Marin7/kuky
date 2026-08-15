@@ -79,14 +79,21 @@ public class QuizRepository {
         return jdbc.update("DELETE FROM quizzes WHERE id = :id", Map.of("id", id));
     }
 
-    public record QuizListRow(UUID id, String title, int questionCount, int assigneeCount, int attemptCount) {}
+    public record QuizListRow(UUID id, String title, int questionCount, int assigneeCount, int attemptCount,
+                              boolean hasUnseenAttempts) {}
 
     public List<QuizListRow> listWithCounts() {
         return jdbc.query("""
                 SELECT q.id, q.title,
                        (SELECT COUNT(*) FROM quiz_questions qq WHERE qq.quiz_id = q.id AND qq.retired = false) AS question_count,
                        (SELECT COUNT(*) FROM quiz_assignees a WHERE a.quiz_id = q.id) AS assignee_count,
-                       (SELECT COUNT(*) FROM quiz_attempts t WHERE t.quiz_id = q.id AND t.status <> 'IN_PROGRESS') AS attempt_count
+                       (SELECT COUNT(*) FROM quiz_attempts t WHERE t.quiz_id = q.id AND t.status <> 'IN_PROGRESS') AS attempt_count,
+                       EXISTS (
+                           SELECT 1 FROM quiz_attempts t
+                           WHERE t.quiz_id = q.id
+                             AND t.status IN ('SUBMITTED', 'GRADED')
+                             AND t.teacher_seen_at IS NULL
+                       ) AS has_unseen
                 FROM quizzes q
                 ORDER BY q.updated_at DESC
                 """, (rs, n) -> new QuizListRow(
@@ -94,6 +101,7 @@ public class QuizRepository {
                 rs.getString("title"),
                 rs.getInt("question_count"),
                 rs.getInt("assignee_count"),
-                rs.getInt("attempt_count")));
+                rs.getInt("attempt_count"),
+                rs.getBoolean("has_unseen")));
     }
 }

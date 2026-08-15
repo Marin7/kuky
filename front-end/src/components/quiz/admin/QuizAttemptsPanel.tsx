@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { listQuizAttempts, type QuizAttemptListItem } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import { QuizReviewDialog } from "./QuizReviewDialog";
+import { NotificationDot } from "@/components/NotificationDot";
+import { notifyBadgesChanged } from "@/lib/notifications";
 
 export function QuizAttemptsPanel({ quizId }: { quizId: string }) {
   const { t } = useTranslation();
@@ -27,9 +29,10 @@ export function QuizAttemptsPanel({ quizId }: { quizId: string }) {
               key={a.id}
               className="flex items-center justify-between rounded-md border p-3 text-sm"
             >
-              <span>
+              <span className="inline-flex items-center gap-1.5">
                 {a.studentName} · {t(`quiz.status.${a.status}` as never)}
                 {a.scorePercent != null ? ` · ${a.scorePercent}%` : ""}
+                {a.unseen && <NotificationDot label={t("notification.row")} />}
               </span>
               <Button size="sm" variant="outline" onClick={() => setOpenId(a.id)}>
                 {a.status === "GRADED" ? t("quiz.admin.view") : t("quiz.admin.review")}
@@ -43,7 +46,10 @@ export function QuizAttemptsPanel({ quizId }: { quizId: string }) {
           quizId={quizId}
           attemptId={openId}
           onClose={() => setOpenId(null)}
-          onSaved={load}
+          onSaved={() => {
+            load();
+            notifyBadgesChanged();
+          }}
         />
       )}
     </div>

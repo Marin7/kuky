@@ -92,6 +92,8 @@ export interface HomeworkItem {
   teacherFeedback?: string | null;
   /** Present while PENDING; echo on submit. Omitted after submit. */
   contentRevisedAt?: string | null;
+  /** Newly assigned homework not yet opened by the student. */
+  unseen?: boolean;
 }
 
 /** Resolve composition preferring the server field, else format / questions. */
@@ -280,6 +282,7 @@ export interface UnitRef {
   level: string;
   subject: string;
   position: number;
+  unseen?: boolean;
 }
 
 export interface PresentationFileSummary {

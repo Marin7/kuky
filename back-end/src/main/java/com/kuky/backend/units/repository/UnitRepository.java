@@ -363,7 +363,8 @@ public class UnitRepository {
                     rs.getObject("audio_file_id", UUID.class),
                     null,
                     rs.getString("media_source_kind"),
-                    List.of());
+                    List.of(),
+                    false);
         });
     }
 
@@ -411,16 +412,24 @@ public class UnitRepository {
 
     @Transactional
     public void replaceAssignees(UUID unitId, List<UUID> studentIds) {
-        jdbc.update("DELETE FROM unit_assignments WHERE unit_id = :uid", Map.of("uid", unitId));
-        for (UUID userId : studentIds) {
+        List<UUID> ids = studentIds == null ? List.of() : studentIds;
+        if (ids.isEmpty()) {
+            jdbc.update("DELETE FROM unit_assignments WHERE unit_id = :uid", Map.of("uid", unitId));
+        } else {
             jdbc.update("""
-                    INSERT INTO unit_assignments (id, unit_id, user_id)
-                    VALUES (:id, :uid, :userId)
-                    ON CONFLICT (unit_id, user_id) DO NOTHING
-                    """, new MapSqlParameterSource()
-                    .addValue("id", UUID.randomUUID())
-                    .addValue("uid", unitId)
-                    .addValue("userId", userId));
+                    DELETE FROM unit_assignments
+                    WHERE unit_id = :uid AND user_id NOT IN (:uids)
+                    """, Map.of("uid", unitId, "uids", ids));
+            for (UUID userId : ids) {
+                jdbc.update("""
+                        INSERT INTO unit_assignments (id, unit_id, user_id)
+                        VALUES (:id, :uid, :userId)
+                        ON CONFLICT (unit_id, user_id) DO NOTHING
+                        """, new MapSqlParameterSource()
+                        .addValue("id", UUID.randomUUID())
+                        .addValue("uid", unitId)
+                        .addValue("userId", userId));
+            }
         }
         touch(unitId);
     }

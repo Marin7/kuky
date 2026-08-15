@@ -16,6 +16,7 @@ public class QuizAttempt {
     private Integer questionUnitCount;
     private String quizSnapshot;
     private String feedback;
+    private Instant teacherSeenAt;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -39,4 +40,6 @@ public class QuizAttempt {
     public void setQuizSnapshot(String quizSnapshot) { this.quizSnapshot = quizSnapshot; }
     public String getFeedback() { return feedback; }
     public void setFeedback(String feedback) { this.feedback = feedback; }
+    public Instant getTeacherSeenAt() { return teacherSeenAt; }
+    public void setTeacherSeenAt(Instant teacherSeenAt) { this.teacherSeenAt = teacherSeenAt; }
 }

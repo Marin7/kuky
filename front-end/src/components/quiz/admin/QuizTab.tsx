@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StudentMultiSelect } from "@/components/admin/homework/StudentMultiSelect";
 import { QuizReviewQueue } from "./QuizReviewQueue";
+import { NotificationDot } from "@/components/NotificationDot";
 import {
   Dialog,
   DialogContent,
@@ -54,7 +55,12 @@ export function QuizTab() {
           {items.map((item) => (
             <Card key={item.id}>
               <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                <CardTitle className="text-base">{item.title}</CardTitle>
+                <CardTitle className="inline-flex items-center gap-1.5 text-base">
+                  {item.title}
+                  {item.hasUnseenAttempts && (
+                    <NotificationDot label={t("notification.item")} />
+                  )}
+                </CardTitle>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"

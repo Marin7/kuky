@@ -67,8 +67,12 @@ class QuizServiceTest {
         snapshot = new QuizSnapshot(objectMapper);
         ExerciseGradingService exerciseGrading = mock(ExerciseGradingService.class);
         when(exerciseGrading.studentQuestionsFor(any())).thenReturn(List.of());
+        com.kuky.backend.notification.service.NotificationService notifications =
+                mock(com.kuky.backend.notification.service.NotificationService.class);
+        when(notifications.unseenQuizIds(any())).thenReturn(java.util.Set.of());
         service = new QuizService(quizRepository, questionRepository, assigneeRepository, attemptRepository,
-                userRepository, snapshot, new QuizGradingService(exerciseGrading, objectMapper));
+                userRepository, snapshot, new QuizGradingService(exerciseGrading, objectMapper),
+                notifications);
 
         User user = new User();
         user.setId(userId);

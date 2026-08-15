@@ -47,6 +47,7 @@ import com.kuky.backend.learning.service.BlankPassageParser;
 import com.kuky.backend.learning.service.ExerciseGradingService;
 import com.kuky.backend.learning.service.HomeworkCompositionSupport;
 import com.kuky.backend.learning.service.SingleChoiceMarkerParser;
+import com.kuky.backend.notification.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +80,7 @@ public class HomeworkAdminService {
     private final ExerciseGradingService exerciseGradingService;
     private final ObjectMapper objectMapper;
     private final AssignmentSnapshot assignmentSnapshot;
+    private final NotificationService notificationService;
 
     public HomeworkAdminService(ContentRepository contentRepository,
                                 HomeworkTargetRepository targetRepository,
@@ -88,7 +90,8 @@ public class HomeworkAdminService {
                                 UserRepository userRepository,
                                 HomeworkSubmissionRepository submissionRepository,
                                 ExerciseGradingService exerciseGradingService,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                NotificationService notificationService) {
         this.contentRepository = contentRepository;
         this.targetRepository = targetRepository;
         this.questionRepository = questionRepository;
@@ -99,6 +102,7 @@ public class HomeworkAdminService {
         this.exerciseGradingService = exerciseGradingService;
         this.objectMapper = objectMapper;
         this.assignmentSnapshot = new AssignmentSnapshot(objectMapper);
+        this.notificationService = notificationService;
     }
 
     // --- Teacher review of MANUAL submissions --------------------------------
@@ -107,11 +111,12 @@ public class HomeworkAdminService {
         return submissionRepository.findSubmittedManualQueue().stream()
                 .map(r -> new HomeworkReviewQueueItemDto(
                         r.submissionId(), r.studentId(), r.studentEmail(), r.studentFirstName(),
-                        r.studentLastName(), r.studentUsername(), r.assignmentTitle(), r.submittedAt()))
+                        r.studentLastName(), r.studentUsername(), r.assignmentTitle(), r.submittedAt(), r.unseen()))
                 .toList();
     }
 
     public HomeworkSubmissionAdminDto getSubmissionDetail(UUID submissionId) {
+        notificationService.markHomeworkSeen(submissionId);
         var row = submissionRepository.findDetailById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
         return toSubmissionAdminDto(row);
@@ -122,6 +127,7 @@ public class HomeworkAdminService {
      * and automatic score breakdown. Only valid for {@code GRADED} exercise submissions.
      */
     public ExerciseSubmissionResultAdminDto getExerciseResult(UUID submissionId) {
+        notificationService.markHomeworkSeen(submissionId);
         HomeworkSubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
         if (!HomeworkStatus.GRADED.name().equals(submission.getStatus())) {
@@ -1226,7 +1232,7 @@ public class HomeworkAdminService {
         List<AssigneeDto> assignees = targetRepository.findAssigneesWithSubmissions(a.getId()).stream()
                 .map(v -> new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
                         v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId(),
-                        v.hasTeacherFeedback()))
+                        v.hasTeacherFeedback(), v.unseen()))
                 .toList();
         String type = a.getHomeworkType() == null ? null : a.getHomeworkType().name();
         String level = a.getLevel() == null ? null : a.getLevel().name();
@@ -1248,7 +1254,7 @@ public class HomeworkAdminService {
                 type, level, format, composition.name(), questions,
                 a.getAudioUrl(), a.getAudioFileId(), audioFileName,
                 a.getMediaSourceKind() == null ? null : a.getMediaSourceKind().name(),
-                assignees);
+                assignees, assignees.stream().anyMatch(AssigneeDto::unseen));
     }
 
     private HomeworkQuestionDto toQuestionDto(HomeworkQuestion q) {

@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExerciseResult } from "./ExerciseResult";
 import { matchClassicInlineSingleChoice } from "@/lib/inlineChoice";
+import { numberedPromptLabel } from "@/lib/questionPrompt";
 import { NumberedSingleChoiceQuestion } from "./NumberedSingleChoiceQuestion";
 import { InlineSingleChoiceQuestion } from "./InlineSingleChoiceQuestion";
 import { MultiBlankQuestion } from "./MultiBlankQuestion";
@@ -432,6 +433,7 @@ export function MixedHomeworkForm({
       >
         {assignment.questions.map((q, i) => {
           const inlineChoice = matchClassicInlineSingleChoice(q);
+          const numbered = numberedItems(q).length > 0;
           return (
             <div key={q.id} className="space-y-2.5">
               {q.skill && q.skill !== assignment.questions[i - 1]?.skill && (
@@ -445,7 +447,7 @@ export function MixedHomeworkForm({
                     htmlFor={`mixed-ft-${q.id}`}
                     className="block whitespace-pre-wrap text-base font-medium leading-relaxed"
                   >
-                    {`${i + 1}. ${q.prompt}`}
+                    {numberedPromptLabel(i + 1, q.prompt)}
                   </Label>
                   {richFreeText ? (
                     <RichTextEditor
@@ -472,21 +474,22 @@ export function MixedHomeworkForm({
                 <>
                   {!hidesPromptLabel(q.kind, inlineChoice) && (
                     <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
-                      {`${i + 1}. ${q.prompt}`}
+                      {numbered
+                        ? q.prompt
+                        : numberedPromptLabel(i + 1, q.prompt)}
                     </Label>
                   )}
 
-                  {q.kind === "SINGLE_CHOICE" &&
-                    numberedItems(q).length > 0 && (
-                      <NumberedSingleChoiceQuestion
-                        questionId={q.id}
-                        items={numberedItems(q)}
-                        selections={answers[q.id]?.selections ?? {}}
-                        onChange={(number, optionId) =>
-                          setItemSelection(q.id, number, optionId)
-                        }
-                      />
-                    )}
+                  {numbered && (
+                    <NumberedSingleChoiceQuestion
+                      questionId={q.id}
+                      items={numberedItems(q)}
+                      selections={answers[q.id]?.selections ?? {}}
+                      onChange={(number, optionId) =>
+                        setItemSelection(q.id, number, optionId)
+                      }
+                    />
+                  )}
 
                   {inlineChoice && (
                     <InlineSingleChoiceQuestion
@@ -500,9 +503,7 @@ export function MixedHomeworkForm({
                     />
                   )}
 
-                  {((q.kind === "SINGLE_CHOICE" &&
-                    numberedItems(q).length === 0 &&
-                    !inlineChoice) ||
+                  {((q.kind === "SINGLE_CHOICE" && !numbered && !inlineChoice) ||
                     q.kind === "TRUE_FALSE") && (
                     <RadioGroup
                       value={answers[q.id]?.selectedOptionIds[0] ?? ""}

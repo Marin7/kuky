@@ -58,7 +58,7 @@ class HomeworkExerciseAdminServiceTest {
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
-                objectMapper);
+                objectMapper, mock(com.kuky.backend.notification.service.NotificationService.class));
 
         // For the happy path: insert returns an id and the re-fetch returns an assignment.
         when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))

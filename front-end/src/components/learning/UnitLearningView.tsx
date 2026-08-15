@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { getLearning, type LearningResponse } from "@/lib/learning";
+import { markUnitSeen, notifyBadgesChanged } from "@/lib/notifications";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UnitDetailContent } from "./UnitDetailContent";
 import { buildGroups, findUnitGroup } from "./unitGroups";
@@ -45,6 +46,13 @@ export function UnitLearningView({ unitId }: Props) {
       .catch(() => setError(t("learning.loadError")))
       .finally(() => setLoading(false));
   }, [t]);
+
+  useEffect(() => {
+    if (unitId == null) return;
+    markUnitSeen(unitId)
+      .then(() => notifyBadgesChanged())
+      .catch(() => {});
+  }, [unitId]);
 
   const groups = data
     ? buildGroups(data.sharedPresentations, data.homework)

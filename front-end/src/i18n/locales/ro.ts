@@ -13,6 +13,14 @@
     menuTitle: "Meniu de navigare",
     footer: "Cursuri de spaniolă pentru studenți români.",
   },
+  notification: {
+    panel: "Sunt noutăți în panou",
+    homework: "Sunt teme noi de verificat",
+    quiz: "Sunt probe de evaluare noi de verificat",
+    learning: "Este lucru nou",
+    item: "Sunt noutăți",
+    row: "Este o predare nevizualizată",
+  },
   common: {
     loading: "Se încarcă…",
     cancel: "Anulează",

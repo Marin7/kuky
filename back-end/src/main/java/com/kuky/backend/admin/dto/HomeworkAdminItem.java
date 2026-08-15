@@ -18,5 +18,6 @@ public record HomeworkAdminItem(
         UUID audioFileId,                   // listening homework uploaded file (nullable)
         String audioFileName,               // original filename of the uploaded audio (nullable)
         String mediaSourceKind,             // AUDIO_URL | UPLOADED_FILE | VIDEO_PAGE | YOUTUBE | null
-        List<AssigneeDto> assignees
+        List<AssigneeDto> assignees,
+        boolean hasUnseenSubmissions
 ) {}

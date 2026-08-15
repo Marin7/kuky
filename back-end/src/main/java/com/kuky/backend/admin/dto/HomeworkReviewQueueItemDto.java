@@ -12,5 +12,6 @@ public record HomeworkReviewQueueItemDto(
         String studentLastName,
         String studentUsername,
         String assignmentTitle,
-        Instant submittedAt
+        Instant submittedAt,
+        boolean unseen
 ) {}

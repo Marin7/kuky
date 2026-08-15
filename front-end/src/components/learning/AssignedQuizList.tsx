@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { listMyQuizzes, type QuizListItem, type QuizStatus } from "@/lib/quiz";
 import { Card, CardContent } from "@/components/ui/card";
+import { NotificationDot } from "@/components/NotificationDot";
 
 const ACTIONABLE: QuizStatus[] = ["AVAILABLE", "IN_PROGRESS"];
 
@@ -48,8 +49,11 @@ export function AssignedQuizList() {
             <Card className="transition-colors hover:bg-muted/40">
               <CardContent className="flex items-center justify-between gap-3 pt-4">
                 <div className="min-w-0 space-y-1.5">
-                  <p className="truncate font-medium text-foreground">
-                    {q.title}
+                  <p className="inline-flex max-w-full items-center gap-1.5 truncate font-medium text-foreground">
+                    <span className="truncate">{q.title}</span>
+                    {q.unseen && (
+                      <NotificationDot label={t("notification.item")} />
+                    )}
                   </p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                     <span>{t(`quiz.status.${q.status}`)}</span>

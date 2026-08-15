@@ -8,6 +8,7 @@ export interface UnitGroup {
   level: string | null;
   label: string | null; // null → "Other" bucket
   position: number;
+  unseen: boolean;
   presentations: SharedPresentationSummary[];
   homework: HomeworkItem[];
 }
@@ -23,6 +24,7 @@ export function buildGroups(
     level: null,
     label: null,
     position: Number.MAX_SAFE_INTEGER,
+    unseen: false,
     presentations: [],
     homework: [],
   };
@@ -32,6 +34,7 @@ export function buildGroups(
     level: string;
     subject: string;
     position: number;
+    unseen?: boolean;
   }) => {
     const key = unit.id;
     let g = map.get(key);
@@ -42,10 +45,13 @@ export function buildGroups(
         level: unit.level,
         label: `${unit.level} · ${unit.subject}`,
         position: unit.position,
+        unseen: Boolean(unit.unseen),
         presentations: [],
         homework: [],
       };
       map.set(key, g);
+    } else if (unit.unseen) {
+      g.unseen = true;
     }
     return g;
   };
@@ -55,8 +61,14 @@ export function buildGroups(
     else other.presentations.push(p);
   }
   for (const h of homework) {
-    if (h.unit) ensure(h.unit).homework.push(h);
-    else other.homework.push(h);
+    if (h.unit) {
+      const g = ensure(h.unit);
+      g.homework.push(h);
+      if (h.unseen) g.unseen = true;
+    } else {
+      other.homework.push(h);
+      if (h.unseen) other.unseen = true;
+    }
   }
 
   const groups = [...map.values()].sort((a, b) => {

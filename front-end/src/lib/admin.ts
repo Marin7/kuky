@@ -246,6 +246,7 @@ export interface Assignee {
   scorePercent: number | null;
   submissionId: string | null;
   hasTeacherFeedback: boolean;
+  unseen?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -271,6 +272,7 @@ export interface StudentProfileHomework {
   submissionId: string | null;
   scorePercent: number | null;
   hasTeacherFeedback: boolean;
+  unseen?: boolean;
 }
 
 export interface StudentProfilePresentation {
@@ -450,6 +452,7 @@ export interface HomeworkAdminItem {
   audioFileName: string | null; // original filename of the uploaded audio
   mediaSourceKind: MediaSourceKind | null;
   assignees: Assignee[];
+  hasUnseenSubmissions?: boolean;
 }
 
 export type MediaSourceKind =
@@ -565,6 +568,7 @@ export interface HomeworkReviewQueueItem {
   submittedAt: string;
   composition?: HomeworkComposition | null;
   format?: HomeworkFormat | null;
+  unseen?: boolean;
 }
 
 export interface ManualSubmissionAnswerAdmin {
@@ -1035,6 +1039,7 @@ export interface QuizAdminListItem {
   questionCount: number;
   assigneeCount: number;
   attemptCount: number;
+  hasUnseenAttempts?: boolean;
 }
 
 export interface QuizAssignee {
@@ -1059,6 +1064,7 @@ export interface QuizAttemptListItem {
   status: string;
   scorePercent: number | null;
   submittedAt: string | null;
+  unseen?: boolean;
 }
 
 export interface StudentQuizSummary {
@@ -1075,6 +1081,7 @@ export interface StudentQuizSummary {
     questionUnitCount: number;
     awaitingTeacher: boolean;
   }[];
+  unseen?: boolean;
 }
 
 export const listAdminQuizzes = () =>
@@ -1122,6 +1129,7 @@ export interface QuizReviewQueueItem {
   studentLastName: string | null;
   studentUsername: string | null;
   submittedAt: string | null;
+  unseen?: boolean;
 }
 
 export const getQuizReviewQueue = () =>

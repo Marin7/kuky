@@ -79,12 +79,14 @@ class QuizAdminServiceTest {
                 userRepository,
                 mock(HomeworkSubmissionRepository.class),
                 mock(ExerciseGradingService.class),
-                objectMapper);
+                objectMapper,
+                mock(com.kuky.backend.notification.service.NotificationService.class));
         service = new QuizAdminService(
                 quizRepository, questionRepository, assigneeRepository, attemptRepository,
                 userRepository, homeworkAdmin, snapshot,
                 new QuizGradingService(mock(ExerciseGradingService.class), objectMapper),
-                objectMapper);
+                objectMapper,
+                mock(com.kuky.backend.notification.service.NotificationService.class));
 
         Quiz quiz = quiz();
         when(quizRepository.findById(quizId)).thenReturn(Optional.of(quiz));
@@ -314,7 +316,7 @@ class QuizAdminServiceTest {
         when(attemptRepository.findSubmittedQueue()).thenReturn(List.of(
                 new QuizAttemptRepository.ReviewQueueRow(
                         attemptId, quizId, "Quiz mixto", studentId,
-                        "ana@example.com", "Ana", "Lopez", null, submittedAt)));
+                        "ana@example.com", "Ana", "Lopez", null, submittedAt, false)));
 
         var queue = service.listReviewQueue();
 

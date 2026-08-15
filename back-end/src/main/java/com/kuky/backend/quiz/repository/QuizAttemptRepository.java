@@ -46,6 +46,8 @@ public class QuizAttemptRepository {
         a.setQuestionUnitCount(rs.wasNull() ? null : qc);
         a.setQuizSnapshot(rs.getString("quiz_snapshot"));
         a.setFeedback(rs.getString("feedback"));
+        Timestamp seen = rs.getTimestamp("teacher_seen_at");
+        a.setTeacherSeenAt(seen == null ? null : seen.toInstant());
         return a;
     };
 
@@ -109,7 +111,8 @@ public class QuizAttemptRepository {
             String studentFirstName,
             String studentLastName,
             String studentUsername,
-            Instant submittedAt
+            Instant submittedAt,
+            boolean unseen
     ) {}
 
     /** SUBMITTED attempts (free-text still awaiting teacher), oldest first. */
@@ -118,7 +121,8 @@ public class QuizAttemptRepository {
                 SELECT a.id AS attempt_id, a.quiz_id, q.title AS quiz_title,
                        u.id AS student_id, u.email AS student_email,
                        u.first_name AS student_first_name, u.last_name AS student_last_name,
-                       u.username AS student_username, a.submitted_at
+                       u.username AS student_username, a.submitted_at,
+                       (a.teacher_seen_at IS NULL) AS unseen
                 FROM quiz_attempts a
                 JOIN quizzes q ON q.id = a.quiz_id
                 JOIN users u ON u.id = a.user_id
@@ -136,7 +140,8 @@ public class QuizAttemptRepository {
                     rs.getString("student_first_name"),
                     rs.getString("student_last_name"),
                     rs.getString("student_username"),
-                    submittedAt == null ? null : submittedAt.toInstant());
+                    submittedAt == null ? null : submittedAt.toInstant(),
+                    rs.getBoolean("unseen"));
         });
     }
 
@@ -161,7 +166,8 @@ public class QuizAttemptRepository {
         jdbc.update("""
                 UPDATE quiz_attempts
                 SET status = :status, submitted_at = :submitted, score_percent = :score,
-                    fully_correct_count = :fc, question_unit_count = :qc, feedback = :feedback
+                    fully_correct_count = :fc, question_unit_count = :qc, feedback = :feedback,
+                    teacher_seen_at = NULL
                 WHERE id = :id
                 """, new MapSqlParameterSource()
                 .addValue("id", attempt.getId())

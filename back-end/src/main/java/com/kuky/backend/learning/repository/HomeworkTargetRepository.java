@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -24,30 +25,52 @@ public class HomeworkTargetRepository {
     /** An assignee of an assignment, with their submission status (PENDING if no row). */
     public record AssigneeView(UUID userId, String email, String firstName, String lastName, String username,
                                String status, String responseText, Instant submittedAt, Integer scorePercent,
-                               UUID submissionId, boolean hasTeacherFeedback) {}
+                               UUID submissionId, boolean hasTeacherFeedback, boolean unseen) {}
 
+    /**
+     * Replaces assignees without resetting {@code student_seen_at} on students who remain.
+     * Newly added students get {@code student_seen_at = NULL} (unseen).
+     */
     @Transactional
     public void replaceTargets(UUID assignmentId, List<UUID> userIds) {
-        jdbc.update("DELETE FROM homework_targets WHERE assignment_id = :aid",
-                Map.of("aid", assignmentId));
-        addTargets(assignmentId, userIds);
+        List<UUID> ids = userIds == null ? List.of() : userIds;
+        if (ids.isEmpty()) {
+            jdbc.update("DELETE FROM homework_targets WHERE assignment_id = :aid",
+                    Map.of("aid", assignmentId));
+            return;
+        }
+        jdbc.update("""
+                DELETE FROM homework_targets
+                WHERE assignment_id = :aid AND user_id NOT IN (:uids)
+                """, Map.of("aid", assignmentId, "uids", ids));
+        addTargets(assignmentId, ids, null);
     }
 
-    /** Idempotent: adds targets for each user (skips existing). */
+    /** Idempotent: adds targets for each user (skips existing). New rows are unseen. */
     @Transactional
     public void addTargets(UUID assignmentId, List<UUID> userIds) {
+        addTargets(assignmentId, userIds, null);
+    }
+
+    /**
+     * Idempotent add. Pass {@code studentSeenAt} non-null to create already-seen rows
+     * (unit sync — student is notified via the unit assignment instead).
+     */
+    @Transactional
+    public void addTargets(UUID assignmentId, List<UUID> userIds, Instant studentSeenAt) {
         if (userIds == null || userIds.isEmpty()) {
             return;
         }
         for (UUID userId : userIds) {
             jdbc.update("""
-                    INSERT INTO homework_targets (id, assignment_id, user_id)
-                    VALUES (:id, :aid, :uid)
+                    INSERT INTO homework_targets (id, assignment_id, user_id, student_seen_at)
+                    VALUES (:id, :aid, :uid, :seenAt)
                     ON CONFLICT (assignment_id, user_id) DO NOTHING
                     """, new MapSqlParameterSource()
                     .addValue("id", UUID.randomUUID())
                     .addValue("aid", assignmentId)
-                    .addValue("uid", userId));
+                    .addValue("uid", userId)
+                    .addValue("seenAt", studentSeenAt == null ? null : Timestamp.from(studentSeenAt)));
         }
     }
 
@@ -71,7 +94,8 @@ public class HomeworkTargetRepository {
                        s.submitted_at,
                        s.score_percent,
                        s.id AS submission_id,
-                       s.feedback
+                       s.feedback,
+                       (s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED') AND s.teacher_seen_at IS NULL) AS unseen
                 FROM homework_targets t
                 JOIN users u ON u.id = t.user_id
                 LEFT JOIN homework_submissions s
@@ -93,7 +117,8 @@ public class HomeworkTargetRepository {
                     submittedAt == null ? null : submittedAt.toInstant(),
                     scorePercent,
                     rs.getObject("submission_id", UUID.class),
-                    FormattedTextSegment.hasTeacherFeedback(rs.getString("feedback")));
+                    FormattedTextSegment.hasTeacherFeedback(rs.getString("feedback")),
+                    rs.getBoolean("unseen"));
         });
     }
 
@@ -108,13 +133,14 @@ public class HomeworkTargetRepository {
 
     public record StudentAssignmentView(UUID assignmentId, String title, String status, Instant submittedAt,
                                         String format, UUID submissionId, Integer scorePercent,
-                                        boolean hasTeacherFeedback) {}
+                                        boolean hasTeacherFeedback, boolean unseen) {}
 
     public List<StudentAssignmentView> findAssignmentsForStudent(UUID userId) {
         String sql = """
                 SELECT ha.id AS assignment_id, ha.title,
                        COALESCE(s.status, 'PENDING') AS status,
-                       s.submitted_at, ha.format, s.id AS submission_id, s.score_percent, s.feedback
+                       s.submitted_at, ha.format, s.id AS submission_id, s.score_percent, s.feedback,
+                       (s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED') AND s.teacher_seen_at IS NULL) AS unseen
                 FROM homework_targets t
                 JOIN homework_assignments ha ON ha.id = t.assignment_id
                 LEFT JOIN homework_submissions s
@@ -132,7 +158,8 @@ public class HomeworkTargetRepository {
                     rs.getString("format"),
                     rs.getObject("submission_id", UUID.class),
                     rs.getObject("score_percent", Integer.class),
-                    FormattedTextSegment.hasTeacherFeedback(rs.getString("feedback")));
+                    FormattedTextSegment.hasTeacherFeedback(rs.getString("feedback")),
+                    rs.getBoolean("unseen"));
         });
     }
 }

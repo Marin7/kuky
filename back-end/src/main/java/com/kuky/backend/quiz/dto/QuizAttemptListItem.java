@@ -10,5 +10,6 @@ public record QuizAttemptListItem(
         String email,
         String status,
         Integer scorePercent,
-        Instant submittedAt
+        Instant submittedAt,
+        boolean unseen
 ) {}

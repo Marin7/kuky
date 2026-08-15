@@ -18,6 +18,7 @@ import com.kuky.backend.quiz.repository.QuizAssigneeRepository;
 import com.kuky.backend.quiz.repository.QuizAttemptRepository;
 import com.kuky.backend.quiz.repository.QuizQuestionRepository;
 import com.kuky.backend.quiz.repository.QuizRepository;
+import com.kuky.backend.notification.service.NotificationService;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,6 +45,7 @@ public class QuizService {
     private final UserRepository userRepository;
     private final QuizSnapshot quizSnapshot;
     private final QuizGradingService gradingService;
+    private final NotificationService notificationService;
 
     public QuizService(QuizRepository quizRepository,
                        QuizQuestionRepository questionRepository,
@@ -50,7 +53,8 @@ public class QuizService {
                        QuizAttemptRepository attemptRepository,
                        UserRepository userRepository,
                        QuizSnapshot quizSnapshot,
-                       QuizGradingService gradingService) {
+                       QuizGradingService gradingService,
+                       NotificationService notificationService) {
         this.quizRepository = quizRepository;
         this.questionRepository = questionRepository;
         this.assigneeRepository = assigneeRepository;
@@ -58,10 +62,12 @@ public class QuizService {
         this.userRepository = userRepository;
         this.quizSnapshot = quizSnapshot;
         this.gradingService = gradingService;
+        this.notificationService = notificationService;
     }
 
     public QuizListResponse listMine(String email) {
         User user = requireUser(email);
+        Set<UUID> unseenQuizIds = notificationService.unseenQuizIds(user.getId());
         Map<UUID, Quiz> byId = new LinkedHashMap<>();
         for (Quiz q : quizRepository.findAssignedToUser(user.getId())) {
             byId.put(q.getId(), q);
@@ -84,7 +90,8 @@ public class QuizService {
                 status = attempt.getStatus().name();
             }
             items.add(new QuizListResponse.QuizListItem(
-                    quiz.getId(), quiz.getTitle(), quiz.getDescription(), status));
+                    quiz.getId(), quiz.getTitle(), quiz.getDescription(), status,
+                    unseenQuizIds.contains(quiz.getId())));
         }
         return new QuizListResponse(items);
     }
@@ -96,6 +103,10 @@ public class QuizService {
                 .orElseThrow(() -> new QuizNotFoundException("Prueba de evaluación no encontrada."));
         Optional<QuizAttempt> existing = attemptRepository.findByQuizAndUser(quizId, user.getId());
         boolean assigned = assigneeRepository.isAssigned(quizId, user.getId());
+
+        if (assigned) {
+            notificationService.markQuizAssigneeSeen(quizId, user.getId());
+        }
 
         if (existing.isEmpty()) {
             if (!assigned) {

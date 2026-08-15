@@ -13,5 +13,6 @@ public record QuizReviewQueueItemDto(
         String studentFirstName,
         String studentLastName,
         String studentUsername,
-        Instant submittedAt
+        Instant submittedAt,
+        boolean unseen
 ) {}

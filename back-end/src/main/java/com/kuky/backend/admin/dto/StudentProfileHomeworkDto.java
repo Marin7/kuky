@@ -11,5 +11,6 @@ public record StudentProfileHomeworkDto(
         boolean needsReview,
         UUID submissionId,
         Integer scorePercent,  // set for GRADED exercises; null otherwise
-        boolean hasTeacherFeedback
+        boolean hasTeacherFeedback,
+        boolean unseen
 ) {}

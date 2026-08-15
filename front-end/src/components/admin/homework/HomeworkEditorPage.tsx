@@ -6,7 +6,9 @@ import {
   updateHomework,
   setAssignees,
   getHomeworkById,
+  studentDisplayName,
   type AdminQuestion,
+  type Assignee,
   type HomeworkType,
   type HomeworkLevel,
   type ApiError,
@@ -26,6 +28,10 @@ import {
 import { StudentMultiSelect } from "./StudentMultiSelect";
 import { QuestionListEditor } from "./QuestionListEditor";
 import { AudioSourceEditor, type AudioSourceValue } from "./AudioSourceEditor";
+import { NotificationDot } from "@/components/NotificationDot";
+import { HomeworkReviewDialog } from "./HomeworkReviewDialog";
+import { ExerciseResultDialog } from "./ExerciseResultDialog";
+import { notifyBadgesChanged } from "@/lib/notifications";
 
 const LEVEL_OPTIONS: HomeworkLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
@@ -54,9 +60,22 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
     audioFileName: null,
   });
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
+  const [assignees, setAssigneeRows] = useState<Assignee[]>([]);
+  const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
+  const [openResultId, setOpenResultId] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const reloadAssignees = () => {
+    if (!homeworkId) return;
+    getHomeworkById(homeworkId)
+      .then((hw) => {
+        setAssigneeRows(hw.assignees);
+        setAssigneeIds(hw.assignees.map((a) => a.userId));
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     getMe()
@@ -83,6 +102,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           audioFileId: hw.audioFileId,
           audioFileName: hw.audioFileName,
         });
+        setAssigneeRows(hw.assignees);
         setAssigneeIds(hw.assignees.map((a) => a.userId));
       })
       .catch(() => setError(t("admin.homework.editor.loadError")))
@@ -312,6 +332,49 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
             />
           </div>
 
+          {isEdit && assignees.length > 0 && (
+            <div className="space-y-2 rounded-lg border p-3">
+              <p className="text-sm font-medium">
+                {t("admin.homework.editor.assignLabel")}
+              </p>
+              <ul className="divide-y rounded-md border">
+                {assignees.map((a) => (
+                  <li
+                    key={a.userId}
+                    className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {studentDisplayName(a)}
+                      {a.unseen && (
+                        <NotificationDot label={t("notification.row")} />
+                      )}
+                    </span>
+                    {a.submissionId &&
+                      (a.status === "SUBMITTED" ||
+                        a.status === "REVIEWED" ||
+                        a.status === "GRADED") && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const id = a.submissionId;
+                            if (!id) return;
+                            if (a.status === "GRADED") setOpenResultId(id);
+                            else setOpenSubmissionId(id);
+                          }}
+                        >
+                          {a.status === "GRADED"
+                            ? t("admin.exerciseResult.viewAction")
+                            : t("admin.homeworkReview.reviewAction")}
+                        </Button>
+                      )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
@@ -325,6 +388,32 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
             </Button>
           </div>
         </div>
+      )}
+
+      {openSubmissionId && (
+        <HomeworkReviewDialog
+          submissionId={openSubmissionId}
+          onClose={() => setOpenSubmissionId(null)}
+          onReviewed={() => {
+            setOpenSubmissionId(null);
+            reloadAssignees();
+            notifyBadgesChanged();
+          }}
+        />
+      )}
+      {openResultId && (
+        <ExerciseResultDialog
+          submissionId={openResultId}
+          onClose={() => {
+            setOpenResultId(null);
+            reloadAssignees();
+            notifyBadgesChanged();
+          }}
+          onFeedbackSaved={() => {
+            reloadAssignees();
+            notifyBadgesChanged();
+          }}
+        />
       )}
     </div>
   );

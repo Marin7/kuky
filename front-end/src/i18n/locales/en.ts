@@ -13,6 +13,14 @@
     menuTitle: "Navigation menu",
     footer: "Spanish classes for Romanian students.",
   },
+  notification: {
+    panel: "There is new activity in the panel",
+    homework: "There is new homework to review",
+    quiz: "There are new assessment tests to review",
+    learning: "There is new work",
+    item: "There is new activity",
+    row: "There is an unopened submission",
+  },
   common: {
     loading: "Loading…",
     cancel: "Cancel",

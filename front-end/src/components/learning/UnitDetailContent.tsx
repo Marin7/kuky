@@ -14,6 +14,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { NotificationDot } from "@/components/NotificationDot";
 import { ActivityViewerPrompts } from "./ActivityViewerPrompts";
 import { HomeworkInlinePanel } from "./HomeworkInlinePanel";
 
@@ -148,7 +149,12 @@ function HomeworkTriggerMeta({ item }: { item: HomeworkItem }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5 pr-2 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0 space-y-1">
-        <p className="truncate font-medium text-foreground">{item.title}</p>
+        <p className="inline-flex max-w-full items-center gap-1.5 truncate font-medium text-foreground">
+          <span className="truncate">{item.title}</span>
+          {item.unseen && (
+            <NotificationDot label={t("notification.item")} />
+          )}
+        </p>
         <div className="flex flex-wrap items-center gap-1">
           {item.homeworkType && (
             <span

@@ -51,9 +51,16 @@ public class QuizAssigneeRepository {
 
     @Transactional
     public void replaceAssignees(UUID quizId, List<UUID> userIds) {
-        jdbc.update("DELETE FROM quiz_assignees WHERE quiz_id = :qid", Map.of("qid", quizId));
-        if (userIds == null || userIds.isEmpty()) return;
-        for (UUID userId : userIds) {
+        List<UUID> ids = userIds == null ? List.of() : userIds;
+        if (ids.isEmpty()) {
+            jdbc.update("DELETE FROM quiz_assignees WHERE quiz_id = :qid", Map.of("qid", quizId));
+            return;
+        }
+        jdbc.update("""
+                DELETE FROM quiz_assignees
+                WHERE quiz_id = :qid AND user_id NOT IN (:uids)
+                """, Map.of("qid", quizId, "uids", ids));
+        for (UUID userId : ids) {
             jdbc.update("""
                     INSERT INTO quiz_assignees (quiz_id, user_id)
                     VALUES (:qid, :uid)

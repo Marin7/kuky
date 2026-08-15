@@ -65,7 +65,7 @@ class HomeworkAdminServiceTest {
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 answerRepository,
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
-                new ObjectMapper());
+                new ObjectMapper(), mock(com.kuky.backend.notification.service.NotificationService.class));
 
         User student = new User();
         student.setId(studentId);
@@ -90,7 +90,7 @@ class HomeworkAdminServiceTest {
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of(
                 new HomeworkTargetRepository.AssigneeView(studentId, "ana@example.com",
-                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null, false)));
+                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null, false, false)));
 
         HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
                 "Tarea", "Hazla", LocalDate.of(2026, 6, 20), "WRITE", null, "MANUAL", List.of(), null, null, null, List.of(studentId)));
@@ -171,7 +171,7 @@ class HomeworkAdminServiceTest {
         Instant submittedAt = Instant.now();
         when(submissionRepository.findSubmittedManualQueue()).thenReturn(List.of(
                 new HomeworkSubmissionRepository.ReviewQueueRow(submissionId, studentId, "ana@example.com",
-                        "Ana", "Lopez", null, "Tarea", submittedAt)));
+                        "Ana", "Lopez", null, "Tarea", submittedAt, false)));
 
         List<HomeworkReviewQueueItemDto> queue = service.getReviewQueue();
 
@@ -395,7 +395,8 @@ class HomeworkAdminServiceTest {
                         new com.kuky.backend.learning.dto.ExerciseResultResponse(100, 1, 1, List.of())));
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
-                audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper());
+                audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
+                mock(com.kuky.backend.notification.service.NotificationService.class));
 
         var result = service.saveExerciseFeedback(submissionId, "  Muy bien  ");
 
@@ -422,7 +423,8 @@ class HomeworkAdminServiceTest {
                         new com.kuky.backend.learning.dto.ExerciseResultResponse(80, 0, 1, List.of())));
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
-                audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper());
+                audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
+                mock(com.kuky.backend.notification.service.NotificationService.class));
 
         var result = service.saveExerciseFeedback(submissionId, "   ");
 
@@ -489,7 +491,8 @@ class HomeworkAdminServiceTest {
         when(answers.findBySubmission(submissionId)).thenReturn(List.of(row));
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 answers, audioFileRepository, userRepository, submissionRepository,
-                mock(ExerciseGradingService.class), new ObjectMapper());
+                mock(ExerciseGradingService.class), new ObjectMapper(),
+                mock(com.kuky.backend.notification.service.NotificationService.class));
 
         HomeworkSubmissionAdminDto detail = service.getSubmissionDetail(submissionId);
 

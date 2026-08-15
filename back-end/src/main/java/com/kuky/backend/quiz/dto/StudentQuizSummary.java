@@ -11,5 +11,6 @@ public record StudentQuizSummary(
         String status,
         Integer scorePercent,
         Instant submittedAt,
-        List<QuizSkillScoreDto> skills
+        List<QuizSkillScoreDto> skills,
+        boolean unseen
 ) {}
