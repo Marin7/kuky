@@ -8,10 +8,10 @@ import {
   matchClassicInlineSingleChoice,
   classicSingleChoiceResultPrompt,
 } from "@/lib/inlineChoice";
-import { numberedPromptLabel } from "@/lib/questionPrompt";
 import { MultiBlankResult } from "./MultiBlankResult";
 import { InlineSingleChoiceResult } from "./InlineSingleChoiceResult";
 import { TableFillResult } from "./TableFillResult";
+import { QuestionCard, QuestionHeading } from "./QuestionHeading";
 
 interface Props {
   questions: StudentQuestion[];
@@ -118,46 +118,45 @@ export function QuestionResultBlock({
   return (
     <div className="text-base">
       <div className="flex items-start justify-between gap-3">
-        {isBlankPassage && question ? (
-          <MultiBlankResult
-            number={number}
-            prompt={question.prompt}
-            unitResults={unitResults}
+        <div className="min-w-0 flex-1 space-y-1">
+          <QuestionHeading
+            index={number}
+            prompt={
+              isBlankPassage || inlineChoice || filledChoicePrompt
+                ? undefined
+                : (question?.prompt ?? "")
+            }
           />
-        ) : inlineChoice && question ? (
-          <InlineSingleChoiceResult
-            number={number}
-            prompt={question.prompt}
-            match={inlineChoice}
-            selectedOptionId={qr.selectedOptionIds?.[0] ?? null}
-            correctOptionIds={qr.correctOptionIds}
-            correct={qr.correct}
-            revealCorrect={showAllAnswers || !qr.correct}
-          />
-        ) : filledChoicePrompt && question ? (
-          <MultiBlankResult
-            number={number}
-            prompt={filledChoicePrompt}
-            unitResults={[
-              {
-                index: 0,
-                score: qr.correct ? 1 : 0,
-                correct: qr.correct,
-                studentDisplay: studentChoiceText || null,
-                expectedDisplay:
-                  !qr.correct && correctText ? [correctText] : [],
-              },
-            ]}
-          />
-        ) : numberedSingleChoice && question ? (
-          <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
-            {question.prompt}
-          </p>
-        ) : (
-          <p className="whitespace-pre-wrap font-medium leading-relaxed text-foreground">
-            {numberedPromptLabel(number, question?.prompt ?? "")}
-          </p>
-        )}
+          {isBlankPassage && question ? (
+            <MultiBlankResult
+              prompt={question.prompt}
+              unitResults={unitResults}
+            />
+          ) : inlineChoice && question ? (
+            <InlineSingleChoiceResult
+              prompt={question.prompt}
+              match={inlineChoice}
+              selectedOptionId={qr.selectedOptionIds?.[0] ?? null}
+              correctOptionIds={qr.correctOptionIds}
+              correct={qr.correct}
+              revealCorrect={showAllAnswers || !qr.correct}
+            />
+          ) : filledChoicePrompt && question ? (
+            <MultiBlankResult
+              prompt={filledChoicePrompt}
+              unitResults={[
+                {
+                  index: 0,
+                  score: qr.correct ? 1 : 0,
+                  correct: qr.correct,
+                  studentDisplay: studentChoiceText || null,
+                  expectedDisplay:
+                    !qr.correct && correctText ? [correctText] : [],
+                },
+              ]}
+            />
+          ) : null}
+        </div>
         {!numberedSingleChoice && (
           <span
             className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${badge.cls}`}
@@ -296,7 +295,7 @@ export function ExerciseResult({
         </div>
       )}
 
-      <div className={groups.length > 1 ? "space-y-8" : "space-y-3"}>
+      <div className="space-y-3">
         {groups.map((group, gi) => (
           <div
             key={
@@ -304,7 +303,7 @@ export function ExerciseResult({
                 ? `${group.skill}-${gi}`
                 : group.items[0]?.qr.questionId
             }
-            className="space-y-4 rounded-lg border p-3 text-base"
+            className="space-y-3"
           >
             {group.skill && (
               <p className="text-xs font-medium uppercase tracking-wide text-primary">
@@ -312,13 +311,14 @@ export function ExerciseResult({
               </p>
             )}
             {group.items.map(({ qr, index }) => (
-              <QuestionResultBlock
-                key={qr.questionId}
-                question={byId.get(qr.questionId)}
-                result={qr}
-                number={index + 1}
-                showAllAnswers={showAllAnswers}
-              />
+              <QuestionCard key={qr.questionId}>
+                <QuestionResultBlock
+                  question={byId.get(qr.questionId)}
+                  result={qr}
+                  number={index + 1}
+                  showAllAnswers={showAllAnswers}
+                />
+              </QuestionCard>
             ))}
           </div>
         ))}

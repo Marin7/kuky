@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
 
 interface Props {
-  number: number;
   prompt: string;
   match: InlineChoiceMatch;
   selectedOptionId: string | null;
@@ -20,7 +19,6 @@ interface Props {
  * (green if right, red if wrong). Wrong answers also mark the expected word.
  */
 export function InlineSingleChoiceResult({
-  number,
   prompt,
   match,
   selectedOptionId,
@@ -33,7 +31,6 @@ export function InlineSingleChoiceResult({
 
   return (
     <div className="text-base leading-9">
-      <span className="font-medium">{number}. </span>
       <PassageText text={before} />
       <span>
         (

@@ -1,11 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { splitPromptSegments } from "@/lib/blankTokens";
 import type { UnitResult } from "@/lib/learning";
-import { promptHasLeadingEnumeration } from "@/lib/questionPrompt";
+import { stripLeadingEnumeration } from "@/lib/questionPrompt";
 import { PassageText } from "./PassageText";
 
 interface Props {
-  number: number;
   prompt: string;
   unitResults: UnitResult[];
 }
@@ -19,16 +18,13 @@ function displayOrDash(
 }
 
 /** Graded MULTI_BLANK / DRAG_DROP review: passage with filled blanks and per-blank feedback. */
-export function MultiBlankResult({ number, prompt, unitResults }: Props) {
+export function MultiBlankResult({ prompt, unitResults }: Props) {
   const { t } = useTranslation();
   const noAnswer = t("learning.exerciseResult.noAnswer");
-  const segments = splitPromptSegments(prompt);
-
-  const showOuterNumber = !promptHasLeadingEnumeration(prompt);
+  const segments = splitPromptSegments(stripLeadingEnumeration(prompt));
 
   return (
     <div className="text-base leading-9">
-      {showOuterNumber && <span className="font-medium">{number}. </span>}
       {segments.map((seg, i) => {
         if (seg.type === "text") {
           return <PassageText key={i} text={seg.text} />;

@@ -11,13 +11,12 @@ import {
 } from "@/lib/learning";
 import { countBlanks } from "@/lib/blankTokens";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExerciseResult } from "./ExerciseResult";
 import { matchClassicInlineSingleChoice } from "@/lib/inlineChoice";
-import { numberedPromptLabel } from "@/lib/questionPrompt";
 import { NumberedSingleChoiceQuestion } from "./NumberedSingleChoiceQuestion";
+import { QuestionCard, QuestionHeading } from "./QuestionHeading";
 import { InlineSingleChoiceQuestion } from "./InlineSingleChoiceQuestion";
 import { MultiBlankQuestion } from "./MultiBlankQuestion";
 import { DragDropQuestion } from "./DragDropQuestion";
@@ -225,19 +224,18 @@ export function ExerciseForm({
 
   return (
     <div className="mt-6 space-y-5">
-      <div
-        className={exercise.questions.length > 1 ? "space-y-8" : "space-y-5"}
-      >
+      <div className="space-y-3">
         {exercise.questions.map((q, i) => {
           const inlineChoice = matchClassicInlineSingleChoice(q);
           const numbered = numberedItems(q).length > 0;
           return (
-            <div key={q.id} className="space-y-2.5">
-              {!hidesPromptLabel(q.kind, inlineChoice) && (
-                <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
-                  {numbered ? q.prompt : numberedPromptLabel(i + 1, q.prompt)}
-                </Label>
-              )}
+            <QuestionCard key={q.id}>
+              <QuestionHeading
+                index={i + 1}
+                prompt={
+                  hidesPromptLabel(q.kind, inlineChoice) ? undefined : q.prompt
+                }
+              />
 
               {numbered && (
                 <NumberedSingleChoiceQuestion
@@ -252,7 +250,6 @@ export function ExerciseForm({
 
               {inlineChoice && (
                 <InlineSingleChoiceQuestion
-                  number={i + 1}
                   prompt={q.prompt}
                   match={inlineChoice}
                   selectedOptionId={answers[q.id]?.selectedOptionIds[0] ?? null}
@@ -307,7 +304,6 @@ export function ExerciseForm({
 
               {q.kind === "MULTI_BLANK" && (
                 <MultiBlankQuestion
-                  number={i + 1}
                   prompt={q.prompt}
                   value={answers[q.id]?.blanks ?? []}
                   onChange={(blanks) => setBlanks(q.id, blanks)}
@@ -316,7 +312,6 @@ export function ExerciseForm({
 
               {q.kind === "DRAG_DROP" && (
                 <DragDropQuestion
-                  number={i + 1}
                   prompt={q.prompt}
                   bank={q.structure?.bank ?? []}
                   value={answers[q.id]?.placements ?? []}
@@ -340,7 +335,7 @@ export function ExerciseForm({
                   onChange={(pairs) => setPairs(q.id, pairs)}
                 />
               )}
-            </div>
+            </QuestionCard>
           );
         })}
       </div>

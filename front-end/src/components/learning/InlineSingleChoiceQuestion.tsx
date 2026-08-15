@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
 
 interface Props {
-  number: number;
   prompt: string;
   match: InlineChoiceMatch;
   selectedOptionId: string | null;
@@ -18,7 +17,6 @@ interface Props {
  * of a radio list. Clicking the selected word deselects it.
  */
 export function InlineSingleChoiceQuestion({
-  number,
   prompt,
   match,
   selectedOptionId,
@@ -32,7 +30,6 @@ export function InlineSingleChoiceQuestion({
 
   return (
     <div className="text-base leading-9">
-      <span className="font-medium">{number}. </span>
       <PassageText text={before} />
       <span
         role="group"

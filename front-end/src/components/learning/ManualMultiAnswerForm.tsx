@@ -9,9 +9,9 @@ import {
   type ManualAnswerPayload,
 } from "@/lib/learning";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
+import { QuestionCard, QuestionHeading } from "./QuestionHeading";
 
 interface QuestionPrompt {
   id: string;
@@ -145,7 +145,7 @@ export function ManualMultiAnswerForm({
         {t("learning.manualMulti.title")}
       </p>
 
-      <div className={questions.length > 1 ? "space-y-8" : "space-y-4"}>
+      <div className="space-y-3">
         {questions.map((q, i) => {
           const answerText = texts[q.id] ?? "";
           const readOnlyAnswer =
@@ -153,14 +153,12 @@ export function ManualMultiAnswerForm({
             answerText;
 
           return (
-            <div key={q.id} className="space-y-1.5">
-              <Label
-                htmlFor={`manual-ans-${q.id}`}
-                className="text-sm font-medium"
-              >
-                {t("learning.manualMulti.questionLabel", { index: i + 1 })}
-                {q.prompt ? ` — ${q.prompt}` : ""}
-              </Label>
+            <QuestionCard key={q.id}>
+              <QuestionHeading
+                index={i + 1}
+                prompt={q.prompt}
+                htmlFor={readOnly ? undefined : `manual-ans-${q.id}`}
+              />
               {readOnly ? (
                 <div className="space-y-1.5">
                   {(() => {
@@ -200,7 +198,7 @@ export function ManualMultiAnswerForm({
                   maxLength={2000}
                 />
               )}
-            </div>
+            </QuestionCard>
           );
         })}
       </div>

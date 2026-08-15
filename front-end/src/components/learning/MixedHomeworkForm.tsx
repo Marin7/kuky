@@ -13,14 +13,13 @@ import {
 } from "@/lib/learning";
 import { countBlanks } from "@/lib/blankTokens";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExerciseResult } from "./ExerciseResult";
 import { matchClassicInlineSingleChoice } from "@/lib/inlineChoice";
-import { numberedPromptLabel } from "@/lib/questionPrompt";
 import { NumberedSingleChoiceQuestion } from "./NumberedSingleChoiceQuestion";
+import { QuestionCard, QuestionHeading } from "./QuestionHeading";
 import { InlineSingleChoiceQuestion } from "./InlineSingleChoiceQuestion";
 import { MultiBlankQuestion } from "./MultiBlankQuestion";
 import { DragDropQuestion } from "./DragDropQuestion";
@@ -28,10 +27,7 @@ import { TableFillQuestion } from "./TableFillQuestion";
 import { MatchingQuestion } from "./MatchingQuestion";
 import { RichTextEditor } from "./richtext/RichTextEditor";
 import { RichTextViewer } from "./richtext/RichTextViewer";
-import {
-  plainText,
-  type FormattedText,
-} from "./richtext/types";
+import { plainText, type FormattedText } from "./richtext/types";
 
 interface AnswerState {
   selectedOptionIds: string[];
@@ -305,28 +301,28 @@ export function MixedHomeworkForm({
       <div className="mt-6 space-y-5">
         {!hideCombinedScore &&
           (finalized && assignment.scorePercent != null ? (
-          <div className="rounded-lg border bg-card p-4">
-            <p className="text-2xl font-semibold text-primary">
-              {assignment.scorePercent}%
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t("learning.mixed.combinedScore")}
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
-            <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
-              {t("learning.mixed.awaitingTeacher")}
-            </p>
-            {assignment.provisionalScorePercent != null && (
-              <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
-                {t("learning.mixed.provisionalScore", {
-                  percent: assignment.provisionalScorePercent,
-                })}
+            <div className="rounded-lg border bg-card p-4">
+              <p className="text-2xl font-semibold text-primary">
+                {assignment.scorePercent}%
               </p>
-            )}
-          </div>
-        ))}
+              <p className="text-sm text-muted-foreground">
+                {t("learning.mixed.combinedScore")}
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                {t("learning.mixed.awaitingTeacher")}
+              </p>
+              {assignment.provisionalScorePercent != null && (
+                <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                  {t("learning.mixed.provisionalScore", {
+                    percent: assignment.provisionalScorePercent,
+                  })}
+                </p>
+              )}
+            </div>
+          ))}
 
         {autoResult && autoQuestions.length > 0 && (
           <div className="space-y-2">
@@ -369,13 +365,10 @@ export function MixedHomeworkForm({
                     key={q.id}
                     className="space-y-2 rounded-md border bg-muted/20 p-3"
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-medium">
-                        {t("learning.manualMulti.questionLabel", {
-                          index: i + 1,
-                        })}
-                        {q.prompt ? ` — ${q.prompt}` : ""}
-                      </p>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <QuestionHeading index={i + 1} prompt={q.prompt} />
+                      </div>
                       {finalized && percent != null && (
                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-foreground">
                           {t("learning.mixed.scorePercent", { percent })}
@@ -428,163 +421,167 @@ export function MixedHomeworkForm({
 
   return (
     <div className="mt-6 space-y-5">
-      <div
-        className={assignment.questions.length > 1 ? "space-y-8" : "space-y-5"}
-      >
+      <div className="space-y-3">
         {assignment.questions.map((q, i) => {
           const inlineChoice = matchClassicInlineSingleChoice(q);
           const numbered = numberedItems(q).length > 0;
           return (
-            <div key={q.id} className="space-y-2.5">
+            <div key={q.id} className="space-y-3">
               {q.skill && q.skill !== assignment.questions[i - 1]?.skill && (
                 <p className="font-display text-lg font-semibold text-primary">
                   {t(`quiz.skills.${q.skill}`)}
                 </p>
               )}
-              {isFreeText(q.kind) ? (
-                <>
-                  <Label
-                    htmlFor={`mixed-ft-${q.id}`}
-                    className="block whitespace-pre-wrap text-base font-medium leading-relaxed"
-                  >
-                    {numberedPromptLabel(i + 1, q.prompt)}
-                  </Label>
-                  {richFreeText ? (
-                    <RichTextEditor
-                      id={`mixed-ft-${q.id}`}
-                      value={answers[q.id]?.formatted ?? []}
-                      onChange={(next) => setFormatted(q.id, next)}
-                      placeholder={t("learning.manualMulti.placeholder")}
-                      disabled={submitting}
-                      rows={8}
+              <QuestionCard>
+                {isFreeText(q.kind) ? (
+                  <>
+                    <QuestionHeading
+                      index={i + 1}
+                      prompt={q.prompt}
+                      htmlFor={`mixed-ft-${q.id}`}
                     />
-                  ) : (
-                    <Textarea
-                      id={`mixed-ft-${q.id}`}
-                      value={answers[q.id]?.text ?? ""}
-                      onChange={(e) => setText(q.id, e.target.value)}
-                      rows={3}
-                      disabled={submitting}
-                      placeholder={t("learning.manualMulti.placeholder")}
-                      maxLength={2000}
-                    />
-                  )}
-                </>
-              ) : (
-                <>
-                  {!hidesPromptLabel(q.kind, inlineChoice) && (
-                    <Label className="block whitespace-pre-wrap text-base font-medium leading-relaxed">
-                      {numbered
-                        ? q.prompt
-                        : numberedPromptLabel(i + 1, q.prompt)}
-                    </Label>
-                  )}
-
-                  {numbered && (
-                    <NumberedSingleChoiceQuestion
-                      questionId={q.id}
-                      items={numberedItems(q)}
-                      selections={answers[q.id]?.selections ?? {}}
-                      onChange={(number, optionId) =>
-                        setItemSelection(q.id, number, optionId)
+                    {richFreeText ? (
+                      <RichTextEditor
+                        id={`mixed-ft-${q.id}`}
+                        value={answers[q.id]?.formatted ?? []}
+                        onChange={(next) => setFormatted(q.id, next)}
+                        placeholder={t("learning.manualMulti.placeholder")}
+                        disabled={submitting}
+                        rows={8}
+                      />
+                    ) : (
+                      <Textarea
+                        id={`mixed-ft-${q.id}`}
+                        value={answers[q.id]?.text ?? ""}
+                        onChange={(e) => setText(q.id, e.target.value)}
+                        rows={3}
+                        disabled={submitting}
+                        placeholder={t("learning.manualMulti.placeholder")}
+                        maxLength={2000}
+                      />
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <QuestionHeading
+                      index={i + 1}
+                      prompt={
+                        hidesPromptLabel(q.kind, inlineChoice)
+                          ? undefined
+                          : q.prompt
                       }
                     />
-                  )}
 
-                  {inlineChoice && (
-                    <InlineSingleChoiceQuestion
-                      number={i + 1}
-                      prompt={q.prompt}
-                      match={inlineChoice}
-                      selectedOptionId={
-                        answers[q.id]?.selectedOptionIds[0] ?? null
-                      }
-                      onChange={(optionId) => setSingle(q.id, optionId)}
-                    />
-                  )}
+                    {numbered && (
+                      <NumberedSingleChoiceQuestion
+                        questionId={q.id}
+                        items={numberedItems(q)}
+                        selections={answers[q.id]?.selections ?? {}}
+                        onChange={(number, optionId) =>
+                          setItemSelection(q.id, number, optionId)
+                        }
+                      />
+                    )}
 
-                  {((q.kind === "SINGLE_CHOICE" && !numbered && !inlineChoice) ||
-                    q.kind === "TRUE_FALSE") && (
-                    <RadioGroup
-                      value={answers[q.id]?.selectedOptionIds[0] ?? ""}
-                      onValueChange={(v) => setSingle(q.id, v)}
-                    >
-                      {q.options.map((o) => (
-                        <label
-                          key={o.id}
-                          className="flex items-center gap-2.5 text-base leading-snug"
-                        >
-                          <RadioGroupItem value={o.id} id={`${q.id}-${o.id}`} />
-                          {q.kind === "TRUE_FALSE"
-                            ? t(
-                                o.label === "false"
-                                  ? "learning.trueFalse.false"
-                                  : "learning.trueFalse.true",
-                              )
-                            : o.label}
-                        </label>
-                      ))}
-                    </RadioGroup>
-                  )}
+                    {inlineChoice && (
+                      <InlineSingleChoiceQuestion
+                        prompt={q.prompt}
+                        match={inlineChoice}
+                        selectedOptionId={
+                          answers[q.id]?.selectedOptionIds[0] ?? null
+                        }
+                        onChange={(optionId) => setSingle(q.id, optionId)}
+                      />
+                    )}
 
-                  {q.kind === "MULTI_CHOICE" && (
-                    <div className="space-y-2.5">
-                      {q.options.map((o) => (
-                        <label
-                          key={o.id}
-                          className="flex items-center gap-2.5 text-base leading-snug"
-                        >
-                          <Checkbox
-                            checked={answers[q.id]?.selectedOptionIds.includes(
-                              o.id,
-                            )}
-                            onCheckedChange={(c) =>
-                              toggleMulti(q.id, o.id, c === true)
-                            }
-                          />
-                          {o.label}
-                        </label>
-                      ))}
-                    </div>
-                  )}
+                    {((q.kind === "SINGLE_CHOICE" &&
+                      !numbered &&
+                      !inlineChoice) ||
+                      q.kind === "TRUE_FALSE") && (
+                      <RadioGroup
+                        value={answers[q.id]?.selectedOptionIds[0] ?? ""}
+                        onValueChange={(v) => setSingle(q.id, v)}
+                      >
+                        {q.options.map((o) => (
+                          <label
+                            key={o.id}
+                            className="flex items-center gap-2.5 text-base leading-snug"
+                          >
+                            <RadioGroupItem
+                              value={o.id}
+                              id={`${q.id}-${o.id}`}
+                            />
+                            {q.kind === "TRUE_FALSE"
+                              ? t(
+                                  o.label === "false"
+                                    ? "learning.trueFalse.false"
+                                    : "learning.trueFalse.true",
+                                )
+                              : o.label}
+                          </label>
+                        ))}
+                      </RadioGroup>
+                    )}
 
-                  {q.kind === "MULTI_BLANK" && (
-                    <MultiBlankQuestion
-                      number={i + 1}
-                      prompt={q.prompt}
-                      value={answers[q.id]?.blanks ?? []}
-                      onChange={(blanks) => setBlanks(q.id, blanks)}
-                    />
-                  )}
+                    {q.kind === "MULTI_CHOICE" && (
+                      <div className="space-y-2.5">
+                        {q.options.map((o) => (
+                          <label
+                            key={o.id}
+                            className="flex items-center gap-2.5 text-base leading-snug"
+                          >
+                            <Checkbox
+                              checked={answers[
+                                q.id
+                              ]?.selectedOptionIds.includes(o.id)}
+                              onCheckedChange={(c) =>
+                                toggleMulti(q.id, o.id, c === true)
+                              }
+                            />
+                            {o.label}
+                          </label>
+                        ))}
+                      </div>
+                    )}
 
-                  {q.kind === "DRAG_DROP" && (
-                    <DragDropQuestion
-                      number={i + 1}
-                      prompt={q.prompt}
-                      bank={q.structure?.bank ?? []}
-                      value={answers[q.id]?.placements ?? []}
-                      onChange={(placements) => setPlacements(q.id, placements)}
-                    />
-                  )}
+                    {q.kind === "MULTI_BLANK" && (
+                      <MultiBlankQuestion
+                        prompt={q.prompt}
+                        value={answers[q.id]?.blanks ?? []}
+                        onChange={(blanks) => setBlanks(q.id, blanks)}
+                      />
+                    )}
 
-                  {q.kind === "TABLE_FILL" && (
-                    <TableFillQuestion
-                      structure={q.structure ?? {}}
-                      value={answers[q.id]?.cells ?? {}}
-                      onChange={(cells) => setCells(q.id, cells)}
-                    />
-                  )}
+                    {q.kind === "DRAG_DROP" && (
+                      <DragDropQuestion
+                        prompt={q.prompt}
+                        bank={q.structure?.bank ?? []}
+                        value={answers[q.id]?.placements ?? []}
+                        onChange={(placements) =>
+                          setPlacements(q.id, placements)
+                        }
+                      />
+                    )}
 
-                  {q.kind === "MATCHING" && (
-                    <MatchingQuestion
-                      left={q.structure?.left ?? []}
-                      right={q.structure?.right ?? []}
-                      pairs={answers[q.id]?.pairs ?? []}
-                      onChange={(pairs) => setPairs(q.id, pairs)}
-                    />
-                  )}
-                </>
-              )}
+                    {q.kind === "TABLE_FILL" && (
+                      <TableFillQuestion
+                        structure={q.structure ?? {}}
+                        value={answers[q.id]?.cells ?? {}}
+                        onChange={(cells) => setCells(q.id, cells)}
+                      />
+                    )}
+
+                    {q.kind === "MATCHING" && (
+                      <MatchingQuestion
+                        left={q.structure?.left ?? []}
+                        right={q.structure?.right ?? []}
+                        pairs={answers[q.id]?.pairs ?? []}
+                        onChange={(pairs) => setPairs(q.id, pairs)}
+                      />
+                    )}
+                  </>
+                )}
+              </QuestionCard>
             </div>
           );
         })}

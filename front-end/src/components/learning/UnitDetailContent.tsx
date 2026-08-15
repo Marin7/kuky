@@ -19,7 +19,11 @@ import { ActivityViewerPrompts } from "./ActivityViewerPrompts";
 import { HomeworkInlinePanel } from "./HomeworkInlinePanel";
 
 type UnitListItem =
-  | { kind: "presentation"; position: number; presentation: SharedPresentationSummary }
+  | {
+      kind: "presentation";
+      position: number;
+      presentation: SharedPresentationSummary;
+    }
   | { kind: "homework"; position: number; homework: HomeworkItem };
 
 const STATUS_CLASS: Record<HomeworkItem["status"], string> = {
@@ -92,10 +96,7 @@ function PresentationExpandBody({
           const canView = isPresentationPdf(f.contentType);
           const isViewing = viewingFileId === f.id;
           return (
-            <li
-              key={f.id}
-              className="flex items-center justify-between gap-2"
-            >
+            <li key={f.id} className="flex items-center justify-between gap-2">
               <span className="truncate text-sm text-muted-foreground">
                 {f.displayName}
               </span>
@@ -151,9 +152,7 @@ function HomeworkTriggerMeta({ item }: { item: HomeworkItem }) {
       <div className="min-w-0 space-y-1">
         <p className="inline-flex max-w-full items-center gap-1.5 truncate font-medium text-foreground">
           <span className="truncate">{item.title}</span>
-          {item.unseen && (
-            <NotificationDot label={t("notification.item")} />
-          )}
+          {item.unseen && <NotificationDot label={t("notification.item")} />}
         </p>
         <div className="flex flex-wrap items-center gap-1">
           {item.homeworkType && (
@@ -219,7 +218,9 @@ function submittedAtDesc(a: HomeworkItem, b: HomeworkItem): number {
 
 function scrollToHomework(homeworkId: string) {
   document.getElementById(`unit-homework-${homeworkId}`)?.scrollIntoView({
-    behavior: "smooth",
+    // Instant: a smooth scroll started at the old (pending) index races the
+    // reorder and lands on whichever pending homework took that slot.
+    behavior: "auto",
     block: "start",
   });
 }
@@ -236,18 +237,21 @@ export function UnitDetailContent({
 
   const handleHomeworkChanged = (homeworkId: string) => {
     pendingScrollHomeworkId.current = homeworkId;
+    setOpenItem(`h-${homeworkId}`);
     onHomeworkChanged();
-    scrollToHomework(homeworkId);
   };
 
-  // After the list refresh, the completed homework may move (pending → submitted).
+  // After the list refresh, the completed homework moves below remaining pending
+  // items — scroll only then, so the viewport follows the same homework.
   useLayoutEffect(() => {
     const homeworkId = pendingScrollHomeworkId.current;
     if (!homeworkId) return;
     const updated = homework.find((h) => h.id === homeworkId);
     if (!updated || updated.status === "PENDING") return;
     pendingScrollHomeworkId.current = null;
-    scrollToHomework(homeworkId);
+    setOpenItem(`h-${homeworkId}`);
+    const frame = requestAnimationFrame(() => scrollToHomework(homeworkId));
+    return () => cancelAnimationFrame(frame);
   }, [homework]);
 
   const byUnitPosition = (a: number, b: number) => a - b;
@@ -317,7 +321,9 @@ export function UnitDetailContent({
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {t("learning.units.itemPresentation")}
                 </p>
-                <p className="truncate font-medium">{item.presentation.title}</p>
+                <p className="truncate font-medium">
+                  {item.presentation.title}
+                </p>
               </div>
             </AccordionTrigger>
             <AccordionContent className="overflow-visible">

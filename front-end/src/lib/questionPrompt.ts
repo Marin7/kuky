@@ -1,17 +1,16 @@
 /** Leading worksheet-style `N.` at the start of a prompt (e.g. seed / PDF copy). */
 const LEADING_ENUM_RE = /^\d+\.\s*/;
 
+/** A second `N.` on a later line — keep the passage's own numbering. */
+const MULTI_ENUM_RE = /\n\s*\d+\.\s/;
+
 /** Drop a teacher-authored leading `N.` so the UI index is not doubled. */
 export function stripLeadingEnumeration(prompt: string): string {
+  if (MULTI_ENUM_RE.test(prompt)) return prompt;
   return prompt.replace(LEADING_ENUM_RE, "");
 }
 
-/** True when the prompt already starts with its own `N.` numbering. */
-export function promptHasLeadingEnumeration(prompt: string): boolean {
-  return LEADING_ENUM_RE.test(prompt);
-}
-
-/** Take/result label: UI index + prompt without a duplicate leading `N.`. */
-export function numberedPromptLabel(number: number, prompt: string): string {
-  return `${number}. ${stripLeadingEnumeration(prompt)}`;
+/** Prompt body for labels: no leading `N.`, no surrounding blank lines. */
+export function displayPromptText(prompt: string | null | undefined): string {
+  return stripLeadingEnumeration(prompt ?? "").trim();
 }

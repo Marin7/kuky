@@ -2,12 +2,11 @@ import { useEffect, useMemo, useState, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { StudentBankItem } from "@/lib/learning";
 import { countBlanks, splitPromptSegments } from "@/lib/blankTokens";
-import { promptHasLeadingEnumeration } from "@/lib/questionPrompt";
+import { stripLeadingEnumeration } from "@/lib/questionPrompt";
 import { shuffle, cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
 
 interface Props {
-  number: number;
   prompt: string;
   bank: StudentBankItem[];
   value: (string | null)[];
@@ -18,13 +17,7 @@ interface Props {
  * Word-bank → blanks. Bank chips are dragged (or click-selected then click a
  * blank). Visually distinct from MULTI_BLANK typed inputs.
  */
-export function DragDropQuestion({
-  number,
-  prompt,
-  bank,
-  value,
-  onChange,
-}: Props) {
+export function DragDropQuestion({ prompt, bank, value, onChange }: Props) {
   const { t } = useTranslation();
   const blankCount = countBlanks(prompt);
   const bankKey = bank.map((b) => b.id).join(",");
@@ -36,7 +29,7 @@ export function DragDropQuestion({
   );
   const [selected, setSelected] = useState<string | null>(null);
   const [dragOverBlank, setDragOverBlank] = useState<number | null>(null);
-  const segments = splitPromptSegments(prompt);
+  const segments = splitPromptSegments(stripLeadingEnumeration(prompt));
   const placedIds = new Set(value.filter((v): v is string => v !== null));
 
   // Keep placements array length in sync with blank count.
@@ -146,9 +139,6 @@ export function DragDropQuestion({
           {t("learning.exercisePage.dropTargets")}
         </p>
         <div className="text-base leading-10">
-          {!promptHasLeadingEnumeration(prompt) && (
-            <span className="font-medium">{number}. </span>
-          )}
           {segments.map((seg, i) =>
             seg.type === "text" ? (
               <PassageText key={i} text={seg.text} />
