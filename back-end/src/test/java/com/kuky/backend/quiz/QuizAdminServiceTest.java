@@ -166,6 +166,24 @@ class QuizAdminServiceTest {
     }
 
     @Test
+    void updateAllowsMultipleQuestionsOnSameSkill() {
+        when(questionRepository.findLiveByQuiz(quizId)).thenReturn(List.of());
+
+        service.update(quizId, new UpdateQuizRequest("Gramática", null, List.of(
+                choice("GRAMMAR", "¿Ser o estar?"),
+                choice("GRAMMAR", "El pretérito")
+        )));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<QuizQuestion>> captor = ArgumentCaptor.forClass(List.class);
+        verify(questionRepository).replaceQuestions(eq(quizId), captor.capture());
+        List<QuizQuestion> saved = captor.getValue();
+        assertThat(saved).hasSize(2);
+        assertThat(saved.stream().map(QuizQuestion::getSkill).toList())
+                .containsExactly(QuizSkill.GRAMMAR, QuizSkill.GRAMMAR);
+    }
+
+    @Test
     void listeningWithoutMediaIsRejected() {
         assertThatThrownBy(() -> service.update(quizId, new UpdateQuizRequest("Q", null, List.of(
                 new QuizQuestionDto(null, "LISTENING", "SINGLE_CHOICE", "¿…?",
@@ -242,6 +260,27 @@ class QuizAdminServiceTest {
     }
 
     @Test
+    void reviewRejectedWhenAlreadyGraded() {
+        QuizQuestion writing = new QuizQuestion();
+        writing.setId(UUID.randomUUID());
+        writing.setSkill(QuizSkill.WRITING);
+        writing.setKind(QuestionKind.FREE_TEXT);
+        writing.setPrompt("Escribe");
+        QuizAttempt attempt = new QuizAttempt();
+        attempt.setId(UUID.randomUUID());
+        attempt.setQuizId(quizId);
+        attempt.setStatus(QuizAttemptStatus.GRADED);
+        attempt.setQuizSnapshot(snapshot.serialize(quiz(), List.of(writing)));
+        when(attemptRepository.findById(attempt.getId())).thenReturn(Optional.of(attempt));
+
+        assertThatThrownBy(() -> service.review(quizId, attempt.getId(),
+                new QuizReviewRequest(List.of(), "nota", true)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("ya está calificada");
+        verify(attemptRepository, never()).replaceAnswers(any(), any());
+    }
+
+    @Test
     void reviewUsesSnapshotNotLiveQuiz() {
         QuizQuestion snapQ = new QuizQuestion();
         snapQ.setId(UUID.randomUUID());
@@ -266,6 +305,26 @@ class QuizAdminServiceTest {
         var view = service.getAttempt(quizId, attempt.getId());
         assertThat(view.questions()).extracting(q -> q.prompt()).containsExactly("snapshot prompt");
         assertThat(view.questions()).extracting(q -> q.skill()).containsExactly("READING");
+    }
+
+    @Test
+    void reviewQueueMapsSubmittedAttempts() {
+        UUID attemptId = UUID.randomUUID();
+        java.time.Instant submittedAt = java.time.Instant.parse("2026-08-15T12:00:00Z");
+        when(attemptRepository.findSubmittedQueue()).thenReturn(List.of(
+                new QuizAttemptRepository.ReviewQueueRow(
+                        attemptId, quizId, "Quiz mixto", studentId,
+                        "ana@example.com", "Ana", "Lopez", null, submittedAt)));
+
+        var queue = service.listReviewQueue();
+
+        assertThat(queue).hasSize(1);
+        assertThat(queue.get(0).attemptId()).isEqualTo(attemptId);
+        assertThat(queue.get(0).quizId()).isEqualTo(quizId);
+        assertThat(queue.get(0).quizTitle()).isEqualTo("Quiz mixto");
+        assertThat(queue.get(0).studentId()).isEqualTo(studentId);
+        assertThat(queue.get(0).studentEmail()).isEqualTo("ana@example.com");
+        assertThat(queue.get(0).submittedAt()).isEqualTo(submittedAt);
     }
 
     @Test

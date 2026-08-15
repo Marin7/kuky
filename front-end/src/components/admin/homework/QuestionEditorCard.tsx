@@ -56,6 +56,8 @@ interface Props {
   onRemove: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  moveUpDisabled?: boolean;
+  moveDownDisabled?: boolean;
 }
 
 export function QuestionEditorCard({
@@ -66,6 +68,8 @@ export function QuestionEditorCard({
   onRemove,
   onMoveUp,
   onMoveDown,
+  moveUpDisabled,
+  moveDownDisabled,
 }: Props) {
   const { t } = useTranslation();
 
@@ -211,7 +215,7 @@ export function QuestionEditorCard({
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs"
-            disabled={index === 0}
+            disabled={moveUpDisabled ?? index === 0}
             onClick={onMoveUp}
           >
             ↑
@@ -221,7 +225,7 @@ export function QuestionEditorCard({
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs"
-            disabled={index === count - 1}
+            disabled={moveDownDisabled ?? index === count - 1}
             onClick={onMoveDown}
           >
             ↓

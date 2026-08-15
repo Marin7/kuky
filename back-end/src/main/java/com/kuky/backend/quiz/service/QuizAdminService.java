@@ -8,6 +8,7 @@ import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.admin.service.HomeworkAdminService;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.ListeningMedia;
 import com.kuky.backend.learning.model.MediaSourceKind;
@@ -17,6 +18,7 @@ import com.kuky.backend.quiz.dto.QuizAdminDetail;
 import com.kuky.backend.quiz.dto.QuizAdminListItem;
 import com.kuky.backend.quiz.dto.QuizAssigneeDto;
 import com.kuky.backend.quiz.dto.QuizAttemptListItem;
+import com.kuky.backend.quiz.dto.QuizReviewQueueItemDto;
 import com.kuky.backend.quiz.dto.QuizQuestionDto;
 import com.kuky.backend.quiz.dto.QuizReviewRequest;
 import com.kuky.backend.quiz.dto.QuizSkillScoreDto;
@@ -113,7 +115,7 @@ public class QuizAdminService {
     @Transactional
     public void delete(UUID id) {
         if (quizRepository.delete(id) == 0) {
-            throw new QuizNotFoundException("Quiz no encontrado.");
+            throw new QuizNotFoundException("Prueba de evaluación no encontrada.");
         }
     }
 
@@ -121,7 +123,7 @@ public class QuizAdminService {
     public QuizAdminDetail setAssignees(UUID id, List<UUID> studentIds) {
         requireQuiz(id);
         if (questionRepository.countLive(id) < 1) {
-            throw new IllegalArgumentException("El quiz necesita al menos una pregunta antes de asignarlo.");
+            throw new IllegalArgumentException("La prueba de evaluación necesita al menos una pregunta antes de asignarla.");
         }
         List<UUID> ids = studentIds == null ? List.of() : studentIds;
         validateStudents(ids);
@@ -137,6 +139,15 @@ public class QuizAdminService {
         }
         assigneeRepository.replaceAssignees(id, ids);
         return toDetail(requireQuiz(id));
+    }
+
+    public List<QuizReviewQueueItemDto> listReviewQueue() {
+        return attemptRepository.findSubmittedQueue().stream()
+                .map(r -> new QuizReviewQueueItemDto(
+                        r.attemptId(), r.quizId(), r.quizTitle(), r.studentId(),
+                        r.studentEmail(), r.studentFirstName(), r.studentLastName(),
+                        r.studentUsername(), r.submittedAt()))
+                .toList();
     }
 
     public List<QuizAttemptListItem> listAttempts(UUID quizId) {
@@ -169,7 +180,10 @@ public class QuizAdminService {
     public QuizTakeResponse review(UUID quizId, UUID attemptId, QuizReviewRequest request) {
         QuizAttempt attempt = requireAttempt(quizId, attemptId);
         if (attempt.getStatus() == QuizAttemptStatus.IN_PROGRESS) {
-            throw new IllegalArgumentException("El alumno aún no ha entregado este quiz.");
+            throw new IllegalArgumentException("El alumno aún no ha entregado esta prueba de evaluación.");
+        }
+        if (attempt.getStatus() == QuizAttemptStatus.GRADED) {
+            throw new IllegalArgumentException("Esta prueba de evaluación ya está calificada.");
         }
         List<QuizQuestion> questions = quizSnapshot.questionsOf(attempt.getQuizSnapshot());
         Map<UUID, QuizQuestion> byId = questions.stream()
@@ -189,6 +203,11 @@ public class QuizAdminService {
                     stored.setQuestionId(item.questionId());
                     answers.add(stored);
                     answerByQ.put(item.questionId(), stored);
+                }
+                if (item.formatted() != null) {
+                    FormattedTextSegment.validate(item.formatted());
+                    assertUnchangedWording(item.formatted(), stored.getAnswerText());
+                    stored.setAnswerText(FormattedTextSegment.toJson(item.formatted()));
                 }
                 if (item.teacherScorePercent() != null) {
                     int pct = item.teacherScorePercent();
@@ -401,7 +420,7 @@ public class QuizAdminService {
 
     private Quiz requireQuiz(UUID id) {
         return quizRepository.findById(id)
-                .orElseThrow(() -> new QuizNotFoundException("Quiz no encontrado."));
+                .orElseThrow(() -> new QuizNotFoundException("Prueba de evaluación no encontrada."));
     }
 
     private QuizAttempt requireAttempt(UUID quizId, UUID attemptId) {
@@ -429,5 +448,12 @@ public class QuizAdminService {
         if (!combined.isBlank()) return combined;
         if (username != null && !username.isBlank()) return username;
         return email == null ? "" : email;
+    }
+
+    private static void assertUnchangedWording(List<FormattedTextSegment> incoming, String stored) {
+        if (!FormattedTextSegment.plainText(incoming)
+                .equals(FormattedTextSegment.storedPlainWording(stored))) {
+            throw new IllegalArgumentException("No puedes cambiar el texto del alumno, solo el formato.");
+        }
     }
 }

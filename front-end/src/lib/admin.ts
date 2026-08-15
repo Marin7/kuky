@@ -1112,6 +1112,21 @@ export const setQuizAssignees = (id: string, studentIds: string[]) =>
 export const listQuizAttempts = (id: string) =>
   apiCall<QuizAttemptListItem[]>(`/quizzes/${id}/attempts`);
 
+export interface QuizReviewQueueItem {
+  attemptId: string;
+  quizId: string;
+  quizTitle: string;
+  studentId: string;
+  studentEmail: string;
+  studentFirstName: string | null;
+  studentLastName: string | null;
+  studentUsername: string | null;
+  submittedAt: string | null;
+}
+
+export const getQuizReviewQueue = () =>
+  apiCall<QuizReviewQueueItem[]>("/quizzes/submissions");
+
 export const getQuizAttempt = (quizId: string, attemptId: string) =>
   apiCall<import("@/lib/quiz").QuizTakeResponse>(
     `/quizzes/${quizId}/attempts/${attemptId}`,
@@ -1121,7 +1136,7 @@ export const reviewQuizAttempt = (
   quizId: string,
   attemptId: string,
   body: {
-    answers?: { questionId: string; teacherScorePercent?: number | null }[];
+    answers?: { questionId: string; teacherScorePercent?: number | null; formatted?: import("@/components/learning/richtext/types").FormattedText | null }[];
     feedbackText?: string | null;
     finalize?: boolean;
   },

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuky.backend.learning.dto.ExerciseQuestionDto;
 import com.kuky.backend.learning.dto.ExerciseResultResponse;
 import com.kuky.backend.learning.dto.SubmitExerciseRequest;
+import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.QuestionKind;
@@ -69,7 +70,7 @@ public class QuizGradingService {
             QuizAnswer answer = new QuizAnswer();
             answer.setQuestionId(q.getId());
             if (q.getKind() == QuestionKind.FREE_TEXT) {
-                answer.setAnswerText(given == null ? null : given.text());
+                answer.setAnswerText(encodeFreeTextAnswer(given));
                 answers.add(answer);
                 continue;
             }
@@ -203,11 +204,13 @@ public class QuizGradingService {
             }
         }
         List<UUID> selected = a == null || a.getSelectedOptionIds() == null ? List.of() : a.getSelectedOptionIds();
+        String raw = a == null ? null : a.getAnswerText();
         return new QuizTakeResponse.QuizQuestionResultDto(
                 q.getId(), q.getSkill().name(), score, correct, correctOptionIds,
                 List.of(), units, selected,
-                a == null ? null : a.getAnswerText(),
-                a == null ? null : a.getTeacherPercent());
+                FormattedTextSegment.storedPlainWording(raw),
+                a == null ? null : a.getTeacherPercent(),
+                FormattedTextSegment.tryParseFormatted(raw));
     }
 
     public QuizTakeResponse.QuizQuestionResultDto stripTeacherPercent(QuizTakeResponse.QuizQuestionResultDto dto) {
@@ -215,7 +218,21 @@ public class QuizGradingService {
         return new QuizTakeResponse.QuizQuestionResultDto(
                 dto.questionId(), dto.skill(), dto.score(), dto.correct(), dto.correctOptionIds(),
                 dto.acceptedAnswers(), dto.unitResults(), dto.selectedOptionIds(),
-                dto.answerText(), null);
+                dto.answerText(), null, dto.formatted());
+    }
+
+    private static String encodeFreeTextAnswer(SubmitExerciseRequest.AnswerDto given) {
+        if (given != null && given.formatted() != null && !given.formatted().isEmpty()) {
+            FormattedTextSegment.validate(given.formatted());
+            return FormattedTextSegment.toJson(given.formatted());
+        }
+        String text = given == null || given.text() == null ? "" : given.text().strip();
+        if (text.isEmpty()) {
+            throw new IllegalArgumentException("Las preguntas de texto libre no pueden estar vacías.");
+        }
+        List<FormattedTextSegment> wrapped = List.of(new FormattedTextSegment(text, null, null, null));
+        FormattedTextSegment.validate(wrapped);
+        return FormattedTextSegment.toJson(wrapped);
     }
 
     private static List<UUID> correctOptionIds(HomeworkQuestion q) {

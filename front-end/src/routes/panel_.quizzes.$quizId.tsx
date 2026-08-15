@@ -5,8 +5,8 @@ import { seo } from "@/lib/seo";
 export const Route = createFileRoute("/panel_/quizzes/$quizId")({
   head: () => ({
     meta: seo({
-      title: "Editar quiz — Destino: Español",
-      description: "Edita un quiz de tus alumnos.",
+      title: "Editar prueba de evaluación — Destino: Español",
+      description: "Edita una prueba de evaluación de tus alumnos.",
       path: "/panel/quizzes/editar",
     }),
   }),

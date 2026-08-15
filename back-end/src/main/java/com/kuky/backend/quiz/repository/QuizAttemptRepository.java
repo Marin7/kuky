@@ -100,6 +100,46 @@ public class QuizAttemptRepository {
                 Map.of("uid", userId), ATTEMPT_MAPPER);
     }
 
+    public record ReviewQueueRow(
+            UUID attemptId,
+            UUID quizId,
+            String quizTitle,
+            UUID studentId,
+            String studentEmail,
+            String studentFirstName,
+            String studentLastName,
+            String studentUsername,
+            Instant submittedAt
+    ) {}
+
+    /** SUBMITTED attempts (free-text still awaiting teacher), oldest first. */
+    public List<ReviewQueueRow> findSubmittedQueue() {
+        String sql = """
+                SELECT a.id AS attempt_id, a.quiz_id, q.title AS quiz_title,
+                       u.id AS student_id, u.email AS student_email,
+                       u.first_name AS student_first_name, u.last_name AS student_last_name,
+                       u.username AS student_username, a.submitted_at
+                FROM quiz_attempts a
+                JOIN quizzes q ON q.id = a.quiz_id
+                JOIN users u ON u.id = a.user_id
+                WHERE a.status = 'SUBMITTED'
+                ORDER BY a.submitted_at ASC NULLS LAST
+                """;
+        return jdbc.query(sql, Map.of(), (rs, n) -> {
+            Timestamp submittedAt = rs.getTimestamp("submitted_at");
+            return new ReviewQueueRow(
+                    rs.getObject("attempt_id", UUID.class),
+                    rs.getObject("quiz_id", UUID.class),
+                    rs.getString("quiz_title"),
+                    rs.getObject("student_id", UUID.class),
+                    rs.getString("student_email"),
+                    rs.getString("student_first_name"),
+                    rs.getString("student_last_name"),
+                    rs.getString("student_username"),
+                    submittedAt == null ? null : submittedAt.toInstant());
+        });
+    }
+
     public QuizAttempt insert(QuizAttempt attempt) {
         UUID id = attempt.getId() != null ? attempt.getId() : UUID.randomUUID();
         jdbc.update("""

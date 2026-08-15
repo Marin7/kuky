@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StudentMultiSelect } from "@/components/admin/homework/StudentMultiSelect";
+import { QuizReviewQueue } from "./QuizReviewQueue";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ export function QuizTab() {
 
   return (
     <div className="space-y-4">
+      <QuizReviewQueue />
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">{t("quiz.admin.title")}</h2>
         <Button onClick={() => navigate({ to: "/panel/quizzes/nueva" })}>

@@ -86,3 +86,50 @@ export function matchClassicInlineSingleChoice(question: {
   if ((question.structure?.items?.length ?? 0) > 0) return null;
   return matchInlineChoiceGroup(question.prompt, question.options);
 }
+
+const ELLIPSIS_RE = /\.{3}|…/g;
+
+function isClassicSingleChoice(question: {
+  kind: string;
+  structure?: { items?: unknown[] };
+}): boolean {
+  return (
+    question.kind === "SINGLE_CHOICE" &&
+    (question.structure?.items?.length ?? 0) === 0
+  );
+}
+
+/** Exactly one `...` / `…` in a classic opción única prompt. */
+export function hasSingleEllipsisChoice(question: {
+  kind: string;
+  prompt: string;
+  structure?: { items?: unknown[] };
+}): boolean {
+  if (!isClassicSingleChoice(question)) return false;
+  const matches = question.prompt?.match(ELLIPSIS_RE);
+  return matches?.length === 1;
+}
+
+/** Rewrites the single ellipsis as a `___` blank so MultiBlankResult can fill it. */
+export function ellipsisPromptAsBlank(prompt: string): string {
+  return prompt.replace(/\.{3}|…/, "___");
+}
+
+/**
+ * Result-view passage for classic radios: fill a single `...`, otherwise
+ * append a blank so the chosen label still shows (e.g. "Cincuenta y seis es:").
+ * Numbered items and `(a / b)` inline choice are left to their own renderers.
+ */
+export function classicSingleChoiceResultPrompt(question: {
+  kind: string;
+  prompt: string;
+  options: InlineChoiceOption[];
+  structure?: { items?: unknown[] };
+}): string | null {
+  if (!isClassicSingleChoice(question)) return null;
+  if (matchClassicInlineSingleChoice(question)) return null;
+  if (hasSingleEllipsisChoice(question)) {
+    return ellipsisPromptAsBlank(question.prompt);
+  }
+  return `${question.prompt.replace(/\s+$/, "")} ___`;
+}

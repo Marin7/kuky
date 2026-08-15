@@ -50,10 +50,7 @@ export function SiteHeader() {
           ...(authed ? [{ to: "/reservas", label: t("nav.schedule") }] : []),
         ]),
     ...(authed && !isAdmin
-      ? [
-          { to: "/aprendizaje", label: t("nav.learning") },
-          { to: "/quizzes", label: t("nav.test") },
-        ]
+      ? [{ to: "/aprendizaje", label: t("nav.learning") }]
       : []),
     ...(isAdmin ? [{ to: "/panel", label: t("nav.panel") }] : []),
     { to: "/cuenta", label: t("nav.account") },

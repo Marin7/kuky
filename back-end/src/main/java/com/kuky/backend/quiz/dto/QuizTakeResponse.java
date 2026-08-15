@@ -3,6 +3,7 @@ package com.kuky.backend.quiz.dto;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.kuky.backend.learning.dto.ExerciseQuestionDto;
 import com.kuky.backend.learning.dto.ExerciseResultResponse;
+import com.kuky.backend.learning.model.FormattedTextSegment;
 
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +43,7 @@ public record QuizTakeResponse(
             List<ExerciseResultResponse.UnitResultDto> unitResults,
             List<UUID> selectedOptionIds,
             String answerText,
-            Integer teacherPercent
+            Integer teacherPercent,
+            List<FormattedTextSegment> formatted
     ) {}
 }

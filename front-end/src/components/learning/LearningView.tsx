@@ -4,6 +4,7 @@ import { getLearning, type LearningResponse } from "@/lib/learning";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PastClassesList } from "./PastClassesList";
 import { LearningContent } from "./LearningContent";
+import { AssignedQuizList } from "./AssignedQuizList";
 import { MyTestimonial } from "./MyTestimonial";
 
 function LearningSkeleton() {
@@ -51,6 +52,7 @@ export function LearningView() {
             presentations={data.sharedPresentations}
             homework={data.homework}
           />
+          <AssignedQuizList />
           <PastClassesList classes={data.pastClasses} />
           <MyTestimonial />
         </>

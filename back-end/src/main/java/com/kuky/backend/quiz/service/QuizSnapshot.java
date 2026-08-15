@@ -32,7 +32,7 @@ public class QuizSnapshot {
                     quiz.getDescription(),
                     questions.stream().map(this::toSnap).toList()));
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("No se pudo guardar la instantánea del quiz.", e);
+            throw new IllegalStateException("No se pudo guardar la instantánea de la prueba de evaluación.", e);
         }
     }
 
@@ -80,7 +80,7 @@ public class QuizSnapshot {
                     ? new Payload(null, null, List.of())
                     : payload;
         } catch (JsonProcessingException e) {
-            throw new IllegalStateException("No se pudo leer la instantánea del quiz.", e);
+            throw new IllegalStateException("No se pudo leer la instantánea de la prueba de evaluación.", e);
         }
     }
 

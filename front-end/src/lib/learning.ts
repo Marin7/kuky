@@ -268,6 +268,8 @@ export interface AnswerPayload {
   answerJson?: unknown | null;
   /** FREE_TEXT answers on mixed /answers submit. */
   text?: string;
+  /** FREE_TEXT rich text (writing homework parity). */
+  formatted?: FormattedText | null;
 }
 
 /** Heterogeneous payload for PUT .../answers (structured + FREE_TEXT). */

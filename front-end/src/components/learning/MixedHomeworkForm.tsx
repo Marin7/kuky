@@ -25,7 +25,12 @@ import { MultiBlankQuestion } from "./MultiBlankQuestion";
 import { DragDropQuestion } from "./DragDropQuestion";
 import { TableFillQuestion } from "./TableFillQuestion";
 import { MatchingQuestion } from "./MatchingQuestion";
+import { RichTextEditor } from "./richtext/RichTextEditor";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import {
+  plainText,
+  type FormattedText,
+} from "./richtext/types";
 
 interface AnswerState {
   selectedOptionIds: string[];
@@ -35,6 +40,7 @@ interface AnswerState {
   cells: Record<string, string>;
   pairs: MatchingAnswer["pairs"];
   text: string;
+  formatted: FormattedText;
 }
 
 export interface MixedAssignmentView {
@@ -60,6 +66,14 @@ interface Props {
     id: string,
     answers: HeterogeneousAnswerPayload[],
   ) => Promise<unknown>;
+  /** Writing-homework rich text for FREE_TEXT (quizzes). Default: plain textarea. */
+  richFreeText?: boolean;
+  /** Quiz results: skip the auto-only heading and duplicate % summary. */
+  hideAutoResultsSummary?: boolean;
+  /** Quiz results: overall % lives in the destreza summary card. */
+  hideCombinedScore?: boolean;
+  /** Quiz results: always show the student's pick, not only mistakes. */
+  showAllAnswers?: boolean;
 }
 
 function hidesPromptLabel(
@@ -88,6 +102,7 @@ function initialAnswerState(q: StudentQuestion): AnswerState {
     cells: {},
     pairs: [],
     text: "",
+    formatted: [],
   };
 }
 
@@ -105,6 +120,10 @@ export function MixedHomeworkForm({
   onSubmitted,
   onHomeworkUpdated,
   submitAnswers,
+  richFreeText = false,
+  hideAutoResultsSummary = false,
+  hideCombinedScore = false,
+  showAllAnswers = false,
 }: Props) {
   const { t } = useTranslation();
   const [answers, setAnswers] = useState<Record<string, AnswerState>>(() =>
@@ -179,9 +198,18 @@ export function MixedHomeworkForm({
   const setText = (qId: string, text: string) =>
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], text } }));
 
+  const setFormatted = (qId: string, formatted: FormattedText) =>
+    setAnswers((prev) => ({
+      ...prev,
+      [qId]: { ...prev[qId], formatted, text: plainText(formatted) },
+    }));
+
   const submit = async () => {
     for (const q of freeTextQuestions) {
-      if (!(answers[q.id]?.text ?? "").trim()) {
+      const value = richFreeText
+        ? plainText(answers[q.id]?.formatted ?? []).trim()
+        : (answers[q.id]?.text ?? "").trim();
+      if (!value) {
         setError(t("learning.manualMulti.allRequired"));
         return;
       }
@@ -203,7 +231,11 @@ export function MixedHomeworkForm({
         (q) => {
           const a = answers[q.id];
           if (isFreeText(q.kind)) {
-            return { questionId: q.id, text: (a?.text ?? "").trim() };
+            const formatted = a?.formatted ?? [];
+            const text = (a?.text ?? "").trim();
+            return richFreeText
+              ? { questionId: q.id, text, formatted }
+              : { questionId: q.id, text };
           }
           let answerJson: unknown = null;
           const items = numberedItems(q);
@@ -270,7 +302,8 @@ export function MixedHomeworkForm({
 
     return (
       <div className="mt-6 space-y-5">
-        {finalized && assignment.scorePercent != null ? (
+        {!hideCombinedScore &&
+          (finalized && assignment.scorePercent != null ? (
           <div className="rounded-lg border bg-card p-4">
             <p className="text-2xl font-semibold text-primary">
               {assignment.scorePercent}%
@@ -292,13 +325,15 @@ export function MixedHomeworkForm({
               </p>
             )}
           </div>
-        )}
+        ))}
 
         {autoResult && autoQuestions.length > 0 && (
           <div className="space-y-2">
-            <p className="text-base font-medium text-foreground">
-              {t("learning.mixed.autoResults")}
-            </p>
+            {!hideAutoResultsSummary && (
+              <p className="text-base font-medium text-foreground">
+                {t("learning.mixed.autoResults")}
+              </p>
+            )}
             <ExerciseResult
               questions={autoQuestions}
               result={
@@ -311,6 +346,8 @@ export function MixedHomeworkForm({
                     }
               }
               teacherFeedback={finalized ? null : assignment.teacherFeedback}
+              hideScoreSummary={hideAutoResultsSummary}
+              showAllAnswers={showAllAnswers}
             />
           </div>
         )}
@@ -397,6 +434,11 @@ export function MixedHomeworkForm({
           const inlineChoice = matchClassicInlineSingleChoice(q);
           return (
             <div key={q.id} className="space-y-2.5">
+              {q.skill && q.skill !== assignment.questions[i - 1]?.skill && (
+                <p className="font-display text-lg font-semibold text-primary">
+                  {t(`quiz.skills.${q.skill}`)}
+                </p>
+              )}
               {isFreeText(q.kind) ? (
                 <>
                   <Label
@@ -405,15 +447,26 @@ export function MixedHomeworkForm({
                   >
                     {`${i + 1}. ${q.prompt}`}
                   </Label>
-                  <Textarea
-                    id={`mixed-ft-${q.id}`}
-                    value={answers[q.id]?.text ?? ""}
-                    onChange={(e) => setText(q.id, e.target.value)}
-                    rows={3}
-                    disabled={submitting}
-                    placeholder={t("learning.manualMulti.placeholder")}
-                    maxLength={2000}
-                  />
+                  {richFreeText ? (
+                    <RichTextEditor
+                      id={`mixed-ft-${q.id}`}
+                      value={answers[q.id]?.formatted ?? []}
+                      onChange={(next) => setFormatted(q.id, next)}
+                      placeholder={t("learning.manualMulti.placeholder")}
+                      disabled={submitting}
+                      rows={8}
+                    />
+                  ) : (
+                    <Textarea
+                      id={`mixed-ft-${q.id}`}
+                      value={answers[q.id]?.text ?? ""}
+                      onChange={(e) => setText(q.id, e.target.value)}
+                      rows={3}
+                      disabled={submitting}
+                      placeholder={t("learning.manualMulti.placeholder")}
+                      maxLength={2000}
+                    />
+                  )}
                 </>
               ) : (
                 <>

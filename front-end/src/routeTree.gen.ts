@@ -20,7 +20,7 @@ import { Route as CuentaRouteImport } from './routes/cuenta'
 import { Route as CondicionesRouteImport } from './routes/condiciones'
 import { Route as AprendizajeRouteImport } from './routes/aprendizaje'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as QuizzesQuizIdRouteImport } from './routes/quizzes.$quizId'
+import { Route as QuizzesQuizIdRouteImport } from './routes/quizzes_.$quizId'
 import { Route as AprendizajeOtrosRouteImport } from './routes/aprendizaje_.otros'
 import { Route as PanelTareasNuevaRouteImport } from './routes/panel_.tareas.nueva'
 import { Route as PanelTareasHomeworkIdRouteImport } from './routes/panel_.tareas.$homeworkId'
@@ -93,9 +93,9 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuizzesQuizIdRoute = QuizzesQuizIdRouteImport.update({
-  id: '/$quizId',
-  path: '/$quizId',
-  getParentRoute: () => QuizzesRoute,
+  id: '/quizzes_/$quizId',
+  path: '/quizzes/$quizId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AprendizajeOtrosRoute = AprendizajeOtrosRouteImport.update({
   id: '/aprendizaje_/otros',
@@ -187,7 +187,7 @@ export interface FileRoutesByFullPath {
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
-  '/quizzes': typeof QuizzesRouteWithChildren
+  '/quizzes': typeof QuizzesRoute
   '/reservas': typeof ReservasRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -216,7 +216,7 @@ export interface FileRoutesByTo {
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
-  '/quizzes': typeof QuizzesRouteWithChildren
+  '/quizzes': typeof QuizzesRoute
   '/reservas': typeof ReservasRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -246,13 +246,13 @@ export interface FileRoutesById {
   '/cuenta': typeof CuentaRoute
   '/panel': typeof PanelRoute
   '/prueba-de-nivel': typeof PruebaDeNivelRoute
-  '/quizzes': typeof QuizzesRouteWithChildren
+  '/quizzes': typeof QuizzesRoute
   '/reservas': typeof ReservasRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sobre-mi': typeof SobreMiRoute
   '/aprendizaje_/otros': typeof AprendizajeOtrosRoute
-  '/quizzes/$quizId': typeof QuizzesQuizIdRoute
+  '/quizzes_/$quizId': typeof QuizzesQuizIdRoute
   '/aprendizaje_/actividad/$activityId': typeof AprendizajeActividadActivityIdRoute
   '/aprendizaje_/escucha/$homeworkId': typeof AprendizajeEscuchaHomeworkIdRoute
   '/aprendizaje_/lectura/$homeworkId': typeof AprendizajeLecturaHomeworkIdRoute
@@ -341,7 +341,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/sobre-mi'
     | '/aprendizaje_/otros'
-    | '/quizzes/$quizId'
+    | '/quizzes_/$quizId'
     | '/aprendizaje_/actividad/$activityId'
     | '/aprendizaje_/escucha/$homeworkId'
     | '/aprendizaje_/lectura/$homeworkId'
@@ -365,12 +365,13 @@ export interface RootRouteChildren {
   CuentaRoute: typeof CuentaRoute
   PanelRoute: typeof PanelRoute
   PruebaDeNivelRoute: typeof PruebaDeNivelRoute
-  QuizzesRoute: typeof QuizzesRouteWithChildren
+  QuizzesRoute: typeof QuizzesRoute
   ReservasRoute: typeof ReservasRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SobreMiRoute: typeof SobreMiRoute
   AprendizajeOtrosRoute: typeof AprendizajeOtrosRoute
+  QuizzesQuizIdRoute: typeof QuizzesQuizIdRoute
   AprendizajeActividadActivityIdRoute: typeof AprendizajeActividadActivityIdRoute
   AprendizajeEscuchaHomeworkIdRoute: typeof AprendizajeEscuchaHomeworkIdRoute
   AprendizajeLecturaHomeworkIdRoute: typeof AprendizajeLecturaHomeworkIdRoute
@@ -466,12 +467,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/quizzes/$quizId': {
-      id: '/quizzes/$quizId'
-      path: '/$quizId'
+    '/quizzes_/$quizId': {
+      id: '/quizzes_/$quizId'
+      path: '/quizzes/$quizId'
       fullPath: '/quizzes/$quizId'
       preLoaderRoute: typeof QuizzesQuizIdRouteImport
-      parentRoute: typeof QuizzesRoute
+      parentRoute: typeof rootRouteImport
     }
     '/aprendizaje_/otros': {
       id: '/aprendizaje_/otros'
@@ -581,17 +582,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface QuizzesRouteChildren {
-  QuizzesQuizIdRoute: typeof QuizzesQuizIdRoute
-}
-
-const QuizzesRouteChildren: QuizzesRouteChildren = {
-  QuizzesQuizIdRoute: QuizzesQuizIdRoute,
-}
-
-const QuizzesRouteWithChildren =
-  QuizzesRoute._addFileChildren(QuizzesRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AprendizajeRoute: AprendizajeRoute,
@@ -599,12 +589,13 @@ const rootRouteChildren: RootRouteChildren = {
   CuentaRoute: CuentaRoute,
   PanelRoute: PanelRoute,
   PruebaDeNivelRoute: PruebaDeNivelRoute,
-  QuizzesRoute: QuizzesRouteWithChildren,
+  QuizzesRoute: QuizzesRoute,
   ReservasRoute: ReservasRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SobreMiRoute: SobreMiRoute,
   AprendizajeOtrosRoute: AprendizajeOtrosRoute,
+  QuizzesQuizIdRoute: QuizzesQuizIdRoute,
   AprendizajeActividadActivityIdRoute: AprendizajeActividadActivityIdRoute,
   AprendizajeEscuchaHomeworkIdRoute: AprendizajeEscuchaHomeworkIdRoute,
   AprendizajeLecturaHomeworkIdRoute: AprendizajeLecturaHomeworkIdRoute,

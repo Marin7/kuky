@@ -51,6 +51,7 @@ export interface QuizQuestionResult {
   selectedOptionIds: string[];
   answerText?: string | null;
   teacherPercent?: number | null;
+  formatted?: import("@/components/learning/richtext/types").FormattedText | null;
 }
 
 export interface QuizTakeResponse {

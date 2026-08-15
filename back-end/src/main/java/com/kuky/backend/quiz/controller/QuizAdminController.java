@@ -4,6 +4,7 @@ import com.kuky.backend.quiz.dto.CreateQuizRequest;
 import com.kuky.backend.quiz.dto.QuizAdminDetail;
 import com.kuky.backend.quiz.dto.QuizAdminListItem;
 import com.kuky.backend.quiz.dto.QuizAttemptListItem;
+import com.kuky.backend.quiz.dto.QuizReviewQueueItemDto;
 import com.kuky.backend.quiz.dto.QuizReviewRequest;
 import com.kuky.backend.quiz.dto.QuizTakeResponse;
 import com.kuky.backend.quiz.dto.SetQuizAssigneesRequest;
@@ -38,6 +39,11 @@ public class QuizAdminController {
     @GetMapping("/quizzes")
     public List<QuizAdminListItem> list() {
         return service.list();
+    }
+
+    @GetMapping("/quizzes/submissions")
+    public List<QuizReviewQueueItemDto> reviewQueue() {
+        return service.listReviewQueue();
     }
 
     @PostMapping("/quizzes")

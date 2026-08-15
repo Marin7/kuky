@@ -93,17 +93,17 @@ public class QuizService {
     public QuizTakeResponse getOrStart(String email, UUID quizId) {
         User user = requireUser(email);
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() -> new QuizNotFoundException("Quiz no encontrado."));
+                .orElseThrow(() -> new QuizNotFoundException("Prueba de evaluación no encontrada."));
         Optional<QuizAttempt> existing = attemptRepository.findByQuizAndUser(quizId, user.getId());
         boolean assigned = assigneeRepository.isAssigned(quizId, user.getId());
 
         if (existing.isEmpty()) {
             if (!assigned) {
-                throw new QuizNotAssignedException("Este quiz no te ha sido asignado.");
+                throw new QuizNotAssignedException("Esta prueba de evaluación no te ha sido asignada.");
             }
             List<QuizQuestion> live = questionRepository.findLiveByQuiz(quizId);
             if (live.isEmpty()) {
-                throw new QuizNotFoundException("Quiz no encontrado.");
+                throw new QuizNotFoundException("Prueba de evaluación no encontrada.");
             }
             QuizAttempt attempt = new QuizAttempt();
             attempt.setQuizId(quizId);
@@ -125,7 +125,7 @@ public class QuizService {
             return toTake(quiz, attempt, questions, List.of(), false);
         }
         if (!assigned && attempt.getStatus() == QuizAttemptStatus.IN_PROGRESS) {
-            throw new QuizNotAssignedException("Este quiz no te ha sido asignado.");
+            throw new QuizNotAssignedException("Esta prueba de evaluación no te ha sido asignada.");
         }
         List<QuizAnswer> answers = attemptRepository.findAnswers(attempt.getId());
         boolean autoOnly = attempt.getStatus() == QuizAttemptStatus.SUBMITTED;
@@ -136,14 +136,14 @@ public class QuizService {
     public QuizTakeResponse submit(String email, UUID quizId, SubmitQuizRequest request) {
         User user = requireUser(email);
         Quiz quiz = quizRepository.findById(quizId)
-                .orElseThrow(() -> new QuizNotFoundException("Quiz no encontrado."));
+                .orElseThrow(() -> new QuizNotFoundException("Prueba de evaluación no encontrada."));
         QuizAttempt attempt = attemptRepository.findByQuizAndUser(quizId, user.getId())
-                .orElseThrow(() -> new QuizNotAssignedException("Este quiz no te ha sido asignado."));
+                .orElseThrow(() -> new QuizNotAssignedException("Esta prueba de evaluación no te ha sido asignada."));
         if (attempt.getStatus() != QuizAttemptStatus.IN_PROGRESS) {
-            throw new QuizAlreadySubmittedException("Este quiz ya ha sido entregado.");
+            throw new QuizAlreadySubmittedException("Esta prueba de evaluación ya ha sido entregada.");
         }
         if (!assigneeRepository.isAssigned(quizId, user.getId())) {
-            throw new QuizNotAssignedException("Este quiz no te ha sido asignado.");
+            throw new QuizNotAssignedException("Esta prueba de evaluación no te ha sido asignada.");
         }
 
         List<QuizQuestion> questions = quizSnapshot.questionsOf(attempt.getQuizSnapshot());
