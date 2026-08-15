@@ -915,7 +915,7 @@ export const esDict = {
           "Define las respuestas aceptadas para cada hueco del enunciado (el alumno escribe). Puedes añadir hasta 10 por hueco.",
         maxAcceptedAnswers: "Máximo {{max}} respuestas aceptadas por hueco.",
         dragDropHint:
-          "Construye el banco de palabras (puedes añadir extras como distractores o alternativas) y marca qué palabras son correctas para cada hueco. El alumno verá el banco mezclado y arrastrará las palabras a los huecos.",
+          "Construye el banco de palabras (puedes usar menos palabras que huecos si la misma se reutiliza, o añadir extras como distractores o alternativas) y marca qué palabras son correctas para cada hueco. El alumno verá el banco mezclado y arrastrará las palabras a los huecos.",
         wordBankTitle: "Banco de palabras",
         bankWordLabel: "Palabra {{index}} (hueco {{index}})",
         bankItemLabel: "Palabra {{index}}",

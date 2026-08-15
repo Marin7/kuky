@@ -860,9 +860,9 @@ public class HomeworkAdminService {
         if (bankNode == null || !bankNode.isArray()) {
             throw new IllegalArgumentException("El banco de palabras es obligatorio.");
         }
-        if (bankNode.size() < blankCount || bankNode.size() > ExerciseStructureLimits.MAX_BANK_ITEMS) {
+        if (bankNode.size() < 1 || bankNode.size() > ExerciseStructureLimits.MAX_BANK_ITEMS) {
             throw new IllegalArgumentException(
-                    "El banco de palabras debe tener entre " + blankCount + " y "
+                    "El banco de palabras debe tener entre 1 y "
                             + ExerciseStructureLimits.MAX_BANK_ITEMS + " elementos.");
         }
 

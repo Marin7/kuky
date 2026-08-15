@@ -913,7 +913,7 @@
           "Definește răspunsurile acceptate pentru fiecare spațiu liber din enunț (elevul scrie). Poți adăuga până la 10 pe spațiu.",
         maxAcceptedAnswers: "Maximum {{max}} răspunsuri acceptate pe spațiu.",
         dragDropHint:
-          "Construiește banca de cuvinte (poți adăuga extra ca distractori sau alternative), apoi marchează care cuvinte sunt corecte pentru fiecare spațiu. Elevul vede banca amestecată și trage cuvintele în spații.",
+          "Construiește banca de cuvinte (poți folosi mai puține cuvinte decât spațiile dacă același cuvânt se reutilizează, sau adăuga extra ca distractori/alternative), apoi marchează care cuvinte sunt corecte pentru fiecare spațiu. Elevul vede banca amestecată și trage cuvintele în spații.",
         wordBankTitle: "Banca de cuvinte",
         bankWordLabel: "Cuvântul {{index}} (spațiul {{index}})",
         bankItemLabel: "Cuvântul {{index}}",

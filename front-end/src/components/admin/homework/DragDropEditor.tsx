@@ -15,8 +15,9 @@ interface Props {
 }
 
 /**
- * Authoring UI for DRAG_DROP — free word bank (may exceed blank count for
- * alternates/distractors) plus per-blank multi-select of correct bank items.
+ * Authoring UI for DRAG_DROP — free word bank (may be smaller than blank count
+ * when the same word is reused, or larger for distractors/alternates) plus
+ * per-blank multi-select of correct bank items.
  */
 export function DragDropEditor({ prompt, structure, onChange }: Props) {
   const { t } = useTranslation();
@@ -29,14 +30,10 @@ export function DragDropEditor({ prompt, structure, onChange }: Props) {
     let nextBlanks = blanks;
     let changed = false;
 
-    if (nextBank.length < blankCount) {
-      nextBank = [
-        ...nextBank,
-        ...Array.from({ length: blankCount - nextBank.length }, () => ({
-          id: genId(),
-          label: "",
-        })),
-      ];
+    // Seed a single empty bank row when authoring starts (bank may stay smaller
+    // than blank count when the same word is correct for several blanks).
+    if (blankCount >= 2 && nextBank.length === 0) {
+      nextBank = [{ id: genId(), label: "" }];
       changed = true;
     }
 
@@ -59,9 +56,13 @@ export function DragDropEditor({ prompt, structure, onChange }: Props) {
           used.add(free.id);
           return { correctBankIds: [free.id] };
         }
+        // Reuse an existing bank word rather than forcing a new chip per blank.
+        const reuse = nextBank[0];
+        if (reuse) {
+          return { correctBankIds: [reuse.id] };
+        }
         const created = { id: genId(), label: "" };
         nextBank = [...nextBank, created];
-        used.add(created.id);
         return { correctBankIds: [created.id] };
       });
       changed = true;
@@ -88,12 +89,16 @@ export function DragDropEditor({ prompt, structure, onChange }: Props) {
   };
 
   const removeBankItem = (id: string) => {
-    if (bank.length <= blankCount) return;
+    if (bank.length <= 1) return;
+    const nextBank = bank.filter((item) => item.id !== id);
+    const fallbackId = nextBank[0]?.id;
     onChange({
-      bank: bank.filter((item) => item.id !== id),
-      blanks: blanks.map((b) => ({
-        correctBankIds: b.correctBankIds.filter((cid) => cid !== id),
-      })),
+      bank: nextBank,
+      blanks: blanks.map((b) => {
+        const kept = b.correctBankIds.filter((cid) => cid !== id);
+        if (kept.length > 0) return { correctBankIds: kept };
+        return { correctBankIds: fallbackId ? [fallbackId] : [] };
+      }),
     });
   };
 
@@ -151,7 +156,7 @@ export function DragDropEditor({ prompt, structure, onChange }: Props) {
                   variant="ghost"
                   size="sm"
                   className="h-8 px-2 text-xs text-destructive"
-                  disabled={bank.length <= blankCount}
+                  disabled={bank.length <= 1}
                   onClick={() => removeBankItem(item.id)}
                   title={t("admin.homework.questions.removeBankItem")}
                 >

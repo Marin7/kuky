@@ -901,7 +901,7 @@
           "Set the accepted answers for each blank in the prompt (the student types). You can add up to 10 per blank.",
         maxAcceptedAnswers: "Maximum {{max}} accepted answers per blank.",
         dragDropHint:
-          "Build the word bank (you may add extras as distractors or alternates), then mark which bank words are correct for each blank. Students see the bank shuffled and drag words into blanks.",
+          "Build the word bank (you may use fewer words than blanks when the same word is reused, or add extras as distractors/alternates), then mark which bank words are correct for each blank. Students see the bank shuffled and drag words into blanks.",
         wordBankTitle: "Word bank",
         bankWordLabel: "Word {{index}} (blank {{index}})",
         bankItemLabel: "Word {{index}}",

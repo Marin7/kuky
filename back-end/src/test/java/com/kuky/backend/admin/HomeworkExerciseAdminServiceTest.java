@@ -279,6 +279,24 @@ class HomeworkExerciseAdminServiceTest {
     }
 
     @Test
+    void dragDropAllowsBankSmallerThanBlankCount() throws Exception {
+        String id1 = "11111111-1111-1111-1111-111111111111";
+        ObjectNode structure = objectMapper.readValue("""
+                {"bank":[
+                  {"id":"%s","label":"el"}
+                ],
+                "blanks":[
+                  {"correctBankIds":["%s"]},
+                  {"correctBankIds":["%s"]},
+                  {"correctBankIds":["%s"]}
+                ]}
+                """.formatted(id1, id1, id1, id1), ObjectNode.class);
+        var req = exercise(List.of(dragDrop("___ ___ ___.", structure)));
+        assertThatNoException().isThrownBy(() -> service.create(req));
+        verify(questionRepository, times(1)).replaceQuestions(any(), anyList());
+    }
+
+    @Test
     void dragDropRejectsBankOverThirty() throws Exception {
         var bank = objectMapper.createArrayNode();
         var blanks = objectMapper.createArrayNode();
