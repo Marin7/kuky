@@ -123,49 +123,50 @@ export function QuestionResultBlock({
     Boolean(inlineChoice) ||
     Boolean(filledChoicePrompt) ||
     numberedSingleChoice;
-                    const inlineResult = isBlankPassage && question ? (
-    <MultiBlankResult
-      index={number}
-      questionCount={questionCount}
-      prompt={question.prompt}
-      unitResults={unitResults}
-    />
-  ) : numberedSingleChoice && question ? (
-    <NumberedInlineSingleChoiceResult
-      index={number}
-      questionCount={questionCount}
-      prompt={question.prompt}
-      items={question.structure?.items ?? []}
-      unitResults={unitResults}
-      showAllAnswers={showAllAnswers}
-    />
-  ) : inlineChoice && question ? (
-    <InlineSingleChoiceResult
-      index={number}
-      questionCount={questionCount}
-      prompt={question.prompt}
-      match={inlineChoice}
-      selectedOptionId={qr.selectedOptionIds?.[0] ?? null}
-      correctOptionIds={qr.correctOptionIds}
-      correct={qr.correct}
-      revealCorrect={showAllAnswers || !qr.correct}
-    />
-  ) : filledChoicePrompt && question ? (
-    <MultiBlankResult
-      index={number}
-      questionCount={questionCount}
-      prompt={filledChoicePrompt}
-      unitResults={[
-        {
-          index: 0,
-          score: qr.correct ? 1 : 0,
-          correct: qr.correct,
-          studentDisplay: studentChoiceText || null,
-          expectedDisplay: !qr.correct && correctText ? [correctText] : [],
-        },
-      ]}
-    />
-  ) : null;
+  const inlineResult =
+    isBlankPassage && question ? (
+      <MultiBlankResult
+        index={number}
+        questionCount={questionCount}
+        prompt={question.prompt}
+        unitResults={unitResults}
+      />
+    ) : numberedSingleChoice && question ? (
+      <NumberedInlineSingleChoiceResult
+        index={number}
+        questionCount={questionCount}
+        prompt={question.prompt}
+        items={question.structure?.items ?? []}
+        unitResults={unitResults}
+        showAllAnswers={showAllAnswers}
+      />
+    ) : inlineChoice && question ? (
+      <InlineSingleChoiceResult
+        index={number}
+        questionCount={questionCount}
+        prompt={question.prompt}
+        match={inlineChoice}
+        selectedOptionId={qr.selectedOptionIds?.[0] ?? null}
+        correctOptionIds={qr.correctOptionIds}
+        correct={qr.correct}
+        revealCorrect={showAllAnswers || !qr.correct}
+      />
+    ) : filledChoicePrompt && question ? (
+      <MultiBlankResult
+        index={number}
+        questionCount={questionCount}
+        prompt={filledChoicePrompt}
+        unitResults={[
+          {
+            index: 0,
+            score: qr.correct ? 1 : 0,
+            correct: qr.correct,
+            studentDisplay: studentChoiceText || null,
+            expectedDisplay: !qr.correct && correctText ? [correctText] : [],
+          },
+        ]}
+      />
+    ) : null;
 
   return (
     <div className="text-base">
@@ -194,9 +195,7 @@ export function QuestionResultBlock({
           structure={question.structure}
           unitResults={unitResults}
         />
-      ) : unitResults.length > 0 &&
-        !isBlankPassage &&
-        !numberedSingleChoice ? (
+      ) : unitResults.length > 0 && !isBlankPassage && !numberedSingleChoice ? (
         <div className="mt-2 space-y-1.5">
           {unitResults.map((u) => (
             <div

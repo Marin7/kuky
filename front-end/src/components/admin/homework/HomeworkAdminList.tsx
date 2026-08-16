@@ -144,9 +144,7 @@ function playCardSlide(
     const dx = firstRect.left - last.left;
     const dy = firstRect.top - last.top;
     const sx =
-      id === preferId && last.width > 1
-        ? firstRect.width / last.width
-        : 1;
+      id === preferId && last.width > 1 ? firstRect.width / last.width : 1;
     if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(sx - 1) < 0.02) {
       continue;
     }
@@ -278,7 +276,8 @@ export function HomeworkAdminList() {
 
   const filtered = items
     .filter((item) => {
-      if (filterType !== "ALL" && item.homeworkType !== filterType) return false;
+      if (filterType !== "ALL" && item.homeworkType !== filterType)
+        return false;
       if (filterLevel !== "ALL" && item.level !== filterLevel) return false;
       if (filterLabel !== "ALL") {
         if (!homeworkHasLabelGroup(item, filterLabel)) return false;
@@ -286,7 +285,10 @@ export function HomeworkAdminList() {
       return true;
     })
     .sort((a, b) =>
-      a.title.localeCompare(b.title, "es", { numeric: true, sensitivity: "base" }),
+      a.title.localeCompare(b.title, "es", {
+        numeric: true,
+        sensitivity: "base",
+      }),
     );
 
   const showGrid = !loading && filtered.length > 0;
@@ -317,7 +319,8 @@ export function HomeworkAdminList() {
 
     if (open) {
       const first = captureCardRects(cardEls.current);
-      const width = cardEls.current.get(id)?.getBoundingClientRect().width ?? null;
+      const width =
+        cardEls.current.get(id)?.getBoundingClientRect().width ?? null;
       flushSync(() => {
         setExpandedId(null);
         setLeadId(id);

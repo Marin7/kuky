@@ -12,7 +12,9 @@ export function QuizAttemptsPanel({ quizId }: { quizId: string }) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const load = () => {
-    listQuizAttempts(quizId).then(setAttempts).catch(() => setAttempts([]));
+    listQuizAttempts(quizId)
+      .then(setAttempts)
+      .catch(() => setAttempts([]));
   };
 
   useEffect(load, [quizId]);
@@ -21,7 +23,9 @@ export function QuizAttemptsPanel({ quizId }: { quizId: string }) {
     <div className="space-y-3 border-t pt-6">
       <h2 className="text-lg font-semibold">{t("quiz.admin.attemptsTitle")}</h2>
       {attempts.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("quiz.admin.noAttempts")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("quiz.admin.noAttempts")}
+        </p>
       ) : (
         <ul className="space-y-2">
           {attempts.map((a) => (
@@ -34,8 +38,14 @@ export function QuizAttemptsPanel({ quizId }: { quizId: string }) {
                 {a.scorePercent != null ? ` · ${a.scorePercent}%` : ""}
                 {a.unseen && <NotificationDot label={t("notification.row")} />}
               </span>
-              <Button size="sm" variant="outline" onClick={() => setOpenId(a.id)}>
-                {a.status === "GRADED" ? t("quiz.admin.view") : t("quiz.admin.review")}
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setOpenId(a.id)}
+              >
+                {a.status === "GRADED"
+                  ? t("quiz.admin.view")
+                  : t("quiz.admin.review")}
               </Button>
             </li>
           ))}

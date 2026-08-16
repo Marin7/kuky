@@ -24,7 +24,11 @@ function emptyOptions() {
  * Per-number option lists for numbered opción única. Item count follows
  * distinct `(N)` markers in the prompt (including in-progress/gapped sequences).
  */
-export function SingleChoiceItemsEditor({ prompt, structure, onChange }: Props) {
+export function SingleChoiceItemsEditor({
+  prompt,
+  structure,
+  onChange,
+}: Props) {
   const { t } = useTranslation();
   const parsed = parseSingleChoiceMarkers(prompt);
   const numbers = parsed.numbers;
@@ -40,11 +44,7 @@ export function SingleChoiceItemsEditor({ prompt, structure, onChange }: Props) 
       items: items.map((item) => (item.number === number ? next : item)),
     });
 
-  const setOption = (
-    number: number,
-    optionIndex: number,
-    label: string,
-  ) => {
+  const setOption = (number: number, optionIndex: number, label: string) => {
     const item = items.find((i) => i.number === number);
     if (!item) return;
     setItem(number, {
@@ -60,7 +60,10 @@ export function SingleChoiceItemsEditor({ prompt, structure, onChange }: Props) 
     if (!item) return;
     setItem(number, {
       ...item,
-      options: item.options.map((o, i) => ({ ...o, correct: i === optionIndex })),
+      options: item.options.map((o, i) => ({
+        ...o,
+        correct: i === optionIndex,
+      })),
     });
   };
 
@@ -116,12 +119,13 @@ export function SingleChoiceItemsEditor({ prompt, structure, onChange }: Props) 
                   />
                   <Input
                     value={o.label}
-                    onChange={(e) =>
-                      setOption(item.number, i, e.target.value)
-                    }
-                    placeholder={t("admin.homework.questions.optionPlaceholder", {
-                      index: i + 1,
-                    })}
+                    onChange={(e) => setOption(item.number, i, e.target.value)}
+                    placeholder={t(
+                      "admin.homework.questions.optionPlaceholder",
+                      {
+                        index: i + 1,
+                      },
+                    )}
                   />
                   <Button
                     type="button"

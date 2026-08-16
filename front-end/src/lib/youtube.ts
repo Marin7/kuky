@@ -1,7 +1,9 @@
 import { API_ORIGIN } from "@/lib/api";
 
 /** Extract an 11-char YouTube video id from common URL shapes (or a bare id). */
-export function extractYoutubeVideoId(raw: string | null | undefined): string | null {
+export function extractYoutubeVideoId(
+  raw: string | null | undefined,
+): string | null {
   if (!raw?.trim()) return null;
   const url = raw.trim();
   if (/^[A-Za-z0-9_-]{11}$/.test(url)) return url;

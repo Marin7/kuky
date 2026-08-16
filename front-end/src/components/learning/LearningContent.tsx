@@ -24,9 +24,7 @@ function UnitCardBody({ group }: { group: UnitGroup }) {
         <div className="min-w-0 space-y-1.5">
           <p className="inline-flex max-w-full items-center gap-1.5 truncate font-medium text-foreground">
             <span className="truncate">{title}</span>
-            {group.unseen && (
-              <NotificationDot label={t("notification.item")} />
-            )}
+            {group.unseen && <NotificationDot label={t("notification.item")} />}
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             {group.presentations.length > 0 && (

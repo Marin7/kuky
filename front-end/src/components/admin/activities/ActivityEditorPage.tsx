@@ -236,7 +236,9 @@ export function ActivityEditorPage({ activityId }: Props) {
             <Select value={presentationId} onValueChange={setPresentationId}>
               <SelectTrigger>
                 <SelectValue
-                  placeholder={t("admin.activities.editor.presentationPlaceholder")}
+                  placeholder={t(
+                    "admin.activities.editor.presentationPlaceholder",
+                  )}
                 />
               </SelectTrigger>
               <SelectContent>
@@ -295,10 +297,7 @@ export function ActivityEditorPage({ activityId }: Props) {
           </div>
 
           <div className="rounded-lg border bg-muted/30 p-4">
-            <QuestionListEditor
-              questions={questions}
-              onChange={setQuestions}
-            />
+            <QuestionListEditor questions={questions} onChange={setQuestions} />
           </div>
 
           <div className="space-y-1">
@@ -389,9 +388,7 @@ export function ActivityEditorPage({ activityId }: Props) {
             </p>
             <div
               className={
-                pdfFiles.length > 1
-                  ? "grid gap-4 sm:grid-cols-2"
-                  : "grid gap-4"
+                pdfFiles.length > 1 ? "grid gap-4 sm:grid-cols-2" : "grid gap-4"
               }
             >
               {pdfFiles.length > 1 && (

@@ -25,11 +25,7 @@ function vimeoId(url: string): string | null {
  * Renders listening homework media. Kind selects presentation; legacy
  * AUDIO_URL without kind still auto-embeds YouTube/Vimeo when detected.
  */
-export function AudioPlayer({
-  audioUrl,
-  audioFileId,
-  mediaSourceKind,
-}: Props) {
+export function AudioPlayer({ audioUrl, audioFileId, mediaSourceKind }: Props) {
   const { t } = useTranslation();
 
   if (mediaSourceKind === "VIDEO_PAGE") {

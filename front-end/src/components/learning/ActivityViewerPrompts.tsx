@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  resolveComposition,
-  type ActivitySummary,
-} from "@/lib/learning";
+import { resolveComposition, type ActivitySummary } from "@/lib/learning";
 import { PresentationPdfViewer } from "./PresentationPdfViewer";
 
 interface Props {

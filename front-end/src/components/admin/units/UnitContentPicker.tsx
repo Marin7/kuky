@@ -169,8 +169,7 @@ export function UnitContentPicker({ unitId, onUpdated }: Props) {
         ? {
             ...prev,
             contents: prev.contents.map((c) =>
-              c.type === "PRESENTATION" &&
-              c.presentation?.id === updated.id
+              c.type === "PRESENTATION" && c.presentation?.id === updated.id
                 ? { ...c, presentation: updated }
                 : c,
             ),
@@ -212,9 +211,7 @@ export function UnitContentPicker({ unitId, onUpdated }: Props) {
                 <HomeworkRow
                   homework={item.homework}
                   typeLabel={t("admin.units.contents.typeHomework")}
-                  onDetach={() =>
-                    detachHomework(item.homework!.id.toString())
-                  }
+                  onDetach={() => detachHomework(item.homework!.id.toString())}
                   onEditClick={() =>
                     navigate({
                       to: "/panel/tareas/$homeworkId",

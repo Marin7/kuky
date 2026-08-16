@@ -52,9 +52,11 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
       });
     };
     load();
-    return onBadgesInvalidate(() => {
-      load();
-    });
+    const unsubscribe = onBadgesInvalidate(load);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   return (

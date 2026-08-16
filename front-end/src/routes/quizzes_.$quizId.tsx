@@ -82,15 +82,10 @@ function autoExerciseResult(quiz: QuizTakeResponse): ExerciseResultData {
   };
 }
 
-function QuizResultSummary({
-  quiz,
-}: {
-  quiz: QuizTakeResponse;
-}) {
+function QuizResultSummary({ quiz }: { quiz: QuizTakeResponse }) {
   const { t } = useTranslation();
   const awaiting = quiz.status === "SUBMITTED";
-  const showFinal =
-    quiz.status === "GRADED" && quiz.scorePercent != null;
+  const showFinal = quiz.status === "GRADED" && quiz.scorePercent != null;
   if (!showFinal && !awaiting && quiz.skills.length === 0) return null;
 
   return (
@@ -188,8 +183,7 @@ function QuizTakePage() {
     );
   }
 
-  const submitted =
-    quiz.status === "SUBMITTED" || quiz.status === "GRADED";
+  const submitted = quiz.status === "SUBMITTED" || quiz.status === "GRADED";
   const hasFreeText = quiz.questions.some((q) => q.kind === "FREE_TEXT");
   const autoResult = submitted ? autoExerciseResult(quiz) : null;
   const autoQuestions = quiz.questions.filter((q) => q.kind !== "FREE_TEXT");
@@ -252,8 +246,7 @@ function QuizTakePage() {
                   };
                 }),
               feedbackText: quiz.feedback,
-              scorePercent:
-                quiz.status === "GRADED" ? quiz.scorePercent : null,
+              scorePercent: quiz.status === "GRADED" ? quiz.scorePercent : null,
               provisionalScorePercent:
                 quiz.status === "SUBMITTED" ? quiz.scorePercent : null,
               result:
