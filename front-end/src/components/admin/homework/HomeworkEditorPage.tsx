@@ -10,6 +10,7 @@ import {
   getHomeworkById,
   type AdminQuestion,
   type Assignee,
+  type HomeworkFormat,
   type HomeworkType,
   type HomeworkLevel,
   type ApiError,
@@ -71,6 +72,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
   });
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [assignees, setAssigneeRows] = useState<Assignee[]>([]);
+  const [format, setFormat] = useState<HomeworkFormat>("MANUAL");
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
   const [openResultId, setOpenResultId] = useState<string | null>(null);
 
@@ -83,6 +85,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       .then((hw) => {
         setAssigneeRows(hw.assignees);
         setAssigneeIds(hw.assignees.map((a) => a.userId));
+        setFormat(hw.format);
       })
       .catch(() => {});
   };
@@ -116,6 +119,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
         });
         setAssigneeRows(hw.assignees);
         setAssigneeIds(hw.assignees.map((a) => a.userId));
+        setFormat(hw.format);
       })
       .catch(() => setError(t("admin.homework.editor.loadError")))
       .finally(() => setLoading(false));
@@ -389,6 +393,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
               </p>
               <HomeworkAssigneeList
                 assignees={assignees}
+                format={format}
                 onOpenResult={setOpenResultId}
                 onOpenReview={setOpenSubmissionId}
               />

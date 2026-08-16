@@ -273,6 +273,15 @@ export interface StudentProfileHomework {
   scorePercent: number | null;
   hasTeacherFeedback: boolean;
   unseen?: boolean;
+  /** MANUAL / MIXED / WRITE use the review dialog; only EXERCISE uses /exercise-result. */
+  format?: LearningHomeworkFormat | null;
+}
+
+/** `/exercise-result` only accepts auto-graded EXERCISE submissions. */
+export function isExerciseResultFormat(
+  format: LearningHomeworkFormat | string | null | undefined,
+): boolean {
+  return format === "EXERCISE";
 }
 
 export interface StudentProfilePresentation {

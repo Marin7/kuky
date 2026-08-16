@@ -1,11 +1,16 @@
 import { useTranslation } from "react-i18next";
-import { type Assignee } from "@/lib/admin";
+import {
+  isExerciseResultFormat,
+  type Assignee,
+  type HomeworkFormat,
+} from "@/lib/admin";
 import { StudentLink } from "@/components/admin/students/StudentLink";
 import { NotificationDot } from "@/components/NotificationDot";
 import { Button } from "@/components/ui/button";
 
 interface Props {
   assignees: Assignee[];
+  format: HomeworkFormat;
   onOpenResult: (submissionId: string) => void;
   onOpenReview: (submissionId: string) => void;
 }
@@ -21,6 +26,7 @@ function canOpenSubmission(a: Assignee): boolean {
 
 export function HomeworkAssigneeList({
   assignees,
+  format,
   onOpenResult,
   onOpenReview,
 }: Props) {
@@ -54,8 +60,11 @@ export function HomeworkAssigneeList({
               onClick={() => {
                 const id = a.submissionId;
                 if (!id) return;
-                if (a.status === "GRADED") onOpenResult(id);
-                else onOpenReview(id);
+                if (a.status === "GRADED" && isExerciseResultFormat(format)) {
+                  onOpenResult(id);
+                } else {
+                  onOpenReview(id);
+                }
               }}
             >
               {a.status === "GRADED"

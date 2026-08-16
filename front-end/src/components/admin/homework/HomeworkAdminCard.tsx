@@ -224,6 +224,7 @@ export function HomeworkAdminCard({
                     ) : (
                       <HomeworkAssigneeList
                         assignees={item.assignees}
+                        format={item.format}
                         onOpenResult={setOpenResultId}
                         onOpenReview={setOpenSubmissionId}
                       />

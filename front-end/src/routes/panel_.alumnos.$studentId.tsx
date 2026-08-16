@@ -6,6 +6,7 @@ import {
   getStudentProfile,
   getStudentQuizzes,
   homeworkBreakdownFromList,
+  isExerciseResultFormat,
   setBookingNoShow,
   studentDisplayName,
   type StudentProfile,
@@ -337,7 +338,15 @@ function StudentProfilePage() {
                           {hw.status === "GRADED" && hw.submissionId && (
                             <button
                               type="button"
-                              onClick={() => setOpenResultId(hw.submissionId)}
+                              onClick={() => {
+                                const id = hw.submissionId;
+                                if (!id) return;
+                                if (isExerciseResultFormat(hw.format)) {
+                                  setOpenResultId(id);
+                                } else {
+                                  setOpenSubmissionId(id);
+                                }
+                              }}
                               className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
                             >
                               {t("admin.exerciseResult.viewAction")}

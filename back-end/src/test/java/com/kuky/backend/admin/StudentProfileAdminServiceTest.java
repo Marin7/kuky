@@ -87,6 +87,12 @@ class StudentProfileAdminServiceTest {
         assertThat(response.homeworks()).hasSize(4);
         assertThat(response.homeworks().stream().map(h -> h.status()).toList())
                 .containsExactlyInAnyOrder("PENDING", "SUBMITTED", "REVIEWED", "GRADED");
+        assertThat(response.homeworks().stream()
+                .filter(h -> "GRADED".equals(h.status())).findFirst().orElseThrow().format())
+                .isEqualTo("EXERCISE");
+        assertThat(response.homeworks().stream()
+                .filter(h -> "SUBMITTED".equals(h.status())).findFirst().orElseThrow().format())
+                .isEqualTo("MANUAL");
     }
 
     @Test
