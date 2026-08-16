@@ -30,8 +30,8 @@
   --color-ring: var(--ring);
   --font-display: Georgia, "Times New Roman", Times, serif;
   --font-sans: Georgia, "Times New Roman", Times, serif;
-  --animate-homework-expand: homework-expand 400ms ease-out;
-  --animate-homework-collapse: homework-collapse 400ms ease-out;
+  --animate-homework-expand: homework-expand 500ms ease-out;
+  --animate-homework-collapse: homework-collapse 500ms ease-out;
 }
 
 @keyframes homework-expand {
@@ -50,6 +50,18 @@
   to {
     height: 0;
   }
+}
+
+.homework-collapsible {
+  overflow: hidden;
+}
+
+.homework-collapsible[data-state="open"] {
+  animation: homework-expand 500ms ease-out;
+}
+
+.homework-collapsible[data-state="closed"] {
+  animation: homework-collapse 500ms ease-out;
 }
 
 :root {

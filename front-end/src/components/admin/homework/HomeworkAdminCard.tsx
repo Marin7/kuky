@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown } from "lucide-react";
 import {
@@ -23,8 +23,7 @@ import {
 } from "@/components/ui/collapsible";
 import { notifyBadgesChanged } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
-
-const EXPAND_MS = 400;
+import type { CSSProperties } from "react";
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("es", {
@@ -54,6 +53,12 @@ interface Props {
   item: HomeworkAdminItem;
   labelOptions: string[];
   labelSaving: boolean;
+  expanded: boolean;
+  headerWidth?: number | null;
+  onExpandedChange: (open: boolean) => void;
+  layoutClassName?: string;
+  layoutStyle?: CSSProperties;
+  layoutRef?: (el: HTMLDivElement | null) => void;
   onPersistLabels: (item: HomeworkAdminItem, next: string[]) => void;
   onAssign: (item: HomeworkAdminItem) => void;
   onEdit: (item: HomeworkAdminItem) => void;
@@ -65,6 +70,12 @@ export function HomeworkAdminCard({
   item,
   labelOptions,
   labelSaving,
+  expanded,
+  headerWidth,
+  onExpandedChange,
+  layoutClassName,
+  layoutStyle,
+  layoutRef,
   onPersistLabels,
   onAssign,
   onEdit,
@@ -72,28 +83,8 @@ export function HomeworkAdminCard({
   onUpdated,
 }: Props) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const [wide, setWide] = useState(false);
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
   const [openResultId, setOpenResultId] = useState<string | null>(null);
-  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (collapseTimer.current) clearTimeout(collapseTimer.current);
-    },
-    [],
-  );
-
-  const onOpenChange = (open: boolean) => {
-    setExpanded(open);
-    if (open) {
-      if (collapseTimer.current) clearTimeout(collapseTimer.current);
-      setWide(true);
-    } else {
-      collapseTimer.current = setTimeout(() => setWide(false), EXPAND_MS);
-    }
-  };
 
   const refresh = () => {
     getHomeworkById(item.id)
@@ -106,11 +97,16 @@ export function HomeworkAdminCard({
 
   return (
     <>
-      <div className={wide ? "col-span-full" : undefined}>
-        <Collapsible open={expanded} onOpenChange={onOpenChange}>
+      <div ref={layoutRef} className={layoutClassName} style={layoutStyle}>
+        <Collapsible open={expanded} onOpenChange={onExpandedChange}>
           <Card className="relative flex flex-col gap-0 py-3">
             <CardHeader
               className={cn("px-3 pb-1.5 pt-0", expanded && "pr-10")}
+              style={
+                headerWidth != null
+                  ? { width: headerWidth, maxWidth: "100%" }
+                  : undefined
+              }
             >
               <div className="flex flex-col gap-1.5">
                 <CardTitle className="inline-flex min-w-0 items-center gap-1.5 text-sm leading-snug">
@@ -213,7 +209,7 @@ export function HomeworkAdminCard({
                 )}
               </div>
             </CardHeader>
-            <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-homework-collapse data-[state=open]:animate-homework-expand">
+            <CollapsibleContent className="homework-collapsible">
               <CardContent className="space-y-4 border-t px-3 pt-3 text-sm">
                 <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
                   <HomeworkPreview item={item} />
