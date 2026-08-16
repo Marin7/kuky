@@ -18,6 +18,7 @@ import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
+import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.notification.dto.UnitSeenResponse;
 import com.kuky.backend.notification.service.NotificationService;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
@@ -42,6 +43,7 @@ public class LearningService {
     private final HomeworkSubmissionRepository submissionRepository;
     private final HomeworkQuestionRepository questionRepository;
     private final HomeworkAnswerRepository answerRepository;
+    private final HomeworkTargetRepository targetRepository;
     private final UserRepository userRepository;
     private final PresentationRepository presentationRepository;
     private final PresentationFileStore presentationFileStore;
@@ -54,6 +56,7 @@ public class LearningService {
                            HomeworkSubmissionRepository submissionRepository,
                            HomeworkQuestionRepository questionRepository,
                            HomeworkAnswerRepository answerRepository,
+                           HomeworkTargetRepository targetRepository,
                            UserRepository userRepository,
                            PresentationRepository presentationRepository,
                            PresentationFileStore presentationFileStore,
@@ -65,6 +68,7 @@ public class LearningService {
         this.submissionRepository = submissionRepository;
         this.questionRepository = questionRepository;
         this.answerRepository = answerRepository;
+        this.targetRepository = targetRepository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
         this.presentationFileStore = presentationFileStore;
@@ -102,6 +106,8 @@ public class LearningService {
                         ContentRepository.AssignmentUnit::assignmentId,
                         au -> au));
 
+        Map<UUID, LocalDate> dueOns = targetRepository.findDueOnsForUser(user.getId());
+
         List<HomeworkItemResponse> homework = contentRepository.findAssignmentsForUser(user.getId()).stream()
                 .map(a -> {
                     ContentRepository.AssignmentUnit au = assignmentUnits.get(a.getId());
@@ -119,7 +125,7 @@ public class LearningService {
                     List<HomeworkAnswer> answers = submission == null
                             ? List.of()
                             : answerRepository.findBySubmission(submission.getId());
-                    return HomeworkItems.toResponse(a, submission, today, unit, unitPosition,
+                    return HomeworkItems.toResponse(a, submission, today, dueOns.get(a.getId()), unit, unitPosition,
                             questions, answers, null, null, unseenHomework.contains(a.getId()));
                 })
                 .toList();

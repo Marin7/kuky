@@ -7,7 +7,9 @@ import com.kuky.backend.admin.dto.PresentationSummary;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.learning.service.HomeworkDueDates;
 import com.kuky.backend.presentations.repository.PresentationRepository;
 import com.kuky.backend.units.dto.*;
 import com.kuky.backend.units.exception.InvalidContentOrderException;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -40,15 +44,18 @@ public class UnitService {
     private final UserRepository userRepository;
     private final PresentationRepository presentationRepository;
     private final HomeworkTargetRepository targetRepository;
+    private final SchedulingProperties schedulingProperties;
 
     public UnitService(UnitRepository repository,
                        UserRepository userRepository,
                        PresentationRepository presentationRepository,
-                       HomeworkTargetRepository targetRepository) {
+                       HomeworkTargetRepository targetRepository,
+                       SchedulingProperties schedulingProperties) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
         this.targetRepository = targetRepository;
+        this.schedulingProperties = schedulingProperties;
     }
 
     public List<UnitSummary> list() {
@@ -245,13 +252,15 @@ public class UnitService {
     }
 
     private HomeworkAdminItem withAssignees(HomeworkAdminItem h) {
+        LocalDate today = LocalDate.now(ZoneId.of(schedulingProperties.getScheduling().getTeacherTimezone()));
         List<AssigneeDto> assignees = targetRepository.findAssigneesWithSubmissions(h.id()).stream()
                 .map(v -> new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
                         v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId(),
-                        v.hasTeacherFeedback(), v.unseen()))
+                        v.hasTeacherFeedback(), v.unseen(), v.dueOn(),
+                        HomeworkDueDates.overdue(v.dueOn(), today, v.status())))
                 .toList();
         return new HomeworkAdminItem(
-                h.id(), h.title(), h.instructions(), h.dueOn(), h.homeworkType(), h.level(), h.format(),
+                h.id(), h.title(), h.instructions(), h.homeworkType(), h.level(), h.format(),
                 h.composition(), h.questions(), h.audioUrl(), h.audioFileId(), h.audioFileName(),
                 h.mediaSourceKind(), h.labels(), assignees, assignees.stream().anyMatch(AssigneeDto::unseen));
     }

@@ -1,7 +1,6 @@
 package com.kuky.backend.learning.model;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -10,7 +9,6 @@ public class HomeworkAssignment {
     private UUID id;
     private String title;
     private String instructions;
-    private LocalDate dueOn; // nullable — optional due date
     private boolean published;
     private int sortOrder;
     private Instant createdAt;
@@ -29,8 +27,6 @@ public class HomeworkAssignment {
     public void setTitle(String title) { this.title = title; }
     public String getInstructions() { return instructions; }
     public void setInstructions(String instructions) { this.instructions = instructions; }
-    public LocalDate getDueOn() { return dueOn; }
-    public void setDueOn(LocalDate dueOn) { this.dueOn = dueOn; }
     public boolean isPublished() { return published; }
     public void setPublished(boolean published) { this.published = published; }
     public int getSortOrder() { return sortOrder; }

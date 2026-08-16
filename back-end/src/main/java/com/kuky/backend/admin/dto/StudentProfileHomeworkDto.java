@@ -1,6 +1,7 @@
 package com.kuky.backend.admin.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record StudentProfileHomeworkDto(
@@ -13,5 +14,7 @@ public record StudentProfileHomeworkDto(
         Integer scorePercent,  // set for GRADED exercises; null otherwise
         boolean hasTeacherFeedback,
         boolean unseen,
-        String format
+        String format,
+        LocalDate dueOn,
+        boolean overdue
 ) {}

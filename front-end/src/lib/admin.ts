@@ -12,6 +12,14 @@ import type {
 } from "@/lib/learning";
 const API_BASE = `${API_ORIGIN}/api/v1/admin`;
 
+/** Calendar date in the browser's local timezone (`YYYY-MM-DD`). */
+export function localIsoDate(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export interface ApiError {
   error: string;
   message: string;
@@ -247,6 +255,8 @@ export interface Assignee {
   submissionId: string | null;
   hasTeacherFeedback: boolean;
   unseen?: boolean;
+  dueOn: string | null;
+  overdue?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -275,6 +285,8 @@ export interface StudentProfileHomework {
   unseen?: boolean;
   /** MANUAL / MIXED / WRITE use the review dialog; only EXERCISE uses /exercise-result. */
   format?: LearningHomeworkFormat | null;
+  dueOn: string | null;
+  overdue?: boolean;
 }
 
 /** `/exercise-result` only accepts auto-graded EXERCISE submissions. */
@@ -449,7 +461,6 @@ export interface HomeworkAdminItem {
   id: string;
   title: string;
   instructions: string;
-  dueOn: string | null;
   homeworkType: HomeworkType | null;
   level: HomeworkLevel | null;
   /** Derived cache; prefer composition for UI. */
@@ -493,13 +504,13 @@ export interface HomeworkAudio {
 export const createHomework = (
   title: string,
   instructions: string,
-  dueOn: string | null,
   homeworkType: HomeworkType | null,
   level: HomeworkLevel | null,
   questions: AdminQuestion[],
   audio: HomeworkAudio,
   assigneeIds: string[],
   labels: string[],
+  dueOn: string | null,
 ) =>
   apiCall<HomeworkAdminItem>("/homework", {
     method: "POST",
@@ -522,7 +533,6 @@ export const updateHomework = (
   id: string,
   title: string,
   instructions: string,
-  dueOn: string | null,
   homeworkType: HomeworkType | null,
   level: HomeworkLevel | null,
   questions: AdminQuestion[],
@@ -534,7 +544,6 @@ export const updateHomework = (
     body: JSON.stringify({
       title,
       instructions,
-      dueOn,
       homeworkType,
       level,
       questions,
@@ -559,11 +568,33 @@ export const uploadHomeworkAudio = async (file: File): Promise<AudioUpload> => {
   return data as AudioUpload;
 };
 
-export const setAssignees = (id: string, assigneeIds: string[]) =>
+export const setAssignees = (
+  id: string,
+  assigneeIds: string[],
+  dueOn?: string | null,
+  dueOns?: { userId: string; dueOn: string | null }[] | null,
+) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}/assignees`, {
     method: "PUT",
-    body: JSON.stringify({ assigneeIds }),
+    body: JSON.stringify({
+      assigneeIds,
+      dueOn: dueOn ?? null,
+      dueOns: dueOns ?? null,
+    }),
   });
+
+export const updateAssigneeDueOn = (
+  homeworkId: string,
+  userId: string,
+  dueOn: string | null,
+) =>
+  apiCall<HomeworkAdminItem>(
+    `/homework/${homeworkId}/assignees/${userId}/due-on`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ dueOn }),
+    },
+  );
 
 export const updateHomeworkLabels = (id: string, labels: string[]) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}/labels`, {

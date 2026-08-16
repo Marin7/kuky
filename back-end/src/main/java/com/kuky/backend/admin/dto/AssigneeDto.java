@@ -1,6 +1,7 @@
 package com.kuky.backend.admin.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record AssigneeDto(
@@ -15,5 +16,7 @@ public record AssigneeDto(
         Integer scorePercent,  // set for GRADED exercise submissions; null otherwise
         UUID submissionId,     // null when the student has not submitted yet
         boolean hasTeacherFeedback,
-        boolean unseen
+        boolean unseen,
+        LocalDate dueOn,
+        boolean overdue
 ) {}

@@ -13,14 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NotificationDot } from "@/components/NotificationDot";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
-
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("es", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(iso));
-}
+import { HomeworkDueOn } from "@/components/learning/HomeworkDueOn";
 
 function formatDateTime(iso: string): string {
   return new Intl.DateTimeFormat("es", {
@@ -151,12 +144,10 @@ export function HomeworkItemCard({
 
         <p className="text-muted-foreground">{item.instructions}</p>
 
-        {item.dueOn && (
-          <p className="text-xs text-muted-foreground">
-            {t("learning.homework.dueOn")}{" "}
-            <span className="capitalize">{formatDate(item.dueOn)}</span>
-          </p>
-        )}
+        <HomeworkDueOn
+          dueOn={item.dueOn}
+          className="block text-xs text-muted-foreground"
+        />
 
         {item.submittedAt && (
           <p className="text-xs text-muted-foreground">
@@ -254,12 +245,7 @@ export function HomeworkItemCard({
           </Button>
         ) : item.homeworkType === "WRITE" ? (
           isStudentHomeworkEditable(item.status) && (
-            <Button
-              asChild
-              variant="default"
-              size="sm"
-              className="h-8 text-xs"
-            >
+            <Button asChild variant="default" size="sm" className="h-8 text-xs">
               <Link
                 to="/aprendizaje/redaccion/$homeworkId"
                 params={{ homeworkId: item.id }}

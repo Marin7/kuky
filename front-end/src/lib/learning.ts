@@ -277,6 +277,7 @@ export interface ExerciseResponse {
   teacherFeedback: string | null;
   /** Present while PENDING; echo on submit. Omitted after submit. */
   contentRevisedAt?: string | null;
+  dueOn?: string | null;
 }
 
 export interface AnswerPayload {

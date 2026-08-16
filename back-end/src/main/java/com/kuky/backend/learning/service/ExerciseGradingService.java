@@ -186,7 +186,8 @@ public class ExerciseGradingService {
                 provisionalScorePercent,
                 feedbackText,
                 teacherFeedback,
-                contentRevisedAt);
+                contentRevisedAt,
+                targetRepository.findDueOn(assignmentId, user.getId()));
     }
 
     /**

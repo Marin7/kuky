@@ -14,6 +14,7 @@ import com.kuky.backend.learning.repository.ContentRepository;
 import com.kuky.backend.learning.repository.HomeworkAnswerRepository;
 import com.kuky.backend.learning.repository.HomeworkQuestionRepository;
 import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
+import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.learning.service.ActivityStudentService;
 import com.kuky.backend.learning.service.LearningService;
 import com.kuky.backend.presentations.repository.PresentationRepository;
@@ -26,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,6 +49,8 @@ class LearningServiceTest {
     @Mock
     private HomeworkAnswerRepository answerRepository;
     @Mock
+    private HomeworkTargetRepository targetRepository;
+    @Mock
     private UserRepository userRepository;
     @Mock
     private PresentationRepository presentationRepository;
@@ -66,6 +70,7 @@ class LearningServiceTest {
                 mock(com.kuky.backend.notification.service.NotificationService.class);
         lenient().when(notifications.unseenUnitIds(any())).thenReturn(java.util.Set.of());
         service = new LearningService(contentRepository, submissionRepository, questionRepository, answerRepository,
+                targetRepository,
                 userRepository, presentationRepository, presentationFileStore, activityStudentService,
                 new com.kuky.backend.learning.service.AssignmentSnapshot(new com.fasterxml.jackson.databind.ObjectMapper()),
                 new SchedulingProperties(), notifications);
@@ -76,6 +81,8 @@ class LearningServiceTest {
         when(userRepository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.of(user));
         lenient().when(presentationRepository.findSharedSummariesForUser(userId)).thenReturn(List.of());
         lenient().when(presentationRepository.listFilesGrouped(any())).thenReturn(java.util.Map.of());
+        lenient().when(contentRepository.findAssignmentUnitsForUser(userId)).thenReturn(List.of());
+        lenient().when(targetRepository.findDueOnsForUser(userId)).thenReturn(Map.of());
     }
 
     @Test
@@ -98,11 +105,12 @@ class LearningServiceTest {
 
     @Test
     void getOverview_assignmentWithoutSubmission_isPending() {
-        HomeworkAssignment a = assignment("Tarea 1", LocalDate.now().plusDays(5));
+        HomeworkAssignment a = assignment("Tarea 1");
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
         when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
+        when(targetRepository.findDueOnsForUser(userId)).thenReturn(Map.of(a.getId(), LocalDate.now().plusDays(5)));
 
         LearningResponse overview = service.getOverview(EMAIL);
 
@@ -114,11 +122,12 @@ class LearningServiceTest {
 
     @Test
     void getOverview_pendingPastDue_isOverdue() {
-        HomeworkAssignment a = assignment("Tarea atrasada", LocalDate.now().minusDays(1));
+        HomeworkAssignment a = assignment("Tarea atrasada");
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
         when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
+        when(targetRepository.findDueOnsForUser(userId)).thenReturn(Map.of(a.getId(), LocalDate.now().minusDays(1)));
 
         LearningResponse overview = service.getOverview(EMAIL);
 
@@ -127,7 +136,7 @@ class LearningServiceTest {
 
     @Test
     void getOverview_noDueDate_neverOverdue() {
-        HomeworkAssignment a = assignment("Lectura libre", null);
+        HomeworkAssignment a = assignment("Lectura libre");
         when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
         when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
@@ -140,7 +149,7 @@ class LearningServiceTest {
 
     @Test
     void getOverview_withSubmission_reflectsStatusAndNotOverdue() {
-        HomeworkAssignment a = assignment("Tarea enviada", LocalDate.now().minusDays(1));
+        HomeworkAssignment a = assignment("Tarea enviada");
         HomeworkSubmission s = new HomeworkSubmission();
         s.setAssignmentId(a.getId());
         s.setUserId(userId);
@@ -152,12 +161,43 @@ class LearningServiceTest {
         when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
         when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(a));
         when(submissionRepository.findByUserId(userId)).thenReturn(List.of(s));
+        when(targetRepository.findDueOnsForUser(userId)).thenReturn(Map.of(a.getId(), LocalDate.now().minusDays(1)));
 
         LearningResponse overview = service.getOverview(EMAIL);
 
         assertThat(overview.homework().get(0).status()).isEqualTo("SUBMITTED");
         assertThat(overview.homework().get(0).response()).isEqualTo(response);
         // Past-due but submitted ⇒ not overdue
+        assertThat(overview.homework().get(0).overdue()).isFalse();
+    }
+
+    @Test
+    void getOverview_usesThisStudentsTargetDueOn() {
+        HomeworkAssignment shared = assignment("Compartida");
+        when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
+        when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
+        when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(shared));
+        when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
+        LocalDate mine = LocalDate.now().minusDays(2);
+        when(targetRepository.findDueOnsForUser(userId)).thenReturn(Map.of(shared.getId(), mine));
+
+        LearningResponse overview = service.getOverview(EMAIL);
+
+        assertThat(overview.homework().get(0).dueOn()).isEqualTo(mine);
+        assertThat(overview.homework().get(0).overdue()).isTrue();
+    }
+
+    @Test
+    void getOverview_futureTargetDate_isNotOverdue() {
+        HomeworkAssignment shared = assignment("Compartida");
+        when(contentRepository.findPublishedPresentation()).thenReturn(List.of());
+        when(contentRepository.findPublishedPastClassesSince(any(LocalDate.class))).thenReturn(List.of());
+        when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of(shared));
+        when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
+        when(targetRepository.findDueOnsForUser(userId)).thenReturn(Map.of(shared.getId(), LocalDate.now().plusDays(10)));
+
+        LearningResponse overview = service.getOverview(EMAIL);
+
         assertThat(overview.homework().get(0).overdue()).isFalse();
     }
 
@@ -210,12 +250,11 @@ class LearningServiceTest {
         return c;
     }
 
-    private HomeworkAssignment assignment(String title, LocalDate dueOn) {
+    private HomeworkAssignment assignment(String title) {
         HomeworkAssignment a = new HomeworkAssignment();
         a.setId(UUID.randomUUID());
         a.setTitle(title);
         a.setInstructions("Instrucciones");
-        a.setDueOn(dueOn);
         a.setPublished(true);
         a.setHomeworkType(com.kuky.backend.learning.model.HomeworkType.WRITE);
         return a;

@@ -242,8 +242,10 @@ public class HomeworkSubmissionService {
                                         List<ExerciseQuestionDto> studentQuestions,
                                         ExerciseResultResponse result) {
         LocalDate today = LocalDate.now(ZoneId.of(props.getScheduling().getTeacherTimezone()));
-        return HomeworkItems.toResponse(assignment, submission, today, null, null,
-                questions, answers, studentQuestions, result);
+        UUID userId = submission != null ? submission.getUserId() : null;
+        LocalDate dueOn = userId == null ? null : targetRepository.findDueOn(assignment.getId(), userId);
+        return HomeworkItems.toResponse(assignment, submission, today, dueOn, null, null,
+                questions, answers, studentQuestions, result, false);
     }
 
     private HomeworkComposition compositionOf(HomeworkAssignment assignment) {

@@ -117,7 +117,6 @@ class HomeworkUpdatePreservesSubmissionsIntegrationTest {
                 {
                   "title": "Gramática actualizada",
                   "instructions": "Elige la correcta",
-                  "dueOn": null,
                   "homeworkType": "READ",
                   "level": null,
                   "questions": [{
@@ -170,7 +169,6 @@ class HomeworkUpdatePreservesSubmissionsIntegrationTest {
                 {
                   "title": "Gramática",
                   "instructions": "Elige",
-                  "dueOn": null,
                   "homeworkType": "READ",
                   "level": null,
                   "questions": [{

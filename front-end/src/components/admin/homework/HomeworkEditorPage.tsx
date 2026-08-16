@@ -57,7 +57,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
 
   const [title, setTitle] = useState("");
   const [instructions, setInstructions] = useState("");
-  const [dueOn, setDueOn] = useState("");
   const [homeworkType, setHomeworkType] = useState<HomeworkType | "">("");
   const [level, setLevel] = useState<HomeworkLevel | "">("");
   const [labels, setLabels] = useState<string[]>([]);
@@ -105,7 +104,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       .then((hw) => {
         setTitle(hw.title);
         setInstructions(hw.instructions);
-        setDueOn(hw.dueOn ?? "");
         setHomeworkType(hw.homeworkType ?? "");
         setLevel(hw.level ?? "");
         setLabels(homeworkLabels(hw));
@@ -169,7 +167,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
     setSaving(true);
     setError(null);
     try {
-      const due = dueOn ? dueOn : null;
       const lvl = level || null;
       const qs = type === "WRITE" ? [] : questions;
       // Audio is only meaningful for listening homework; clear it otherwise.
@@ -204,7 +201,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           homeworkId,
           title,
           instructions,
-          due,
           type,
           lvl,
           qs,
@@ -216,13 +212,13 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
         await createHomework(
           title,
           instructions,
-          due,
           type,
           lvl,
           qs,
           audioPayload,
           assigneeIds,
           labels,
+          null,
         );
       }
       backToList();
@@ -346,17 +342,6 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
                   : t("admin.homework.editor.labelSavesOnCreate")}
               </p>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="hw-due">
-                {t("admin.homework.editor.dueDateLabel")}
-              </Label>
-              <Input
-                id="hw-due"
-                type="date"
-                value={dueOn}
-                onChange={(e) => setDueOn(e.target.value)}
-              />
-            </div>
           </div>
 
           {homeworkType === "WRITE" && (
@@ -392,10 +377,15 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
                 {t("admin.homework.editor.assignLabel")}
               </p>
               <HomeworkAssigneeList
+                homeworkId={homeworkId}
                 assignees={assignees}
                 format={format}
                 onOpenResult={setOpenResultId}
                 onOpenReview={setOpenSubmissionId}
+                onUpdated={(hw) => {
+                  setAssigneeRows(hw.assignees);
+                  setAssigneeIds(hw.assignees.map((a) => a.userId));
+                }}
               />
             </div>
           )}

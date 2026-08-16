@@ -62,7 +62,6 @@ public class ContentRepository {
         a.setId(rs.getObject("id", UUID.class));
         a.setTitle(rs.getString("title"));
         a.setInstructions(rs.getString("instructions"));
-        a.setDueOn(rs.getObject("due_on", LocalDate.class));
         a.setPublished(rs.getBoolean("published"));
         a.setSortOrder(rs.getInt("sort_order"));
         a.setCreatedAt(rs.getTimestamp("created_at").toInstant());
@@ -142,7 +141,7 @@ public class ContentRepository {
                 Map.of("id", id), ASSIGNMENT_MAPPER).stream().findFirst();
     }
 
-    public UUID insertAssignment(String title, String instructions, LocalDate dueOn,
+    public UUID insertAssignment(String title, String instructions,
                                   HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format,
                                   String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind,
                                   List<String> labels) {
@@ -151,7 +150,6 @@ public class ContentRepository {
         params.put("id", id);
         params.put("title", title);
         params.put("instructions", instructions);
-        params.put("dueOn", dueOn == null ? null : java.sql.Date.valueOf(dueOn));
         params.put("homeworkType", homeworkType == null ? null : homeworkType.name());
         params.put("level", level == null ? null : level.name());
         params.put("format", (format == null ? HomeworkFormat.MANUAL : format).name());
@@ -160,23 +158,23 @@ public class ContentRepository {
         params.put("mediaSourceKind", mediaSourceKind == null ? null : mediaSourceKind.name());
         params.put("labels", textArrayValue(labels));
         jdbc.update("""
-                INSERT INTO homework_assignments (id, title, instructions, due_on, homework_type, level, format,
+                INSERT INTO homework_assignments (id, title, instructions, homework_type, level, format,
                                                   audio_url, audio_file_id, media_source_kind, labels, published, sort_order)
-                VALUES (:id, :title, :instructions, :dueOn, :homeworkType, :level, :format,
+                VALUES (:id, :title, :instructions, :homeworkType, :level, :format,
                         :audioUrl, :audioFileId, :mediaSourceKind, :labels, true, 0)
                 """, params);
         return id;
     }
 
-    public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn,
+    public int updateAssignment(UUID id, String title, String instructions,
                                 HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format,
                                 String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind,
                                 List<String> labels) {
-        return updateAssignment(id, title, instructions, dueOn, homeworkType, level, format,
+        return updateAssignment(id, title, instructions, homeworkType, level, format,
                 audioUrl, audioFileId, mediaSourceKind, labels, null);
     }
 
-    public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn,
+    public int updateAssignment(UUID id, String title, String instructions,
                                 HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format,
                                 String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind,
                                 List<String> labels, java.time.Instant contentRevisedAt) {
@@ -184,7 +182,6 @@ public class ContentRepository {
         params.put("id", id);
         params.put("title", title);
         params.put("instructions", instructions);
-        params.put("dueOn", dueOn == null ? null : java.sql.Date.valueOf(dueOn));
         params.put("homeworkType", homeworkType == null ? null : homeworkType.name());
         params.put("level", level == null ? null : level.name());
         params.put("format", (format == null ? HomeworkFormat.MANUAL : format).name());
@@ -196,7 +193,7 @@ public class ContentRepository {
         if (contentRevisedAt == null) {
             return jdbc.update("""
                     UPDATE homework_assignments
-                    SET title = :title, instructions = :instructions, due_on = :dueOn,
+                    SET title = :title, instructions = :instructions,
                         homework_type = :homeworkType, level = :level, format = :format,
                         audio_url = :audioUrl, audio_file_id = :audioFileId,
                         media_source_kind = :mediaSourceKind, labels = :labels
@@ -205,7 +202,7 @@ public class ContentRepository {
         }
         return jdbc.update("""
                 UPDATE homework_assignments
-                SET title = :title, instructions = :instructions, due_on = :dueOn,
+                SET title = :title, instructions = :instructions,
                     homework_type = :homeworkType, level = :level, format = :format,
                     audio_url = :audioUrl, audio_file_id = :audioFileId,
                     media_source_kind = :mediaSourceKind, labels = :labels,

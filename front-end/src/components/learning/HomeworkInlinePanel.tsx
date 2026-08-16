@@ -16,11 +16,37 @@ import { ManualAnswerForm } from "./ManualAnswerForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { AudioPlayer } from "./AudioPlayer";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { HomeworkDueOn } from "./HomeworkDueOn";
 
 interface Props {
   item: HomeworkItem;
   /** Refresh parent list after submit / grade. */
   onChanged: () => void;
+}
+
+function InlineHomeworkDue({
+  item,
+  exercise,
+}: {
+  item: HomeworkItem;
+  exercise?: ExerciseResponse | null;
+}) {
+  const { t } = useTranslation();
+  const dueOn = item.dueOn ?? exercise?.dueOn;
+  if (!dueOn && !item.overdue) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <HomeworkDueOn
+        dueOn={dueOn}
+        className="text-sm font-medium text-foreground"
+      />
+      {item.overdue && (
+        <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+          {t("learning.homework.overdue")}
+        </span>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -97,6 +123,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     );
     return (
       <div className="space-y-3">
+        <InlineHomeworkDue item={item} exercise={exercise} />
         {exercise.instructions && !pinIntro && (
           <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
             {exercise.instructions}
@@ -141,6 +168,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
     );
     return (
       <div className="space-y-3">
+        <InlineHomeworkDue item={item} exercise={exercise} />
         {exercise.instructions && !pinIntro && (
           <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
             {exercise.instructions}
@@ -169,6 +197,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
 
   return (
     <div className="space-y-3">
+      <InlineHomeworkDue item={item} exercise={exercise} />
       {item.instructions &&
         (showPassageBox ? (
           <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">

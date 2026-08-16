@@ -1,6 +1,7 @@
 package com.kuky.backend.learning.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,5 +27,6 @@ public record ExerciseResponse(
         Integer provisionalScorePercent,     // auto-only while MIXED SUBMITTED
         String feedbackText,                 // ANNOTATED plain note when present
         String teacherFeedback,              // plain teacher comment; null unless present
-        Instant contentRevisedAt             // present while PENDING; omitted after submit
+        Instant contentRevisedAt,            // present while PENDING; omitted after submit
+        LocalDate dueOn                      // this student's due date; null if none
 ) {}

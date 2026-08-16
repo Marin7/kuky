@@ -38,7 +38,7 @@ class StudentProfileAdminServiceTest {
         homeworkTargetRepository = mock(HomeworkTargetRepository.class);
         presentationRepository = mock(PresentationRepository.class);
         service = new StudentProfileAdminService(userRepository, bookingRepository,
-                homeworkTargetRepository, presentationRepository);
+                homeworkTargetRepository, presentationRepository, new com.kuky.backend.config.SchedulingProperties());
 
         User student = new User();
         student.setId(studentId);
@@ -74,13 +74,13 @@ class StudentProfileAdminServiceTest {
     void profileReturnsAllHomeworkStatusesWithoutProgressAggregate() {
         when(homeworkTargetRepository.findAssignmentsForStudent(studentId)).thenReturn(List.of(
                 new HomeworkTargetRepository.StudentAssignmentView(
-                        UUID.randomUUID(), "Tarea 1", "PENDING", null, "MANUAL", null, null, false, false),
+                        UUID.randomUUID(), "Tarea 1", "PENDING", null, "MANUAL", null, null, false, false, null),
                 new HomeworkTargetRepository.StudentAssignmentView(
-                        UUID.randomUUID(), "Tarea 2", "SUBMITTED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false),
+                        UUID.randomUUID(), "Tarea 2", "SUBMITTED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false, null),
                 new HomeworkTargetRepository.StudentAssignmentView(
-                        UUID.randomUUID(), "Tarea 3", "REVIEWED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false),
+                        UUID.randomUUID(), "Tarea 3", "REVIEWED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false, null),
                 new HomeworkTargetRepository.StudentAssignmentView(
-                        UUID.randomUUID(), "Tarea 4", "GRADED", Instant.now(), "EXERCISE", UUID.randomUUID(), 90, false, false)));
+                        UUID.randomUUID(), "Tarea 4", "GRADED", Instant.now(), "EXERCISE", UUID.randomUUID(), 90, false, false, null)));
 
         StudentProfileResponse response = service.getProfile(studentId);
 
@@ -102,10 +102,10 @@ class StudentProfileAdminServiceTest {
         UUID manualReviewed = UUID.randomUUID();
         UUID exerciseSubmittedEquivalent = UUID.randomUUID();
         when(homeworkTargetRepository.findAssignmentsForStudent(studentId)).thenReturn(List.of(
-                new HomeworkTargetRepository.StudentAssignmentView(manualSubmitted, "Escritura", "SUBMITTED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false),
-                new HomeworkTargetRepository.StudentAssignmentView(manualPending, "Escritura 2", "PENDING", null, "MANUAL", null, null, false, false),
-                new HomeworkTargetRepository.StudentAssignmentView(manualReviewed, "Escritura 3", "REVIEWED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false),
-                new HomeworkTargetRepository.StudentAssignmentView(exerciseSubmittedEquivalent, "Ejercicio", "GRADED", Instant.now(), "EXERCISE", UUID.randomUUID(), 80, false, false)));
+                new HomeworkTargetRepository.StudentAssignmentView(manualSubmitted, "Escritura", "SUBMITTED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false, null),
+                new HomeworkTargetRepository.StudentAssignmentView(manualPending, "Escritura 2", "PENDING", null, "MANUAL", null, null, false, false, java.time.LocalDate.now().minusDays(1)),
+                new HomeworkTargetRepository.StudentAssignmentView(manualReviewed, "Escritura 3", "REVIEWED", Instant.now(), "MANUAL", UUID.randomUUID(), null, false, false, null),
+                new HomeworkTargetRepository.StudentAssignmentView(exerciseSubmittedEquivalent, "Ejercicio", "GRADED", Instant.now(), "EXERCISE", UUID.randomUUID(), 80, false, false, null)));
 
         StudentProfileResponse response = service.getProfile(studentId);
 
@@ -117,6 +117,10 @@ class StudentProfileAdminServiceTest {
                 .filter(h -> h.id().equals(manualReviewed)).findFirst().orElseThrow().needsReview()).isFalse();
         assertThat(response.homeworks().stream()
                 .filter(h -> h.id().equals(exerciseSubmittedEquivalent)).findFirst().orElseThrow().needsReview()).isFalse();
+        assertThat(response.homeworks().stream()
+                .filter(h -> h.id().equals(manualPending)).findFirst().orElseThrow().overdue()).isTrue();
+        assertThat(response.homeworks().stream()
+                .filter(h -> h.id().equals(manualSubmitted)).findFirst().orElseThrow().overdue()).isFalse();
     }
 
     @Test

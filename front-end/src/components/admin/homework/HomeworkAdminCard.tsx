@@ -25,14 +25,6 @@ import { notifyBadgesChanged } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 import type { CSSProperties } from "react";
 
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("es", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(`${iso}T00:00:00`));
-}
-
 const TYPE_CLASS: Record<HomeworkType, string> = {
   AUDIO: "bg-purple-100 text-purple-700",
   READ: "bg-blue-100 text-blue-700",
@@ -202,11 +194,6 @@ export function HomeworkAdminCard({
                     </CollapsibleTrigger>
                   )}
                 </div>
-                {item.dueOn && (
-                  <p className="text-xs text-muted-foreground">
-                    {t("admin.homework.dueOn")} {formatDate(item.dueOn)}
-                  </p>
-                )}
               </div>
             </CardHeader>
             <CollapsibleContent className="homework-collapsible">
@@ -223,10 +210,12 @@ export function HomeworkAdminCard({
                       </p>
                     ) : (
                       <HomeworkAssigneeList
+                        homeworkId={item.id}
                         assignees={item.assignees}
                         format={item.format}
                         onOpenResult={setOpenResultId}
                         onOpenReview={setOpenSubmissionId}
+                        onUpdated={onUpdated}
                       />
                     )}
                   </div>

@@ -13,10 +13,12 @@ import com.kuky.backend.admin.dto.HomeworkQuestionDto;
 import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
 import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
 import com.kuky.backend.admin.dto.SaveHomeworkFeedbackRequest;
+import com.kuky.backend.admin.dto.SetAssigneesRequest;
 import com.kuky.backend.admin.dto.UpdateHomeworkRequest;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.learning.ExerciseStructureLimits;
 import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
@@ -46,6 +48,7 @@ import com.kuky.backend.learning.service.AssignmentSnapshot;
 import com.kuky.backend.learning.service.BlankPassageParser;
 import com.kuky.backend.learning.service.ExerciseGradingService;
 import com.kuky.backend.learning.service.HomeworkCompositionSupport;
+import com.kuky.backend.learning.service.HomeworkDueDates;
 import com.kuky.backend.learning.service.SingleChoiceMarkerParser;
 import com.kuky.backend.notification.service.NotificationService;
 import org.springframework.stereotype.Service;
@@ -53,7 +56,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,6 +87,7 @@ public class HomeworkAdminService {
     private final ObjectMapper objectMapper;
     private final AssignmentSnapshot assignmentSnapshot;
     private final NotificationService notificationService;
+    private final SchedulingProperties schedulingProperties;
 
     public HomeworkAdminService(ContentRepository contentRepository,
                                 HomeworkTargetRepository targetRepository,
@@ -91,7 +98,8 @@ public class HomeworkAdminService {
                                 HomeworkSubmissionRepository submissionRepository,
                                 ExerciseGradingService exerciseGradingService,
                                 ObjectMapper objectMapper,
-                                NotificationService notificationService) {
+                                NotificationService notificationService,
+                                SchedulingProperties schedulingProperties) {
         this.contentRepository = contentRepository;
         this.targetRepository = targetRepository;
         this.questionRepository = questionRepository;
@@ -103,6 +111,7 @@ public class HomeworkAdminService {
         this.objectMapper = objectMapper;
         this.assignmentSnapshot = new AssignmentSnapshot(objectMapper);
         this.notificationService = notificationService;
+        this.schedulingProperties = schedulingProperties;
     }
 
     // --- Teacher review of MANUAL submissions --------------------------------
@@ -450,12 +459,13 @@ public class HomeworkAdminService {
                 type, questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
         HomeworkFormat format = HomeworkCompositionSupport.formatFromComposition(composition);
         Audio audio = resolveAudio(type, req.mediaSourceKind(), req.audioUrl(), req.audioFileId());
+        HomeworkDueDates.requireNotPast(req.dueOn(), teacherToday());
 
-        UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn(), type, level, format,
+        UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), type, level, format,
                 audio.url(), audio.fileId(), audio.kind(), normalizeLabels(req.labels()));
         questionRepository.replaceQuestions(id, questions);
         if (!assignees.isEmpty()) {
-            targetRepository.replaceTargets(id, assignees);
+            targetRepository.replaceTargets(id, assignees, req.dueOn());
         }
         return toItem(requireAssignment(id));
     }
@@ -473,7 +483,7 @@ public class HomeworkAdminService {
 
         Instant contentRevisedAt = contentChanged(existing, req, type, level, audio, questions)
                 ? Instant.now() : null;
-        contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format,
+        contentRepository.updateAssignment(id, req.title(), req.instructions(), type, level, format,
                 audio.url(), audio.fileId(), audio.kind(), normalizeLabels(req.labels()), contentRevisedAt);
         // Upsert by question/option id so existing submissions keep their answers linked.
         questionRepository.replaceQuestions(id, questions);
@@ -528,11 +538,44 @@ public class HomeworkAdminService {
         }
     }
 
-    public HomeworkAdminItem setAssignees(UUID id, List<UUID> assigneeIds) {
+    public HomeworkAdminItem setAssignees(UUID id, List<UUID> assigneeIds, LocalDate dueOn) {
+        return setAssignees(id, assigneeIds, dueOn, null);
+    }
+
+    public HomeworkAdminItem setAssignees(UUID id, List<UUID> assigneeIds, LocalDate dueOn,
+                                          List<SetAssigneesRequest.DueOn> dueOns) {
         requireAssignment(id);
         validateStudents(assigneeIds);
-        targetRepository.replaceTargets(id, assigneeIds);
+        if (dueOns != null) {
+            Map<UUID, LocalDate> byUser = new HashMap<>();
+            for (SetAssigneesRequest.DueOn row : dueOns) {
+                if (row == null || row.userId() == null) {
+                    continue;
+                }
+                HomeworkDueDates.requireNotPast(row.dueOn(), teacherToday());
+                byUser.put(row.userId(), row.dueOn());
+            }
+            targetRepository.replaceTargets(id, assigneeIds, null);
+            for (Map.Entry<UUID, LocalDate> e : byUser.entrySet()) {
+                if (!assigneeIds.contains(e.getKey())) {
+                    continue;
+                }
+                targetRepository.updateDueOn(id, e.getKey(), e.getValue());
+            }
+        } else {
+            HomeworkDueDates.requireNotPast(dueOn, teacherToday());
+            targetRepository.replaceTargets(id, assigneeIds, dueOn);
+        }
         return toItem(requireAssignment(id));
+    }
+
+    public HomeworkAdminItem updateAssigneeDueOn(UUID assignmentId, UUID userId, LocalDate dueOn) {
+        requireAssignment(assignmentId);
+        HomeworkDueDates.requireNotPast(dueOn, teacherToday());
+        if (targetRepository.updateDueOn(assignmentId, userId, dueOn) == 0) {
+            throw new StudentNotFoundException("Alumno no asignado a esta tarea.");
+        }
+        return toItem(requireAssignment(assignmentId));
     }
 
     public HomeworkAdminItem updateLabels(UUID id, List<String> raw) {
@@ -1275,9 +1318,7 @@ public class HomeworkAdminService {
 
     private HomeworkAdminItem toItem(HomeworkAssignment a) {
         List<AssigneeDto> assignees = targetRepository.findAssigneesWithSubmissions(a.getId()).stream()
-                .map(v -> new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
-                        v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId(),
-                        v.hasTeacherFeedback(), v.unseen()))
+                .map(this::toAssigneeDto)
                 .toList();
         String type = a.getHomeworkType() == null ? null : a.getHomeworkType().name();
         String level = a.getLevel() == null ? null : a.getLevel().name();
@@ -1295,12 +1336,23 @@ public class HomeworkAdminService {
                 ? null
                 : audioFileRepository.findOriginalName(a.getAudioFileId()).orElse(null);
 
-        return new HomeworkAdminItem(a.getId(), a.getTitle(), a.getInstructions(), a.getDueOn(),
+        return new HomeworkAdminItem(a.getId(), a.getTitle(), a.getInstructions(),
                 type, level, format, composition.name(), questions,
                 a.getAudioUrl(), a.getAudioFileId(), audioFileName,
                 a.getMediaSourceKind() == null ? null : a.getMediaSourceKind().name(),
                 a.getLabels(),
                 assignees, assignees.stream().anyMatch(AssigneeDto::unseen));
+    }
+
+    private AssigneeDto toAssigneeDto(HomeworkTargetRepository.AssigneeView v) {
+        return new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
+                v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId(),
+                v.hasTeacherFeedback(), v.unseen(), v.dueOn(),
+                HomeworkDueDates.overdue(v.dueOn(), teacherToday(), v.status()));
+    }
+
+    private LocalDate teacherToday() {
+        return LocalDate.now(ZoneId.of(schedulingProperties.getScheduling().getTeacherTimezone()));
     }
 
     private HomeworkQuestionDto toQuestionDto(HomeworkQuestion q) {

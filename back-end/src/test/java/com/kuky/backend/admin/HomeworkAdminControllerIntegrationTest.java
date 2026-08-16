@@ -195,4 +195,50 @@ class HomeworkAdminControllerIntegrationTest {
                         .content("{\"feedback\":[{\"text\":\"x\"}]}"))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void updateAssigneeDueOn_setsAndClearsOneStudent() throws Exception {
+        UUID otherId = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO users (id, email, password_hash, status, role, gdpr_consent) VALUES (?, ?, 'hash', 'ACTIVE', 'STUDENT', true)",
+                otherId, "other-" + UUID.randomUUID() + "@example.com");
+        jdbcTemplate.update(
+                "INSERT INTO homework_targets (id, assignment_id, user_id, due_on) VALUES (gen_random_uuid(), ?, ?, DATE '2026-08-01')",
+                assignmentId, otherId);
+
+        mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees/" + studentId + "/due-on")
+                        .with(authentication(adminPrincipal(adminEmail)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dueOn\":\"2026-09-15\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assignees[?(@.userId=='" + studentId + "')].dueOn").value("2026-09-15"));
+
+        java.sql.Date otherDue = jdbcTemplate.queryForObject(
+                "SELECT due_on FROM homework_targets WHERE assignment_id = ? AND user_id = ?",
+                java.sql.Date.class, assignmentId, otherId);
+        Assertions.assertEquals(java.sql.Date.valueOf("2026-08-01"), otherDue);
+
+        mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees/" + studentId + "/due-on")
+                        .with(authentication(adminPrincipal(adminEmail)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dueOn\":null}"))
+                .andExpect(status().isOk());
+
+        java.sql.Date cleared = jdbcTemplate.queryForObject(
+                "SELECT due_on FROM homework_targets WHERE assignment_id = ? AND user_id = ?",
+                java.sql.Date.class, assignmentId, studentId);
+        Assertions.assertNull(cleared);
+
+        jdbcTemplate.update("DELETE FROM homework_targets WHERE user_id = ?", otherId);
+        jdbcTemplate.update("DELETE FROM users WHERE id = ?", otherId);
+    }
+
+    @Test
+    void updateAssigneeDueOn_unknownAssignee_returns404() throws Exception {
+        mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees/" + UUID.randomUUID() + "/due-on")
+                        .with(authentication(adminPrincipal(adminEmail)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dueOn\":\"2026-09-15\"}"))
+                .andExpect(status().isNotFound());
+    }
 }
