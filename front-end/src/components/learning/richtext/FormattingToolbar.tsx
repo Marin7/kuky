@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Strikethrough } from "lucide-react";
 import type { HighlightColor, TextColor } from "./types";
 import { HIGHLIGHT_COLORS, TEXT_COLORS } from "./types";
+import { ClassroomEmojiPicker } from "./ClassroomEmojiPicker";
 
 const TEXT_COLOR_CLASS: Record<TextColor, string> = {
   red: "text-red-600",
@@ -24,6 +25,8 @@ interface Props {
   onApplyColor: (color: TextColor | undefined) => void;
   onApplyHighlight: (highlight: HighlightColor | undefined) => void;
   onToggleStrike: () => void;
+  allowEmojiInsert?: boolean;
+  onInsertEmoji?: (emoji: string) => void;
 }
 
 /** Keep textarea focus/selection when pressing a toolbar control. */
@@ -44,6 +47,8 @@ export function FormattingToolbar({
   onApplyColor,
   onApplyHighlight,
   onToggleStrike,
+  allowEmojiInsert = false,
+  onInsertEmoji,
 }: Props) {
   const { t } = useTranslation();
 
@@ -133,11 +138,16 @@ export function FormattingToolbar({
         aria-label={t("richText.strike")}
         aria-pressed={!!activeStrike}
         className={`flex h-6 w-6 items-center justify-center rounded border hover:border-foreground/40 disabled:opacity-40 ${
-          activeStrike ? "border-foreground bg-muted ring-1 ring-foreground/30" : ""
+          activeStrike
+            ? "border-foreground bg-muted ring-1 ring-foreground/30"
+            : ""
         }`}
       >
         <Strikethrough className="h-3.5 w-3.5" />
       </button>
+      {allowEmojiInsert && onInsertEmoji && (
+        <ClassroomEmojiPicker disabled={disabled} onInsert={onInsertEmoji} />
+      )}
     </div>
   );
 }

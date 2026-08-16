@@ -278,6 +278,10 @@
     clearColor: "Clear color",
     clearHighlight: "Clear highlight",
     preview: "Preview",
+    emoji: {
+      open: "Insert emoji",
+      insert: "Insert {{emoji}}",
+    },
     colors: {
       red: "Red",
       green: "Green",

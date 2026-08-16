@@ -17,6 +17,7 @@ import {
 } from "./types";
 import { FormattingToolbar } from "./FormattingToolbar";
 import { RichTextViewer } from "./RichTextViewer";
+import { insertAtCaret } from "./classroomEmojis";
 
 /** Shared by the overlay and the textarea so wrap, padding, and font match. */
 const EDITOR_TEXT_CLASS =
@@ -31,6 +32,8 @@ interface Props {
   placeholder?: string;
   id?: string;
   rows?: number;
+  /** Classroom emoji control on the formatting bar. Ignored when formatOnly. */
+  allowEmojiInsert?: boolean;
 }
 
 const NAV_KEYS = new Set([
@@ -60,6 +63,7 @@ export function RichTextEditor({
   placeholder,
   id,
   rows = 14,
+  allowEmojiInsert = false,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -254,6 +258,27 @@ export function RichTextEditor({
     focusEditor();
   };
 
+  const handleInsertEmoji = (emoji: string) => {
+    if (formatOnly) return;
+    const { start, end } = currentRange();
+    const result = insertAtCaret(text, start, end, emoji, MAX_VISIBLE_LENGTH);
+    if (result.text === text) {
+      restoreSelection(start, end);
+      return;
+    }
+    const current =
+      storedText === text ? value : normalizeFormattedNewlines(value);
+    onChange(
+      reconcileEdit(
+        current,
+        plainText(current),
+        result.text,
+        pendingRef.current,
+      ),
+    );
+    restoreSelection(result.caret, result.caret);
+  };
+
   // Overlay text must match the textarea's LF-normalized value so wrap
   // and selection stay aligned; formatting still uses stored offsets.
   const mirrorValue =
@@ -276,6 +301,8 @@ export function RichTextEditor({
         onApplyColor={handleApplyColor}
         onApplyHighlight={handleApplyHighlight}
         onToggleStrike={handleToggleStrike}
+        allowEmojiInsert={allowEmojiInsert && !formatOnly}
+        onInsertEmoji={handleInsertEmoji}
       />
 
       <div

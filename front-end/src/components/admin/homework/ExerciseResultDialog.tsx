@@ -15,7 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  preventDialogDismissForPopover,
+  TextareaWithEmoji,
+} from "@/components/learning/richtext/ClassroomEmojiPicker";
 import { ExerciseResult } from "@/components/learning/ExerciseResult";
 import { notifyBadgesChanged } from "@/lib/notifications";
 
@@ -75,7 +78,11 @@ export function ExerciseResultDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent
+        className="max-h-[90vh] max-w-2xl overflow-y-auto"
+        onPointerDownOutside={preventDialogDismissForPopover}
+        onInteractOutside={preventDialogDismissForPopover}
+      >
         <DialogHeader>
           <DialogTitle>
             {data
@@ -110,13 +117,15 @@ export function ExerciseResultDialog({
               <Label htmlFor="exercise-teacher-feedback">
                 {t("admin.exerciseResult.feedbackLabel")}
               </Label>
-              <Textarea
+              <TextareaWithEmoji
                 id="exercise-teacher-feedback"
                 value={feedbackDraft}
-                onChange={(e) => setFeedbackDraft(e.target.value)}
+                onChange={setFeedbackDraft}
                 placeholder={t("admin.exerciseResult.feedbackPlaceholder")}
                 rows={4}
                 maxLength={2000}
+                allowEmojiInsert
+                disabled={saving}
               />
               {saveError && (
                 <p className="text-sm text-destructive">{saveError}</p>

@@ -431,6 +431,56 @@ class HomeworkAdminServiceTest {
     }
 
     @Test
+    void saveFeedback_keepsEmojiInComment() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        List<FormattedTextSegment> annotated =
+                List.of(new FormattedTextSegment("Mi respuesta", null, null, false));
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
+                        FormattedTextSegment.encodePlainFeedback("Bien 👏", 500), "ANNOTATED", 70, 70)));
+
+        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId,
+                new SaveHomeworkFeedbackRequest("Bien 👏", annotated, null, 70, true));
+
+        assertThat(result.feedbackText()).isEqualTo("Bien 👏");
+        verify(submissionRepository).saveScoredAnnotatedReview(
+                eq(submissionId), any(), any(), eq(70), eq(70), eq(true));
+    }
+
+    @Test
+    void saveFeedback_acceptsEmojiOnlyComment() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        List<FormattedTextSegment> annotated =
+                List.of(new FormattedTextSegment("Mi respuesta", null, null, false));
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
+                        FormattedTextSegment.encodePlainFeedback("👍", 500), "ANNOTATED", 100, 100)));
+
+        HomeworkSubmissionAdminDto result = service.saveFeedback(submissionId,
+                new SaveHomeworkFeedbackRequest("👍", annotated, null, 100, true));
+
+        assertThat(result.feedbackText()).isEqualTo("👍");
+    }
+
+    @Test
+    void saveFeedback_rejectsWhenEmojiWouldExceedManualLimit() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "SUBMITTED", null, null)));
+        String tooLong = "a".repeat(FormattedTextSegment.MAX_MANUAL_FEEDBACK_LENGTH) + "👏";
+
+        assertThatThrownBy(() -> service.saveFeedback(submissionId,
+                review("Mi respuesta", tooLong, 100, true)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("500");
+    }
+
+    @Test
     void saveFeedback_progressWriteStaysSubmitted() {
         UUID submissionId = UUID.randomUUID();
         stubWriteSubmission(submissionId);

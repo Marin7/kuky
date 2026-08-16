@@ -286,6 +286,10 @@ export const esDict = {
     clearColor: "Quitar color",
     clearHighlight: "Quitar resaltado",
     preview: "Vista previa",
+    emoji: {
+      open: "Insertar emoji",
+      insert: "Insertar {{emoji}}",
+    },
     colors: {
       red: "Rojo",
       green: "Verde",

@@ -17,7 +17,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  preventDialogDismissForPopover,
+  TextareaWithEmoji,
+} from "@/components/learning/richtext/ClassroomEmojiPicker";
 import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
 import { ExerciseResult } from "@/components/learning/ExerciseResult";
@@ -282,7 +285,11 @@ export function HomeworkReviewDialog({
 
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+      <DialogContent
+        className="max-h-[85vh] max-w-2xl overflow-y-auto"
+        onPointerDownOutside={preventDialogDismissForPopover}
+        onInteractOutside={preventDialogDismissForPopover}
+      >
         <DialogHeader>
           <DialogTitle>
             {submission
@@ -452,13 +459,14 @@ export function HomeworkReviewDialog({
                 </div>
               ) : editable ? (
                 <div className="space-y-1">
-                  <Textarea
+                  <TextareaWithEmoji
                     value={feedbackText}
-                    onChange={(e) => setFeedbackText(e.target.value)}
+                    onChange={setFeedbackText}
                     placeholder={t("admin.homeworkReview.feedbackPlaceholder")}
                     rows={3}
                     maxLength={MAX_FEEDBACK}
                     disabled={saving}
+                    allowEmojiInsert
                     className="break-all [overflow-wrap:anywhere]"
                   />
                   <p className="text-right text-xs text-muted-foreground tabular-nums">

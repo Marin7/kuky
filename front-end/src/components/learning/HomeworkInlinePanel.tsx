@@ -153,6 +153,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
           }}
           onSubmitted={onChanged}
           onHomeworkUpdated={onChanged}
+          allowEmojiInsert
         />
       </div>
     );

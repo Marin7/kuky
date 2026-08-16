@@ -96,6 +96,49 @@ class HomeworkSubmissionServiceTest {
     }
 
     @Test
+    void submit_keepsEmojiInWriteResponse() {
+        HomeworkAssignment a = assignment(null);
+        List<FormattedTextSegment> response = List.of(
+                new FormattedTextSegment("Gracias 👍", "green", null, null));
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
+        when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
+        when(submissionRepository.upsert(eq(userId), eq(assignmentId),
+                eq(HomeworkStatus.SUBMITTED.name()), eq(FormattedTextSegment.toJson(response)), any()))
+                .thenReturn(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(response)));
+
+        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, response, null, REVISED);
+
+        assertThat(result.response()).isEqualTo(response);
+        assertThat(FormattedTextSegment.plainText(result.response())).contains("👍");
+    }
+
+    @Test
+    void submit_acceptsEmojiOnlyAnswer() {
+        HomeworkAssignment a = assignment(null);
+        List<FormattedTextSegment> response = plain("👍");
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
+        when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
+        when(submissionRepository.upsert(eq(userId), eq(assignmentId),
+                eq(HomeworkStatus.SUBMITTED.name()), eq(FormattedTextSegment.toJson(response)), any()))
+                .thenReturn(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(response)));
+
+        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, response, null, REVISED);
+
+        assertThat(FormattedTextSegment.plainText(result.response())).isEqualTo("👍");
+    }
+
+    @Test
+    void submit_rejectsWhenEmojiWouldExceedVisibleLength() {
+        HomeworkAssignment a = assignment(null);
+        when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
+        when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
+        String tooLong = "a".repeat(FormattedTextSegment.MAX_VISIBLE_LENGTH) + "👍";
+
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, plain(tooLong), null, REVISED))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void submit_markDoneWithoutText_setsSubmitted() {
         HomeworkAssignment a = assignment(null);
         when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));

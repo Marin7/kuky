@@ -15,7 +15,6 @@ import {
 } from "@/lib/learning";
 import { countBlanks } from "@/lib/blankTokens";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExerciseResult } from "./ExerciseResult";
@@ -29,6 +28,7 @@ import { TableFillQuestion } from "./TableFillQuestion";
 import { MatchingQuestion } from "./MatchingQuestion";
 import { RichTextEditor } from "./richtext/RichTextEditor";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { TextareaWithEmoji } from "./richtext/ClassroomEmojiPicker";
 import { plainText, type FormattedText } from "./richtext/types";
 
 interface AnswerState {
@@ -69,6 +69,8 @@ interface Props {
   ) => Promise<unknown>;
   /** Writing-homework rich text for FREE_TEXT (quizzes). Default: plain textarea. */
   richFreeText?: boolean;
+  /** Classroom emoji picker on homework FREE_TEXT textareas (not quizzes/activities). */
+  allowEmojiInsert?: boolean;
   /** Quiz results: skip the auto-only heading and duplicate % summary. */
   hideAutoResultsSummary?: boolean;
   /** Quiz results: overall % lives in the destreza summary card. */
@@ -128,6 +130,7 @@ export function MixedHomeworkForm({
   onHomeworkUpdated,
   submitAnswers,
   richFreeText = false,
+  allowEmojiInsert = false,
   hideAutoResultsSummary = false,
   hideCombinedScore = false,
   showAllAnswers = false,
@@ -478,14 +481,15 @@ export function MixedHomeworkForm({
                         rows={8}
                       />
                     ) : (
-                      <Textarea
+                      <TextareaWithEmoji
                         id={`mixed-ft-${q.id}`}
                         value={answers[q.id]?.text ?? ""}
-                        onChange={(e) => setText(q.id, e.target.value)}
+                        onChange={(text) => setText(q.id, text)}
                         rows={3}
                         disabled={submitting}
                         placeholder={t("learning.manualMulti.placeholder")}
                         maxLength={2000}
+                        allowEmojiInsert={allowEmojiInsert}
                       />
                     )}
                   </>

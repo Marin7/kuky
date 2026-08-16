@@ -135,6 +135,7 @@ export function HomeworkListeningPage({ homeworkId, format }: Props) {
                 teacherFeedback: exercise.teacherFeedback,
                 contentRevisedAt: exercise.contentRevisedAt,
               }}
+              allowEmojiInsert
               onHomeworkUpdated={() =>
                 getExercise(homeworkId)
                   .then(setExercise)

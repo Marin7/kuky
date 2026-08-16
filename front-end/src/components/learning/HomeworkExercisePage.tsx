@@ -89,6 +89,7 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
                 instructions: exercise.instructions,
                 homeworkType: exercise.homeworkType,
               }}
+              allowEmojiInsert
               onSubmitted={() =>
                 getExercise(homeworkId)
                   .then(setExercise)

@@ -166,6 +166,7 @@ export function ManualAnswerForm({
           onChange={handleChange}
           placeholder={labels.placeholder}
           disabled={submitting}
+          allowEmojiInsert
         />
       )}
 

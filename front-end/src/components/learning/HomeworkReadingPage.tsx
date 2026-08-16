@@ -113,6 +113,7 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
                 teacherFeedback: exercise.teacherFeedback,
                 contentRevisedAt: exercise.contentRevisedAt,
               }}
+              allowEmojiInsert
               onHomeworkUpdated={() =>
                 getExercise(homeworkId)
                   .then(setExercise)

@@ -286,6 +286,10 @@
     clearColor: "Elimină culoarea",
     clearHighlight: "Elimină evidențierea",
     preview: "Previzualizare",
+    emoji: {
+      open: "Inserează emoji",
+      insert: "Inserează {{emoji}}",
+    },
     colors: {
       red: "Roșu",
       green: "Verde",
