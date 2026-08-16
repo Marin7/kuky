@@ -62,6 +62,32 @@ export function plainText(segments: FormattedText): string {
   return segments.map((s) => s.text).join("");
 }
 
+/** HTML textarea values and selection offsets always use LF newlines. */
+export function normalizeNewlines(text: string): string {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+/**
+ * Map a textarea selection offset (LF-only) onto stored text that may still
+ * contain CR from a Windows paste. Without this, formatting lands one
+ * character too early for every preceding CRLF.
+ */
+export function mapTextareaOffset(stored: string, apiOffset: number): number {
+  const clamped = Math.max(0, apiOffset);
+  if (stored.indexOf("\r") === -1) {
+    return Math.min(clamped, stored.length);
+  }
+  let api = 0;
+  for (let i = 0; i < stored.length; i++) {
+    if (api === clamped) return i;
+    if (stored[i] === "\r" && stored[i + 1] === "\n") {
+      continue;
+    }
+    api++;
+  }
+  return stored.length;
+}
+
 /** Splits segments so that `offset` always falls on a segment boundary. */
 function splitSegmentsAt(
   segments: FormattedText,
@@ -101,6 +127,14 @@ function mergeAdjacent(segments: FormattedText): FormattedText {
     }
   }
   return result;
+}
+
+export function normalizeFormattedNewlines(
+  segments: FormattedText,
+): FormattedText {
+  return mergeAdjacent(
+    segments.map((seg) => ({ ...seg, text: normalizeNewlines(seg.text) })),
+  );
 }
 
 /**

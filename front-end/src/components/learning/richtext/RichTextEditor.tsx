@@ -1,7 +1,10 @@
 import { useRef, useState } from "react";
 import {
   applyFormat,
+  mapTextareaOffset,
   MAX_VISIBLE_LENGTH,
+  normalizeFormattedNewlines,
+  normalizeNewlines,
   plainText,
   reconcileEdit,
   styleAtCaret,
@@ -14,6 +17,10 @@ import {
 } from "./types";
 import { FormattingToolbar } from "./FormattingToolbar";
 import { RichTextViewer } from "./RichTextViewer";
+
+/** Shared by the overlay and the textarea so wrap, padding, and font match. */
+const EDITOR_TEXT_CLASS =
+  "box-border px-3 py-2 font-sans text-base leading-relaxed whitespace-pre-wrap break-words break-all [overflow-wrap:anywhere] [tab-size:8] [scrollbar-gutter:stable]";
 
 interface Props {
   value: FormattedText;
@@ -70,8 +77,12 @@ export function RichTextEditor({
       return next;
     });
   };
-  const text = plainText(value);
+  const storedText = plainText(value);
+  const text = normalizeNewlines(storedText);
   const showPlaceholder = text.length === 0 && !!placeholder;
+
+  const toStoredOffset = (apiOffset: number) =>
+    mapTextareaOffset(storedText, apiOffset);
 
   const rememberSelection = () => {
     const el = textareaRef.current;
@@ -85,7 +96,7 @@ export function RichTextEditor({
   const syncPendingFromCaret = () => {
     const { start, end } = selectionRef.current;
     if (start !== end) return;
-    setPending(styleAtCaret(value, start));
+    setPending(styleAtCaret(value, toStoredOffset(start)));
   };
 
   const syncMirrorScroll = () => {
@@ -131,7 +142,12 @@ export function RichTextEditor({
 
   const handleTextChange = (newText: string) => {
     if (formatOnly) return;
-    onChange(reconcileEdit(value, text, newText, pendingRef.current));
+    const nextText = normalizeNewlines(newText);
+    const current =
+      storedText === text ? value : normalizeFormattedNewlines(value);
+    onChange(
+      reconcileEdit(current, plainText(current), nextText, pendingRef.current),
+    );
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -142,14 +158,18 @@ export function RichTextEditor({
     // another application, regardless of source.
     const el = textareaRef.current;
     if (!el) return;
-    const pasted = e.clipboardData.getData("text/plain");
+    const pasted = normalizeNewlines(e.clipboardData.getData("text/plain"));
     const { selectionStart, selectionEnd } = el;
     const before = text.slice(0, selectionStart);
     const after = text.slice(selectionEnd);
     const available = MAX_VISIBLE_LENGTH - before.length - after.length;
     const clipped = pasted.slice(0, Math.max(0, available));
     const newText = before + clipped + after;
-    onChange(reconcileEdit(value, text, newText, pendingRef.current));
+    const current =
+      storedText === text ? value : normalizeFormattedNewlines(value);
+    onChange(
+      reconcileEdit(current, plainText(current), newText, pendingRef.current),
+    );
     requestAnimationFrame(() => {
       const pos = before.length + clipped.length;
       const current = textareaRef.current;
@@ -172,7 +192,11 @@ export function RichTextEditor({
   const handleApplyColor = (color: TextColor | undefined) => {
     const { start, end } = currentRange();
     if (start !== end) {
-      onChange(applyFormat(value, start, end, { color }));
+      onChange(
+        applyFormat(value, toStoredOffset(start), toStoredOffset(end), {
+          color,
+        }),
+      );
       restoreSelection(start, end);
     } else {
       focusEditor();
@@ -188,7 +212,11 @@ export function RichTextEditor({
   const handleApplyHighlight = (highlight: HighlightColor | undefined) => {
     const { start, end } = currentRange();
     if (start !== end) {
-      onChange(applyFormat(value, start, end, { highlight }));
+      onChange(
+        applyFormat(value, toStoredOffset(start), toStoredOffset(end), {
+          highlight,
+        }),
+      );
       restoreSelection(start, end);
     } else {
       focusEditor();
@@ -204,9 +232,10 @@ export function RichTextEditor({
   const handleToggleStrike = () => {
     const { start, end } = currentRange();
     if (start !== end) {
-      const next = toggleStrike(value, start, end);
+      const storedStart = toStoredOffset(start);
+      const next = toggleStrike(value, storedStart, toStoredOffset(end));
       onChange(next);
-      const after = styleAtCaret(next, start + 1);
+      const after = styleAtCaret(next, storedStart + 1);
       setPending((prev) => {
         const sticky = { ...prev };
         if (after.strike) sticky.strike = true;
@@ -225,11 +254,17 @@ export function RichTextEditor({
     focusEditor();
   };
 
+  // Overlay text must match the textarea's LF-normalized value so wrap
+  // and selection stay aligned; formatting still uses stored offsets.
+  const mirrorValue =
+    storedText === text
+      ? value
+      : value.map((seg) => ({ ...seg, text: normalizeNewlines(seg.text) }));
   // Trailing newline alone collapses in a pre-wrap mirror; keep height in sync
   // with the textarea caret row.
   const mirrorSegments: FormattedText = text.endsWith("\n")
-    ? [...value, { text: "\u200b" }]
-    : value;
+    ? [...mirrorValue, { text: "\u200b" }]
+    : mirrorValue;
 
   return (
     <div className="space-y-2">
@@ -243,16 +278,18 @@ export function RichTextEditor({
         onToggleStrike={handleToggleStrike}
       />
 
-      <div className={`relative ${disabled ? "opacity-50" : ""}`}>
+      <div
+        className={`relative rounded-md border border-input shadow-sm focus-within:ring-1 focus-within:ring-ring ${disabled ? "opacity-50" : ""}`}
+      >
         <div
           ref={mirrorRef}
           aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-auto rounded-md px-3 py-2 text-base leading-relaxed"
+          className={`pointer-events-none absolute inset-0 overflow-hidden ${EDITOR_TEXT_CLASS}`}
         >
           {showPlaceholder ? (
             <span className="text-muted-foreground">{placeholder}</span>
           ) : (
-            <RichTextViewer segments={mirrorSegments} />
+            <RichTextViewer segments={mirrorSegments} className="contents" />
           )}
         </div>
 
@@ -279,7 +316,7 @@ export function RichTextEditor({
           disabled={disabled}
           readOnly={formatOnly}
           style={{ WebkitTextFillColor: "transparent" }}
-          className="relative z-10 min-h-[14rem] w-full resize-none overflow-auto rounded-md border border-input bg-transparent px-3 py-2 text-base leading-relaxed text-transparent caret-foreground shadow-sm placeholder:text-transparent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed"
+          className={`relative z-10 block min-h-[14rem] w-full resize-none appearance-none overflow-auto border-0 bg-transparent text-transparent caret-foreground placeholder:text-transparent focus-visible:outline-none disabled:cursor-not-allowed ${EDITOR_TEXT_CLASS}`}
         />
       </div>
 
