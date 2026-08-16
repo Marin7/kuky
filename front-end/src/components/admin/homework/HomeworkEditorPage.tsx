@@ -377,15 +377,10 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
                 {t("admin.homework.editor.assignLabel")}
               </p>
               <HomeworkAssigneeList
-                homeworkId={homeworkId}
                 assignees={assignees}
                 format={format}
                 onOpenResult={setOpenResultId}
                 onOpenReview={setOpenSubmissionId}
-                onUpdated={(hw) => {
-                  setAssigneeRows(hw.assignees);
-                  setAssigneeIds(hw.assignees.map((a) => a.userId));
-                }}
               />
             </div>
           )}

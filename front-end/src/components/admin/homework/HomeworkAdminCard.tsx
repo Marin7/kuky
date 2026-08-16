@@ -210,12 +210,10 @@ export function HomeworkAdminCard({
                       </p>
                     ) : (
                       <HomeworkAssigneeList
-                        homeworkId={item.id}
                         assignees={item.assignees}
                         format={item.format}
                         onOpenResult={setOpenResultId}
                         onOpenReview={setOpenSubmissionId}
-                        onUpdated={onUpdated}
                       />
                     )}
                   </div>
