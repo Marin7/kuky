@@ -207,32 +207,25 @@ class HomeworkFreezeSubmittedIntegrationTest {
                 Timestamp.class, assignmentId);
         Instant before = beforeTs.toInstant();
 
-        mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId)
+        mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees/" + studentId + "/due-on")
+                        .with(authentication(admin()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"dueOn\": \"2026-09-01\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assignees[?(@.userId=='" + studentId + "')].dueOn").value("2026-09-01"));
+
+        mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees")
                         .with(authentication(admin()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                  "title": "Gramática",
-                                  "instructions": "Elige",
-                                  "dueOn": "2026-09-01",
-                                  "homeworkType": "READ",
-                                  "level": null,
-                                  "questions": [{
-                                    "id": "%s",
-                                    "kind": "SINGLE_CHOICE",
-                                    "prompt": "¿Capital?",
-                                    "options": [
-                                      {"id": "%s", "label": "Madrid", "correct": true},
-                                      {"id": "%s", "label": "Lisboa", "correct": false},
-                                      {"id": "%s", "label": "París", "correct": false}
-                                    ]
-                                  }],
-                                  "audioUrl": null,
-                                  "audioFileId": null,
-                                  "mediaSourceKind": null
-                                }
-                                """.formatted(questionId, optionCorrectId, optionWrongId, optionExtraId)))
+                                {"assigneeIds":["%s","%s"],"dueOn":"2026-10-01"}
+                                """.formatted(studentId, pendingStudentId)))
                 .andExpect(status().isOk());
+
+        java.sql.Date studentDue = jdbcTemplate.queryForObject(
+                "SELECT due_on FROM homework_targets WHERE assignment_id = ? AND user_id = ?",
+                java.sql.Date.class, assignmentId, studentId);
+        assertEquals(java.sql.Date.valueOf("2026-09-01"), studentDue);
 
         Timestamp afterTs = jdbcTemplate.queryForObject(
                 "SELECT content_revised_at FROM homework_assignments WHERE id = ?",
@@ -250,7 +243,6 @@ class HomeworkFreezeSubmittedIntegrationTest {
                                 {
                                   "title": "Gramática",
                                   "instructions": "Elige",
-                                  "dueOn": null,
                                   "homeworkType": "READ",
                                   "level": null,
                                   "questions": [{
@@ -284,7 +276,6 @@ class HomeworkFreezeSubmittedIntegrationTest {
                 {
                   "title": "Gramática",
                   "instructions": "Elige",
-                  "dueOn": null,
                   "homeworkType": "READ",
                   "level": null,
                   "questions": [{

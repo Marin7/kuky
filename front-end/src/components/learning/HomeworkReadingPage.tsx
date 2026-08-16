@@ -16,6 +16,7 @@ import { ExerciseForm } from "./ExerciseForm";
 import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { HomeworkDueOn } from "./HomeworkDueOn";
 
 interface Props {
   homeworkId: string;
@@ -89,6 +90,10 @@ export function HomeworkReadingPage({ homeworkId, format }: Props) {
           <h1 className="font-display text-2xl font-semibold text-primary sm:text-3xl">
             {title}
           </h1>
+          <HomeworkDueOn
+            dueOn={item?.dueOn ?? exercise?.dueOn}
+            className="mt-2 block text-sm text-muted-foreground"
+          />
 
           <div className="mt-3 whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
             {passage}

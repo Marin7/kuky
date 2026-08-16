@@ -12,7 +12,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -339,7 +338,7 @@ public class UnitRepository {
 
     public List<HomeworkAdminItem> findHomeworks(UUID unitId) {
         String sql = """
-                SELECT ha.id, ha.title, ha.instructions, ha.due_on, ha.homework_type,
+                SELECT ha.id, ha.title, ha.instructions, ha.homework_type,
                        ha.level, ha.format, ha.audio_url, ha.audio_file_id, ha.media_source_kind,
                        ha.labels, ha.unit_position
                 FROM homework_assignments ha
@@ -353,7 +352,6 @@ public class UnitRepository {
                     rs.getObject("id", UUID.class),
                     rs.getString("title"),
                     rs.getString("instructions"),
-                    rs.getObject("due_on", LocalDate.class),
                     homeworkType,
                     rs.getString("level"),
                     format,

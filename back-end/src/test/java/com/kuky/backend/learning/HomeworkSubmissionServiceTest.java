@@ -85,6 +85,7 @@ class HomeworkSubmissionServiceTest {
         when(submissionRepository.upsert(eq(userId), eq(assignmentId),
                 eq(HomeworkStatus.SUBMITTED.name()), eq(FormattedTextSegment.toJson(response)), any()))
                 .thenReturn(submission(HomeworkStatus.SUBMITTED, FormattedTextSegment.toJson(response)));
+        when(targetRepository.findDueOn(assignmentId, userId)).thenReturn(LocalDate.now().minusDays(1));
 
         HomeworkItemResponse result = service.submit(EMAIL, assignmentId, response, null, REVISED);
 
@@ -212,7 +213,6 @@ class HomeworkSubmissionServiceTest {
         a.setId(assignmentId);
         a.setTitle("Tarea");
         a.setInstructions("Instrucciones");
-        a.setDueOn(dueOn);
         a.setPublished(true);
         a.setHomeworkType(HomeworkType.WRITE);
         a.setContentRevisedAt(REVISED);

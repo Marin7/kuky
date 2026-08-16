@@ -8,6 +8,7 @@ import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
 import com.kuky.backend.admin.dto.SaveExerciseFeedbackRequest;
 import com.kuky.backend.admin.dto.SaveHomeworkFeedbackRequest;
 import com.kuky.backend.admin.dto.SetAssigneesRequest;
+import com.kuky.backend.admin.dto.UpdateAssigneeDueOnRequest;
 import com.kuky.backend.admin.dto.UpdateHomeworkLabelsRequest;
 import com.kuky.backend.admin.dto.UpdateHomeworkRequest;
 import com.kuky.backend.admin.service.HomeworkAdminService;
@@ -53,7 +54,14 @@ public class HomeworkAdminController {
     @PutMapping("/{id}/assignees")
     public HomeworkAdminItem setAssignees(@PathVariable UUID id,
                                           @Valid @RequestBody SetAssigneesRequest request) {
-        return service.setAssignees(id, request.assigneeIds());
+        return service.setAssignees(id, request.assigneeIds(), request.dueOn(), request.dueOns());
+    }
+
+    @PutMapping("/{id}/assignees/{userId}/due-on")
+    public HomeworkAdminItem updateAssigneeDueOn(@PathVariable UUID id,
+                                                 @PathVariable UUID userId,
+                                                 @Valid @RequestBody UpdateAssigneeDueOnRequest request) {
+        return service.updateAssigneeDueOn(id, userId, request.dueOn());
     }
 
     @PutMapping("/{id}/labels")

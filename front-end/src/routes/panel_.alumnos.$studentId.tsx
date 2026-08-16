@@ -290,8 +290,23 @@ function StudentProfilePage() {
                           {hw.unseen && (
                             <NotificationDot label={t("notification.row")} />
                           )}
+                          {hw.overdue && (
+                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                              {t("learning.homework.overdue")}
+                            </span>
+                          )}
                         </span>
                         <div className="flex items-center gap-2 ml-4 shrink-0">
+                          {hw.dueOn && (
+                            <span className="text-xs text-muted-foreground">
+                              {t("admin.homework.dueOn")}{" "}
+                              {new Intl.DateTimeFormat("es", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              }).format(new Date(`${hw.dueOn}T00:00:00`))}
+                            </span>
+                          )}
                           {hw.submittedAt && (
                             <span className="text-xs text-muted-foreground">
                               {formatDate(hw.submittedAt)}

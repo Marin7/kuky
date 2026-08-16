@@ -67,6 +67,9 @@ class UnitAssigneeHomeworkSyncTest {
                 "SELECT COUNT(*) FROM homework_targets WHERE assignment_id = ? AND user_id = ?",
                 Integer.class, homeworkId, studentId);
         assertThat(after).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT due_on FROM homework_targets WHERE assignment_id = ? AND user_id = ?",
+                java.sql.Date.class, homeworkId, studentId)).isNull();
     }
 
     @Test

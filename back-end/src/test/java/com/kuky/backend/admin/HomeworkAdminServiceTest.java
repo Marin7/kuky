@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,6 +55,10 @@ class HomeworkAdminServiceTest {
 
     private final UUID studentId = UUID.randomUUID();
 
+    private static LocalDate teacherToday() {
+        return LocalDate.now(ZoneId.of("Europe/Bucharest"));
+    }
+
     @BeforeEach
     void setUp() {
         contentRepository = mock(ContentRepository.class);
@@ -66,7 +71,8 @@ class HomeworkAdminServiceTest {
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 answerRepository,
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
-                new ObjectMapper(), mock(com.kuky.backend.notification.service.NotificationService.class));
+                new ObjectMapper(), mock(com.kuky.backend.notification.service.NotificationService.class),
+                new com.kuky.backend.config.SchedulingProperties());
 
         User student = new User();
         student.setId(studentId);
@@ -80,23 +86,22 @@ class HomeworkAdminServiceTest {
         a.setId(id);
         a.setTitle("Tarea");
         a.setInstructions("Hazla");
-        a.setDueOn(LocalDate.of(2026, 6, 20));
         return a;
     }
 
     @Test
     void createAssignsTargetsAndReturnsItem() {
         UUID id = UUID.randomUUID();
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of(
                 new HomeworkTargetRepository.AssigneeView(studentId, "ana@example.com",
-                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null, false, false)));
+                        null, null, null, "SUBMITTED", "Mi respuesta", Instant.now(), null, null, false, false, null)));
 
         HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
-                "Tarea", "Hazla", LocalDate.of(2026, 6, 20), "WRITE", null, "MANUAL", List.of(), null, null, null, null, List.of(studentId)));
+                "Tarea", "Hazla", teacherToday().plusDays(5), "WRITE", null, "MANUAL", List.of(), null, null, null, null, List.of(studentId)));
 
-        verify(targetRepository).replaceTargets(id, List.of(studentId));
+        verify(targetRepository).replaceTargets(id, List.of(studentId), teacherToday().plusDays(5));
         assertThat(item.assignees()).hasSize(1);
         assertThat(item.assignees().get(0).status()).isEqualTo("SUBMITTED");
         assertThat(item.assignees().get(0).responseText()).isEqualTo("Mi respuesta");
@@ -110,7 +115,7 @@ class HomeworkAdminServiceTest {
         assertThatThrownBy(() -> service.create(new CreateHomeworkRequest(
                 "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, null, null, List.of(unknown))))
                 .isInstanceOf(StudentNotFoundException.class);
-        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -119,9 +124,112 @@ class HomeworkAdminServiceTest {
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
 
-        service.setAssignees(id, List.of(studentId));
+        service.setAssignees(id, List.of(studentId), null);
 
-        verify(targetRepository).replaceTargets(id, List.of(studentId));
+        verify(targetRepository).replaceTargets(id, List.of(studentId), null);
+    }
+
+    @Test
+    void setAssigneesPassesDueOnForNewTargets() {
+        UUID id = UUID.randomUUID();
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+        when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
+
+        service.setAssignees(id, List.of(studentId), teacherToday().plusDays(10));
+
+        verify(targetRepository).replaceTargets(id, List.of(studentId), teacherToday().plusDays(10));
+    }
+
+    @Test
+    void setAssigneesAppliesPerStudentDueOns() {
+        UUID id = UUID.randomUUID();
+        LocalDate due = teacherToday().plusDays(4);
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+        when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
+        when(targetRepository.updateDueOn(id, studentId, due)).thenReturn(1);
+
+        service.setAssignees(id, List.of(studentId), null,
+                List.of(new com.kuky.backend.admin.dto.SetAssigneesRequest.DueOn(studentId, due)));
+
+        verify(targetRepository).replaceTargets(id, List.of(studentId), null);
+        verify(targetRepository).updateDueOn(id, studentId, due);
+    }
+
+    @Test
+    void setAssigneesEmptyListStillCallsReplace() {
+        UUID id = UUID.randomUUID();
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+        when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
+
+        service.setAssignees(id, List.of(), teacherToday().plusDays(10));
+
+        verify(targetRepository).replaceTargets(id, List.of(), teacherToday().plusDays(10));
+    }
+
+    @Test
+    void updateAssigneeDueOnUpdatesThatRow() {
+        UUID id = UUID.randomUUID();
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+        when(targetRepository.updateDueOn(id, studentId, teacherToday().plusDays(14))).thenReturn(1);
+        when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
+
+        service.updateAssigneeDueOn(id, studentId, teacherToday().plusDays(14));
+
+        verify(targetRepository).updateDueOn(id, studentId, teacherToday().plusDays(14));
+        verify(contentRepository, never()).updateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void updateAssigneeDueOnRejectsPastDate() {
+        UUID id = UUID.randomUUID();
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+
+        assertThatThrownBy(() -> service.updateAssigneeDueOn(id, studentId, teacherToday().minusDays(1)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("anterior");
+        verify(targetRepository, never()).updateDueOn(any(), any(), any());
+    }
+
+    @Test
+    void updateAssigneeDueOnAllowsToday() {
+        UUID id = UUID.randomUUID();
+        LocalDate today = teacherToday();
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+        when(targetRepository.updateDueOn(id, studentId, today)).thenReturn(1);
+        when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
+
+        service.updateAssigneeDueOn(id, studentId, today);
+
+        verify(targetRepository).updateDueOn(id, studentId, today);
+    }
+
+    @Test
+    void setAssigneesRejectsPastDueOn() {
+        UUID id = UUID.randomUUID();
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+
+        assertThatThrownBy(() -> service.setAssignees(id, List.of(studentId), teacherToday().minusDays(1)))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(targetRepository, never()).replaceTargets(any(), any(), any());
+    }
+
+    @Test
+    void createRejectsPastDueOn() {
+        assertThatThrownBy(() -> service.create(new CreateHomeworkRequest(
+                "Tarea", "Hazla", teacherToday().minusDays(1), "WRITE", null, "MANUAL",
+                List.of(), null, null, null, null, List.of(studentId))))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void updateAssigneeDueOnThrowsWhenNotAssigned() {
+        UUID id = UUID.randomUUID();
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+        when(targetRepository.updateDueOn(id, studentId, null)).thenReturn(0);
+
+        assertThatThrownBy(() -> service.updateAssigneeDueOn(id, studentId, null))
+                .isInstanceOf(StudentNotFoundException.class);
     }
 
     @Test
@@ -137,53 +245,49 @@ class HomeworkAdminServiceTest {
         UUID id = UUID.randomUUID();
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.update(id,
-                new com.kuky.backend.admin.dto.UpdateHomeworkRequest("T", "I", null, "WRITE", null, "MANUAL", List.of(), null, null, null, null)))
+                new com.kuky.backend.admin.dto.UpdateHomeworkRequest("T", "I", "WRITE", null, "MANUAL", List.of(), null, null, null, null)))
                 .isInstanceOf(AssignmentNotFoundException.class);
-        verify(contentRepository, never()).updateAssignment(eq(id), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(contentRepository, never()).updateAssignment(eq(id), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
-    void updateDueDateOnlyDoesNotBumpContentRevisedAt() {
+    void createEmptyAssigneesIgnoresDueOn() {
         UUID id = UUID.randomUUID();
-        HomeworkAssignment existing = assignment(id);
-        existing.setHomeworkType(com.kuky.backend.learning.model.HomeworkType.WRITE);
-        existing.setInstructions("Hazla");
-        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(existing));
-        when(questionRepository.findByAssignment(id)).thenReturn(List.of());
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
 
-        service.update(id, new com.kuky.backend.admin.dto.UpdateHomeworkRequest(
-                "Tarea", "Hazla", LocalDate.of(2026, 7, 1), "WRITE", null, "MANUAL",
-                List.of(), null, null, null, null));
+        service.create(new CreateHomeworkRequest(
+                "Tarea", "Hazla", teacherToday().plusDays(5), "WRITE", null, "MANUAL",
+                List.of(), null, null, null, null, List.of()));
 
-        verify(contentRepository).updateAssignment(eq(id), eq("Tarea"), eq("Hazla"),
-                eq(LocalDate.of(2026, 7, 1)), any(), any(), any(), any(), any(), any(), eq(List.of()), isNull());
+        verify(targetRepository, never()).replaceTargets(any(), any(), any());
     }
 
     @Test
     void createTrimsLabelAndPersists() {
         UUID id = UUID.randomUUID();
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
 
         service.create(new CreateHomeworkRequest(
                 "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, null, List.of("  Subjuntivo  "), List.of()));
 
-        verify(contentRepository).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(List.of("Subjuntivo")));
+        verify(contentRepository).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), eq(List.of("Subjuntivo")));
     }
 
     @Test
     void createBlankLabelsStoresEmpty() {
         UUID id = UUID.randomUUID();
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
 
         service.create(new CreateHomeworkRequest(
                 "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, null, List.of("   "), List.of()));
 
-        verify(contentRepository).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(List.of()));
+        verify(contentRepository).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), eq(List.of()));
     }
 
     @Test
@@ -193,13 +297,13 @@ class HomeworkAdminServiceTest {
                 "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, null, List.of(tooLong), List.of())))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("40");
-        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
     void createAcceptsLabelOf40Characters() {
         UUID id = UUID.randomUUID();
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
         String forty = "á".repeat(40);
@@ -207,13 +311,13 @@ class HomeworkAdminServiceTest {
         service.create(new CreateHomeworkRequest(
                 "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, null, List.of(forty), List.of()));
 
-        verify(contentRepository).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), eq(List.of(forty)));
+        verify(contentRepository).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), eq(List.of(forty)));
     }
 
     @Test
     void createKeepsMultipleLabelsAndDedupesCase() {
         UUID id = UUID.randomUUID();
-        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any())).thenReturn(id);
         when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
 
@@ -221,7 +325,7 @@ class HomeworkAdminServiceTest {
                 "Tarea", "Hazla", null, "WRITE", null, "MANUAL", List.of(), null, null, null,
                 List.of("  Subjuntivo  ", "B1", "subjuntivo", "  "), List.of()));
 
-        verify(contentRepository).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(),
+        verify(contentRepository).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(),
                 eq(List.of("Subjuntivo", "B1")));
     }
 
@@ -236,11 +340,11 @@ class HomeworkAdminServiceTest {
         when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
 
         service.update(id, new UpdateHomeworkRequest(
-                "Tarea", "Hazla", LocalDate.of(2026, 6, 20), "WRITE", null, "MANUAL",
+                "Tarea", "Hazla", "WRITE", null, "MANUAL",
                 List.of(), null, null, null, List.of("Tema", "Gramática")));
 
         verify(contentRepository).updateAssignment(eq(id), eq("Tarea"), eq("Hazla"),
-                eq(LocalDate.of(2026, 6, 20)), any(), any(), any(), any(), any(), any(), eq(List.of("Tema", "Gramática")), isNull());
+                any(), any(), any(), any(), any(), any(), eq(List.of("Tema", "Gramática")), isNull());
     }
 
     @Test
@@ -255,7 +359,7 @@ class HomeworkAdminServiceTest {
         HomeworkAdminItem item = service.updateLabels(id, List.of("  Subjuntivo  ", "B1"));
 
         verify(contentRepository).updateLabels(id, List.of("Subjuntivo", "B1"));
-        verify(contentRepository, never()).updateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+        verify(contentRepository, never()).updateAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
         assertThat(item.id()).isEqualTo(id);
     }
 
@@ -496,7 +600,8 @@ class HomeworkAdminServiceTest {
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
-                mock(com.kuky.backend.notification.service.NotificationService.class));
+                mock(com.kuky.backend.notification.service.NotificationService.class),
+                new com.kuky.backend.config.SchedulingProperties());
 
         var result = service.saveExerciseFeedback(submissionId, "  Muy bien  ");
 
@@ -524,7 +629,8 @@ class HomeworkAdminServiceTest {
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
-                mock(com.kuky.backend.notification.service.NotificationService.class));
+                mock(com.kuky.backend.notification.service.NotificationService.class),
+                new com.kuky.backend.config.SchedulingProperties());
 
         var result = service.saveExerciseFeedback(submissionId, "   ");
 
@@ -592,7 +698,8 @@ class HomeworkAdminServiceTest {
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 answers, audioFileRepository, userRepository, submissionRepository,
                 mock(ExerciseGradingService.class), new ObjectMapper(),
-                mock(com.kuky.backend.notification.service.NotificationService.class));
+                mock(com.kuky.backend.notification.service.NotificationService.class),
+                new com.kuky.backend.config.SchedulingProperties());
 
         HomeworkSubmissionAdminDto detail = service.getSubmissionDetail(submissionId);
 

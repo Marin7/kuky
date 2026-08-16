@@ -59,7 +59,8 @@ class MixedHomeworkFinalizeTest {
         service = new HomeworkAdminService(contentRepository, mock(HomeworkTargetRepository.class),
                 questionRepository, answerRepository, mock(AudioFileRepository.class),
                 userRepository, submissionRepository, mock(ExerciseGradingService.class), new ObjectMapper(),
-                mock(com.kuky.backend.notification.service.NotificationService.class));
+                mock(com.kuky.backend.notification.service.NotificationService.class),
+                new com.kuky.backend.config.SchedulingProperties());
         User student = new User();
         student.setId(studentId);
         student.setEmail("ana@example.com");

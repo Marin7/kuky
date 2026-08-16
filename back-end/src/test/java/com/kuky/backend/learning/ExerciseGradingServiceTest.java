@@ -74,6 +74,7 @@ class ExerciseGradingServiceTest {
         when(contentRepository.findPublishedAssignmentById(ASSIGNMENT_ID)).thenReturn(Optional.of(assignment));
         when(contentRepository.lockAssignment(ASSIGNMENT_ID)).thenReturn(Optional.of(assignment));
         when(targetRepository.isAssignedTo(ASSIGNMENT_ID, USER_ID)).thenReturn(true);
+        when(targetRepository.findDueOn(ASSIGNMENT_ID, USER_ID)).thenReturn(null);
         when(submissionRepository.findByUserAndAssignment(USER_ID, ASSIGNMENT_ID)).thenReturn(Optional.empty());
 
         HomeworkSubmission saved = new HomeworkSubmission();
@@ -109,6 +110,21 @@ class ExerciseGradingServiceTest {
 
     private static double scoreOf(ExerciseResultResponse r) {
         return r.questions().get(0).score();
+    }
+
+    // --- take view -----------------------------------------------------------
+
+    @Test
+    void getExercise_includesThisStudentsDueOn() {
+        QuestionOption a = option("los lápices", true);
+        HomeworkQuestion q = question(QuestionKind.SINGLE_CHOICE, List.of(a));
+        when(questionRepository.findByAssignment(ASSIGNMENT_ID)).thenReturn(List.of(q));
+        java.time.LocalDate due = java.time.LocalDate.of(2026, 8, 20);
+        when(targetRepository.findDueOn(ASSIGNMENT_ID, USER_ID)).thenReturn(due);
+
+        var response = service.getExercise(EMAIL, ASSIGNMENT_ID);
+
+        assertThat(response.dueOn()).isEqualTo(due);
     }
 
     // --- single choice -------------------------------------------------------

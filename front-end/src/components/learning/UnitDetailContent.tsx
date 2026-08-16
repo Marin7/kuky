@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { NotificationDot } from "@/components/NotificationDot";
 import { ActivityViewerPrompts } from "./ActivityViewerPrompts";
 import { HomeworkInlinePanel } from "./HomeworkInlinePanel";
+import { HomeworkDueOn } from "./HomeworkDueOn";
 
 type UnitListItem =
   | {
@@ -177,28 +178,34 @@ function HomeworkTriggerMeta({ item }: { item: HomeworkItem }) {
           )}
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-        {item.overdue && (
-          <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-            {t("learning.homework.overdue")}
+      <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
+        <HomeworkDueOn
+          dueOn={item.dueOn}
+          className="text-xs font-medium text-foreground"
+        />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {item.overdue && (
+            <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+              {t("learning.homework.overdue")}
+            </span>
+          )}
+          <span
+            className={[
+              "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
+              STATUS_CLASS[item.status],
+            ].join(" ")}
+          >
+            {t(`learning.homework.status.${item.status}`)}
+            {item.status === "GRADED" &&
+              item.scorePercent !== null &&
+              ` — ${item.scorePercent}%`}
           </span>
-        )}
-        <span
-          className={[
-            "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
-            STATUS_CLASS[item.status],
-          ].join(" ")}
-        >
-          {t(`learning.homework.status.${item.status}`)}
-          {item.status === "GRADED" &&
-            item.scorePercent !== null &&
-            ` — ${item.scorePercent}%`}
-        </span>
-        {item.hasTeacherFeedback && (
-          <span className="inline-block rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
-            {t("learning.homework.hasTeacherFeedback")}
-          </span>
-        )}
+          {item.hasTeacherFeedback && (
+            <span className="inline-block rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+              {t("learning.homework.hasTeacherFeedback")}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -340,7 +347,7 @@ export function UnitDetailContent({
             id={`unit-homework-${item.homework.id}`}
             className="scroll-mt-24 rounded-lg border border-border bg-card px-4"
           >
-            <AccordionTrigger className="hover:no-underline">
+            <AccordionTrigger className="items-start hover:no-underline">
               <div className="min-w-0 flex-1 space-y-0.5 text-left">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                   {t("learning.units.itemHomework")}

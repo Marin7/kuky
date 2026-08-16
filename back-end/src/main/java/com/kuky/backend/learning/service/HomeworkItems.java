@@ -31,12 +31,12 @@ final class HomeworkItems {
     private HomeworkItems() {}
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission, LocalDate today) {
-        return toResponse(a, submission, today, null, null, List.of(), List.of(), null, null, false);
+        return toResponse(a, submission, today, null, null, null, List.of(), List.of(), null, null, false);
     }
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
                                            LocalDate today, UnitRef unit, Integer unitPosition) {
-        return toResponse(a, submission, today, unit, unitPosition, List.of(), List.of(), null, null, false);
+        return toResponse(a, submission, today, null, unit, unitPosition, List.of(), List.of(), null, null, false);
     }
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
@@ -45,12 +45,12 @@ final class HomeworkItems {
                                            List<HomeworkAnswer> answers,
                                            List<ExerciseQuestionDto> studentQuestions,
                                            ExerciseResultResponse result) {
-        return toResponse(a, submission, today, unit, unitPosition, questions, answers,
+        return toResponse(a, submission, today, null, unit, unitPosition, questions, answers,
                 studentQuestions, result, false);
     }
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
-                                           LocalDate today, UnitRef unit, Integer unitPosition,
+                                           LocalDate today, LocalDate dueOn, UnitRef unit, Integer unitPosition,
                                            List<HomeworkQuestion> questions,
                                            List<HomeworkAnswer> answers,
                                            List<ExerciseQuestionDto> studentQuestions,
@@ -76,9 +76,7 @@ final class HomeworkItems {
                 ? FormattedTextSegment.fromJson(submission.getFeedback()) : null;
         String feedbackText = annotated
                 ? FormattedTextSegment.decodePlainFeedback(submission.getFeedback()) : null;
-        boolean overdue = a.getDueOn() != null
-                && a.getDueOn().isBefore(today)
-                && HomeworkStatus.PENDING.name().equals(status);
+        boolean overdue = HomeworkDueDates.overdue(dueOn, today, status);
         String type = a.getHomeworkType() == null ? null : a.getHomeworkType().name();
         String level = a.getLevel() == null ? null : a.getLevel().name();
         String format = a.getFormat() == null ? HomeworkFormat.MANUAL.name() : a.getFormat().name();
@@ -117,7 +115,7 @@ final class HomeworkItems {
                 a.getId(),
                 a.getTitle(),
                 a.getInstructions(),
-                a.getDueOn(),
+                dueOn,
                 type,
                 level,
                 format,

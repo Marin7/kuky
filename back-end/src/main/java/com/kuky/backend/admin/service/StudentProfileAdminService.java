@@ -5,12 +5,16 @@ import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.InterestCatalogue;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.learning.service.HomeworkDueDates;
 import com.kuky.backend.presentations.repository.PresentationRepository;
 import com.kuky.backend.scheduling.model.Booking;
 import com.kuky.backend.scheduling.repository.BookingRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,15 +25,18 @@ public class StudentProfileAdminService {
     private final BookingRepository bookingRepository;
     private final HomeworkTargetRepository homeworkTargetRepository;
     private final PresentationRepository presentationRepository;
+    private final SchedulingProperties schedulingProperties;
 
     public StudentProfileAdminService(UserRepository userRepository,
                                       BookingRepository bookingRepository,
                                       HomeworkTargetRepository homeworkTargetRepository,
-                                      PresentationRepository presentationRepository) {
+                                      PresentationRepository presentationRepository,
+                                      SchedulingProperties schedulingProperties) {
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;
         this.homeworkTargetRepository = homeworkTargetRepository;
         this.presentationRepository = presentationRepository;
+        this.schedulingProperties = schedulingProperties;
     }
 
     public StudentProfileResponse getProfile(UUID studentId) {
@@ -40,11 +47,13 @@ public class StudentProfileAdminService {
                 .map(b -> toBookingDto(b, studentId))
                 .toList();
 
+        LocalDate today = LocalDate.now(ZoneId.of(schedulingProperties.getScheduling().getTeacherTimezone()));
         List<StudentProfileHomeworkDto> homeworks = homeworkTargetRepository
                 .findAssignmentsForStudent(studentId).stream()
                 .map(v -> new StudentProfileHomeworkDto(v.assignmentId(), v.title(), v.status(), v.submittedAt(),
                         "MANUAL".equals(v.format()) && "SUBMITTED".equals(v.status()), v.submissionId(),
-                        v.scorePercent(), v.hasTeacherFeedback(), v.unseen()))
+                        v.scorePercent(), v.hasTeacherFeedback(), v.unseen(), v.dueOn(),
+                        HomeworkDueDates.overdue(v.dueOn(), today, v.status())))
                 .toList();
 
         List<StudentProfilePresentationDto> presentations = presentationRepository
