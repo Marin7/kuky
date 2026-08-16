@@ -102,6 +102,7 @@ public class ExerciseGradingService {
         User user = requireUser(email);
         HomeworkAssignment assignment = requireAssigned(assignmentId, user.getId());
         notificationService.markHomeworkSeen(assignmentId, user.getId());
+        // GRADED result: markHomeworkSeen also clears student review unseen (correction/feedback).
         if (!ListeningMedia.isComplete(assignment)) {
             throw new AssignmentNotFoundException("Tarea no encontrada.");
         }

@@ -77,9 +77,11 @@ public class HomeworkSubmissionRepository {
         Instant now = Instant.now();
         String sql = """
                 INSERT INTO homework_submissions
-                    (id, user_id, assignment_id, status, response_text, submitted_at, updated_at)
+                    (id, user_id, assignment_id, status, response_text, submitted_at, updated_at,
+                     student_grade_seen_at, student_feedback_seen_at)
                 VALUES
-                    (gen_random_uuid(), :userId, :assignmentId, :status, :responseText, :submittedAt, :updatedAt)
+                    (gen_random_uuid(), :userId, :assignmentId, :status, :responseText, :submittedAt, :updatedAt,
+                     NOW(), NOW())
                 ON CONFLICT (user_id, assignment_id) DO UPDATE SET
                     status = EXCLUDED.status,
                     response_text = EXCLUDED.response_text,
@@ -88,7 +90,9 @@ public class HomeworkSubmissionRepository {
                     teacher_seen_at = CASE
                         WHEN EXCLUDED.status IN ('SUBMITTED', 'REVIEWED', 'GRADED') THEN NULL
                         ELSE homework_submissions.teacher_seen_at
-                    END
+                    END,
+                    student_grade_seen_at = NOW(),
+                    student_feedback_seen_at = NOW()
                 RETURNING *
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -110,16 +114,20 @@ public class HomeworkSubmissionRepository {
         Instant now = Instant.now();
         String sql = """
                 INSERT INTO homework_submissions
-                    (id, user_id, assignment_id, status, response_text, score_percent, submitted_at, updated_at)
+                    (id, user_id, assignment_id, status, response_text, score_percent, submitted_at, updated_at,
+                     student_grade_seen_at, student_feedback_seen_at)
                 VALUES
-                    (gen_random_uuid(), :userId, :assignmentId, 'GRADED', NULL, :scorePercent, :submittedAt, :updatedAt)
+                    (gen_random_uuid(), :userId, :assignmentId, 'GRADED', NULL, :scorePercent, :submittedAt, :updatedAt,
+                     NOW(), NOW())
                 ON CONFLICT (user_id, assignment_id) DO UPDATE SET
                     status = EXCLUDED.status,
                     response_text = EXCLUDED.response_text,
                     score_percent = EXCLUDED.score_percent,
                     submitted_at = EXCLUDED.submitted_at,
                     updated_at = EXCLUDED.updated_at,
-                    teacher_seen_at = NULL
+                    teacher_seen_at = NULL,
+                    student_grade_seen_at = NOW(),
+                    student_feedback_seen_at = NOW()
                 RETURNING *
                 """;
         MapSqlParameterSource params = new MapSqlParameterSource()

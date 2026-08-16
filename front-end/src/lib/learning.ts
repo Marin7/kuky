@@ -106,7 +106,7 @@ export interface HomeworkItem {
   teacherFeedback?: string | null;
   /** Present while PENDING; echo on submit. Omitted after submit. */
   contentRevisedAt?: string | null;
-  /** Newly assigned homework not yet opened by the student. */
+  /** Assignment not yet opened, or teacher review/feedback the student has not opened. */
   unseen?: boolean;
 }
 

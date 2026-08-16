@@ -5,6 +5,7 @@ import com.kuky.backend.notification.dto.BadgeSummary;
 import com.kuky.backend.notification.repository.NotificationRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -59,7 +60,24 @@ public class NotificationService {
             return false;
         }
         repository.markHomeworkTargetStudentSeen(assignmentId, userId);
+        repository.markStudentReviewSeenIfGraded(assignmentId, userId);
         return true;
+    }
+
+    public void markStudentGradeUnseen(UUID submissionId) {
+        repository.markStudentGradeUnseen(submissionId);
+    }
+
+    public void markStudentFeedbackUnseen(UUID submissionId) {
+        repository.markStudentFeedbackUnseen(submissionId);
+    }
+
+    public void markStudentFeedbackSeen(UUID submissionId) {
+        repository.markStudentFeedbackSeen(submissionId);
+    }
+
+    public void markStudentReviewSeenIfGraded(UUID assignmentId, UUID userId) {
+        repository.markStudentReviewSeenIfGraded(assignmentId, userId);
     }
 
     public Set<UUID> unseenUnitIds(UUID userId) {
@@ -71,6 +89,8 @@ public class NotificationService {
     }
 
     public Set<UUID> unseenHomeworkIds(UUID userId) {
-        return repository.findUnseenHomeworkIds(userId);
+        Set<UUID> ids = new HashSet<>(repository.findUnseenHomeworkIds(userId));
+        ids.addAll(repository.findUnseenReviewHomeworkIds(userId));
+        return ids;
     }
 }

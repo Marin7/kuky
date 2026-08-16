@@ -45,6 +45,13 @@ public class NotificationRepository {
                      WHERE user_id = :uid AND student_seen_at IS NULL)
                   + (SELECT COUNT(*) FROM homework_targets
                      WHERE user_id = :uid AND student_seen_at IS NULL)
+                  + (SELECT COUNT(*) FROM homework_submissions hs
+                     WHERE hs.user_id = :uid
+                       AND (hs.student_grade_seen_at IS NULL OR hs.student_feedback_seen_at IS NULL)
+                       AND EXISTS (
+                           SELECT 1 FROM homework_targets ht
+                           WHERE ht.assignment_id = hs.assignment_id AND ht.user_id = hs.user_id
+                       ))
                 )
                 """, Map.of("uid", userId), Integer.class);
         return n != null && n > 0;
@@ -128,5 +135,57 @@ public class NotificationRepository {
                 WHERE user_id = :uid AND student_seen_at IS NULL
                 """, Map.of("uid", userId), (rs, n) -> rs.getObject("assignment_id", UUID.class));
         return new HashSet<>(ids);
+    }
+
+    public Set<UUID> findUnseenReviewHomeworkIds(UUID userId) {
+        List<UUID> ids = jdbc.query("""
+                SELECT hs.assignment_id FROM homework_submissions hs
+                WHERE hs.user_id = :uid
+                  AND (hs.student_grade_seen_at IS NULL OR hs.student_feedback_seen_at IS NULL)
+                  AND EXISTS (
+                      SELECT 1 FROM homework_targets ht
+                      WHERE ht.assignment_id = hs.assignment_id AND ht.user_id = hs.user_id
+                  )
+                """, Map.of("uid", userId), (rs, n) -> rs.getObject("assignment_id", UUID.class));
+        return new HashSet<>(ids);
+    }
+
+    public void markStudentGradeUnseen(UUID submissionId) {
+        jdbc.update("""
+                UPDATE homework_submissions
+                SET student_grade_seen_at = NULL
+                WHERE id = :id
+                """, Map.of("id", submissionId));
+    }
+
+    public void markStudentFeedbackUnseen(UUID submissionId) {
+        jdbc.update("""
+                UPDATE homework_submissions
+                SET student_feedback_seen_at = NULL
+                WHERE id = :id
+                """, Map.of("id", submissionId));
+    }
+
+    public void markStudentFeedbackSeen(UUID submissionId) {
+        jdbc.update("""
+                UPDATE homework_submissions
+                SET student_feedback_seen_at = NOW()
+                WHERE id = :id AND student_feedback_seen_at IS NULL
+                """, Map.of("id", submissionId));
+    }
+
+    public void markStudentReviewSeenIfGraded(UUID assignmentId, UUID userId) {
+        jdbc.update("""
+                UPDATE homework_submissions
+                SET student_grade_seen_at = NOW()
+                WHERE assignment_id = :aid AND user_id = :uid AND status = 'GRADED'
+                  AND student_grade_seen_at IS NULL
+                """, Map.of("aid", assignmentId, "uid", userId));
+        jdbc.update("""
+                UPDATE homework_submissions
+                SET student_feedback_seen_at = NOW()
+                WHERE assignment_id = :aid AND user_id = :uid AND status = 'GRADED'
+                  AND student_feedback_seen_at IS NULL
+                """, Map.of("aid", assignmentId, "uid", userId));
     }
 }

@@ -51,6 +51,7 @@ class HomeworkAdminServiceTest {
     private UserRepository userRepository;
     private HomeworkSubmissionRepository submissionRepository;
     private HomeworkAnswerRepository answerRepository;
+    private com.kuky.backend.notification.service.NotificationService notificationService;
     private HomeworkAdminService service;
 
     private final UUID studentId = UUID.randomUUID();
@@ -68,10 +69,11 @@ class HomeworkAdminServiceTest {
         userRepository = mock(UserRepository.class);
         submissionRepository = mock(HomeworkSubmissionRepository.class);
         answerRepository = mock(HomeworkAnswerRepository.class);
+        notificationService = mock(com.kuky.backend.notification.service.NotificationService.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 answerRepository,
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
-                new ObjectMapper(), mock(com.kuky.backend.notification.service.NotificationService.class),
+                new ObjectMapper(), notificationService,
                 new com.kuky.backend.config.SchedulingProperties());
 
         User student = new User();
@@ -428,6 +430,8 @@ class HomeworkAdminServiceTest {
         assertThat(result.scorePercent()).isEqualTo(70);
         verify(submissionRepository).saveScoredAnnotatedReview(
                 eq(submissionId), any(), any(), eq(70), eq(70), eq(true));
+        verify(notificationService).markStudentGradeUnseen(submissionId);
+        verify(notificationService).markStudentFeedbackUnseen(submissionId);
     }
 
     @Test
@@ -499,6 +503,8 @@ class HomeworkAdminServiceTest {
         assertThat(result.teacherScorePercent()).isEqualTo(40);
         verify(submissionRepository).saveAnnotatedProgress(eq(submissionId), any(), any(), eq(40));
         verify(submissionRepository, never()).saveScoredAnnotatedReview(any(), any(), any(), anyInt(), any(), anyBoolean());
+        verify(notificationService, never()).markStudentGradeUnseen(any());
+        verify(notificationService, never()).markStudentFeedbackUnseen(any());
     }
 
     @Test
@@ -587,6 +593,75 @@ class HomeworkAdminServiceTest {
         assertThat(result.scorePercent()).isEqualTo(80);
         verify(submissionRepository).saveScoredAnnotatedReview(
                 eq(submissionId), any(), any(), eq(80), eq(80), eq(false));
+        verify(notificationService).markStudentGradeUnseen(submissionId);
+        verify(notificationService).markStudentFeedbackUnseen(submissionId);
+    }
+
+    @Test
+    void saveFeedback_percentOnlyOnGraded_marksGradeUnseen() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        String feedbackJson = FormattedTextSegment.encodePlainFeedback("Igual", 500);
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", feedbackJson, "ANNOTATED", 100, 100)))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", feedbackJson, "ANNOTATED", 70, 70)));
+
+        service.saveFeedback(submissionId, review("Mi respuesta", "Igual", 70, true));
+
+        verify(notificationService).markStudentGradeUnseen(submissionId);
+        verify(notificationService, never()).markStudentFeedbackUnseen(any());
+        verify(notificationService, never()).markStudentFeedbackSeen(any());
+    }
+
+    @Test
+    void saveFeedback_annotationOnlyOnGraded_marksFeedbackUnseen() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        String feedbackJson = FormattedTextSegment.encodePlainFeedback("Igual", 500);
+        List<FormattedTextSegment> marked =
+                List.of(new FormattedTextSegment("Mi respuesta", "red", "yellow", true));
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", feedbackJson, "ANNOTATED", 100, 100)))
+                .thenReturn(Optional.of(detailRowWithResponse(submissionId, "GRADED", feedbackJson, "ANNOTATED",
+                        100, 100, FormattedTextSegment.toJson(marked))));
+
+        service.saveFeedback(submissionId,
+                new SaveHomeworkFeedbackRequest("Igual", marked, null, 100, true));
+
+        verify(notificationService, never()).markStudentGradeUnseen(any());
+        verify(notificationService).markStudentFeedbackUnseen(submissionId);
+        verify(notificationService, never()).markStudentFeedbackSeen(any());
+    }
+
+    @Test
+    void saveFeedback_clearAllFeedbackOnGraded_marksFeedbackSeenNotGrade() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED",
+                        FormattedTextSegment.encodePlainFeedback("Anterior", 500), "ANNOTATED", 100, 100)))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", null, "ANNOTATED", 100, 100)));
+
+        service.saveFeedback(submissionId, review("Mi respuesta", "   ", 100, true));
+
+        verify(notificationService, never()).markStudentGradeUnseen(any());
+        verify(notificationService, never()).markStudentFeedbackUnseen(any());
+        verify(notificationService).markStudentFeedbackSeen(submissionId);
+    }
+
+    @Test
+    void saveFeedback_identicalReedit_doesNotReNotify() {
+        UUID submissionId = UUID.randomUUID();
+        stubWriteSubmission(submissionId);
+        String feedbackJson = FormattedTextSegment.encodePlainFeedback("Igual", 500);
+        when(submissionRepository.findDetailById(submissionId))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", feedbackJson, "ANNOTATED", 80, 80)))
+                .thenReturn(Optional.of(detailRow(submissionId, "GRADED", feedbackJson, "ANNOTATED", 80, 80)));
+
+        service.saveFeedback(submissionId, review("Mi respuesta", "Igual", 80, true));
+
+        verify(notificationService, never()).markStudentGradeUnseen(any());
+        verify(notificationService, never()).markStudentFeedbackUnseen(any());
     }
 
     @Test
@@ -647,17 +722,45 @@ class HomeworkAdminServiceTest {
         when(grading.viewGradedSubmission(any())).thenReturn(
                 new ExerciseGradingService.GradedExerciseView(List.of(),
                         new com.kuky.backend.learning.dto.ExerciseResultResponse(100, 1, 1, List.of())));
+        var notifications = mock(com.kuky.backend.notification.service.NotificationService.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
-                mock(com.kuky.backend.notification.service.NotificationService.class),
+                notifications,
                 new com.kuky.backend.config.SchedulingProperties());
 
         var result = service.saveExerciseFeedback(submissionId, "  Muy bien  ");
 
         verify(submissionRepository).updateExerciseFeedback(eq(submissionId),
                 eq(FormattedTextSegment.encodePlainFeedback("Muy bien")));
+        verify(notifications).markStudentFeedbackUnseen(submissionId);
         assertThat(result.teacherFeedback()).isEqualTo("Muy bien");
+    }
+
+    @Test
+    void saveExerciseFeedback_unchangedDoesNotNotify() {
+        UUID submissionId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        HomeworkSubmission graded = gradedSubmission(submissionId, assignmentId, "Muy bien");
+        when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(graded));
+        when(contentRepository.findAssignmentById(assignmentId))
+                .thenReturn(Optional.of(exerciseAssignment(assignmentId)));
+        when(userRepository.findById(studentId)).thenReturn(Optional.of(studentUser()));
+        ExerciseGradingService grading = mock(ExerciseGradingService.class);
+        when(grading.viewGradedSubmission(any())).thenReturn(
+                new ExerciseGradingService.GradedExerciseView(List.of(),
+                        new com.kuky.backend.learning.dto.ExerciseResultResponse(100, 1, 1, List.of())));
+        var notifications = mock(com.kuky.backend.notification.service.NotificationService.class);
+        service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
+                mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
+                audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
+                notifications,
+                new com.kuky.backend.config.SchedulingProperties());
+
+        service.saveExerciseFeedback(submissionId, "Muy bien");
+
+        verify(notifications, never()).markStudentFeedbackUnseen(any());
+        verify(notifications, never()).markStudentFeedbackSeen(any());
     }
 
     @Test
@@ -676,15 +779,17 @@ class HomeworkAdminServiceTest {
         when(grading.viewGradedSubmission(any())).thenReturn(
                 new ExerciseGradingService.GradedExerciseView(List.of(),
                         new com.kuky.backend.learning.dto.ExerciseResultResponse(80, 0, 1, List.of())));
+        var notifications = mock(com.kuky.backend.notification.service.NotificationService.class);
         service = new HomeworkAdminService(contentRepository, targetRepository, questionRepository,
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
-                mock(com.kuky.backend.notification.service.NotificationService.class),
+                notifications,
                 new com.kuky.backend.config.SchedulingProperties());
 
         var result = service.saveExerciseFeedback(submissionId, "   ");
 
         verify(submissionRepository).updateExerciseFeedback(submissionId, null);
+        verify(notifications).markStudentFeedbackSeen(submissionId);
         assertThat(result.teacherFeedback()).isNull();
     }
 
@@ -916,6 +1021,15 @@ class HomeworkAdminServiceTest {
                                                                        String format, String homeworkType) {
         return detailRow(submissionId, status, feedbackJson, reviewModel,
                 "GRADED".equals(status) ? 100 : null, null, format, homeworkType);
+    }
+
+    private HomeworkSubmissionRepository.SubmissionDetailRow detailRowWithResponse(
+            UUID submissionId, String status, String feedbackJson, String reviewModel,
+            Integer scorePercent, Integer teacherScorePercent, String response) {
+        return new HomeworkSubmissionRepository.SubmissionDetailRow(
+                submissionId, studentId, "ana@example.com", "Ana", "Lopez", null,
+                "Tarea", status, response, feedbackJson, reviewModel, scorePercent, teacherScorePercent,
+                "MANUAL", "WRITE", Instant.now(), Instant.now());
     }
 
     private HomeworkSubmissionRepository.SubmissionDetailRow detailRow(UUID submissionId, String status,

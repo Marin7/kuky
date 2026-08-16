@@ -184,7 +184,16 @@ public class HomeworkAdminService {
             throw new AssignmentNotFoundException("Esta entrega no es un ejercicio auto-corregible.");
         }
         String encoded = FormattedTextSegment.encodePlainFeedback(feedback);
+        String before = FormattedTextSegment.decodePlainFeedback(submission.getFeedback());
+        String after = FormattedTextSegment.decodePlainFeedback(encoded);
         submissionRepository.updateExerciseFeedback(submissionId, encoded);
+        if (!Objects.equals(before, after)) {
+            if (after == null) {
+                notificationService.markStudentFeedbackSeen(submissionId);
+            } else {
+                notificationService.markStudentFeedbackUnseen(submissionId);
+            }
+        }
         return getExerciseResult(submissionId);
     }
 
@@ -235,6 +244,19 @@ public class HomeworkAdminService {
 
         List<com.kuky.backend.learning.model.HomeworkAnswer> storedAnswers =
                 answerRepository.findBySubmission(submissionId);
+        Map<UUID, Integer> beforeAnswerPercents = new HashMap<>();
+        Map<UUID, String> beforeAnswerTexts = new HashMap<>();
+        for (var stored : storedAnswers) {
+            if (stored.getQuestionId() != null) {
+                beforeAnswerPercents.put(stored.getQuestionId(), stored.getTeacherScorePercent());
+                beforeAnswerTexts.put(stored.getQuestionId(), stored.getAnswerText());
+            }
+        }
+        boolean wasGraded = HomeworkStatus.GRADED.name().equals(row.status());
+        String beforeFeedbackJson = row.feedback();
+        String beforeResponseText = row.responseText();
+        Integer beforeWritePercent = row.teacherScorePercent();
+
         Map<UUID, QuestionKind> kindByQuestion = questions.stream()
                 .collect(Collectors.toMap(HomeworkQuestion::getId, HomeworkQuestion::getKind, (a, b) -> a));
 
@@ -251,6 +273,8 @@ public class HomeworkAdminService {
         } else {
             throw new IllegalStateException("Unexpected composition for manual review: " + composition);
         }
+        applyStudentReviewUnseen(submissionId, finalize, wasGraded, request, beforeFeedbackJson,
+                beforeResponseText, beforeWritePercent, beforeAnswerPercents, beforeAnswerTexts);
         var updated = submissionRepository.findDetailById(submissionId).orElseThrow();
         return toSubmissionAdminDto(updated);
     }
@@ -382,6 +406,69 @@ public class HomeworkAdminService {
             throw new IllegalArgumentException("La puntuación debe ser un entero entre 0 y 100.");
         }
         return raw;
+    }
+
+    private void applyStudentReviewUnseen(UUID submissionId,
+                                          boolean finalize,
+                                          boolean wasGraded,
+                                          SaveHomeworkFeedbackRequest request,
+                                          String beforeFeedbackJson,
+                                          String beforeResponseText,
+                                          Integer beforeWritePercent,
+                                          Map<UUID, Integer> beforeAnswerPercents,
+                                          Map<UUID, String> beforeAnswerTexts) {
+        if (!finalize) {
+            return;
+        }
+        var afterRow = submissionRepository.findDetailById(submissionId).orElseThrow();
+        List<com.kuky.backend.learning.model.HomeworkAnswer> afterAnswers =
+                answerRepository.findBySubmission(submissionId);
+        Map<UUID, String> afterTexts = new HashMap<>();
+        Map<UUID, Integer> afterPercents = new HashMap<>();
+        for (var a : afterAnswers) {
+            if (a.getQuestionId() != null) {
+                afterTexts.put(a.getQuestionId(), a.getAnswerText());
+                afterPercents.put(a.getQuestionId(), a.getTeacherScorePercent());
+            }
+        }
+        boolean feedbackChanged = !Objects.equals(
+                FormattedTextSegment.decodePlainFeedback(beforeFeedbackJson),
+                FormattedTextSegment.decodePlainFeedback(afterRow.feedback()));
+        boolean annotationChanged = !Objects.equals(beforeResponseText, afterRow.responseText())
+                || !beforeAnswerTexts.equals(afterTexts);
+        boolean percentChanged = !Objects.equals(beforeWritePercent, afterRow.teacherScorePercent())
+                || !beforeAnswerPercents.equals(afterPercents);
+        boolean hasComment = FormattedTextSegment.hasTeacherFeedback(afterRow.feedback());
+        boolean hasAnnotations = FormattedTextSegment.hasStyleMarks(afterRow.responseText());
+        for (String text : afterTexts.values()) {
+            if (FormattedTextSegment.hasStyleMarks(text)) {
+                hasAnnotations = true;
+                break;
+            }
+        }
+        boolean requestHasAnnotations = request != null && (
+                FormattedTextSegment.hasStyleMarks(FormattedTextSegment.toJson(request.response()))
+                || (request.answers() != null && request.answers().stream()
+                .anyMatch(a -> a.formatted() != null
+                        && FormattedTextSegment.hasStyleMarks(FormattedTextSegment.toJson(a.formatted())))));
+
+        if (!wasGraded) {
+            notificationService.markStudentGradeUnseen(submissionId);
+            if (hasComment || hasAnnotations || requestHasAnnotations) {
+                notificationService.markStudentFeedbackUnseen(submissionId);
+            }
+            return;
+        }
+        if (percentChanged) {
+            notificationService.markStudentGradeUnseen(submissionId);
+        }
+        if (feedbackChanged || annotationChanged) {
+            if (!hasComment && !hasAnnotations) {
+                notificationService.markStudentFeedbackSeen(submissionId);
+            } else {
+                notificationService.markStudentFeedbackUnseen(submissionId);
+            }
+        }
     }
 
     private static void assertUnchangedWording(List<FormattedTextSegment> incoming, String stored) {

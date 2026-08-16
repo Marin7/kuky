@@ -31,7 +31,7 @@ public record HomeworkItemResponse(
         UnitRef unit,             // owning unit for grouping (nullable for legacy/unattached)
         Integer unitPosition,     // rank within unit mixed sequence (nullable when unattached)
         boolean hasTeacherFeedback,
-        boolean unseen,           // newly assigned homework not yet opened by student
+        boolean unseen,           // assignment unseen or teacher review/feedback unseen
         List<ExerciseQuestionDto> questions,
         List<ManualAnswerViewDto> answers,
         ExerciseResultResponse result,  // auto / mixed auto-subset results after submit

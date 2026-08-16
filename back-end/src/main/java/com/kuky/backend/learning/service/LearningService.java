@@ -125,6 +125,7 @@ public class LearningService {
                     List<HomeworkAnswer> answers = submission == null
                             ? List.of()
                             : answerRepository.findBySubmission(submission.getId());
+                    // unseen = newly assigned homework OR teacher review/feedback not yet opened
                     return HomeworkItems.toResponse(a, submission, today, dueOns.get(a.getId()), unit, unitPosition,
                             questions, answers, null, null, unseenHomework.contains(a.getId()));
                 })

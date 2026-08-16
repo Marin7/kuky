@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -375,6 +376,184 @@ class NotificationUnseenIntegrationTest {
         } finally {
             jdbcTemplate.update("DELETE FROM users WHERE id = ?", userOnly);
         }
+    }
+
+    @Test
+    void autoSubmit_doesNotCreateStudentReviewUnseen() throws Exception {
+        String token = Instant.parse("2026-08-15T10:00:00Z").toString();
+        mockMvc.perform(put("/api/v1/learning/homework/" + assignmentId + "/answers")
+                        .with(authentication(student()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":[{"questionId":"%s","selectedOptionIds":["%s"]}],"contentRevisedAt":"%s"}
+                                """.formatted(questionId, optionCorrectId, token)))
+                .andExpect(status().isOk());
+
+        Instant gradeSeen = jdbcTemplate.queryForObject(
+                "SELECT student_grade_seen_at FROM homework_submissions WHERE assignment_id = ? AND user_id = ?",
+                Instant.class, assignmentId, studentId);
+        Instant feedbackSeen = jdbcTemplate.queryForObject(
+                "SELECT student_feedback_seen_at FROM homework_submissions WHERE assignment_id = ? AND user_id = ?",
+                Instant.class, assignmentId, studentId);
+        assertNotNull(gradeSeen);
+        assertNotNull(feedbackSeen);
+
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(false));
+    }
+
+    @Test
+    void exerciseFeedback_setsStudentLearningBadge_thenGetExerciseClears() throws Exception {
+        String token = Instant.parse("2026-08-15T10:00:00Z").toString();
+        mockMvc.perform(put("/api/v1/learning/homework/" + assignmentId + "/answers")
+                        .with(authentication(student()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":[{"questionId":"%s","selectedOptionIds":["%s"]}],"contentRevisedAt":"%s"}
+                                """.formatted(questionId, optionCorrectId, token)))
+                .andExpect(status().isOk());
+
+        UUID sid = jdbcTemplate.queryForObject(
+                "SELECT id FROM homework_submissions WHERE assignment_id = ? AND user_id = ?",
+                UUID.class, assignmentId, studentId);
+
+        mockMvc.perform(put("/api/v1/admin/homework/submissions/" + sid + "/exercise-feedback")
+                        .with(authentication(admin()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"feedback\":\"Muy bien\"}"))
+                .andExpect(status().isOk());
+
+        Instant feedbackSeen = jdbcTemplate.queryForObject(
+                "SELECT student_feedback_seen_at FROM homework_submissions WHERE id = ?",
+                Instant.class, sid);
+        assertNull(feedbackSeen);
+
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(true));
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(otherStudent())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(false));
+
+        mockMvc.perform(get("/api/v1/learning").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.homework[?(@.id == '" + assignmentId + "')].unseen").value(true));
+
+        mockMvc.perform(get("/api/v1/learning/homework/" + assignmentId)
+                        .with(authentication(student())))
+                .andExpect(status().isOk());
+
+        feedbackSeen = jdbcTemplate.queryForObject(
+                "SELECT student_feedback_seen_at FROM homework_submissions WHERE id = ?",
+                Instant.class, sid);
+        assertNotNull(feedbackSeen);
+
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(false));
+    }
+
+    @Test
+    void unitSeen_doesNotClearReviewUnseen() throws Exception {
+        jdbcTemplate.update(
+                "INSERT INTO unit_assignments (unit_id, user_id, student_seen_at) VALUES (?, ?, NOW())",
+                unitId, studentId);
+
+        String token = Instant.parse("2026-08-15T10:00:00Z").toString();
+        mockMvc.perform(put("/api/v1/learning/homework/" + assignmentId + "/answers")
+                        .with(authentication(student()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":[{"questionId":"%s","selectedOptionIds":["%s"]}],"contentRevisedAt":"%s"}
+                                """.formatted(questionId, optionCorrectId, token)))
+                .andExpect(status().isOk());
+
+        UUID sid = jdbcTemplate.queryForObject(
+                "SELECT id FROM homework_submissions WHERE assignment_id = ? AND user_id = ?",
+                UUID.class, assignmentId, studentId);
+        mockMvc.perform(put("/api/v1/admin/homework/submissions/" + sid + "/exercise-feedback")
+                        .with(authentication(admin()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"feedback\":\"Nota\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/learning/units/" + unitId + "/seen")
+                        .with(authentication(student())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/learning").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.homework[?(@.id == '" + assignmentId + "')].unseen").value(true));
+
+        Instant feedbackSeen = jdbcTemplate.queryForObject(
+                "SELECT student_feedback_seen_at FROM homework_submissions WHERE id = ?",
+                Instant.class, sid);
+        assertNull(feedbackSeen);
+
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(true));
+    }
+
+    @Test
+    void unassignHomework_clearsStudentReviewBadge() throws Exception {
+        UUID sid = submitAndLeaveExerciseFeedback("Nota");
+
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(true));
+
+        jdbcTemplate.update(
+                "DELETE FROM homework_targets WHERE assignment_id = ? AND user_id = ?",
+                assignmentId, studentId);
+
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(false));
+        mockMvc.perform(get("/api/v1/learning").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.homework[?(@.id == '" + assignmentId + "')]").isEmpty());
+        assertNull(jdbcTemplate.queryForObject(
+                "SELECT student_feedback_seen_at FROM homework_submissions WHERE id = ?",
+                Instant.class, sid));
+    }
+
+    @Test
+    void deleteHomework_clearsStudentReviewBadge() throws Exception {
+        submitAndLeaveExerciseFeedback("Nota");
+
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(true));
+
+        mockMvc.perform(delete("/api/v1/admin/homework/" + assignmentId)
+                        .with(authentication(admin())))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/notifications/badges").with(authentication(student())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.learning").value(false));
+    }
+
+    private UUID submitAndLeaveExerciseFeedback(String feedback) throws Exception {
+        String token = Instant.parse("2026-08-15T10:00:00Z").toString();
+        mockMvc.perform(put("/api/v1/learning/homework/" + assignmentId + "/answers")
+                        .with(authentication(student()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"answers":[{"questionId":"%s","selectedOptionIds":["%s"]}],"contentRevisedAt":"%s"}
+                                """.formatted(questionId, optionCorrectId, token)))
+                .andExpect(status().isOk());
+        UUID sid = jdbcTemplate.queryForObject(
+                "SELECT id FROM homework_submissions WHERE assignment_id = ? AND user_id = ?",
+                UUID.class, assignmentId, studentId);
+        mockMvc.perform(put("/api/v1/admin/homework/submissions/" + sid + "/exercise-feedback")
+                        .with(authentication(admin()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"feedback\":\"" + feedback + "\"}"))
+                .andExpect(status().isOk());
+        return sid;
     }
 
     private UsernamePasswordAuthenticationToken admin() {

@@ -132,4 +132,21 @@ public record FormattedTextSegment(String text, String color, String highlight, 
     public static boolean hasTeacherFeedback(String json) {
         return decodePlainFeedback(json) != null;
     }
+
+    /** Whether stored formatted text has teacher color, highlight, or strike marks. */
+    public static boolean hasStyleMarks(String stored) {
+        List<FormattedTextSegment> segs = tryParseFormatted(stored);
+        if (segs == null) {
+            return false;
+        }
+        for (FormattedTextSegment s : segs) {
+            if (s == null) {
+                continue;
+            }
+            if (s.color() != null || s.highlight() != null || Boolean.TRUE.equals(s.strike())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
