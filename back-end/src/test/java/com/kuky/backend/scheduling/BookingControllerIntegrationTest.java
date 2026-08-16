@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
@@ -46,8 +47,14 @@ class BookingControllerIntegrationTest extends AbstractIntegrationTest {
     private static LocalDate validFutureSlotDate() {
         ZoneId zone = ZoneId.of("Europe/Bucharest");
         LocalDate today = LocalDate.now(zone);
-        // Next week's Monday — at least ~25h out on typical weekdays, within the 2-week horizon
-        return today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusDays(7);
+        // Next Monday 10:00, or the Monday after if that is still inside the 24h lead window
+        // (Sunday evening otherwise picks "tomorrow morning").
+        LocalDate monday = today.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        Instant slot = monday.atTime(10, 0).atZone(zone).toInstant();
+        if (!slot.isAfter(Instant.now().plus(25, ChronoUnit.HOURS))) {
+            monday = monday.plusWeeks(1);
+        }
+        return monday;
     }
 
     private Instant validFutureSlot() {
