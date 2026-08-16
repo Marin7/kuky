@@ -12,6 +12,8 @@ interface Props {
   prompt: string;
   value: string[];
   onChange: (blanks: string[]) => void;
+  /** Teacher preview: show blank slots without answer inputs. */
+  readOnly?: boolean;
 }
 
 /** Renders a MULTI_BLANK passage with an inline input at each `___` token. */
@@ -21,6 +23,7 @@ export function MultiBlankQuestion({
   prompt,
   value,
   onChange,
+  readOnly = false,
 }: Props) {
   const segments = splitPromptSegments(stripLeadingEnumeration(prompt));
 
@@ -36,6 +39,12 @@ export function MultiBlankQuestion({
       {segments.map((seg, i) =>
         seg.type === "text" ? (
           <PassageText key={i} text={seg.text} />
+        ) : readOnly ? (
+          <span
+            key={i}
+            aria-hidden
+            className="mx-1 inline-block h-9 w-32 border-b-2 border-dashed border-muted-foreground/50 align-baseline"
+          />
         ) : (
           <Input
             key={i}

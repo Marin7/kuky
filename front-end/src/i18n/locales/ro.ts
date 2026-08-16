@@ -792,6 +792,7 @@
       assignError: "Nu s-a putut salva atribuirea.",
       noStudents: "Niciun student disponibil.",
       assignedTo: "Asignată la",
+      details: "Detalii",
       unassigned: "Neasignată (ciornă).",
       responses: "Răspunsuri",
       dueOn: "Termen limită:",

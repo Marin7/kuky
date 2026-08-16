@@ -18,11 +18,9 @@ import {
   labelsEqual,
   uniqueLabels,
 } from "@/lib/homeworkLabels";
+import { HomeworkAdminCard } from "@/components/admin/homework/HomeworkAdminCard";
 import { HomeworkAssignDialog } from "@/components/admin/homework/HomeworkAssignDialog";
-import { HomeworkLabelField } from "@/components/admin/homework/HomeworkLabelField";
-import { NotificationDot } from "@/components/NotificationDot";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -30,30 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-function formatDate(iso: string): string {
-  return new Intl.DateTimeFormat("es", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(`${iso}T00:00:00`));
-}
-
-const TYPE_CLASS: Record<HomeworkType, string> = {
-  AUDIO: "bg-purple-100 text-purple-700",
-  READ: "bg-blue-100 text-blue-700",
-  WRITE: "bg-yellow-100 text-yellow-700",
-  GRAMMAR: "bg-orange-100 text-orange-700",
-};
-
-const LEVEL_CLASS: Record<HomeworkLevel, string> = {
-  A1: "bg-green-100 text-green-700",
-  A2: "bg-green-100 text-green-700",
-  B1: "bg-teal-100 text-teal-700",
-  B2: "bg-teal-100 text-teal-700",
-  C1: "bg-indigo-100 text-indigo-700",
-  C2: "bg-indigo-100 text-indigo-700",
-};
 
 export function HomeworkAdminList() {
   const { t } = useTranslation();
@@ -226,97 +200,23 @@ export function HomeworkAdminList() {
             : t("admin.homework.noTasksFiltered")}
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((item) => (
-            <Card key={item.id} className="flex flex-col gap-0 py-3">
-              <CardHeader className="px-3 pb-1.5 pt-0">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex flex-wrap items-center gap-1">
-                    <CardTitle className="inline-flex items-center gap-1.5 text-sm leading-snug">
-                      {item.title}
-                      {item.hasUnseenSubmissions && (
-                        <NotificationDot label={t("notification.item")} />
-                      )}
-                    </CardTitle>
-                    {item.homeworkType && (
-                      <span
-                        className={[
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
-                          TYPE_CLASS[item.homeworkType],
-                        ].join(" ")}
-                      >
-                        {t(`admin.homework.type.${item.homeworkType}`)}
-                      </span>
-                    )}
-                    {item.level && (
-                      <span
-                        className={[
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
-                          LEVEL_CLASS[item.level],
-                        ].join(" ")}
-                      >
-                        {item.level}
-                      </span>
-                    )}
-                    {(item.format === "EXERCISE" ||
-                      item.composition === "ALL_AUTO") && (
-                      <span className="rounded-full bg-pink-100 px-2 py-0.5 text-xs font-medium text-pink-700">
-                        {t("admin.homework.exercise")}
-                      </span>
-                    )}
-                    {(item.format === "MIXED" ||
-                      item.composition === "MIXED") && (
-                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
-                        {t("admin.homework.mixed")}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1">
-                    <HomeworkLabelField
-                      compact
-                      value={homeworkLabels(item)}
-                      existing={labelOptions}
-                      disabled={labelSavingId === item.id}
-                      onChange={(next) => persistCardLabels(item, next)}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setAssignItem(item)}
-                    >
-                      {t("admin.homework.assign")}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => openEdit(item)}
-                    >
-                      {t("admin.homework.edit")}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs text-destructive"
-                      onClick={() => remove(item)}
-                    >
-                      {t("admin.homework.delete")}
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-1.5 px-3 pt-0 text-sm">
-                <p className="line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">
-                  {item.instructions}
-                </p>
-                {item.dueOn && (
-                  <p className="text-xs text-muted-foreground">
-                    {t("admin.homework.dueOn")} {formatDate(item.dueOn)}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            <HomeworkAdminCard
+              key={item.id}
+              item={item}
+              labelOptions={labelOptions}
+              labelSaving={labelSavingId === item.id}
+              onPersistLabels={persistCardLabels}
+              onAssign={setAssignItem}
+              onEdit={openEdit}
+              onDelete={remove}
+              onUpdated={(updated) =>
+                setItems((prev) =>
+                  prev.map((h) => (h.id === updated.id ? updated : h)),
+                )
+              }
+            />
           ))}
         </div>
       )}

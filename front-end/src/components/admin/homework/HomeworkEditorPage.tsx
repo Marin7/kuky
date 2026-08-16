@@ -8,7 +8,6 @@ import {
   setAssignees,
   getHomework,
   getHomeworkById,
-  studentDisplayName,
   type AdminQuestion,
   type Assignee,
   type HomeworkType,
@@ -36,7 +35,7 @@ import {
   homeworkLabels,
   labelsEqual,
 } from "@/lib/homeworkLabels";
-import { NotificationDot } from "@/components/NotificationDot";
+import { HomeworkAssigneeList } from "./HomeworkAssigneeList";
 import { HomeworkReviewDialog } from "./HomeworkReviewDialog";
 import { ExerciseResultDialog } from "./ExerciseResultDialog";
 import { notifyBadgesChanged } from "@/lib/notifications";
@@ -388,41 +387,11 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
               <p className="text-sm font-medium">
                 {t("admin.homework.editor.assignLabel")}
               </p>
-              <ul className="divide-y rounded-md border">
-                {assignees.map((a) => (
-                  <li
-                    key={a.userId}
-                    className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      {studentDisplayName(a)}
-                      {a.unseen && (
-                        <NotificationDot label={t("notification.row")} />
-                      )}
-                    </span>
-                    {a.submissionId &&
-                      (a.status === "SUBMITTED" ||
-                        a.status === "REVIEWED" ||
-                        a.status === "GRADED") && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const id = a.submissionId;
-                            if (!id) return;
-                            if (a.status === "GRADED") setOpenResultId(id);
-                            else setOpenSubmissionId(id);
-                          }}
-                        >
-                          {a.status === "GRADED"
-                            ? t("admin.exerciseResult.viewAction")
-                            : t("admin.homeworkReview.reviewAction")}
-                        </Button>
-                      )}
-                  </li>
-                ))}
-              </ul>
+              <HomeworkAssigneeList
+                assignees={assignees}
+                onOpenResult={setOpenResultId}
+                onOpenReview={setOpenSubmissionId}
+              />
             </div>
           )}
 

@@ -794,6 +794,7 @@ export const esDict = {
       assignError: "No se pudo guardar la asignación.",
       noStudents: "No hay alumnos disponibles.",
       assignedTo: "Asignada a",
+      details: "Detalles",
       unassigned: "Sin asignar (borrador).",
       responses: "Respuestas",
       dueOn: "Fecha límite:",

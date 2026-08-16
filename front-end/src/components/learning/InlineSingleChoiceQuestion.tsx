@@ -13,6 +13,7 @@ interface Props {
   match: InlineChoiceMatch;
   selectedOptionId: string | null;
   onChange: (optionId: string | null) => void;
+  readOnly?: boolean;
 }
 
 /**
@@ -26,6 +27,7 @@ export function InlineSingleChoiceQuestion({
   match,
   selectedOptionId,
   onChange,
+  readOnly = false,
 }: Props) {
   // Match indices stay on the stored prompt; strip only the visible prefix so
   // worksheet copy like `1. (Soy / Estoy)…` does not become `1. 1. (Soy…`.
@@ -40,6 +42,7 @@ export function InlineSingleChoiceQuestion({
         tokens={match.tokens}
         selectedOptionId={selectedOptionId}
         onChange={onChange}
+        readOnly={readOnly}
       />
       <PassageText text={after} />
     </div>

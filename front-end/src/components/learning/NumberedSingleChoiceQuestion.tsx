@@ -14,6 +14,7 @@ interface Props {
   items: StudentSingleChoiceItem[];
   selections: Record<string, string>;
   onChange: (number: number, optionId: string | null) => void;
+  readOnly?: boolean;
 }
 
 /**
@@ -27,6 +28,7 @@ export function NumberedSingleChoiceQuestion({
   items,
   selections,
   onChange,
+  readOnly = false,
 }: Props) {
   const byNumber = new Map(items.map((item) => [item.number, item]));
   const parts = splitPromptByNumberedMarkers(prompt);
@@ -36,8 +38,7 @@ export function NumberedSingleChoiceQuestion({
       {questionIndexLabel(index, questionCount)}
       {parts.map((part, i) => {
         if (part.type === "text") {
-          const text =
-            i === 0 ? stripLeadingEnumeration(part.text) : part.text;
+          const text = i === 0 ? stripLeadingEnumeration(part.text) : part.text;
           return <PassageText key={i} text={text} />;
         }
         const item = byNumber.get(part.number);
@@ -53,6 +54,7 @@ export function NumberedSingleChoiceQuestion({
             }))}
             selectedOptionId={selections[String(part.number)] ?? null}
             onChange={(optionId) => onChange(part.number, optionId)}
+            readOnly={readOnly}
           />
         );
       })}

@@ -8,6 +8,7 @@ interface Props {
   right: StudentMatchItem[];
   pairs: MatchingAnswer["pairs"];
   onChange: (pairs: MatchingAnswer["pairs"]) => void;
+  readOnly?: boolean;
 }
 
 const PAIR_COLORS = [
@@ -24,10 +25,22 @@ const PAIR_COLORS = [
  * Click-to-pair — select a left item, then its match on the right (or click
  * a paired item again to clear it). Distractors on either side stay unpaired.
  */
-export function MatchingQuestion({ left, right, pairs, onChange }: Props) {
+export function MatchingQuestion({
+  left,
+  right,
+  pairs,
+  onChange,
+  readOnly = false,
+}: Props) {
   const { t } = useTranslation();
-  const shuffledLeft = useMemo(() => shuffle(left), [left]);
-  const shuffledRight = useMemo(() => shuffle(right), [right]);
+  const shuffledLeft = useMemo(
+    () => (readOnly ? left : shuffle(left)),
+    [left, readOnly],
+  );
+  const shuffledRight = useMemo(
+    () => (readOnly ? right : shuffle(right)),
+    [right, readOnly],
+  );
   const [selectedLeft, setSelectedLeft] = useState<string | null>(null);
 
   const pairIndex = (leftId: string) =>
@@ -75,6 +88,7 @@ export function MatchingQuestion({ left, right, pairs, onChange }: Props) {
               <button
                 key={item.id}
                 type="button"
+                disabled={readOnly}
                 onClick={() => clickLeft(item.id)}
                 className={cn(
                   "block w-full rounded border px-3 py-2 text-left text-base transition",
@@ -82,7 +96,10 @@ export function MatchingQuestion({ left, right, pairs, onChange }: Props) {
                     ? colorFor(idx)
                     : selectedLeft === item.id
                       ? "border-primary bg-primary/10"
-                      : "hover:bg-muted",
+                      : readOnly
+                        ? ""
+                        : "hover:bg-muted",
+                  readOnly && "cursor-default",
                 )}
               >
                 {item.label}
@@ -100,10 +117,12 @@ export function MatchingQuestion({ left, right, pairs, onChange }: Props) {
               <button
                 key={item.id}
                 type="button"
+                disabled={readOnly}
                 onClick={() => clickRight(item.id)}
                 className={cn(
                   "block w-full rounded border px-3 py-2 text-left text-base transition",
-                  idx >= 0 ? colorFor(idx) : "hover:bg-muted",
+                  idx >= 0 ? colorFor(idx) : readOnly ? "" : "hover:bg-muted",
+                  readOnly && "cursor-default",
                 )}
               >
                 {item.label}

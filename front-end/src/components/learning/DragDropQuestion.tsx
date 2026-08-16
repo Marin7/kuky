@@ -20,6 +20,8 @@ interface Props {
   bankReusable?: boolean;
   /** Homework instruction shown above the word bank. */
   intro?: string | null;
+  /** Teacher preview: show bank and blanks without placing answers. */
+  readOnly?: boolean;
 }
 
 /**
@@ -35,15 +37,16 @@ export function DragDropQuestion({
   onChange,
   bankReusable = false,
   intro = null,
+  readOnly = false,
 }: Props) {
   const { t } = useTranslation();
   const blankCount = countBlanks(prompt);
   const bankKey = bank.map((b) => b.id).join(",");
   const shuffledBank = useMemo(
-    () => shuffle(bank),
+    () => (readOnly ? bank : shuffle(bank)),
     // Shuffle once per bank identity; ignore referential churn from parents.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bankKey],
+    [bankKey, readOnly],
   );
   const [selected, setSelected] = useState<string | null>(null);
   const [dragOverBlank, setDragOverBlank] = useState<number | null>(null);
@@ -52,11 +55,12 @@ export function DragDropQuestion({
 
   // Keep placements array length in sync with blank count.
   useEffect(() => {
+    if (readOnly) return;
     if (value.length === blankCount) return;
     const next = Array.from({ length: blankCount }, (_, i) => value[i] ?? null);
     onChange(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blankCount]);
+  }, [blankCount, readOnly]);
 
   const labelOf = (id: string | null) =>
     bank.find((b) => b.id === id)?.label ?? "";
@@ -140,11 +144,11 @@ export function DragDropQuestion({
                 <button
                   key={item.id}
                   type="button"
-                  draggable={!occupied}
+                  draggable={!readOnly && !occupied}
                   onDragStart={(e) => onDragStart(e, item.id)}
                   onDragEnd={() => setSelected(null)}
                   onClick={() => onBankItemClick(item.id)}
-                  disabled={occupied}
+                  disabled={readOnly || occupied}
                   aria-pressed={selected === item.id}
                   className={cn(
                     "rounded-md border px-3 py-2 text-base font-medium shadow-sm transition",
@@ -152,7 +156,9 @@ export function DragDropQuestion({
                       ? "cursor-not-allowed border-dashed bg-muted/40 text-muted-foreground line-through opacity-40"
                       : selected === item.id
                         ? "cursor-grab border-primary bg-primary text-primary-foreground ring-2 ring-primary/30"
-                        : "cursor-grab border-border bg-background hover:border-primary hover:bg-muted active:cursor-grabbing",
+                        : readOnly
+                          ? "cursor-default border-border bg-background"
+                          : "cursor-grab border-border bg-background hover:border-primary hover:bg-muted active:cursor-grabbing",
                   )}
                 >
                   {item.label}
@@ -174,8 +180,10 @@ export function DragDropQuestion({
               <button
                 key={i}
                 type="button"
+                disabled={readOnly}
                 onClick={() => onBlankClick(seg.index)}
                 onDragOver={(e) => {
+                  if (readOnly) return;
                   e.preventDefault();
                   e.dataTransfer.dropEffect = "move";
                   setDragOverBlank(seg.index);
@@ -189,11 +197,14 @@ export function DragDropQuestion({
                   value[seg.index]
                     ? "cursor-pointer border-solid border-primary/50 bg-primary/10 font-medium text-foreground"
                     : "bg-muted/30 text-muted-foreground",
-                  dragOverBlank === seg.index &&
+                  !readOnly &&
+                    dragOverBlank === seg.index &&
                     "border-primary bg-primary/20 ring-2 ring-primary/20",
-                  selected &&
+                  !readOnly &&
+                    selected &&
                     !value[seg.index] &&
                     "border-primary animate-pulse",
+                  readOnly && "cursor-default",
                 )}
               >
                 {value[seg.index]

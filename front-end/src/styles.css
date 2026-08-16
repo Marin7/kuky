@@ -30,6 +30,26 @@
   --color-ring: var(--ring);
   --font-display: Georgia, "Times New Roman", Times, serif;
   --font-sans: Georgia, "Times New Roman", Times, serif;
+  --animate-homework-expand: homework-expand 400ms ease-out;
+  --animate-homework-collapse: homework-collapse 400ms ease-out;
+}
+
+@keyframes homework-expand {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes homework-collapse {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
 }
 
 :root {

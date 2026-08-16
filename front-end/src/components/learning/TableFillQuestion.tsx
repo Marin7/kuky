@@ -5,10 +5,17 @@ interface Props {
   structure: StudentStructure;
   value: Record<string, string>;
   onChange: (cells: Record<string, string>) => void;
+  /** Teacher preview: show blank cells without answer inputs. */
+  readOnly?: boolean;
 }
 
 /** Renders a TABLE_FILL grid: fixed cells as plain text, blank cells as inputs keyed `"r,c"`. */
-export function TableFillQuestion({ structure, value, onChange }: Props) {
+export function TableFillQuestion({
+  structure,
+  value,
+  onChange,
+  readOnly = false,
+}: Props) {
   const rowHeaders = structure.rowHeaders ?? [];
   const colHeaders = structure.colHeaders ?? [];
   const cells = structure.cells ?? [];
@@ -42,6 +49,11 @@ export function TableFillQuestion({ structure, value, onChange }: Props) {
                   <td key={c} className="border p-2">
                     {cell.type === "fixed" ? (
                       <span>{cell.text}</span>
+                    ) : readOnly ? (
+                      <span
+                        aria-hidden
+                        className="inline-block h-9 w-32 border-b border-dashed border-muted-foreground/50"
+                      />
                     ) : (
                       <Input
                         value={value[`${r},${c}`] ?? ""}

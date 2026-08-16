@@ -15,39 +15,51 @@ export function InlineChoiceTokens({
   tokens,
   selectedOptionId,
   onChange,
+  readOnly = false,
 }: {
   tokens: ChoiceToken[];
   selectedOptionId: string | null;
   onChange: (optionId: string | null) => void;
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation();
   return (
-    <span
-      role="group"
-      aria-label={t("learning.inlineSingleChoice.groupLabel")}
-    >
-      ({tokens.map((token, i) => {
+    <span role="group" aria-label={t("learning.inlineSingleChoice.groupLabel")}>
+      (
+      {tokens.map((token, i) => {
         const selected = selectedOptionId === token.optionId;
         return (
           <Fragment key={token.optionId}>
             {i > 0 && " / "}
-            <button
-              type="button"
-              aria-pressed={selected}
-              onClick={() => onChange(selected ? null : token.optionId)}
-              className={cn(
-                TOKEN,
-                "cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                selected
-                  ? "bg-green-200 text-green-900 hover:bg-green-300"
-                  : "bg-transparent text-foreground underline decoration-dotted decoration-muted-foreground underline-offset-4 hover:bg-green-100 hover:text-green-900 hover:no-underline",
-              )}
-            >
-              {token.text}
-            </button>
+            {readOnly ? (
+              <span
+                className={cn(
+                  TOKEN,
+                  "text-foreground underline decoration-dotted decoration-muted-foreground underline-offset-4",
+                )}
+              >
+                {token.text}
+              </span>
+            ) : (
+              <button
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onChange(selected ? null : token.optionId)}
+                className={cn(
+                  TOKEN,
+                  "cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  selected
+                    ? "bg-green-200 text-green-900 hover:bg-green-300"
+                    : "bg-transparent text-foreground underline decoration-dotted decoration-muted-foreground underline-offset-4 hover:bg-green-100 hover:text-green-900 hover:no-underline",
+                )}
+              >
+                {token.text}
+              </button>
+            )}
           </Fragment>
         );
-      })})
+      })}
+      )
     </span>
   );
 }
@@ -68,7 +80,8 @@ export function InlineChoiceTokensResult({
 }) {
   return (
     <span>
-      ({tokens.map((token, i) => {
+      (
+      {tokens.map((token, i) => {
         const selected = token.optionId === selectedOptionId;
         const isKey = correctOptionIds.includes(token.optionId);
         const isRightPick = selected && correct;
@@ -89,7 +102,8 @@ export function InlineChoiceTokensResult({
             </span>
           </Fragment>
         );
-      })})
+      })}
+      )
     </span>
   );
 }

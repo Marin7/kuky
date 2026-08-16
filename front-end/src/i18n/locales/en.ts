@@ -780,6 +780,7 @@
       assignError: "Could not save the assignment.",
       noStudents: "No students available.",
       assignedTo: "Assigned to",
+      details: "Details",
       unassigned: "Unassigned (draft).",
       responses: "Responses",
       dueOn: "Due date:",
