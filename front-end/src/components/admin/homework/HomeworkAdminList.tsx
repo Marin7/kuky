@@ -1,16 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
   getHomework,
   getStudents,
   deleteHomework,
+  updateHomeworkLabels,
   type HomeworkAdminItem,
   type HomeworkType,
   type HomeworkLevel,
   type Student,
 } from "@/lib/admin";
+import {
+  homeworkHasLabelGroup,
+  homeworkLabels,
+  labelGroupKey,
+  labelsEqual,
+  uniqueLabels,
+} from "@/lib/homeworkLabels";
 import { HomeworkAssignDialog } from "@/components/admin/homework/HomeworkAssignDialog";
+import { HomeworkLabelField } from "@/components/admin/homework/HomeworkLabelField";
 import { NotificationDot } from "@/components/NotificationDot";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +63,9 @@ export function HomeworkAdminList() {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<HomeworkType | "ALL">("ALL");
   const [filterLevel, setFilterLevel] = useState<HomeworkLevel | "ALL">("ALL");
+  const [filterLabel, setFilterLabel] = useState<string>("ALL");
   const [assignItem, setAssignItem] = useState<HomeworkAdminItem | null>(null);
+  const [labelSavingId, setLabelSavingId] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -71,6 +82,42 @@ export function HomeworkAdminList() {
   };
 
   useEffect(load, []);
+
+  const labelOptions = useMemo(() => uniqueLabels(items), [items]);
+
+  useEffect(() => {
+    if (filterLabel === "ALL") return;
+    const keys = new Set(
+      labelOptions.map((label) => labelGroupKey(label)).filter(Boolean),
+    );
+    if (!keys.has(filterLabel)) setFilterLabel("ALL");
+  }, [filterLabel, labelOptions]);
+
+  const persistCardLabels = async (item: HomeworkAdminItem, next: string[]) => {
+    let previous = homeworkLabels(item);
+    let skipped = false;
+    setItems((prev) => {
+      const current = prev.find((h) => h.id === item.id);
+      previous = current ? homeworkLabels(current) : previous;
+      if (labelsEqual(next, previous)) {
+        skipped = true;
+        return prev;
+      }
+      return prev.map((h) => (h.id === item.id ? { ...h, labels: next } : h));
+    });
+    if (skipped) return;
+    setLabelSavingId(item.id);
+    try {
+      const updated = await updateHomeworkLabels(item.id, next);
+      setItems((prev) => prev.map((h) => (h.id === updated.id ? updated : h)));
+    } catch {
+      setItems((prev) =>
+        prev.map((h) => (h.id === item.id ? { ...h, labels: previous } : h)),
+      );
+    } finally {
+      setLabelSavingId(null);
+    }
+  };
 
   const openCreate = () => navigate({ to: "/panel/tareas/nueva" });
 
@@ -89,6 +136,9 @@ export function HomeworkAdminList() {
   const filtered = items.filter((item) => {
     if (filterType !== "ALL" && item.homeworkType !== filterType) return false;
     if (filterLevel !== "ALL" && item.level !== filterLevel) return false;
+    if (filterLabel !== "ALL") {
+      if (!homeworkHasLabelGroup(item, filterLabel)) return false;
+    }
     return true;
   });
 
@@ -139,6 +189,24 @@ export function HomeworkAdminList() {
                   </SelectItem>
                 ),
               )}
+            </SelectContent>
+          </Select>
+          <Select value={filterLabel} onValueChange={setFilterLabel}>
+            <SelectTrigger className="h-8 w-44 text-xs">
+              <SelectValue placeholder={t("admin.homework.allLabels")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">
+                {t("admin.homework.allLabels")}
+              </SelectItem>
+              {labelOptions.map((label) => (
+                <SelectItem
+                  key={labelGroupKey(label) ?? label}
+                  value={labelGroupKey(label) ?? label}
+                >
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -203,7 +271,14 @@ export function HomeworkAdminList() {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <HomeworkLabelField
+                      compact
+                      value={homeworkLabels(item)}
+                      existing={labelOptions}
+                      disabled={labelSavingId === item.id}
+                      onChange={(next) => persistCardLabels(item, next)}
+                    />
                     <Button
                       variant="outline"
                       size="sm"

@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import {
   createHomework,
   updateHomework,
+  updateHomeworkLabels,
   setAssignees,
+  getHomework,
   getHomeworkById,
   studentDisplayName,
   type AdminQuestion,
@@ -28,6 +30,12 @@ import {
 import { StudentMultiSelect } from "./StudentMultiSelect";
 import { QuestionListEditor } from "./QuestionListEditor";
 import { AudioSourceEditor, type AudioSourceValue } from "./AudioSourceEditor";
+import { HomeworkLabelField } from "./HomeworkLabelField";
+import {
+  uniqueLabels,
+  homeworkLabels,
+  labelsEqual,
+} from "@/lib/homeworkLabels";
 import { NotificationDot } from "@/components/NotificationDot";
 import { HomeworkReviewDialog } from "./HomeworkReviewDialog";
 import { ExerciseResultDialog } from "./ExerciseResultDialog";
@@ -52,6 +60,9 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
   const [dueOn, setDueOn] = useState("");
   const [homeworkType, setHomeworkType] = useState<HomeworkType | "">("");
   const [level, setLevel] = useState<HomeworkLevel | "">("");
+  const [labels, setLabels] = useState<string[]>([]);
+  const savedLabelsRef = useRef<string[]>([]);
+  const [existingLabels, setExistingLabels] = useState<string[]>([]);
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
   const [audio, setAudio] = useState<AudioSourceValue>({
     mediaSourceKind: null,
@@ -95,6 +106,8 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
         setDueOn(hw.dueOn ?? "");
         setHomeworkType(hw.homeworkType ?? "");
         setLevel(hw.level ?? "");
+        setLabels(homeworkLabels(hw));
+        savedLabelsRef.current = homeworkLabels(hw);
         setQuestions(hw.questions ?? []);
         setAudio({
           mediaSourceKind: hw.mediaSourceKind,
@@ -109,6 +122,12 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
       .finally(() => setLoading(false));
   }, [homeworkId]);
 
+  useEffect(() => {
+    getHomework()
+      .then((list) => setExistingLabels(uniqueLabels(list)))
+      .catch(() => setExistingLabels([]));
+  }, []);
+
   // Writing homework is a single rich-text answer — no question list.
   useEffect(() => {
     if (homeworkType === "WRITE") setQuestions([]);
@@ -116,6 +135,23 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
 
   const backToList = () =>
     navigate({ to: "/panel", search: { tab: "homework" } as never });
+
+  const persistLabels = async (next: string[]) => {
+    const previous = savedLabelsRef.current;
+    if (labelsEqual(next, previous)) return;
+    savedLabelsRef.current = next;
+    setLabels(next);
+    if (!homeworkId) return;
+    try {
+      await updateHomeworkLabels(homeworkId, next);
+      const list = await getHomework();
+      setExistingLabels(uniqueLabels(list));
+    } catch (e) {
+      savedLabelsRef.current = previous;
+      setLabels(previous);
+      setError((e as ApiError).message ?? t("admin.homework.editor.saveError"));
+    }
+  };
 
   const save = async () => {
     if (!title.trim() || !instructions.trim()) {
@@ -170,6 +206,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           lvl,
           qs,
           audioPayload,
+          labels,
         );
         await setAssignees(homeworkId, assigneeIds);
       } else {
@@ -182,6 +219,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           qs,
           audioPayload,
           assigneeIds,
+          labels,
         );
       }
       backToList();
@@ -249,7 +287,7 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1">
               <Label>{t("admin.homework.editor.typeLabel")}</Label>
               <Select
@@ -291,6 +329,19 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>{t("admin.homework.editor.labelLabel")}</Label>
+              <HomeworkLabelField
+                value={labels}
+                onChange={persistLabels}
+                existing={existingLabels}
+              />
+              <p className="text-xs text-muted-foreground">
+                {homeworkId
+                  ? t("admin.homework.editor.labelSavesImmediately")
+                  : t("admin.homework.editor.labelSavesOnCreate")}
+              </p>
             </div>
             <div className="space-y-1">
               <Label htmlFor="hw-due">

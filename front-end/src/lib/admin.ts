@@ -451,6 +451,8 @@ export interface HomeworkAdminItem {
   audioFileId: string | null; // listening homework uploaded file
   audioFileName: string | null; // original filename of the uploaded audio
   mediaSourceKind: MediaSourceKind | null;
+  /** Optional teacher-only organization labels. */
+  labels: string[];
   assignees: Assignee[];
   hasUnseenSubmissions?: boolean;
 }
@@ -488,6 +490,7 @@ export const createHomework = (
   questions: AdminQuestion[],
   audio: HomeworkAudio,
   assigneeIds: string[],
+  labels: string[],
 ) =>
   apiCall<HomeworkAdminItem>("/homework", {
     method: "POST",
@@ -502,6 +505,7 @@ export const createHomework = (
       audioFileId: audio.audioFileId,
       mediaSourceKind: audio.mediaSourceKind,
       assigneeIds,
+      labels,
     }),
   });
 
@@ -514,6 +518,7 @@ export const updateHomework = (
   level: HomeworkLevel | null,
   questions: AdminQuestion[],
   audio: HomeworkAudio,
+  labels: string[],
 ) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}`, {
     method: "PUT",
@@ -527,6 +532,7 @@ export const updateHomework = (
       audioUrl: audio.audioUrl,
       audioFileId: audio.audioFileId,
       mediaSourceKind: audio.mediaSourceKind,
+      labels,
     }),
   });
 
@@ -548,6 +554,12 @@ export const setAssignees = (id: string, assigneeIds: string[]) =>
   apiCall<HomeworkAdminItem>(`/homework/${id}/assignees`, {
     method: "PUT",
     body: JSON.stringify({ assigneeIds }),
+  });
+
+export const updateHomeworkLabels = (id: string, labels: string[]) =>
+  apiCall<HomeworkAdminItem>(`/homework/${id}/labels`, {
+    method: "PUT",
+    body: JSON.stringify({ labels }),
   });
 
 export const deleteHomework = (id: string) =>
@@ -1084,8 +1096,7 @@ export interface StudentQuizSummary {
   unseen?: boolean;
 }
 
-export const listAdminQuizzes = () =>
-  apiCall<QuizAdminListItem[]>("/quizzes");
+export const listAdminQuizzes = () => apiCall<QuizAdminListItem[]>("/quizzes");
 
 export const createQuiz = (title: string, description?: string | null) =>
   apiCall<QuizAdminDetail>("/quizzes", {
@@ -1144,7 +1155,13 @@ export const reviewQuizAttempt = (
   quizId: string,
   attemptId: string,
   body: {
-    answers?: { questionId: string; teacherScorePercent?: number | null; formatted?: import("@/components/learning/richtext/types").FormattedText | null }[];
+    answers?: {
+      questionId: string;
+      teacherScorePercent?: number | null;
+      formatted?:
+        | import("@/components/learning/richtext/types").FormattedText
+        | null;
+    }[];
     feedbackText?: string | null;
     finalize?: boolean;
   },

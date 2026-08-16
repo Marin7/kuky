@@ -2,6 +2,7 @@ package com.kuky.backend.learning.model;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public class HomeworkAssignment {
@@ -20,6 +21,7 @@ public class HomeworkAssignment {
     private UUID audioFileId;          // nullable — listening homework uploaded file
     private MediaSourceKind mediaSourceKind; // nullable — listening media presentation kind
     private Instant contentRevisedAt;
+    private List<String> labels = List.of(); // teacher-only organization labels
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -49,4 +51,8 @@ public class HomeworkAssignment {
     public void setMediaSourceKind(MediaSourceKind mediaSourceKind) { this.mediaSourceKind = mediaSourceKind; }
     public Instant getContentRevisedAt() { return contentRevisedAt; }
     public void setContentRevisedAt(Instant contentRevisedAt) { this.contentRevisedAt = contentRevisedAt; }
+    public List<String> getLabels() { return labels == null ? List.of() : labels; }
+    public void setLabels(List<String> labels) {
+        this.labels = labels == null ? List.of() : List.copyOf(labels);
+    }
 }

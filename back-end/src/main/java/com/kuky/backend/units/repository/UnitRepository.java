@@ -341,7 +341,7 @@ public class UnitRepository {
         String sql = """
                 SELECT ha.id, ha.title, ha.instructions, ha.due_on, ha.homework_type,
                        ha.level, ha.format, ha.audio_url, ha.audio_file_id, ha.media_source_kind,
-                       ha.unit_position
+                       ha.labels, ha.unit_position
                 FROM homework_assignments ha
                 WHERE ha.unit_id = :uid
                 ORDER BY ha.unit_position
@@ -363,6 +363,7 @@ public class UnitRepository {
                     rs.getObject("audio_file_id", UUID.class),
                     null,
                     rs.getString("media_source_kind"),
+                    readLabels(rs),
                     List.of(),
                     false);
         });
@@ -373,6 +374,18 @@ public class UnitRepository {
         if ("MIXED".equals(format)) return "MIXED";
         if ("EXERCISE".equals(format)) return "ALL_AUTO";
         return "ALL_MANUAL";
+    }
+
+    private static List<String> readLabels(java.sql.ResultSet rs) throws java.sql.SQLException {
+        java.sql.Array arr = rs.getArray("labels");
+        if (arr == null) {
+            return List.of();
+        }
+        Object raw = arr.getArray();
+        if (raw instanceof String[] strings) {
+            return List.of(strings);
+        }
+        return Arrays.stream((Object[]) raw).map(Object::toString).toList();
     }
 
     public List<StudentResponse> findAssignedStudents(UUID unitId) {

@@ -782,6 +782,7 @@ export const esDict = {
       loading: "Cargando…",
       allTypes: "Todos los tipos",
       allLevels: "Todos los niveles",
+      allLabels: "Todas las etiquetas",
       newTask: "Nueva tarea",
       noTasks: "Aún no has creado ninguna tarea.",
       noTasksFiltered: "No hay tareas con esos filtros.",
@@ -822,6 +823,16 @@ export const esDict = {
         typePlaceholder: "Sin tipo",
         levelLabel: "Nivel",
         levelPlaceholder: "Sin nivel",
+        labelLabel: "Etiquetas (opcional)",
+        labelPlaceholder: "Añadir etiqueta",
+        labelSearch: "Escribe o elige una etiqueta…",
+        labelEmpty: "Escribe una etiqueta nueva.",
+        labelClear: "Quitar etiqueta",
+        labelRemove: "Quitar {{label}}",
+        labelUseNew: "Usar «{{label}}»",
+        labelSavesImmediately:
+          "Se guardan al añadirlas o quitarlas, sin pulsar Guardar.",
+        labelSavesOnCreate: "Se guardan al crear la tarea.",
         dueDateLabel: "Fecha límite (opcional)",
         formatLabel: "Formato",
         formatManual:
@@ -1186,11 +1197,13 @@ export const esDict = {
       removeSkill: "Quitar destreza",
       listeningMedia: "Audio o vídeo de esta pregunta",
       saveError: "No se pudo guardar la prueba de evaluación.",
-      assignError: "No se pudo asignar. La prueba necesita al menos una pregunta.",
+      assignError:
+        "No se pudo asignar. La prueba necesita al menos una pregunta.",
       attemptsTitle: "Entregas",
       noAttempts: "Nadie ha entregado esta prueba todavía.",
       queueTitle: "Pruebas de evaluación pendientes de corregir",
-      queueEmpty: "No hay entregas de pruebas de evaluación pendientes de corregir.",
+      queueEmpty:
+        "No hay entregas de pruebas de evaluación pendientes de corregir.",
       review: "Revisar",
       view: "Ver",
       alreadyGraded: "Esta prueba de evaluación ya está calificada.",
@@ -1199,7 +1212,8 @@ export const esDict = {
       teacherPercent: "Porcentaje (0–100)",
       note: "Nota para el alumno (máx. 500)",
       studentQuizzes: "Pruebas de evaluación",
-      noStudentQuizzes: "Este alumno no tiene pruebas de evaluación entregadas.",
+      noStudentQuizzes:
+        "Este alumno no tiene pruebas de evaluación entregadas.",
     },
   },
   seo: {

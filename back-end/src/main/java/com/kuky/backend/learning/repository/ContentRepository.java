@@ -9,9 +9,13 @@ import com.kuky.backend.learning.model.PastClass;
 import com.kuky.backend.learning.model.PresentationBlock;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.support.AbstractSqlTypeValue;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,6 +78,7 @@ public class ContentRepository {
         if (mediaKind != null) a.setMediaSourceKind(MediaSourceKind.valueOf(mediaKind));
         java.sql.Timestamp revised = rs.getTimestamp("content_revised_at");
         if (revised != null) a.setContentRevisedAt(revised.toInstant());
+        a.setLabels(readLabels(rs));
         return a;
     };
 
@@ -139,7 +144,8 @@ public class ContentRepository {
 
     public UUID insertAssignment(String title, String instructions, LocalDate dueOn,
                                   HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format,
-                                  String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind) {
+                                  String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind,
+                                  List<String> labels) {
         UUID id = UUID.randomUUID();
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("id", id);
@@ -152,26 +158,28 @@ public class ContentRepository {
         params.put("audioUrl", audioUrl);
         params.put("audioFileId", audioFileId);
         params.put("mediaSourceKind", mediaSourceKind == null ? null : mediaSourceKind.name());
+        params.put("labels", textArrayValue(labels));
         jdbc.update("""
                 INSERT INTO homework_assignments (id, title, instructions, due_on, homework_type, level, format,
-                                                  audio_url, audio_file_id, media_source_kind, published, sort_order)
+                                                  audio_url, audio_file_id, media_source_kind, labels, published, sort_order)
                 VALUES (:id, :title, :instructions, :dueOn, :homeworkType, :level, :format,
-                        :audioUrl, :audioFileId, :mediaSourceKind, true, 0)
+                        :audioUrl, :audioFileId, :mediaSourceKind, :labels, true, 0)
                 """, params);
         return id;
     }
 
     public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn,
                                 HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format,
-                                String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind) {
+                                String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind,
+                                List<String> labels) {
         return updateAssignment(id, title, instructions, dueOn, homeworkType, level, format,
-                audioUrl, audioFileId, mediaSourceKind, null);
+                audioUrl, audioFileId, mediaSourceKind, labels, null);
     }
 
     public int updateAssignment(UUID id, String title, String instructions, LocalDate dueOn,
                                 HomeworkType homeworkType, HomeworkLevel level, HomeworkFormat format,
                                 String audioUrl, UUID audioFileId, MediaSourceKind mediaSourceKind,
-                                java.time.Instant contentRevisedAt) {
+                                List<String> labels, java.time.Instant contentRevisedAt) {
         java.util.Map<String, Object> params = new java.util.HashMap<>();
         params.put("id", id);
         params.put("title", title);
@@ -183,6 +191,7 @@ public class ContentRepository {
         params.put("audioUrl", audioUrl);
         params.put("audioFileId", audioFileId);
         params.put("mediaSourceKind", mediaSourceKind == null ? null : mediaSourceKind.name());
+        params.put("labels", textArrayValue(labels));
         params.put("contentRevisedAt", contentRevisedAt == null ? null : java.sql.Timestamp.from(contentRevisedAt));
         if (contentRevisedAt == null) {
             return jdbc.update("""
@@ -190,7 +199,7 @@ public class ContentRepository {
                     SET title = :title, instructions = :instructions, due_on = :dueOn,
                         homework_type = :homeworkType, level = :level, format = :format,
                         audio_url = :audioUrl, audio_file_id = :audioFileId,
-                        media_source_kind = :mediaSourceKind
+                        media_source_kind = :mediaSourceKind, labels = :labels
                     WHERE id = :id
                     """, params);
         }
@@ -199,7 +208,7 @@ public class ContentRepository {
                 SET title = :title, instructions = :instructions, due_on = :dueOn,
                     homework_type = :homeworkType, level = :level, format = :format,
                     audio_url = :audioUrl, audio_file_id = :audioFileId,
-                    media_source_kind = :mediaSourceKind,
+                    media_source_kind = :mediaSourceKind, labels = :labels,
                     content_revised_at = :contentRevisedAt
                 WHERE id = :id
                 """, params);
@@ -214,5 +223,37 @@ public class ContentRepository {
 
     public int deleteAssignment(UUID id) {
         return jdbc.update("DELETE FROM homework_assignments WHERE id = :id", Map.of("id", id));
+    }
+
+    /** Teacher-only metadata; does not bump {@code content_revised_at}. */
+    public int updateLabels(UUID id, List<String> labels) {
+        java.util.Map<String, Object> params = new java.util.HashMap<>();
+        params.put("id", id);
+        params.put("labels", textArrayValue(labels));
+        return jdbc.update(
+                "UPDATE homework_assignments SET labels = :labels WHERE id = :id",
+                params);
+    }
+
+    private static List<String> readLabels(java.sql.ResultSet rs) throws SQLException {
+        java.sql.Array arr = rs.getArray("labels");
+        if (arr == null) {
+            return List.of();
+        }
+        Object raw = arr.getArray();
+        if (raw instanceof String[] strings) {
+            return List.of(strings);
+        }
+        return Arrays.stream((Object[]) raw).map(Object::toString).toList();
+    }
+
+    private static Object textArrayValue(List<String> labels) {
+        String[] values = labels == null || labels.isEmpty() ? new String[0] : labels.toArray(String[]::new);
+        return new AbstractSqlTypeValue() {
+            @Override
+            protected Object createTypeValue(Connection con, int sqlType, String typeName) throws SQLException {
+                return con.createArrayOf("text", values);
+            }
+        };
     }
 }

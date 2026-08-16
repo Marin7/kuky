@@ -159,4 +159,66 @@ class HomeworkUpdatePreservesSubmissionsIntegrationTest {
                 "SELECT id FROM homework_question_options WHERE id = ?", UUID.class, optionCorrectId);
         assertNotNull(stillThere);
     }
+
+    @Test
+    void updateHomework_labelOnly_doesNotBumpContentRevisedAt() throws Exception {
+        jdbcTemplate.update(
+                "UPDATE homework_assignments SET content_revised_at = TIMESTAMP WITH TIME ZONE '2026-01-01 00:00:00+00' WHERE id = ?",
+                assignmentId);
+
+        String body = """
+                {
+                  "title": "Gramática",
+                  "instructions": "Elige",
+                  "dueOn": null,
+                  "homeworkType": "READ",
+                  "level": null,
+                  "questions": [{
+                    "id": "%s",
+                    "kind": "SINGLE_CHOICE",
+                    "prompt": "¿Capital?",
+                    "options": [
+                      {"id": "%s", "label": "Madrid", "correct": true},
+                      {"id": "%s", "label": "Lisboa", "correct": false}
+                    ]
+                  }],
+                  "audioUrl": null,
+                  "audioFileId": null,
+                  "mediaSourceKind": null,
+                  "labels": ["Tema"]
+                }
+                """.formatted(questionId, optionCorrectId, optionWrongId);
+
+        mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId)
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                adminEmail, null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        String revised = jdbcTemplate.queryForObject(
+                "SELECT content_revised_at AT TIME ZONE 'UTC' FROM homework_assignments WHERE id = ?",
+                String.class, assignmentId);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                revised != null && revised.startsWith("2026-01-01"),
+                "label-only save must not bump content_revised_at, was " + revised);
+
+        String[] labels = jdbcTemplate.queryForObject(
+                "SELECT labels FROM homework_assignments WHERE id = ?",
+                (rs, n) -> {
+                    java.sql.Array arr = rs.getArray("labels");
+                    if (arr == null) return new String[0];
+                    Object raw = arr.getArray();
+                    if (raw instanceof String[] strings) return strings;
+                    return java.util.Arrays.stream((Object[]) raw)
+                            .map(Object::toString)
+                            .toArray(String[]::new);
+                },
+                assignmentId);
+        org.junit.jupiter.api.Assertions.assertArrayEquals(new String[]{"Tema"}, labels);
+
+        Number score = jdbcTemplate.queryForObject(
+                "SELECT score_percent FROM homework_submissions WHERE id = ?", Number.class, submissionId);
+        assertEquals(100, score.intValue());
+    }
 }

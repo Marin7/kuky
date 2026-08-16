@@ -253,7 +253,7 @@ public class UnitService {
         return new HomeworkAdminItem(
                 h.id(), h.title(), h.instructions(), h.dueOn(), h.homeworkType(), h.level(), h.format(),
                 h.composition(), h.questions(), h.audioUrl(), h.audioFileId(), h.audioFileName(),
-                h.mediaSourceKind(), assignees, assignees.stream().anyMatch(AssigneeDto::unseen));
+                h.mediaSourceKind(), h.labels(), assignees, assignees.stream().anyMatch(AssigneeDto::unseen));
     }
 
     private void validateStudents(List<UUID> userIds) {

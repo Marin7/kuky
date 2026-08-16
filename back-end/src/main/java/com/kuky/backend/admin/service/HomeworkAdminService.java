@@ -452,7 +452,7 @@ public class HomeworkAdminService {
         Audio audio = resolveAudio(type, req.mediaSourceKind(), req.audioUrl(), req.audioFileId());
 
         UUID id = contentRepository.insertAssignment(req.title(), req.instructions(), req.dueOn(), type, level, format,
-                audio.url(), audio.fileId(), audio.kind());
+                audio.url(), audio.fileId(), audio.kind(), normalizeLabels(req.labels()));
         questionRepository.replaceQuestions(id, questions);
         if (!assignees.isEmpty()) {
             targetRepository.replaceTargets(id, assignees);
@@ -474,7 +474,7 @@ public class HomeworkAdminService {
         Instant contentRevisedAt = contentChanged(existing, req, type, level, audio, questions)
                 ? Instant.now() : null;
         contentRepository.updateAssignment(id, req.title(), req.instructions(), req.dueOn(), type, level, format,
-                audio.url(), audio.fileId(), audio.kind(), contentRevisedAt);
+                audio.url(), audio.fileId(), audio.kind(), normalizeLabels(req.labels()), contentRevisedAt);
         // Upsert by question/option id so existing submissions keep their answers linked.
         questionRepository.replaceQuestions(id, questions);
         return toItem(requireAssignment(id));
@@ -532,6 +532,14 @@ public class HomeworkAdminService {
         requireAssignment(id);
         validateStudents(assigneeIds);
         targetRepository.replaceTargets(id, assigneeIds);
+        return toItem(requireAssignment(id));
+    }
+
+    public HomeworkAdminItem updateLabels(UUID id, List<String> raw) {
+        requireAssignment(id);
+        if (contentRepository.updateLabels(id, normalizeLabels(raw)) == 0) {
+            throw new AssignmentNotFoundException("Tarea no encontrada.");
+        }
         return toItem(requireAssignment(id));
     }
 
@@ -1218,6 +1226,43 @@ public class HomeworkAdminService {
                 .orElseThrow(() -> new AssignmentNotFoundException("Tarea no encontrada."));
     }
 
+    static final int MAX_LABEL_LENGTH = 40;
+
+    /** Trim each value; drop blanks; case-insensitive dedupe (first spelling wins). */
+    static List<String> normalizeLabels(List<String> raw) {
+        if (raw == null || raw.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashMap<String, String> unique = new LinkedHashMap<>();
+        for (String item : raw) {
+            String normalized = normalizeLabel(item);
+            if (normalized == null) {
+                continue;
+            }
+            unique.putIfAbsent(labelGroupKey(normalized), normalized);
+        }
+        return List.copyOf(unique.values());
+    }
+
+    /** Trim; blank → null; reject more than 40 characters after trim. */
+    static String normalizeLabel(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        if (trimmed.length() > MAX_LABEL_LENGTH) {
+            throw new IllegalArgumentException("La etiqueta no puede superar los 40 caracteres.");
+        }
+        return trimmed;
+    }
+
+    static String labelGroupKey(String label) {
+        return label.toLowerCase(Locale.forLanguageTag("es"));
+    }
+
     private void validateStudents(List<UUID> userIds) {
         for (UUID userId : userIds) {
             User u = userRepository.findById(userId)
@@ -1254,6 +1299,7 @@ public class HomeworkAdminService {
                 type, level, format, composition.name(), questions,
                 a.getAudioUrl(), a.getAudioFileId(), audioFileName,
                 a.getMediaSourceKind() == null ? null : a.getMediaSourceKind().name(),
+                a.getLabels(),
                 assignees, assignees.stream().anyMatch(AssigneeDto::unseen));
     }
 

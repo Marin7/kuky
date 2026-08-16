@@ -18,5 +18,6 @@ public record CreateHomeworkRequest(
         @Size(max = 2000) String audioUrl,   // listening homework external source (nullable)
         UUID audioFileId,                    // listening homework uploaded file (nullable)
         String mediaSourceKind,              // AUDIO_URL | UPLOADED_FILE | VIDEO_PAGE | YOUTUBE
+        List<String> labels,                 // optional teacher labels; each normalized to ≤40 after trim
         List<UUID> assigneeIds
 ) {}
