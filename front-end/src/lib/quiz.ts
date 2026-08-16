@@ -52,7 +52,9 @@ export interface QuizQuestionResult {
   selectedOptionIds: string[];
   answerText?: string | null;
   teacherPercent?: number | null;
-  formatted?: import("@/components/learning/richtext/types").FormattedText | null;
+  formatted?:
+    | import("@/components/learning/richtext/types").FormattedText
+    | null;
 }
 
 export interface QuizTakeResponse {
@@ -89,7 +91,8 @@ async function apiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
 export const listMyQuizzes = () =>
   apiCall<{ quizzes: QuizListItem[] }>("/quizzes").then((r) => r.quizzes);
 
-export const getQuiz = (id: string) => apiCall<QuizTakeResponse>(`/quizzes/${id}`);
+export const getQuiz = (id: string) =>
+  apiCall<QuizTakeResponse>(`/quizzes/${id}`);
 
 export const submitQuizAnswers = (
   id: string,

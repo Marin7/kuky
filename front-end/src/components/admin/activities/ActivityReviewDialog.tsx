@@ -52,16 +52,11 @@ function isEditableReview(s: HomeworkSubmissionAdmin): boolean {
   return (
     s.status === "SUBMITTED" ||
     (s.status === "REVIEWED" && s.reviewModel === "ANNOTATED") ||
-    (s.status === "GRADED" &&
-      scoredManual &&
-      s.reviewModel === "ANNOTATED")
+    (s.status === "GRADED" && scoredManual && s.reviewModel === "ANNOTATED")
   );
 }
 
-function isFreeTextAnswer(a: {
-  kind?: string | null;
-  text?: string;
-}): boolean {
+function isFreeTextAnswer(a: { kind?: string | null; text?: string }): boolean {
   return !a.kind || a.kind === "FREE_TEXT";
 }
 
@@ -186,7 +181,8 @@ export function ActivityReviewDialog({
     if (hasMultiAnswers) {
       payload.answers = freeTextAnswers.map((a) => {
         const key = a.questionId ?? `null:${a.promptSnapshot}`;
-        const formatted = answerFormats[key] ?? toFormatted(a.text, a.formatted);
+        const formatted =
+          answerFormats[key] ?? toFormatted(a.text, a.formatted);
         const item: NonNullable<SaveHomeworkReviewPayload["answers"]>[number] =
           {
             questionId: a.questionId,

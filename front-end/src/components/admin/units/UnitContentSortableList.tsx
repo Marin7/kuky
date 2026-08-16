@@ -22,9 +22,7 @@ import { Button } from "@/components/ui/button";
 
 function contentKey(item: UnitContentItem): string {
   const id =
-    item.type === "PRESENTATION"
-      ? item.presentation!.id
-      : item.homework!.id;
+    item.type === "PRESENTATION" ? item.presentation!.id : item.homework!.id;
   return `${item.type}:${id}`;
 }
 

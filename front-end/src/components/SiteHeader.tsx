@@ -68,7 +68,11 @@ export function SiteHeader() {
       });
     };
     load();
-    return onBadgesInvalidate(load);
+    const unsubscribe = onBadgesInvalidate(load);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, [authed, pathname]);
 
   const nav = [

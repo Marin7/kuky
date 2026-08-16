@@ -2,7 +2,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronDown } from "lucide-react";
 import type { ActivitySummary } from "@/lib/learning";
-import { extractYoutubeVideoId, youtubeEmbedUrl, activityImageUrl } from "@/lib/youtube";
+import {
+  extractYoutubeVideoId,
+  youtubeEmbedUrl,
+  activityImageUrl,
+} from "@/lib/youtube";
 import {
   Collapsible,
   CollapsibleContent,

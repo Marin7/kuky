@@ -20,9 +20,8 @@ export interface PresentationPdfViewerProps {
  */
 export function PresentationPdfViewer(props: PresentationPdfViewerProps) {
   const { t } = useTranslation();
-  const [Client, setClient] = useState<ComponentType<
-    PresentationPdfViewerProps
-  > | null>(null);
+  const [Client, setClient] =
+    useState<ComponentType<PresentationPdfViewerProps> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,9 +40,7 @@ export function PresentationPdfViewer(props: PresentationPdfViewerProps) {
       </p>
     );
     if (props.embedded) return <div className="w-full">{loading}</div>;
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">{loading}</div>
-    );
+    return <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">{loading}</div>;
   }
 
   return <Client {...props} />;

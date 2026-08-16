@@ -10,7 +10,11 @@ import {
   type ActivityItem,
   type ExerciseResponse,
 } from "@/lib/learning";
-import { extractYoutubeVideoId, youtubeEmbedUrl, activityImageUrl } from "@/lib/youtube";
+import {
+  extractYoutubeVideoId,
+  youtubeEmbedUrl,
+  activityImageUrl,
+} from "@/lib/youtube";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { ExerciseForm } from "./ExerciseForm";
 import { MixedHomeworkForm } from "./MixedHomeworkForm";

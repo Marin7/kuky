@@ -52,8 +52,7 @@ export function NumberedInlineSingleChoiceResult({
       {questionIndexLabel(index, questionCount)}
       {parts.map((part, i) => {
         if (part.type === "text") {
-          const text =
-            i === 0 ? stripLeadingEnumeration(part.text) : part.text;
+          const text = i === 0 ? stripLeadingEnumeration(part.text) : part.text;
           return <PassageText key={i} text={text} />;
         }
         const item = byNumber.get(part.number);

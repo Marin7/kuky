@@ -70,7 +70,8 @@ export function QuizReviewDialog({
       const nextFormats: Record<string, FormattedText> = {};
       const results = d.results ?? [];
       for (const r of results) {
-        if (r.teacherPercent != null) next[r.questionId] = String(r.teacherPercent);
+        if (r.teacherPercent != null)
+          next[r.questionId] = String(r.teacherPercent);
         nextFormats[r.questionId] = toFormatted(r.answerText, r.formatted);
       }
       setPercents(next);
@@ -79,7 +80,8 @@ export function QuizReviewDialog({
     });
   }, [quizId, attemptId]);
 
-  const freeText = detail?.questions.filter((q) => q.kind === "FREE_TEXT") ?? [];
+  const freeText =
+    detail?.questions.filter((q) => q.kind === "FREE_TEXT") ?? [];
   const locked = detail?.status === "GRADED";
 
   const save = async (finalize: boolean) => {
@@ -112,7 +114,9 @@ export function QuizReviewDialog({
         setFormats(nextFormats);
       }
     } catch (e) {
-      setError((e as { message?: string }).message ?? t("quiz.admin.saveError"));
+      setError(
+        (e as { message?: string }).message ?? t("quiz.admin.saveError"),
+      );
     } finally {
       setSaving(false);
     }
@@ -131,7 +135,9 @@ export function QuizReviewDialog({
         ) : (
           <div className="space-y-4">
             {detail.questions.map((q, i) => {
-              const result = (detail.results ?? []).find((r) => r.questionId === q.id);
+              const result = (detail.results ?? []).find(
+                (r) => r.questionId === q.id,
+              );
               const isFreeText = q.kind === "FREE_TEXT";
               return (
                 <div key={q.id} className="space-y-2 rounded-md border p-3">
@@ -169,7 +175,8 @@ export function QuizReviewDialog({
                       {locked ? (
                         result?.teacherPercent != null && (
                           <p className="text-xs font-medium">
-                            {t("quiz.admin.teacherPercent")}: {result.teacherPercent}%
+                            {t("quiz.admin.teacherPercent")}:{" "}
+                            {result.teacherPercent}%
                           </p>
                         )
                       ) : (

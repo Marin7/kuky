@@ -2,10 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getMe, type UserResponse } from "@/lib/auth";
-import {
-  getLearning,
-  type ActivitySummary,
-} from "@/lib/learning";
+import { getLearning, type ActivitySummary } from "@/lib/learning";
 import { ActivityViewerPrompts } from "@/components/learning/ActivityViewerPrompts";
 import { StudentOnlyNotice } from "@/components/StudentOnlyNotice";
 import { seo } from "@/lib/seo";

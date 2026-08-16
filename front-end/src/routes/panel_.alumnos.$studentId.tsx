@@ -133,7 +133,9 @@ function StudentProfilePage() {
 
   const reloadProfile = () => {
     getStudentProfile(studentId).then(setProfile);
-    getStudentQuizzes(studentId).then(setQuizzes).catch(() => setQuizzes([]));
+    getStudentQuizzes(studentId)
+      .then(setQuizzes)
+      .catch(() => setQuizzes([]));
     notifyBadgesChanged();
   };
 
@@ -492,7 +494,10 @@ function StudentProfilePage() {
               ) : (
                 <div className="space-y-3">
                   {quizzes.map((q) => (
-                    <div key={q.attemptId} className="rounded-lg border p-3 text-sm">
+                    <div
+                      key={q.attemptId}
+                      className="rounded-lg border p-3 text-sm"
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="inline-flex items-center gap-1.5 font-medium">

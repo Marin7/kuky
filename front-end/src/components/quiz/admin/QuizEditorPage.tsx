@@ -17,7 +17,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StudentMultiSelect } from "@/components/admin/homework/StudentMultiSelect";
 import { QuestionEditorCard } from "@/components/admin/homework/QuestionEditorCard";
-import { AudioSourceEditor, type AudioSourceValue } from "@/components/admin/homework/AudioSourceEditor";
+import {
+  AudioSourceEditor,
+  type AudioSourceValue,
+} from "@/components/admin/homework/AudioSourceEditor";
 import { defaultQuestion } from "@/components/admin/homework/questionDefaults";
 import {
   Select,
@@ -52,7 +55,12 @@ function skillBlocks(questions: QuizAdminQuestion[]): SkillBlock[] {
   return blocks;
 }
 
-function spliceRange<T>(list: T[], start: number, count: number, insert: T[]): T[] {
+function spliceRange<T>(
+  list: T[],
+  start: number,
+  count: number,
+  insert: T[],
+): T[] {
   return [...list.slice(0, start), ...insert, ...list.slice(start + count)];
 }
 
@@ -64,7 +72,9 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
   const [loading, setLoading] = useState(isEdit);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [questions, setQuestions] = useState<QuizAdminQuestion[]>([emptyQuestion()]);
+  const [questions, setQuestions] = useState<QuizAdminQuestion[]>([
+    emptyQuestion(),
+  ]);
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +96,10 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
         setDescription(q.description ?? "");
         setQuestions(
           q.questions.length
-            ? q.questions.map((item) => ({ ...item, skill: item.skill ?? "READING" }))
+            ? q.questions.map((item) => ({
+                ...item,
+                skill: item.skill ?? "READING",
+              }))
             : [emptyQuestion()],
         );
         setAssigneeIds(q.assignees.map((a) => a.id));
@@ -101,7 +114,10 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
     try {
       let id = quizId;
       if (!id) {
-        const created = await createQuiz(title.trim(), description.trim() || null);
+        const created = await createQuiz(
+          title.trim(),
+          description.trim() || null,
+        );
         id = created.id;
       }
       await updateQuiz(id, title.trim(), description.trim() || null, questions);
@@ -139,7 +155,11 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
       const block = skillBlocks(prev)[blockIndex];
       if (!block) return prev;
       const insertAt = block.start + block.count;
-      return [...prev.slice(0, insertAt), emptyQuestion(block.skill), ...prev.slice(insertAt)];
+      return [
+        ...prev.slice(0, insertAt),
+        emptyQuestion(block.skill),
+        ...prev.slice(insertAt),
+      ];
     });
   };
 
@@ -170,7 +190,10 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
       const b = direction < 0 ? blocks[blockIndex] : blocks[other];
       const first = prev.slice(a.start, a.start + a.count);
       const second = prev.slice(b.start, b.start + b.count);
-      return spliceRange(prev, a.start, a.count + b.count, [...second, ...first]);
+      return spliceRange(prev, a.start, a.count + b.count, [
+        ...second,
+        ...first,
+      ]);
     });
   };
 
@@ -186,7 +209,12 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-6 py-12">
-      <Button variant="ghost" onClick={() => navigate({ to: "/panel", search: { tab: "quizzes" } as never })}>
+      <Button
+        variant="ghost"
+        onClick={() =>
+          navigate({ to: "/panel", search: { tab: "quizzes" } as never })
+        }
+      >
         {t("admin.homework.editor.backToPanel")}
       </Button>
       <h1 className="font-display text-2xl font-semibold">
@@ -198,7 +226,11 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
       </div>
       <div className="space-y-2">
         <Label>{t("quiz.admin.description")}</Label>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={3}
+        />
       </div>
       <div className="space-y-4">
         {blocks.map((block, blockIndex) => (
@@ -210,14 +242,20 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
                 </Label>
                 <Select
                   value={block.skill}
-                  onValueChange={(skill: QuizSkill) => setBlockSkill(blockIndex, skill)}
+                  onValueChange={(skill: QuizSkill) =>
+                    setBlockSkill(blockIndex, skill)
+                  }
                 >
                   <SelectTrigger className="h-11 text-base font-semibold">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {SKILLS.map((s) => (
-                      <SelectItem key={s} value={s} className="text-base font-medium">
+                      <SelectItem
+                        key={s}
+                        value={s}
+                        className="text-base font-medium"
+                      >
                         {t(`quiz.skills.${s}`)}
                       </SelectItem>
                     ))}
@@ -312,7 +350,9 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
                     onRemove={() =>
                       setQuestions((prev) => {
                         const next = prev.filter((_, idx) => idx !== i);
-                        return next.length ? next : [emptyQuestion(block.skill)];
+                        return next.length
+                          ? next
+                          : [emptyQuestion(block.skill)];
                       })
                     }
                     onMoveUp={() => {
@@ -335,7 +375,11 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
                 </div>
               );
             })}
-            <Button type="button" variant="outline" onClick={() => addQuestionToBlock(blockIndex)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => addQuestionToBlock(blockIndex)}
+            >
               {t("admin.homework.questions.addQuestion")}
             </Button>
           </section>

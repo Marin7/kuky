@@ -1,19 +1,19 @@
 package com.kuky.backend.scheduling;
 
+import com.kuky.backend.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 
@@ -22,9 +22,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@ActiveProfiles("local")
-class BookingControllerIntegrationTest {
+class BookingControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -49,8 +47,14 @@ class BookingControllerIntegrationTest {
     private static LocalDate validFutureSlotDate() {
         ZoneId zone = ZoneId.of("Europe/Bucharest");
         LocalDate today = LocalDate.now(zone);
-        // Next week's Monday — at least ~25h out on typical weekdays, within the 2-week horizon
-        return today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)).plusDays(7);
+        // Next Monday 10:00, or the Monday after if that is still inside the 24h lead window
+        // (Sunday evening otherwise picks "tomorrow morning").
+        LocalDate monday = today.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
+        Instant slot = monday.atTime(10, 0).atZone(zone).toInstant();
+        if (!slot.isAfter(Instant.now().plus(25, ChronoUnit.HOURS))) {
+            monday = monday.plusWeeks(1);
+        }
+        return monday;
     }
 
     private Instant validFutureSlot() {

@@ -1,23 +1,20 @@
 package com.kuky.backend.units;
 
+import com.kuky.backend.AbstractIntegrationTest;
 import com.kuky.backend.units.dto.UnitContentRef;
 import com.kuky.backend.units.exception.InvalidContentOrderException;
 import com.kuky.backend.units.service.UnitService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
-@ActiveProfiles("local")
-class UnitContentOrderServiceTest {
+class UnitContentOrderServiceTest extends AbstractIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

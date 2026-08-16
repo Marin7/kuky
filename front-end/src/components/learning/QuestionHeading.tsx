@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 import { Label } from "@/components/ui/label";
-import {
-  displayPromptText,
-  questionIndexLabel,
-} from "@/lib/questionPrompt";
+import { displayPromptText, questionIndexLabel } from "@/lib/questionPrompt";
 
 interface HeadingProps {
   index: number;
@@ -12,8 +9,7 @@ interface HeadingProps {
   htmlFor?: string;
 }
 
-const PROMPT_CLASS =
-  "whitespace-pre-wrap text-base font-medium leading-9";
+const PROMPT_CLASS = "whitespace-pre-wrap text-base font-medium leading-9";
 
 /** `1. Question text` — same size and line as the prompt. */
 export function QuestionHeading({
