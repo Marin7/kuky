@@ -21,7 +21,7 @@ npm run lint && npm run format
 ```bash
 ./gradlew bootRun --args='--spring.profiles.active=local'   # → http://localhost:8081
 ./gradlew build
-./gradlew test
+./gradlew test  # integration tests use Testcontainers Postgres 18 (skipped without Docker; CI has Docker)
 ```
 
 ## Local dev setup
