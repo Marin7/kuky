@@ -7,7 +7,7 @@ import {
 } from "@/lib/admin";
 import { QuizReviewDialog } from "./QuizReviewDialog";
 import { NotificationDot } from "@/components/NotificationDot";
-import { notifyBadgesChanged } from "@/lib/notifications";
+import { notifyBadgesChanged, onBadgesInvalidate } from "@/lib/notifications";
 
 export function QuizReviewQueue() {
   const { t } = useTranslation();
@@ -25,6 +25,11 @@ export function QuizReviewQueue() {
 
   useEffect(() => {
     load();
+    return onBadgesInvalidate(() => {
+      getQuizReviewQueue()
+        .then(setQueue)
+        .catch(() => setQueue([]));
+    });
   }, []);
 
   return (

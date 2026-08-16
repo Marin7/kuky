@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { onBadgesInvalidate } from "@/lib/notifications";
 
 export function QuizTab() {
   const { t } = useTranslation();
@@ -36,6 +37,14 @@ export function QuizTab() {
   };
 
   useEffect(load, []);
+
+  useEffect(() => {
+    return onBadgesInvalidate(() => {
+      listAdminQuizzes()
+        .then(setItems)
+        .catch(() => {});
+    });
+  }, []);
 
   return (
     <div className="space-y-4">

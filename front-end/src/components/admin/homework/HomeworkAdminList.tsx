@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { flushSync } from "react-dom";
+import { onBadgesInvalidate } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 
 const EXPAND_MS = 500;
@@ -216,6 +217,14 @@ export function HomeworkAdminList() {
   };
 
   useEffect(load, []);
+
+  useEffect(() => {
+    return onBadgesInvalidate(() => {
+      getHomework()
+        .then(setItems)
+        .catch(() => {});
+    });
+  }, []);
 
   const labelOptions = useMemo(() => uniqueLabels(items), [items]);
 

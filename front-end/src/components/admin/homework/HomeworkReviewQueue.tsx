@@ -7,7 +7,7 @@ import {
 } from "@/lib/admin";
 import { HomeworkReviewDialog } from "./HomeworkReviewDialog";
 import { NotificationDot } from "@/components/NotificationDot";
-import { notifyBadgesChanged } from "@/lib/notifications";
+import { notifyBadgesChanged, onBadgesInvalidate } from "@/lib/notifications";
 
 /** Cross-student queue of Writing submissions awaiting teacher feedback (FR-010). */
 export function HomeworkReviewQueue() {
@@ -25,6 +25,11 @@ export function HomeworkReviewQueue() {
 
   useEffect(() => {
     load();
+    return onBadgesInvalidate(() => {
+      getHomeworkReviewQueue()
+        .then(setQueue)
+        .catch(() => setQueue([]));
+    });
   }, []);
 
   const handleReviewed = () => {
