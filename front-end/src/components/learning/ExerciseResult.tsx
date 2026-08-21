@@ -197,40 +197,44 @@ export function QuestionResultBlock({
         />
       ) : unitResults.length > 0 && !isBlankPassage && !numberedSingleChoice ? (
         <div className="mt-2 space-y-1.5">
-          {unitResults.map((u) => (
-            <div
-              key={u.index}
-              className={`rounded px-2 py-1.5 text-xs ${
-                u.correct
-                  ? "bg-green-100 text-green-700"
-                  : "bg-red-100 text-red-700"
-              }`}
-            >
-              <span className="font-medium">
-                {numberedSingleChoice
-                  ? t("learning.numberedSingleChoice.itemLabel", {
-                      number: u.index + 1,
-                    })
-                  : `${u.index + 1}.`}{" "}
-                {u.correct
-                  ? t("learning.exerciseResult.unitCorrect")
-                  : t("learning.exerciseResult.unitIncorrect")}
-              </span>
-              {(showAllAnswers || !u.correct) && (
-                <span className="mt-0.5 block text-[11px] opacity-90">
-                  {t("learning.exerciseResult.yourAnswer")}{" "}
-                  {displayOrDash(u.studentDisplay, noAnswer)}
-                  {u.expectedDisplay && u.expectedDisplay.length > 0 && (
-                    <>
-                      {" · "}
-                      {t("learning.exerciseResult.unitExpectedSingle")}{" "}
-                      {u.expectedDisplay.join(" / ")}
-                    </>
-                  )}
+          {unitResults.map((u) => {
+            const unitLabel = u.label?.trim();
+            return (
+              <div
+                key={u.index}
+                className={`rounded px-2 py-1.5 text-xs ${
+                  u.correct
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }`}
+              >
+                <span className="font-medium">
+                  {numberedSingleChoice
+                    ? t("learning.numberedSingleChoice.itemLabel", {
+                        number: u.index + 1,
+                      })
+                    : `${u.index + 1}.`}{" "}
+                  {unitLabel ? `${unitLabel} — ` : ""}
+                  {u.correct
+                    ? t("learning.exerciseResult.unitCorrect")
+                    : t("learning.exerciseResult.unitIncorrect")}
                 </span>
-              )}
-            </div>
-          ))}
+                {(showAllAnswers || !u.correct || Boolean(unitLabel)) && (
+                  <span className="mt-0.5 block text-[11px] opacity-90">
+                    {t("learning.exerciseResult.yourAnswer")}{" "}
+                    {displayOrDash(u.studentDisplay, noAnswer)}
+                    {u.expectedDisplay && u.expectedDisplay.length > 0 && (
+                      <>
+                        {" · "}
+                        {t("learning.exerciseResult.unitExpectedSingle")}{" "}
+                        {u.expectedDisplay.join(" / ")}
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         !isBlankPassage &&

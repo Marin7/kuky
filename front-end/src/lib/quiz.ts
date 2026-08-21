@@ -5,6 +5,7 @@ import type {
   QuestionKind,
   StudentQuestion,
   StudentStructure,
+  UnitResult,
 } from "@/lib/learning";
 
 const API_BASE = `${API_ORIGIN}/api/v1`;
@@ -42,13 +43,7 @@ export interface QuizQuestionResult {
   correct: boolean;
   correctOptionIds: string[];
   acceptedAnswers: string[];
-  unitResults: {
-    index: number;
-    score: number;
-    correct: boolean;
-    studentDisplay?: string | null;
-    expectedDisplay?: string[] | null;
-  }[];
+  unitResults: UnitResult[];
   selectedOptionIds: string[];
   answerText?: string | null;
   teacherPercent?: number | null;

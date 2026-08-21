@@ -963,6 +963,8 @@
         itemPlaceholder: "Element",
         matchWith: "Potrivește cu…",
         noPair: "Fără pereche",
+        pairsTitle: "Perechi",
+        unnamedItem: "(fără nume)",
         addItem: "Adaugă element",
       },
       manualQuestions: {

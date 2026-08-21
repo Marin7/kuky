@@ -952,6 +952,8 @@
         itemPlaceholder: "Item",
         matchWith: "Match with…",
         noPair: "No match",
+        pairsTitle: "Pairs",
+        unnamedItem: "(unnamed)",
         addItem: "Add item",
       },
       manualQuestions: {

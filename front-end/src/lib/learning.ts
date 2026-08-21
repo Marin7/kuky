@@ -236,6 +236,7 @@ export interface UnitResult {
   correct: boolean;
   studentDisplay?: string | null;
   expectedDisplay?: string[] | null; // revealed when !correct
+  label?: string | null; // MATCHING: the left item this pair started from
 }
 
 export interface QuestionResult {

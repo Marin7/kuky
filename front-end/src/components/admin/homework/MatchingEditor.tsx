@@ -93,26 +93,6 @@ export function MatchingEditor({ structure, onChange }: Props) {
                 onChange={(e) => setLeftLabel(item.id, e.target.value)}
                 placeholder={t("admin.homework.questions.itemPlaceholder")}
               />
-              <Select
-                value={pairForLeft(item.id) || NO_PAIR}
-                onValueChange={(v) => setPair(item.id, v === NO_PAIR ? "" : v)}
-              >
-                <SelectTrigger className="h-9 w-40 shrink-0 text-xs">
-                  <SelectValue
-                    placeholder={t("admin.homework.questions.matchWith")}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_PAIR}>
-                    {t("admin.homework.questions.noPair")}
-                  </SelectItem>
-                  {right.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.label || t("admin.homework.questions.itemPlaceholder")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Button
                 type="button"
                 variant="ghost"
@@ -170,6 +150,47 @@ export function MatchingEditor({ structure, onChange }: Props) {
             {t("admin.homework.questions.addItem")}
           </Button>
         </div>
+      </div>
+      <div className="space-y-2 border-t pt-3">
+        <Label className="text-xs">
+          {t("admin.homework.questions.pairsTitle")}
+        </Label>
+        {left.map((item) => (
+          <div key={item.id} className="flex items-center gap-2">
+            <span
+              className={`min-w-0 flex-1 truncate text-sm ${
+                item.label.trim() ? "" : "italic text-muted-foreground"
+              }`}
+            >
+              {item.label.trim() || t("admin.homework.questions.unnamedItem")}
+            </span>
+            <Select
+              value={pairForLeft(item.id) || NO_PAIR}
+              onValueChange={(v) => setPair(item.id, v === NO_PAIR ? "" : v)}
+            >
+              <SelectTrigger className="h-9 w-56 shrink-0 text-xs">
+                <SelectValue
+                  placeholder={t("admin.homework.questions.matchWith")}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_PAIR}>
+                  {t("admin.homework.questions.noPair")}
+                </SelectItem>
+                {right.map((r) => (
+                  <SelectItem
+                    key={r.id}
+                    value={r.id}
+                    disabled={!r.label.trim()}
+                  >
+                    {r.label.trim() ||
+                      t("admin.homework.questions.unnamedItem")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ))}
       </div>
     </div>
   );

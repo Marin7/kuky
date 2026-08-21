@@ -150,6 +150,7 @@ public class QuestionScoring {
     private GradedAnswer gradeMatching(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {
         JsonNode structure = readStructure(q);
         JsonNode pairs = structure.path("pairs");
+        JsonNode left = structure.path("left");
         JsonNode right = structure.path("right");
         int n = pairs.isArray() ? pairs.size() : 0;
 
@@ -174,7 +175,8 @@ public class QuestionScoring {
             sum += correct ? 1.0 : 0.0;
             String expectedLabel = labelForId(right, expectedRightId);
             String studentDisplay = correct ? expectedLabel : labelForId(right, studentRightId);
-            units.add(unit(i, correct, studentDisplay, correct ? List.of() : List.of(expectedLabel)));
+            units.add(unit(i, correct, studentDisplay,
+                    correct ? List.of() : List.of(expectedLabel), labelForId(left, leftId)));
         }
         double score = n == 0 ? 0.0 : sum / n;
         return new GradedAnswer(score, List.of(), storedAnswerJson(given), units);
@@ -192,7 +194,13 @@ public class QuestionScoring {
 
     private static ExerciseResultResponse.UnitResultDto unit(
             int index, boolean correct, String studentDisplay, List<String> expectedDisplay) {
-        return new ExerciseResultResponse.UnitResultDto(index, correct ? 1.0 : 0.0, correct, studentDisplay, expectedDisplay);
+        return unit(index, correct, studentDisplay, expectedDisplay, null);
+    }
+
+    private static ExerciseResultResponse.UnitResultDto unit(
+            int index, boolean correct, String studentDisplay, List<String> expectedDisplay, String label) {
+        return new ExerciseResultResponse.UnitResultDto(
+                index, correct ? 1.0 : 0.0, correct, studentDisplay, expectedDisplay, label);
     }
 
     private Set<UUID> selectedFor(HomeworkQuestion q, SubmitExerciseRequest.AnswerDto given) {

@@ -516,6 +516,11 @@ class ExerciseGradingServiceTest {
                 """)));
         assertThat(half.questions().getFirst().score()).isEqualTo(0.5);
         assertThat(half.fullyCorrectCount()).isEqualTo(0);
+        assertThat(half.questions().getFirst().unitResults())
+                .extracting(u -> u.label() + "|" + u.studentDisplay() + "|" + u.correct())
+                .containsExactly("dog|perro|true", "cat|casa|false");
+        assertThat(half.questions().getFirst().unitResults().get(1).expectedDisplay())
+                .containsExactly("gato");
     }
 
     // --- numbered SINGLE_CHOICE ----------------------------------------------

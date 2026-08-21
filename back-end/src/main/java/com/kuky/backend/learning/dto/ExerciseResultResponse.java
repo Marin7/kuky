@@ -28,6 +28,12 @@ public record ExerciseResultResponse(
             double score,
             boolean correct,
             String studentDisplay,
-            List<String> expectedDisplay
-    ) {}
+            List<String> expectedDisplay,
+            String label // identifies the unit when its position isn't self-explanatory (MATCHING left item)
+    ) {
+        public UnitResultDto(int index, double score, boolean correct,
+                            String studentDisplay, List<String> expectedDisplay) {
+            this(index, score, correct, studentDisplay, expectedDisplay, null);
+        }
+    }
 }

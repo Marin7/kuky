@@ -965,6 +965,8 @@ export const esDict = {
         itemPlaceholder: "Elemento",
         matchWith: "Emparejar con…",
         noPair: "Sin pareja",
+        pairsTitle: "Parejas",
+        unnamedItem: "(sin nombre)",
         addItem: "Añadir elemento",
       },
       manualQuestions: {
