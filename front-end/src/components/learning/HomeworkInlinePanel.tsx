@@ -239,10 +239,10 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
           contentRevisedAt={item.contentRevisedAt}
           onHomeworkUpdated={onChanged}
           labels={{
-            yourAnswer: t("learning.submitDialog.yourAnswer"),
-            placeholder: t("learning.submitDialog.placeholder"),
-            submit: t("learning.submitDialog.submit"),
-            submitting: t("learning.submitDialog.submitting"),
+            yourAnswer: t("learning.writePage.yourAnswer"),
+            placeholder: t("learning.writePage.placeholder"),
+            submit: t("learning.writePage.submit"),
+            submitting: t("learning.writePage.submitting"),
             autosaveHint: t("learning.writePage.autosaveHint"),
           }}
           onSubmitted={onChanged}

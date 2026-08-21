@@ -32,7 +32,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -139,18 +138,14 @@ class HomeworkSubmissionServiceTest {
     }
 
     @Test
-    void submit_markDoneWithoutText_setsSubmitted() {
+    void submit_writeWithoutText_isRejected() {
         HomeworkAssignment a = assignment(null);
         when(contentRepository.lockAssignment(assignmentId)).thenReturn(Optional.of(a));
         when(submissionRepository.findByUserAndAssignment(userId, assignmentId)).thenReturn(Optional.empty());
-        when(submissionRepository.upsert(eq(userId), eq(assignmentId),
-                eq(HomeworkStatus.SUBMITTED.name()), isNull(), any()))
-                .thenReturn(submission(HomeworkStatus.SUBMITTED, null));
 
-        HomeworkItemResponse result = service.submit(EMAIL, assignmentId, null, null, REVISED);
-
-        assertThat(result.status()).isEqualTo("SUBMITTED");
-        assertThat(result.response()).isNull();
+        assertThatThrownBy(() -> service.submit(EMAIL, assignmentId, null, null, REVISED))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("vacío");
     }
 
     @Test

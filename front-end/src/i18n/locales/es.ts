@@ -394,6 +394,7 @@ export const esDict = {
       placeholder: "Escribe tu texto aquí…",
       submit: "Entregar tarea",
       submitting: "Entregando…",
+      answerRequired: "Escribe tu texto antes de entregar.",
       autosaveHint:
         "Tu progreso se guarda automáticamente en este dispositivo.",
       notFound: "No se ha encontrado esta tarea de redacción.",

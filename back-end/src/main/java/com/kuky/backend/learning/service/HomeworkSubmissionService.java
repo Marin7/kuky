@@ -121,9 +121,10 @@ public class HomeworkSubmissionService {
             if (answers != null && !answers.isEmpty()) {
                 throw new IllegalArgumentException("Esta tarea de escritura no admite respuestas por pregunta.");
             }
-            if (response != null) {
-                FormattedTextSegment.validate(response);
+            if (response == null || FormattedTextSegment.plainText(response).isBlank()) {
+                throw new IllegalArgumentException("El contenido no puede estar vacío.");
             }
+            FormattedTextSegment.validate(response);
             saved = submissionRepository.upsert(
                     user.getId(),
                     assignmentId,

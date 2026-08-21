@@ -394,6 +394,7 @@
       placeholder: "Scrie textul tău aici…",
       submit: "Predă tema",
       submitting: "Se predă…",
+      answerRequired: "Scrie textul înainte de a preda.",
       autosaveHint: "Progresul tău este salvat automat pe acest dispozitiv.",
       notFound: "Această temă de redactare nu a putut fi găsită.",
       loadError: "Nu s-a putut încărca tema.",

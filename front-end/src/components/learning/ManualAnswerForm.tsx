@@ -55,10 +55,9 @@ function loadDraft(homeworkId: string): FormattedText | null {
 }
 
 /**
- * Formatted (color/highlight/strike) homework answer with local autosave. The
- * draft is persisted to localStorage on every edit so a reload or crash never
- * loses progress; it is cleared once the homework is submitted. Shared by the
- * writing and reading pages.
+ * Formatted (color/highlight/strike) Writing homework answer with local
+ * autosave. The draft is persisted to localStorage on every edit so a reload
+ * or crash never loses progress; it is cleared once the homework is submitted.
  */
 export function ManualAnswerForm({
   homeworkId,
@@ -107,20 +106,19 @@ export function ManualAnswerForm({
   };
 
   const handleSubmit = async () => {
+    const hasContent = plainText(answer).trim().length > 0;
+    if (!hasContent) {
+      setError(t("learning.writePage.answerRequired"));
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
-      const hasContent = plainText(answer).trim().length > 0;
       const submit = submitAnswer ?? submitHomework;
       if (submitAnswer) {
-        await submitAnswer(homeworkId, hasContent ? answer : undefined);
+        await submitAnswer(homeworkId, answer);
       } else {
-        await submitHomework(
-          homeworkId,
-          hasContent ? answer : undefined,
-          undefined,
-          contentRevisedAt,
-        );
+        await submitHomework(homeworkId, answer, undefined, contentRevisedAt);
       }
       try {
         localStorage.removeItem(draftKey(homeworkId));

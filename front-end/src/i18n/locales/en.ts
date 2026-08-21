@@ -385,6 +385,7 @@
       placeholder: "Write your text here…",
       submit: "Submit homework",
       submitting: "Submitting…",
+      answerRequired: "Write your text before submitting.",
       autosaveHint: "Your progress is saved automatically on this device.",
       notFound: "This writing assignment could not be found.",
       loadError: "Could not load the assignment.",
