@@ -16,6 +16,7 @@ import { ManualAnswerForm } from "./ManualAnswerForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { AudioPlayer } from "./AudioPlayer";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { TextWithLinks } from "./TextWithLinks";
 import { HomeworkDueOn } from "./HomeworkDueOn";
 
 interface Props {
@@ -126,7 +127,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
         <InlineHomeworkDue item={item} exercise={exercise} />
         {exercise.instructions && !pinIntro && (
           <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
-            {exercise.instructions}
+            <TextWithLinks text={exercise.instructions} />
           </p>
         )}
         {(audioUrl || audioFileId) && (
@@ -172,7 +173,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
         <InlineHomeworkDue item={item} exercise={exercise} />
         {exercise.instructions && !pinIntro && (
           <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
-            {exercise.instructions}
+            <TextWithLinks text={exercise.instructions} />
           </p>
         )}
         {(audioUrl || audioFileId) && (
@@ -202,11 +203,11 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
       {item.instructions &&
         (showPassageBox ? (
           <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
-            {item.instructions}
+            <TextWithLinks text={item.instructions} />
           </div>
         ) : (
           <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
-            {item.instructions}
+            <TextWithLinks text={item.instructions} />
           </p>
         ))}
       {(audioUrl || audioFileId) && (
@@ -253,7 +254,7 @@ export function HomeworkInlinePanel({ item, onChanged }: Props) {
             {t("learning.writePage.teacherFeedback")}
           </p>
           <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
-            {item.feedbackText}
+            <TextWithLinks text={item.feedbackText} />
           </div>
         </div>
       ) : item.feedback && item.feedback.length > 0 ? (

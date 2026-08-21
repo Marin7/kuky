@@ -8,6 +8,7 @@ import {
 } from "@/lib/questionPrompt";
 import { shuffle, cn } from "@/lib/utils";
 import { PassageText } from "./PassageText";
+import { TextWithLinks } from "./TextWithLinks";
 
 interface Props {
   index: number;
@@ -119,7 +120,7 @@ export function DragDropQuestion({
     <div className="space-y-4">
       {intro?.trim() ? (
         <p className="whitespace-pre-wrap text-base font-medium leading-relaxed text-foreground">
-          {intro.trim()}
+          <TextWithLinks text={intro.trim()} />
         </p>
       ) : null}
 

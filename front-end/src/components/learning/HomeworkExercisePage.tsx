@@ -11,6 +11,7 @@ import { notifyBadgesChanged } from "@/lib/notifications";
 import { ExerciseForm } from "./ExerciseForm";
 import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { HomeworkDueOn } from "./HomeworkDueOn";
+import { TextWithLinks } from "./TextWithLinks";
 
 interface Props {
   homeworkId: string;
@@ -69,7 +70,7 @@ export function HomeworkExercisePage({ homeworkId }: Props) {
               exercise.status,
             ) && (
               <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
-                {exercise.instructions}
+                <TextWithLinks text={exercise.instructions} />
               </p>
             )}
 

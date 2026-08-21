@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { ActivityPanel } from "./ActivityPanel";
+import { TextWithLinks } from "./TextWithLinks";
 
 interface Props {
   activity: ActivitySummary;
@@ -97,7 +98,7 @@ export function ActivityPageSlot({ activity, onChanged }: Props) {
                 {t("learning.activities.instructions")}
               </p>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                {activity.instructionsText}
+                <TextWithLinks text={activity.instructionsText} />
               </p>
             </div>
           )}

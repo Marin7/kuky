@@ -28,6 +28,7 @@ import { TableFillQuestion } from "./TableFillQuestion";
 import { MatchingQuestion } from "./MatchingQuestion";
 import { RichTextEditor } from "./richtext/RichTextEditor";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { TextWithLinks } from "./TextWithLinks";
 import { TextareaWithEmoji } from "./richtext/ClassroomEmojiPicker";
 import { plainText, type FormattedText } from "./richtext/types";
 
@@ -423,7 +424,7 @@ export function MixedHomeworkForm({
               {t("learning.writePage.teacherFeedback")}
             </p>
             <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
-              {assignment.feedbackText}
+              <TextWithLinks text={assignment.feedbackText} />
             </div>
           </div>
         ) : assignment.teacherFeedback?.trim() ? (
@@ -432,7 +433,7 @@ export function MixedHomeworkForm({
               {t("learning.writePage.teacherFeedback")}
             </p>
             <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap">
-              {assignment.teacherFeedback}
+              <TextWithLinks text={assignment.teacherFeedback} />
             </div>
           </div>
         ) : null}

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import { displayPromptText, questionIndexLabel } from "@/lib/questionPrompt";
+import { TextWithLinks } from "./TextWithLinks";
 
 interface HeadingProps {
   index: number;
@@ -19,16 +20,22 @@ export function QuestionHeading({
   htmlFor,
 }: HeadingProps) {
   const text = displayPromptText(prompt);
-  const label = `${questionIndexLabel(index, questionCount)}${text}`;
+  const prefix = questionIndexLabel(index, questionCount);
 
   if (htmlFor) {
     return (
       <Label htmlFor={htmlFor} className={`block ${PROMPT_CLASS}`}>
-        {label}
+        {prefix}
+        <TextWithLinks text={text} />
       </Label>
     );
   }
-  return <p className={PROMPT_CLASS}>{label}</p>;
+  return (
+    <p className={PROMPT_CLASS}>
+      {prefix}
+      <TextWithLinks text={text} />
+    </p>
+  );
 }
 
 export function QuestionCard({ children }: { children: ReactNode }) {

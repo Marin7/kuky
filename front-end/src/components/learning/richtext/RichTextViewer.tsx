@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { TextWithLinks } from "@/components/learning/TextWithLinks";
 import type { FormattedText, HighlightColor, TextColor } from "./types";
 
 const TEXT_COLOR_CLASS: Record<TextColor, string> = {
@@ -25,6 +26,7 @@ interface Props {
  * markup-like content typed or pasted into a segment is always displayed as
  * inert plain text — this is what guarantees no stored content can execute as
  * markup, independent of anything the editor does on the way in.
+ * http(s) and www. URLs are detected at render time and shown as links.
  */
 export function RichTextViewer({ segments, className }: Props) {
   return (
@@ -45,7 +47,7 @@ export function RichTextViewer({ segments, className }: Props) {
             .filter(Boolean)
             .join(" ")}
         >
-          {segment.text}
+          <TextWithLinks text={segment.text} />
         </span>
       ))}
     </div>

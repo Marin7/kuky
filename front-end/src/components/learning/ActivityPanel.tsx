@@ -19,6 +19,7 @@ import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { ExerciseForm } from "./ExerciseForm";
 import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { TextWithLinks } from "./TextWithLinks";
 
 interface Props {
   activityId: string;
@@ -80,7 +81,7 @@ function ActivityMedia({ item }: { item: ActivityItem }) {
             {t("learning.activities.instructions")}
           </p>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-            {item.instructionsText}
+            <TextWithLinks text={item.instructionsText} />
           </p>
         </div>
       )}
@@ -199,7 +200,7 @@ export function ActivityPanel({ activityId, compact, onChanged }: Props) {
                 {t("learning.writePage.teacherFeedback")}
               </p>
               <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
-                {item.feedbackText}
+                <TextWithLinks text={item.feedbackText} />
               </div>
             </div>
           ) : item.feedback && item.feedback.length > 0 ? (

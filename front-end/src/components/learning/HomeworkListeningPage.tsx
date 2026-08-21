@@ -18,6 +18,7 @@ import { MixedHomeworkForm } from "./MixedHomeworkForm";
 import { ManualMultiAnswerForm } from "./ManualMultiAnswerForm";
 import { AudioPlayer } from "./AudioPlayer";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { TextWithLinks } from "./TextWithLinks";
 import { HomeworkDueOn } from "./HomeworkDueOn";
 
 interface Props {
@@ -107,7 +108,7 @@ export function HomeworkListeningPage({ homeworkId, format }: Props) {
 
           {instructions && (
             <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
-              {instructions}
+              <TextWithLinks text={instructions} />
             </p>
           )}
 
@@ -179,7 +180,7 @@ export function HomeworkListeningPage({ homeworkId, format }: Props) {
                     {t("learning.writePage.teacherFeedback")}
                   </p>
                   <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
-                    {item.feedbackText}
+                    <TextWithLinks text={item.feedbackText} />
                   </div>
                 </div>
               ) : item.feedback && item.feedback.length > 0 ? (

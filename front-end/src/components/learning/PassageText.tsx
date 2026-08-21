@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { TextWithLinks } from "./TextWithLinks";
 
 /**
  * Renders authored passage text with explicit line breaks.
@@ -12,7 +13,7 @@ export function PassageText({ text }: { text: string }) {
       {lines.map((line, i) => (
         <Fragment key={i}>
           {i > 0 && <br />}
-          {line}
+          <TextWithLinks text={line} />
         </Fragment>
       ))}
     </>

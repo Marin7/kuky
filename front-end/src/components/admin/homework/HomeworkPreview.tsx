@@ -14,6 +14,7 @@ import {
 } from "@/lib/learning";
 import { matchClassicInlineSingleChoice } from "@/lib/inlineChoice";
 import { AudioPlayer } from "@/components/learning/AudioPlayer";
+import { TextWithLinks } from "@/components/learning/TextWithLinks";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DragDropQuestion } from "@/components/learning/DragDropQuestion";
@@ -132,11 +133,11 @@ export function HomeworkPreview({ item }: Props) {
         !pinIntro &&
         (showPassageBox ? (
           <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
-            {item.instructions}
+            <TextWithLinks text={item.instructions} />
           </div>
         ) : (
           <p className="whitespace-pre-wrap text-base leading-relaxed text-foreground">
-            {item.instructions}
+            <TextWithLinks text={item.instructions} />
           </p>
         ))}
       {(item.audioUrl || item.audioFileId) && (

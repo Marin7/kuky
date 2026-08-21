@@ -19,7 +19,7 @@ import { getMe } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { LinkAwareTextarea } from "@/components/learning/LinkAwareTextarea";
 import {
   Select,
   SelectContent,
@@ -277,10 +277,10 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
             <Label htmlFor="hw-instructions">
               {t("admin.homework.editor.instructionsLabel")}
             </Label>
-            <Textarea
+            <LinkAwareTextarea
               id="hw-instructions"
               value={instructions}
-              onChange={(e) => setInstructions(e.target.value)}
+              onChange={setInstructions}
               rows={4}
               maxLength={5000}
             />

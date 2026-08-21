@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { NotificationDot } from "@/components/NotificationDot";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
+import { TextWithLinks } from "@/components/learning/TextWithLinks";
 import { HomeworkDueOn } from "@/components/learning/HomeworkDueOn";
 
 function formatDateTime(iso: string): string {
@@ -142,7 +143,9 @@ export function HomeworkItemCard({
           </div>
         </div>
 
-        <p className="text-muted-foreground">{item.instructions}</p>
+        <p className="whitespace-pre-wrap text-muted-foreground">
+          <TextWithLinks text={item.instructions} />
+        </p>
 
         <HomeworkDueOn
           dueOn={item.dueOn}

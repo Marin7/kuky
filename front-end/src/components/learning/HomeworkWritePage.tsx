@@ -9,6 +9,7 @@ import {
 import { markHomeworkSeen, notifyBadgesChanged } from "@/lib/notifications";
 import { ManualAnswerForm } from "./ManualAnswerForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
+import { TextWithLinks } from "./TextWithLinks";
 import { HomeworkDueOn } from "./HomeworkDueOn";
 
 interface Props {
@@ -71,7 +72,7 @@ export function HomeworkWritePage({ homeworkId }: Props) {
             className="mt-2 block text-sm text-muted-foreground"
           />
           <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
-            {item.instructions}
+            <TextWithLinks text={item.instructions} />
           </p>
 
           <ManualAnswerForm
@@ -122,7 +123,7 @@ export function HomeworkWritePage({ homeworkId }: Props) {
                 {t("learning.writePage.teacherFeedback")}
               </p>
               <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
-                {item.feedbackText}
+                <TextWithLinks text={item.feedbackText} />
               </div>
             </div>
           ) : item.feedback && item.feedback.length > 0 ? (

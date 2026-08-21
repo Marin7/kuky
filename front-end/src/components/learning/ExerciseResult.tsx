@@ -13,6 +13,7 @@ import { InlineSingleChoiceResult } from "./InlineSingleChoiceResult";
 import { NumberedInlineSingleChoiceResult } from "./NumberedInlineSingleChoiceResult";
 import { TableFillResult } from "./TableFillResult";
 import { QuestionCard, QuestionHeading } from "./QuestionHeading";
+import { TextWithLinks } from "./TextWithLinks";
 
 interface Props {
   questions: StudentQuestion[];
@@ -294,7 +295,7 @@ export function ExerciseResult({
     <div className="space-y-5">
       {passageText && (
         <div className="whitespace-pre-wrap rounded-lg border bg-card p-4 text-base leading-relaxed text-foreground">
-          {passageText}
+          <TextWithLinks text={passageText} />
         </div>
       )}
 
@@ -318,7 +319,7 @@ export function ExerciseResult({
             {t("learning.exerciseResult.teacherFeedback")}
           </p>
           <p className="mt-1 whitespace-pre-wrap text-base leading-relaxed text-foreground">
-            {feedbackText}
+            <TextWithLinks text={feedbackText} />
           </p>
         </div>
       )}

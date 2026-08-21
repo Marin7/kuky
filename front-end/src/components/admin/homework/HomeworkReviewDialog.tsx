@@ -23,6 +23,7 @@ import {
 } from "@/components/learning/richtext/ClassroomEmojiPicker";
 import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
+import { TextWithLinks } from "@/components/learning/TextWithLinks";
 import { ExerciseResult } from "@/components/learning/ExerciseResult";
 import {
   plainText,
@@ -471,7 +472,7 @@ export function HomeworkReviewDialog({
                 </div>
               ) : submission.feedbackText ? (
                 <div className="rounded-md border bg-muted/20 p-3 text-sm whitespace-pre-wrap break-all [overflow-wrap:anywhere]">
-                  {submission.feedbackText}
+                  <TextWithLinks text={submission.feedbackText} />
                 </div>
               ) : null}
             </div>

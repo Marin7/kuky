@@ -16,6 +16,7 @@ import {
   type ApiError,
 } from "@/lib/learning";
 import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
+import { TextWithLinks } from "@/components/learning/TextWithLinks";
 import {
   plainText,
   type FormattedText,
@@ -80,7 +81,9 @@ export function HomeworkSubmitDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{item?.title}</DialogTitle>
-          <DialogDescription>{item?.instructions}</DialogDescription>
+          <DialogDescription className="whitespace-pre-wrap">
+            {item ? <TextWithLinks text={item.instructions} /> : null}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2">
