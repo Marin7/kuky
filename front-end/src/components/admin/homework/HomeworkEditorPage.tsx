@@ -30,6 +30,7 @@ import {
 import { StudentMultiSelect } from "./StudentMultiSelect";
 import { QuestionListEditor } from "./QuestionListEditor";
 import { AudioSourceEditor, type AudioSourceValue } from "./AudioSourceEditor";
+import { WriteVideoEditor } from "./WriteVideoEditor";
 import { HomeworkLabelField } from "./HomeworkLabelField";
 import {
   uniqueLabels,
@@ -169,9 +170,10 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
     try {
       const lvl = level || null;
       const qs = type === "WRITE" ? [] : questions;
-      // Audio is only meaningful for listening homework; clear it otherwise.
+      // Audio is meaningful for listening homework (required) and, as an optional
+      // YouTube-only prompt video, for writing homework; cleared for every other type.
       const audioPayload =
-        type === "AUDIO"
+        type === "AUDIO" || type === "WRITE"
           ? {
               mediaSourceKind: audio.mediaSourceKind,
               audioUrl: audio.audioUrl?.trim() ? audio.audioUrl.trim() : null,
@@ -345,9 +347,22 @@ export function HomeworkEditorPage({ homeworkId }: Props) {
           </div>
 
           {homeworkType === "WRITE" && (
-            <p className="text-xs text-muted-foreground">
-              {t("admin.homework.editor.writeHint")}
-            </p>
+            <>
+              <p className="text-xs text-muted-foreground">
+                {t("admin.homework.editor.writeHint")}
+              </p>
+              <WriteVideoEditor
+                value={audio.audioUrl}
+                onChange={(url) =>
+                  setAudio({
+                    mediaSourceKind: url.length ? "YOUTUBE" : null,
+                    audioUrl: url.length ? url : null,
+                    audioFileId: null,
+                    audioFileName: null,
+                  })
+                }
+              />
+            </>
           )}
 
           {homeworkType === "AUDIO" && (

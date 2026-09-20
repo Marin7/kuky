@@ -89,5 +89,5 @@ npm run lint && npm run format
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/047-homework-grade-dots/plan.md`
+`specs/048-writing-youtube-prompt/plan.md`
 <!-- SPECKIT END -->

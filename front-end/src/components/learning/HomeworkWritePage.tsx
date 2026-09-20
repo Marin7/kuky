@@ -7,6 +7,7 @@ import {
   type HomeworkItem,
 } from "@/lib/learning";
 import { markHomeworkSeen, notifyBadgesChanged } from "@/lib/notifications";
+import { AudioPlayer } from "./AudioPlayer";
 import { ManualAnswerForm } from "./ManualAnswerForm";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 import { TextWithLinks } from "./TextWithLinks";
@@ -74,6 +75,16 @@ export function HomeworkWritePage({ homeworkId }: Props) {
           <p className="mt-2 whitespace-pre-wrap text-base leading-relaxed text-muted-foreground">
             <TextWithLinks text={item.instructions} />
           </p>
+
+          {item.audioUrl && (
+            <div className="mt-4">
+              <AudioPlayer
+                mediaSourceKind={item.mediaSourceKind}
+                audioUrl={item.audioUrl}
+                audioFileId={item.audioFileId}
+              />
+            </div>
+          )}
 
           <ManualAnswerForm
             homeworkId={homeworkId}

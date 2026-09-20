@@ -849,6 +849,11 @@
           "Temele de scriere sunt întotdeauna revizuite manual — nu pot fi un exercițiu autocorectabil.",
         writeHint:
           "Temele de scriere folosesc un singur răspuns lung pe care tu îl revizuiești. Nu e nevoie de listă de întrebări.",
+        writeVideoLabel: "Video YouTube (opțional)",
+        writeVideoHint:
+          "Dacă adaugi un video, elevul îl va vedea chiar deasupra răspunsului, ca punct de plecare pentru scriere.",
+        writeVideoPlaceholder: "https://www.youtube.com/watch?v=…",
+        writeVideoInvalid: "Introdu un URL YouTube valid.",
         questionsRequired:
           "Adaugă cel puțin o întrebare (poți combina răspuns liber și tipuri autocorectabile).",
         audioLabel: "Audio (ascultare)",

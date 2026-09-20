@@ -17,6 +17,8 @@ import com.kuky.backend.learning.exception.NotSubmittedException;
 import com.kuky.backend.learning.exception.SubmissionNotFoundException;
 import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAssignment;
+import com.kuky.backend.learning.model.HomeworkType;
+import com.kuky.backend.learning.model.MediaSourceKind;
 import com.kuky.backend.learning.model.HomeworkSubmission;
 import com.kuky.backend.learning.repository.AudioFileRepository;
 import com.kuky.backend.learning.repository.ContentRepository;
@@ -40,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 class HomeworkAdminServiceTest {
@@ -107,6 +110,60 @@ class HomeworkAdminServiceTest {
         assertThat(item.assignees()).hasSize(1);
         assertThat(item.assignees().get(0).status()).isEqualTo("SUBMITTED");
         assertThat(item.assignees().get(0).responseText()).isEqualTo("Mi respuesta");
+    }
+
+    @Test
+    void createWriteWithValidYoutubeVideo_savesSuccessfully() {
+        UUID id = UUID.randomUUID();
+        String videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(id);
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+        when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
+
+        HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
+                "Redacción", "Escribe sobre el vídeo", teacherToday().plusDays(5), "WRITE", null, "MANUAL",
+                List.of(), videoUrl, null, "YOUTUBE", null, List.of()));
+
+        assertThat(item).isNotNull();
+        verify(contentRepository).insertAssignment(
+                eq("Redacción"), eq("Escribe sobre el vídeo"), eq(HomeworkType.WRITE), isNull(),
+                any(), eq(videoUrl), isNull(), eq(MediaSourceKind.YOUTUBE), any());
+    }
+
+    @Test
+    void createWriteWithNoVideo_savesSuccessfullyWithoutMedia() {
+        UUID id = UUID.randomUUID();
+        when(contentRepository.insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(id);
+        when(contentRepository.findAssignmentById(id)).thenReturn(Optional.of(assignment(id)));
+        when(targetRepository.findAssigneesWithSubmissions(id)).thenReturn(List.of());
+
+        HomeworkAdminItem item = service.create(new CreateHomeworkRequest(
+                "Redacción", "Escribe libremente", teacherToday().plusDays(5), "WRITE", null, "MANUAL",
+                List.of(), null, null, null, null, List.of()));
+
+        assertThat(item).isNotNull();
+        verify(contentRepository).insertAssignment(
+                any(), any(), eq(HomeworkType.WRITE), any(), any(), isNull(), isNull(), isNull(), any());
+    }
+
+    @Test
+    void createWriteWithInvalidYoutubeUrl_throws() {
+        assertThatThrownBy(() -> service.create(new CreateHomeworkRequest(
+                "Redacción", "Escribe sobre el vídeo", teacherToday().plusDays(5), "WRITE", null, "MANUAL",
+                List.of(), "https://example.com/not-youtube", null, "YOUTUBE", null, List.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void createWriteWithNonYoutubeKind_throws() {
+        assertThatThrownBy(() -> service.create(new CreateHomeworkRequest(
+                "Redacción", "Escribe sobre el vídeo", teacherToday().plusDays(5), "WRITE", null, "MANUAL",
+                List.of(), "https://example.com/audio.mp3", null, "AUDIO_URL", null, List.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(contentRepository, never()).insertAssignment(any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test

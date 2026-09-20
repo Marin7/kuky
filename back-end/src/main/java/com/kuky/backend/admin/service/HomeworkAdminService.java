@@ -1303,10 +1303,14 @@ public class HomeworkAdminService {
     private record Audio(String url, UUID fileId, MediaSourceKind kind) {}
 
     /**
-     * Resolves listening media. Non-AUDIO types clear all fields. AUDIO requires a
-     * complete {@code mediaSourceKind} + matching payload (see ListeningMedia).
+     * Resolves homework media. WRITE accepts an optional YouTube-only prompt video (see
+     * {@link #resolveWriteVideo}). AUDIO requires a complete {@code mediaSourceKind} + matching
+     * payload (see ListeningMedia). Every other type clears all media fields.
      */
     private Audio resolveAudio(HomeworkType type, String rawKind, String rawUrl, UUID fileId) {
+        if (type == HomeworkType.WRITE) {
+            return resolveWriteVideo(rawKind, rawUrl);
+        }
         if (type != HomeworkType.AUDIO) {
             return new Audio(null, null, null);
         }
@@ -1338,6 +1342,25 @@ public class HomeworkAdminService {
                 yield new Audio(url, null, kind);
             }
         };
+    }
+
+    /**
+     * Resolves the optional writing-homework prompt video. Only {@code YOUTUBE} is allowed;
+     * a blank/absent kind means no video — unlike AUDIO, media is never required for WRITE.
+     */
+    private Audio resolveWriteVideo(String rawKind, String rawUrl) {
+        if (rawKind == null || rawKind.isBlank()) {
+            return new Audio(null, null, null);
+        }
+        MediaSourceKind kind = parseMediaSourceKind(rawKind);
+        if (kind != MediaSourceKind.YOUTUBE) {
+            throw new IllegalArgumentException("Las tareas de escritura solo admiten un vídeo de YouTube.");
+        }
+        String url = rawUrl == null || rawUrl.isBlank() ? null : rawUrl.strip();
+        if (ListeningMedia.extractYouTubeId(url) == null) {
+            throw new IllegalArgumentException("Indica un enlace de YouTube válido.");
+        }
+        return new Audio(url, null, kind);
     }
 
     private static MediaSourceKind parseMediaSourceKind(String raw) {

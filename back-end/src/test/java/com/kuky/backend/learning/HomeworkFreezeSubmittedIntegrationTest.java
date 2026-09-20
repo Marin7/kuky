@@ -267,6 +267,80 @@ class HomeworkFreezeSubmittedIntegrationTest extends AbstractIntegrationTest {
                 Boolean.class, optionCorrectId)));
     }
 
+    @Test
+    void writeHomeworkVideoIsFrozenAtSubmit_liveEditDoesNotChangeSubmittedVideo() throws Exception {
+        UUID writeAssignmentId = UUID.randomUUID();
+        String originalVideo = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        String updatedVideo = "https://www.youtube.com/watch?v=oHg5SJYRHA0";
+        Instant createdAt = Instant.parse("2026-09-20T10:00:00Z");
+        jdbcTemplate.update("""
+                INSERT INTO homework_assignments
+                    (id, title, instructions, published, format, homework_type, sort_order, content_revised_at, audio_url, media_source_kind)
+                VALUES (?, 'Redacción', 'Escribe sobre el vídeo', true, 'MANUAL', 'WRITE', 0, ?, ?, 'YOUTUBE')
+                """, writeAssignmentId, Timestamp.from(createdAt), originalVideo);
+        jdbcTemplate.update(
+                "INSERT INTO homework_targets (assignment_id, user_id) VALUES (?, ?)",
+                writeAssignmentId, studentId);
+        jdbcTemplate.update(
+                "INSERT INTO homework_targets (assignment_id, user_id) VALUES (?, ?)",
+                writeAssignmentId, pendingStudentId);
+
+        try {
+            String token = createdAt.toString();
+
+            // Student submits while the original video is live; it must be captured in their frozen snapshot.
+            mockMvc.perform(put("/api/v1/learning/homework/" + writeAssignmentId)
+                            .with(authentication(student()))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"response":[{"text":"Mi redacción sobre el vídeo."}],"contentRevisedAt":"%s"}
+                                    """.formatted(token)))
+                    .andExpect(status().isOk());
+
+            String snapshot = jdbcTemplate.queryForObject(
+                    "SELECT assignment_snapshot::text FROM homework_submissions WHERE assignment_id = ? AND user_id = ?",
+                    String.class, writeAssignmentId, studentId);
+            assertNotNull(snapshot);
+            assertTrue(snapshot.contains(originalVideo));
+
+            // Teacher swaps the video after the submission exists.
+            mockMvc.perform(put("/api/v1/admin/homework/" + writeAssignmentId)
+                            .with(authentication(admin()))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {
+                                      "title": "Redacción",
+                                      "instructions": "Escribe sobre el vídeo",
+                                      "homeworkType": "WRITE",
+                                      "level": null,
+                                      "questions": [],
+                                      "audioUrl": "%s",
+                                      "audioFileId": null,
+                                      "mediaSourceKind": "YOUTUBE"
+                                    }
+                                    """.formatted(updatedVideo)))
+                    .andExpect(status().isOk());
+
+            // The already-submitted snapshot must be untouched...
+            String snapshotAfter = jdbcTemplate.queryForObject(
+                    "SELECT assignment_snapshot::text FROM homework_submissions WHERE assignment_id = ? AND user_id = ?",
+                    String.class, writeAssignmentId, studentId);
+            assertEquals(snapshot, snapshotAfter);
+            assertTrue(snapshotAfter.contains(originalVideo));
+            assertFalse(snapshotAfter.contains(updatedVideo));
+
+            // ...while the live assignment (what a not-yet-submitted student would see) now has the new video.
+            String liveVideo = jdbcTemplate.queryForObject(
+                    "SELECT audio_url FROM homework_assignments WHERE id = ?",
+                    String.class, writeAssignmentId);
+            assertEquals(updatedVideo, liveVideo);
+        } finally {
+            jdbcTemplate.update("DELETE FROM homework_submissions WHERE assignment_id = ?", writeAssignmentId);
+            jdbcTemplate.update("DELETE FROM homework_targets WHERE assignment_id = ?", writeAssignmentId);
+            jdbcTemplate.update("DELETE FROM homework_assignments WHERE id = ?", writeAssignmentId);
+        }
+    }
+
     private String liveEditBody(String prompt, String correctLabel, UUID correctId) {
         UUID newWrong = UUID.randomUUID();
         return """

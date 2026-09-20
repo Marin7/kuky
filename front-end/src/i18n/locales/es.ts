@@ -851,6 +851,11 @@ export const esDict = {
           "Las tareas de escritura siempre se revisan manualmente; no pueden ser un ejercicio autocorregible.",
         writeHint:
           "Las tareas de escritura usan una sola respuesta larga que tú revisas. No hace falta añadir preguntas.",
+        writeVideoLabel: "Vídeo de YouTube (opcional)",
+        writeVideoHint:
+          "Si añades un vídeo, el alumno lo verá justo encima de su respuesta como punto de partida para escribir.",
+        writeVideoPlaceholder: "https://www.youtube.com/watch?v=…",
+        writeVideoInvalid: "Indica un enlace de YouTube válido.",
         questionsRequired:
           "Añade al menos una pregunta (puedes mezclar respuesta libre y autocorregibles).",
         audioLabel: "Audio (comprensión auditiva)",

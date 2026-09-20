@@ -837,6 +837,11 @@
           "Writing homework is always reviewed manually — it can't be a self-grading exercise.",
         writeHint:
           "Writing homework uses a single long answer that you review. No question list needed.",
+        writeVideoLabel: "YouTube video (optional)",
+        writeVideoHint:
+          "If you add a video, the student sees it right above their answer as a prompt to write about.",
+        writeVideoPlaceholder: "https://www.youtube.com/watch?v=…",
+        writeVideoInvalid: "Enter a valid YouTube URL.",
         questionsRequired:
           "Add at least one question (you can mix free-text and auto-graded kinds).",
         audioLabel: "Audio (listening)",
