@@ -159,6 +159,13 @@
     interestsSave: "Salvează interesele",
     interestsSaved: "Interesele au fost salvate.",
     interestsSaveError: "Nu s-au putut salva interesele.",
+    emailPrefsTitle: "Notificări pe email",
+    emailPrefsHint:
+      "Alege când vrei să îți scriem. Totul este dezactivat până când activezi tu.",
+    emailPrefsSaveError: "Modificarea nu a putut fi salvată.",
+    emailPrefsNewHomeworkAssigned: "Când Paula îmi atribuie o temă nouă",
+    emailPrefsNewHomeworkAssignedHint:
+      "Îți trimitem un singur email cu toate temele noi.",
     logout: "Deconectare",
     checkEmail: "Verifică-ți email-ul",
     activationSent:

@@ -16,6 +16,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -127,6 +129,18 @@ public class ContentRepository {
     public Optional<HomeworkAssignment> findPublishedAssignmentById(UUID id) {
         String sql = "SELECT * FROM homework_assignments WHERE id = :id AND published = true";
         return jdbc.query(sql, Map.of("id", id), ASSIGNMENT_MAPPER).stream().findFirst();
+    }
+
+    /** Assignment id → title, for the given ids. One query; missing ids are simply absent. */
+    public Map<UUID, String> findTitlesByIds(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        Map<UUID, String> out = new HashMap<>();
+        jdbc.query("SELECT id, title FROM homework_assignments WHERE id IN (:ids)",
+                Map.of("ids", ids),
+                rs -> { out.put(rs.getObject("id", UUID.class), rs.getString("title")); });
+        return out;
     }
 
     // --- admin (teacher backoffice) writes ----------------------------------

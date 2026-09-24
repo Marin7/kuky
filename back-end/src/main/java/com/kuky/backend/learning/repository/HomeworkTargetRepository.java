@@ -10,6 +10,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,34 +31,37 @@ public class HomeworkTargetRepository {
                                String status, String responseText, Instant submittedAt, Integer scorePercent,
                                UUID submissionId, boolean hasTeacherFeedback, boolean unseen, LocalDate dueOn) {}
 
-    public void replaceTargets(UUID assignmentId, List<UUID> userIds) {
-        replaceTargets(assignmentId, userIds, null);
+    public List<UUID> replaceTargets(UUID assignmentId, List<UUID> userIds) {
+        return replaceTargets(assignmentId, userIds, null);
     }
 
     /**
      * Replaces assignees without resetting {@code student_seen_at} on students who remain.
      * Newly added students get {@code student_seen_at = NULL} (unseen) and {@code dueOn}
      * from this call. Existing rows keep their stored {@code due_on}.
+     *
+     * <p>Returns the users for which a row was actually inserted — students who were already
+     * assigned are not reported, so re-saving an unchanged assignee list reports nothing.
      */
     @Transactional
-    public void replaceTargets(UUID assignmentId, List<UUID> userIds, LocalDate dueOnForNew) {
+    public List<UUID> replaceTargets(UUID assignmentId, List<UUID> userIds, LocalDate dueOnForNew) {
         List<UUID> ids = userIds == null ? List.of() : userIds;
         if (ids.isEmpty()) {
             jdbc.update("DELETE FROM homework_targets WHERE assignment_id = :aid",
                     Map.of("aid", assignmentId));
-            return;
+            return List.of();
         }
         jdbc.update("""
                 DELETE FROM homework_targets
                 WHERE assignment_id = :aid AND user_id NOT IN (:uids)
                 """, Map.of("aid", assignmentId, "uids", ids));
-        addTargets(assignmentId, ids, null, dueOnForNew);
+        return addTargets(assignmentId, ids, null, dueOnForNew);
     }
 
     /** Idempotent: adds targets for each user (skips existing). New rows are unseen, no due date. */
     @Transactional
-    public void addTargets(UUID assignmentId, List<UUID> userIds) {
-        addTargets(assignmentId, userIds, null, null);
+    public List<UUID> addTargets(UUID assignmentId, List<UUID> userIds) {
+        return addTargets(assignmentId, userIds, null, null);
     }
 
     /**
@@ -65,27 +69,40 @@ public class HomeworkTargetRepository {
      * (unit sync — student is notified via the unit assignment instead).
      */
     @Transactional
-    public void addTargets(UUID assignmentId, List<UUID> userIds, Instant studentSeenAt) {
-        addTargets(assignmentId, userIds, studentSeenAt, null);
+    public List<UUID> addTargets(UUID assignmentId, List<UUID> userIds, Instant studentSeenAt) {
+        return addTargets(assignmentId, userIds, studentSeenAt, null);
     }
 
+    /**
+     * Idempotent add, returning the users for which a row was <em>actually inserted</em> —
+     * that is, the students this homework is genuinely new to.
+     *
+     * <p>{@code ON CONFLICT DO NOTHING} already evaluates exactly that predicate; {@code RETURNING}
+     * just surfaces the answer instead of discarding it. Computing the delta inside the statement
+     * keeps it race-free — two concurrent grants of the same homework to the same student cannot
+     * both report an insert. Callers that do not care may ignore the result.
+     */
     @Transactional
-    public void addTargets(UUID assignmentId, List<UUID> userIds, Instant studentSeenAt, LocalDate dueOn) {
+    public List<UUID> addTargets(UUID assignmentId, List<UUID> userIds, Instant studentSeenAt, LocalDate dueOn) {
         if (userIds == null || userIds.isEmpty()) {
-            return;
+            return List.of();
         }
+        List<UUID> inserted = new ArrayList<>();
         for (UUID userId : userIds) {
-            jdbc.update("""
+            inserted.addAll(jdbc.query("""
                     INSERT INTO homework_targets (id, assignment_id, user_id, student_seen_at, due_on)
                     VALUES (:id, :aid, :uid, :seenAt, :dueOn)
                     ON CONFLICT (assignment_id, user_id) DO NOTHING
+                    RETURNING user_id
                     """, new MapSqlParameterSource()
                     .addValue("id", UUID.randomUUID())
                     .addValue("aid", assignmentId)
                     .addValue("uid", userId)
                     .addValue("seenAt", studentSeenAt == null ? null : Timestamp.from(studentSeenAt))
-                    .addValue("dueOn", dueOn == null ? null : Date.valueOf(dueOn)));
+                    .addValue("dueOn", dueOn == null ? null : Date.valueOf(dueOn)),
+                    (rs, n) -> rs.getObject("user_id", UUID.class)));
         }
+        return inserted;
     }
 
     /** Removes targets for the given users only (leaves other assignees intact). */

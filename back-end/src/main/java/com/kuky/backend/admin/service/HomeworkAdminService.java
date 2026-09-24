@@ -47,8 +47,10 @@ import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.learning.service.AssignmentSnapshot;
 import com.kuky.backend.learning.service.BlankPassageParser;
 import com.kuky.backend.learning.service.ExerciseGradingService;
+import com.kuky.backend.learning.service.HomeworkAssignmentEmailService;
 import com.kuky.backend.learning.service.HomeworkCompositionSupport;
 import com.kuky.backend.learning.service.HomeworkDueDates;
+import com.kuky.backend.learning.service.NewHomeworkGrants;
 import com.kuky.backend.learning.service.SingleChoiceMarkerParser;
 import com.kuky.backend.notification.service.NotificationService;
 import org.springframework.stereotype.Service;
@@ -88,6 +90,7 @@ public class HomeworkAdminService {
     private final AssignmentSnapshot assignmentSnapshot;
     private final NotificationService notificationService;
     private final SchedulingProperties schedulingProperties;
+    private final HomeworkAssignmentEmailService assignmentEmailService;
 
     public HomeworkAdminService(ContentRepository contentRepository,
                                 HomeworkTargetRepository targetRepository,
@@ -99,7 +102,8 @@ public class HomeworkAdminService {
                                 ExerciseGradingService exerciseGradingService,
                                 ObjectMapper objectMapper,
                                 NotificationService notificationService,
-                                SchedulingProperties schedulingProperties) {
+                                SchedulingProperties schedulingProperties,
+                                HomeworkAssignmentEmailService assignmentEmailService) {
         this.contentRepository = contentRepository;
         this.targetRepository = targetRepository;
         this.questionRepository = questionRepository;
@@ -112,6 +116,7 @@ public class HomeworkAdminService {
         this.assignmentSnapshot = new AssignmentSnapshot(objectMapper);
         this.notificationService = notificationService;
         this.schedulingProperties = schedulingProperties;
+        this.assignmentEmailService = assignmentEmailService;
     }
 
     // --- Teacher review of MANUAL submissions --------------------------------
@@ -552,7 +557,9 @@ public class HomeworkAdminService {
                 audio.url(), audio.fileId(), audio.kind(), normalizeLabels(req.labels()));
         questionRepository.replaceQuestions(id, questions);
         if (!assignees.isEmpty()) {
-            targetRepository.replaceTargets(id, assignees, req.dueOn());
+            NewHomeworkGrants grants = new NewHomeworkGrants();
+            grants.add(id, targetRepository.replaceTargets(id, assignees, req.dueOn()));
+            assignmentEmailService.notifyNewlyAssigned(grants);
         }
         return toItem(requireAssignment(id));
     }
@@ -633,6 +640,7 @@ public class HomeworkAdminService {
                                           List<SetAssigneesRequest.DueOn> dueOns) {
         requireAssignment(id);
         validateStudents(assigneeIds);
+        NewHomeworkGrants grants = new NewHomeworkGrants();
         if (dueOns != null) {
             Map<UUID, LocalDate> byUser = new HashMap<>();
             for (SetAssigneesRequest.DueOn row : dueOns) {
@@ -642,7 +650,7 @@ public class HomeworkAdminService {
                 HomeworkDueDates.requireNotPast(row.dueOn(), teacherToday());
                 byUser.put(row.userId(), row.dueOn());
             }
-            targetRepository.replaceTargets(id, assigneeIds, null);
+            grants.add(id, targetRepository.replaceTargets(id, assigneeIds, null));
             for (Map.Entry<UUID, LocalDate> e : byUser.entrySet()) {
                 if (!assigneeIds.contains(e.getKey())) {
                     continue;
@@ -651,8 +659,10 @@ public class HomeworkAdminService {
             }
         } else {
             HomeworkDueDates.requireNotPast(dueOn, teacherToday());
-            targetRepository.replaceTargets(id, assigneeIds, dueOn);
+            grants.add(id, targetRepository.replaceTargets(id, assigneeIds, dueOn));
         }
+        // Re-saving an unchanged assignee list inserts nothing, so this sends nothing.
+        assignmentEmailService.notifyNewlyAssigned(grants);
         return toItem(requireAssignment(id));
     }
 

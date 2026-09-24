@@ -159,6 +159,13 @@
     interestsSave: "Save interests",
     interestsSaved: "Interests saved successfully.",
     interestsSaveError: "Could not save interests.",
+    emailPrefsTitle: "Email notifications",
+    emailPrefsHint:
+      "Choose when we should write to you. Everything is off until you turn it on.",
+    emailPrefsSaveError: "Could not save the change.",
+    emailPrefsNewHomeworkAssigned: "When Paula assigns me new homework",
+    emailPrefsNewHomeworkAssignedHint:
+      "We send a single email covering all the new homework.",
     logout: "Log out",
     checkEmail: "Check your email",
     activationSent:

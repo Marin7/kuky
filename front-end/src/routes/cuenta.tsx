@@ -12,6 +12,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { PasswordResetForm } from "@/components/auth/PasswordResetForm";
 import { TimezoneSetting } from "@/components/account/TimezoneSetting";
 import { InterestsSetting } from "@/components/account/InterestsSetting";
+import { EmailPreferencesSection } from "@/components/account/EmailPreferencesSection";
 import {
   activate,
   getMe,
@@ -485,6 +486,8 @@ function ProfileView({
       )}
 
       <TimezoneSetting />
+
+      <EmailPreferencesSection />
 
       <Button variant="outline" onClick={onLogout} className="w-full">
         {t("account.logout")}

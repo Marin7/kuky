@@ -48,6 +48,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/schedule").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/testimonials").permitAll()
                         .requestMatchers("/api/v1/notifications/**").authenticated()
+                        // Own-account settings. Deliberately NOT under /api/v1/auth/**, which is
+                        // permitAll() above — mounting these there would expose a signed-in user's
+                        // preferences to anonymous callers.
+                        .requestMatchers("/api/v1/me/**").authenticated()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/bookings").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers("/api/v1/learning/**").hasAnyRole("STUDENT", "ADMIN")

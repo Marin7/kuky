@@ -77,7 +77,8 @@ class HomeworkAdminServiceTest {
                 answerRepository,
                 audioFileRepository, userRepository, submissionRepository, mock(ExerciseGradingService.class),
                 new ObjectMapper(), notificationService,
-                new com.kuky.backend.config.SchedulingProperties());
+                new com.kuky.backend.config.SchedulingProperties(),
+                mock(com.kuky.backend.learning.service.HomeworkAssignmentEmailService.class));
 
         User student = new User();
         student.setId(studentId);
@@ -784,7 +785,8 @@ class HomeworkAdminServiceTest {
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
                 notifications,
-                new com.kuky.backend.config.SchedulingProperties());
+                new com.kuky.backend.config.SchedulingProperties(),
+                mock(com.kuky.backend.learning.service.HomeworkAssignmentEmailService.class));
 
         var result = service.saveExerciseFeedback(submissionId, "  Muy bien  ");
 
@@ -812,7 +814,8 @@ class HomeworkAdminServiceTest {
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
                 notifications,
-                new com.kuky.backend.config.SchedulingProperties());
+                new com.kuky.backend.config.SchedulingProperties(),
+                mock(com.kuky.backend.learning.service.HomeworkAssignmentEmailService.class));
 
         service.saveExerciseFeedback(submissionId, "Muy bien");
 
@@ -841,7 +844,8 @@ class HomeworkAdminServiceTest {
                 mock(com.kuky.backend.learning.repository.HomeworkAnswerRepository.class),
                 audioFileRepository, userRepository, submissionRepository, grading, new ObjectMapper(),
                 notifications,
-                new com.kuky.backend.config.SchedulingProperties());
+                new com.kuky.backend.config.SchedulingProperties(),
+                mock(com.kuky.backend.learning.service.HomeworkAssignmentEmailService.class));
 
         var result = service.saveExerciseFeedback(submissionId, "   ");
 
@@ -911,7 +915,8 @@ class HomeworkAdminServiceTest {
                 answers, audioFileRepository, userRepository, submissionRepository,
                 mock(ExerciseGradingService.class), new ObjectMapper(),
                 mock(com.kuky.backend.notification.service.NotificationService.class),
-                new com.kuky.backend.config.SchedulingProperties());
+                new com.kuky.backend.config.SchedulingProperties(),
+                mock(com.kuky.backend.learning.service.HomeworkAssignmentEmailService.class));
 
         HomeworkSubmissionAdminDto detail = service.getSubmissionDetail(submissionId);
 

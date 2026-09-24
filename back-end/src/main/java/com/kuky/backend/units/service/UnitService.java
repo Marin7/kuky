@@ -9,7 +9,9 @@ import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
+import com.kuky.backend.learning.service.HomeworkAssignmentEmailService;
 import com.kuky.backend.learning.service.HomeworkDueDates;
+import com.kuky.backend.learning.service.NewHomeworkGrants;
 import com.kuky.backend.presentations.repository.PresentationRepository;
 import com.kuky.backend.units.dto.*;
 import com.kuky.backend.units.exception.InvalidContentOrderException;
@@ -45,17 +47,20 @@ public class UnitService {
     private final PresentationRepository presentationRepository;
     private final HomeworkTargetRepository targetRepository;
     private final SchedulingProperties schedulingProperties;
+    private final HomeworkAssignmentEmailService assignmentEmailService;
 
     public UnitService(UnitRepository repository,
                        UserRepository userRepository,
                        PresentationRepository presentationRepository,
                        HomeworkTargetRepository targetRepository,
-                       SchedulingProperties schedulingProperties) {
+                       SchedulingProperties schedulingProperties,
+                       HomeworkAssignmentEmailService assignmentEmailService) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
         this.targetRepository = targetRepository;
         this.schedulingProperties = schedulingProperties;
+        this.assignmentEmailService = assignmentEmailService;
     }
 
     public List<UnitSummary> list() {
@@ -167,10 +172,15 @@ public class UnitService {
         repository.setHomeworks(id, List.copyOf(desired));
 
         // Already-seen: student is notified by the unit assignment (or already had the unit).
+        // Email is different — a homework added to a unit a student already holds is genuinely
+        // new to them, so it is collected here even though it raises no in-site dot.
         Instant seen = Instant.now();
+        NewHomeworkGrants grants = new NewHomeworkGrants();
         for (UUID hw : repository.findHomeworkIds(id)) {
-            targetRepository.addTargets(hw, assignees, seen);
+            grants.add(hw, targetRepository.addTargets(hw, assignees, seen));
         }
+        // Flushed once, after the loop: one email per teacher action, not one per homework.
+        assignmentEmailService.notifyNewlyAssigned(grants);
         return detail(id);
     }
 
@@ -194,10 +204,13 @@ public class UnitService {
         List<UUID> added = next.stream().filter(s -> !prevSet.contains(s)).toList();
         List<UUID> removed = previous.stream().filter(s -> !nextSet.contains(s)).toList();
         Instant seen = Instant.now();
+        NewHomeworkGrants grants = new NewHomeworkGrants();
         for (UUID hw : repository.findHomeworkIds(id)) {
-            targetRepository.addTargets(hw, added, seen);
+            grants.add(hw, targetRepository.addTargets(hw, added, seen));
             targetRepository.removeTargets(hw, removed);
         }
+        // Flushed once, after the loop: assigning a unit with N homeworks sends 1 email, not N.
+        assignmentEmailService.notifyNewlyAssigned(grants);
         return detail(id);
     }
 

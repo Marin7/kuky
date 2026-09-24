@@ -159,6 +159,13 @@ export const esDict = {
     interestsSave: "Guardar intereses",
     interestsSaved: "Intereses guardados correctamente.",
     interestsSaveError: "No se pudieron guardar los intereses.",
+    emailPrefsTitle: "Avisos por correo",
+    emailPrefsHint:
+      "Elige cuándo quieres que te escribamos. Todo está desactivado hasta que tú lo actives.",
+    emailPrefsSaveError: "No se pudo guardar el cambio.",
+    emailPrefsNewHomeworkAssigned: "Cuando Paula me asigne una tarea nueva",
+    emailPrefsNewHomeworkAssignedHint:
+      "Te enviamos un solo correo con todas las tareas nuevas.",
     logout: "Cerrar sesión",
     checkEmail: "Revisa tu correo",
     activationSent:

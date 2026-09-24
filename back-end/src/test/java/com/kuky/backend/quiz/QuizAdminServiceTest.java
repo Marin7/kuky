@@ -81,7 +81,8 @@ class QuizAdminServiceTest {
                 mock(ExerciseGradingService.class),
                 objectMapper,
                 mock(com.kuky.backend.notification.service.NotificationService.class),
-                new com.kuky.backend.config.SchedulingProperties());
+                new com.kuky.backend.config.SchedulingProperties(),
+                mock(com.kuky.backend.learning.service.HomeworkAssignmentEmailService.class));
         service = new QuizAdminService(
                 quizRepository, questionRepository, assigneeRepository, attemptRepository,
                 userRepository, homeworkAdmin, snapshot,
