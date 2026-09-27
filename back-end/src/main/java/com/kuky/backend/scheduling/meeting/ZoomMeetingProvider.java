@@ -2,30 +2,24 @@ package com.kuky.backend.scheduling.meeting;
 
 import com.kuky.backend.config.SchedulingProperties;
 import com.kuky.backend.scheduling.exception.MeetingProvisioningException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ZoomMeetingProvider implements MeetingProvider {
 
-    private static final Logger log = LoggerFactory.getLogger(ZoomMeetingProvider.class);
     private static final String TOKEN_URL = "https://zoom.us/oauth/token";
     private static final String API_BASE = "https://api.zoom.us/v2";
-    private static final DateTimeFormatter ISO_UTC =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'").withZone(ZoneOffset.UTC);
 
     private final SchedulingProperties props;
     private final RestClient restClient;
     private final AtomicReference<CachedToken> tokenCache = new AtomicReference<>();
+    private final AtomicReference<MeetingDetails> personalMeetingCache = new AtomicReference<>();
 
     public ZoomMeetingProvider(SchedulingProperties props) {
         this.props = props;
@@ -66,47 +60,38 @@ public class ZoomMeetingProvider implements MeetingProvider {
 
     @Override
     public MeetingDetails create(Instant start, int durationMinutes, String topic) {
+        MeetingDetails cached = personalMeetingCache.get();
+        if (cached != null) {
+            return cached;
+        }
         String token = getAccessToken();
         String userId = props.getZoom().getUserId();
-        Map<String, Object> body = Map.of(
-                "type", 2,
-                "topic", topic,
-                "start_time", ISO_UTC.format(start),
-                "duration", durationMinutes,
-                "timezone", "UTC"
-        );
         try {
             @SuppressWarnings("unchecked")
-            Map<String, Object> response = restClient.post()
-                    .uri(API_BASE + "/users/" + userId + "/meetings")
+            Map<String, Object> response = restClient.get()
+                    .uri(API_BASE + "/users/" + userId)
                     .header("Authorization", "Bearer " + token)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
                     .retrieve()
                     .body(Map.class);
-            if (response == null || !response.containsKey("join_url")) {
+            if (response == null || !response.containsKey("personal_meeting_url")) {
                 throw new MeetingProvisioningException("Respuesta inesperada de Zoom.");
             }
-            return new MeetingDetails(
-                    String.valueOf(response.get("id")),
-                    (String) response.get("join_url")
+            MeetingDetails details = new MeetingDetails(
+                    String.valueOf(response.get("pmi")),
+                    (String) response.get("personal_meeting_url")
             );
+            // The teacher's Personal Meeting Room is stable, so it's cached for the lifetime of
+            // the application instead of being looked up on every booking.
+            personalMeetingCache.set(details);
+            return details;
         } catch (RestClientException e) {
-            throw new MeetingProvisioningException("No se pudo crear la reunión de Zoom.", e);
+            throw new MeetingProvisioningException("No se pudo obtener la sala personal de Zoom.", e);
         }
     }
 
     @Override
     public void cancel(String meetingId) {
-        try {
-            String token = getAccessToken();
-            restClient.delete()
-                    .uri(API_BASE + "/meetings/" + meetingId)
-                    .header("Authorization", "Bearer " + token)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (RestClientException e) {
-            log.warn("No se pudo cancelar la reunión de Zoom {}: {}", meetingId, e.getMessage());
-        }
+        // No-op: bookings share the teacher's Personal Meeting Room, which isn't tied to any
+        // single booking and must never be deleted from Zoom.
     }
 }
