@@ -1,4 +1,5 @@
 import {
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentProps,
@@ -13,6 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { CLASSROOM_EMOJIS, insertEmojiIntoTextarea } from "./classroomEmojis";
 
 /** Keep a sibling textarea's selection when opening the grid. */
@@ -126,6 +128,14 @@ export function TextareaWithEmoji({
 }: TextareaWithEmojiProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
+  // Grow with content instead of scrolling within a fixed-size box.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
   const insert = (emoji: string) => {
     const next = insertEmojiIntoTextarea(ref.current, value, emoji, maxLength);
     onChange(next.text);
@@ -150,6 +160,7 @@ export function TextareaWithEmoji({
         maxLength={maxLength}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
+        className={cn("resize-none overflow-hidden", textareaProps.className)}
       />
     </div>
   );
