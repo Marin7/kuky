@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
+import { autosizeTextarea } from "@/lib/autosizeTextarea";
 import { cn } from "@/lib/utils";
 import { CLASSROOM_EMOJIS, insertEmojiIntoTextarea } from "./classroomEmojis";
 
@@ -128,12 +129,8 @@ export function TextareaWithEmoji({
 }: TextareaWithEmojiProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
-  // Grow with content instead of scrolling within a fixed-size box.
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    autosizeTextarea(ref.current);
   }, [value]);
 
   const insert = (emoji: string) => {

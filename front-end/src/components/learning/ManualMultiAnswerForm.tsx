@@ -10,6 +10,7 @@ import {
 } from "@/lib/learning";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { autosizeTextarea } from "@/lib/autosizeTextarea";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
 import { QuestionCard, QuestionHeading } from "./QuestionHeading";
 
@@ -192,11 +193,16 @@ export function ManualMultiAnswerForm({
                 <Textarea
                   id={`manual-ans-${q.id}`}
                   value={answerText}
-                  onChange={(e) => setText(q.id, e.target.value)}
+                  onChange={(e) => {
+                    setText(q.id, e.target.value);
+                    autosizeTextarea(e.target);
+                  }}
+                  ref={autosizeTextarea}
                   rows={2}
                   disabled={submitting}
                   placeholder={t("learning.manualMulti.placeholder")}
                   maxLength={2000}
+                  className="resize-none overflow-hidden"
                 />
               )}
             </QuestionCard>
