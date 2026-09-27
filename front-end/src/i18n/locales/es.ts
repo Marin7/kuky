@@ -1162,6 +1162,31 @@ export const esDict = {
       homeworkCompleted: "Completadas",
       expandHomework: "Ver todas las tareas",
       collapseHomework: "Ocultar tareas",
+      mistakes: {
+        title: "Errores frecuentes",
+        expand: "Ver errores",
+        collapse: "Ocultar errores",
+        summary: "{{mistakes}} errores en {{answered}} preguntas",
+        emptyNone:
+          "Todavía no hay tareas autocorregidas entregadas. Los errores aparecerán aquí cuando el alumno las entregue.",
+        emptyFiltered:
+          "No hay tareas autocorregidas entregadas con estos filtros.",
+        emptyNoMistakes:
+          "Sin errores en este periodo ({{answered}} preguntas respondidas).",
+        openHomework: "Abrir tarea",
+        submittedOn: "Entregada el {{date}}",
+        questionN: "Pregunta {{n}}",
+        pageOf: "Página {{page}} de {{total}}",
+        previous: "Anterior",
+        next: "Siguiente",
+        loadError: "No se pudieron cargar los errores del alumno.",
+        allLabels: "Todas las etiquetas",
+        labelFilter: "Etiqueta",
+        periodFilter: "Periodo",
+        periodAll: "Todo",
+        period30: "Últimos 30 días",
+        period90: "Últimos 90 días",
+      },
       markNoShow: "Marcar como no asistida",
       unmarkNoShow: "Marcar como asistida",
       interests: {

@@ -1122,6 +1122,31 @@
       homeworkCompleted: "Completed",
       expandHomework: "Show all homework",
       collapseHomework: "Hide homework",
+      mistakes: {
+        title: "Common errors",
+        expand: "Show errors",
+        collapse: "Hide errors",
+        summary: "{{mistakes}} errors in {{answered}} questions",
+        emptyNone:
+          "No auto-graded homework submitted yet. Errors will appear here once the student submits some.",
+        emptyFiltered:
+          "No auto-graded homework submitted matches these filters.",
+        emptyNoMistakes:
+          "No errors in this period ({{answered}} questions answered).",
+        openHomework: "Open homework",
+        submittedOn: "Submitted on {{date}}",
+        questionN: "Question {{n}}",
+        pageOf: "Page {{page}} of {{total}}",
+        previous: "Previous",
+        next: "Next",
+        loadError: "Could not load the student's errors.",
+        allLabels: "All labels",
+        labelFilter: "Label",
+        periodFilter: "Period",
+        periodAll: "All time",
+        period30: "Last 30 days",
+        period90: "Last 90 days",
+      },
       markNoShow: "Mark as no-show",
       unmarkNoShow: "Mark as attended",
       interests: {

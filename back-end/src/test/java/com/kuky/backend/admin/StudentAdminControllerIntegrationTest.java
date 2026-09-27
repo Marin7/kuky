@@ -311,4 +311,98 @@ class StudentAdminControllerIntegrationTest extends AbstractIntegrationTest {
                                 studentEmail, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    void getMistakes_listsWrongAutoGradedAnswers_forAdmin() throws Exception {
+        UUID assignmentId = UUID.randomUUID();
+        UUID wrongQuestionId = UUID.randomUUID();
+        UUID rightQuestionId = UUID.randomUUID();
+        UUID wrongOptionId = UUID.randomUUID();
+        jdbcTemplate.update("""
+                INSERT INTO homework_assignments (id, title, instructions, published, format, homework_type, sort_order, labels)
+                VALUES (?, 'Subjuntivo 1', 'Elige', true, 'EXERCISE', 'GRAMMAR', 0, ARRAY['Subjuntivo'])
+                """, assignmentId);
+        try {
+            jdbcTemplate.update("""
+                    INSERT INTO homework_questions (id, assignment_id, position, kind, prompt, structure_json)
+                    VALUES (?, ?, 0, 'SINGLE_CHOICE', 'Espero que ___', '{}'::jsonb),
+                           (?, ?, 1, 'SINGLE_CHOICE', 'Ojalá ___', '{}'::jsonb)
+                    """, wrongQuestionId, assignmentId, rightQuestionId, assignmentId);
+            jdbcTemplate.update("""
+                    INSERT INTO homework_question_options (id, question_id, position, label, is_correct)
+                    VALUES (gen_random_uuid(), ?, 0, 'vengas', true), (?, ?, 1, 'vienes', false),
+                           (gen_random_uuid(), ?, 0, 'llueva', true)
+                    """, wrongQuestionId, wrongOptionId, wrongQuestionId, rightQuestionId);
+            UUID submissionId = UUID.randomUUID();
+            jdbcTemplate.update("""
+                    INSERT INTO homework_submissions (id, user_id, assignment_id, status, submitted_at, updated_at, score_percent)
+                    VALUES (?, ?, ?, 'GRADED', NOW(), NOW(), 50)
+                    """, submissionId, studentId, assignmentId);
+            UUID wrongAnswerId = UUID.randomUUID();
+            jdbcTemplate.update("""
+                    INSERT INTO homework_answers (id, submission_id, question_id, score)
+                    VALUES (?, ?, ?, 0.000), (gen_random_uuid(), ?, ?, 1.000)
+                    """, wrongAnswerId, submissionId, wrongQuestionId, submissionId, rightQuestionId);
+            jdbcTemplate.update("INSERT INTO homework_answer_options (answer_id, option_id) VALUES (?, ?)",
+                    wrongAnswerId, wrongOptionId);
+
+            mockMvc.perform(get("/api/v1/admin/students/" + studentId + "/mistakes")
+                            .with(authentication(adminPrincipal(adminEmail))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.allTimeMistakeCount").value(1))
+                    .andExpect(jsonPath("$.summary.mistakeCount").value(1))
+                    .andExpect(jsonPath("$.summary.answeredCount").value(2))
+                    .andExpect(jsonPath("$.labelOptions[0].key").value("subjuntivo"))
+                    .andExpect(jsonPath("$.labelOptions[0].label").value("Subjuntivo"))
+                    .andExpect(jsonPath("$.page").value(1))
+                    .andExpect(jsonPath("$.totalPages").value(1))
+                    .andExpect(jsonPath("$.entries.length()").value(1))
+                    .andExpect(jsonPath("$.entries[0].submissionId").value(submissionId.toString()))
+                    .andExpect(jsonPath("$.entries[0].homeworkTitle").value("Subjuntivo 1"))
+                    .andExpect(jsonPath("$.entries[0].homeworkFormat").value("EXERCISE"))
+                    .andExpect(jsonPath("$.entries[0].labels[0]").value("Subjuntivo"))
+                    .andExpect(jsonPath("$.entries[0].question.id").value(wrongQuestionId.toString()))
+                    .andExpect(jsonPath("$.entries[0].result.correct").value(false))
+                    .andExpect(jsonPath("$.entries[0].result.selectedOptionIds[0]").value(wrongOptionId.toString()));
+        } finally {
+            jdbcTemplate.update("DELETE FROM homework_submissions WHERE assignment_id = ?", assignmentId);
+            jdbcTemplate.update("DELETE FROM homework_assignments WHERE id = ?", assignmentId);
+        }
+    }
+
+    @Test
+    void getMistakes_returnsEmptyHistory_forRevokedStudent() throws Exception {
+        // userId holds USER role (never / no longer a student): history view still answers 200.
+        mockMvc.perform(get("/api/v1/admin/students/" + userId + "/mistakes")
+                        .param("period", "bogus")
+                        .param("page", "abc")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allTimeMistakeCount").value(0))
+                .andExpect(jsonPath("$.appliedPeriod").value("ALL"))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.entries.length()").value(0));
+    }
+
+    @Test
+    void getMistakes_returns404_forUnknownStudent() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/students/" + UUID.randomUUID() + "/mistakes")
+                        .with(authentication(adminPrincipal(adminEmail))))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("STUDENT_NOT_FOUND"));
+    }
+
+    @Test
+    void getMistakes_returns403_forStudent() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/students/" + studentId + "/mistakes")
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                studentEmail, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getMistakes_returns401_whenAnonymous() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/students/" + studentId + "/mistakes"))
+                .andExpect(status().isUnauthorized());
+    }
 }

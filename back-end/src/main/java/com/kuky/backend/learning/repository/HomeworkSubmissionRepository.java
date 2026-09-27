@@ -1,14 +1,18 @@
 package com.kuky.backend.learning.repository;
 
+import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkSubmission;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Array;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -374,5 +378,45 @@ public class HomeworkSubmissionRepository {
                 .addValue("feedback", feedbackJsonOrNull)
                 .addValue("updatedAt", Timestamp.from(Instant.now()))
                 .addValue("id", submissionId));
+    }
+
+    /**
+     * A submitted homework that has auto-graded questions, with the assignment's
+     * current format, title and labels (labels are never snapshotted).
+     */
+    public record AutoGradedSubmissionRow(HomeworkSubmission submission, HomeworkFormat format,
+                                          String currentTitle, List<String> labels) {}
+
+    /**
+     * The student's submitted (non-PENDING) EXERCISE / MIXED homework submissions,
+     * newest first — the source of the admin "common errors" view.
+     */
+    public List<AutoGradedSubmissionRow> findAutoGradedSubmittedByUser(UUID userId) {
+        String sql = """
+                SELECT s.*, a.format AS hw_format, a.title AS hw_title, a.labels AS hw_labels
+                FROM homework_submissions s
+                JOIN homework_assignments a ON a.id = s.assignment_id
+                WHERE s.user_id = :userId
+                  AND s.status <> 'PENDING'
+                  AND s.submitted_at IS NOT NULL
+                  AND a.format IN ('EXERCISE', 'MIXED')
+                ORDER BY s.submitted_at DESC, s.id
+                """;
+        return jdbc.query(sql, Map.of("userId", userId), (rs, rowNum) -> new AutoGradedSubmissionRow(
+                SUBMISSION_MAPPER.mapRow(rs, rowNum),
+                HomeworkFormat.valueOf(rs.getString("hw_format")),
+                rs.getString("hw_title"),
+                readLabels(rs.getArray("hw_labels"))));
+    }
+
+    private static List<String> readLabels(Array arr) throws SQLException {
+        if (arr == null) {
+            return List.of();
+        }
+        Object raw = arr.getArray();
+        if (raw instanceof String[] strings) {
+            return List.of(strings);
+        }
+        return Arrays.stream((Object[]) raw).map(Object::toString).toList();
     }
 }

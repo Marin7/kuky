@@ -3,18 +3,24 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getMe } from "@/lib/auth";
 import {
+  getStudentMistakes,
   getStudentProfile,
   getStudentQuizzes,
   homeworkBreakdownFromList,
   isExerciseResultFormat,
   setBookingNoShow,
   studentDisplayName,
+  type MistakePeriod,
+  type StudentMistakeEntry,
+  type StudentMistakes,
   type StudentProfile,
   type StudentQuizSummary,
   type StudentProfileHomework,
 } from "@/lib/admin";
 import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
 import { StudentHomeworkBreakdown } from "@/components/admin/students/StudentHomeworkBreakdown";
+import { StudentMistakesBox } from "@/components/admin/students/StudentMistakesBox";
+import { StudentMistakesList } from "@/components/admin/students/StudentMistakesList";
 import { HomeworkReviewDialog } from "@/components/admin/homework/HomeworkReviewDialog";
 import { ExerciseResultDialog } from "@/components/admin/homework/ExerciseResultDialog";
 import { QuizReviewDialog } from "@/components/quiz/admin/QuizReviewDialog";
@@ -131,11 +137,67 @@ function StudentProfilePage() {
     attemptId: string;
   } | null>(null);
 
+  const [mistakes, setMistakes] = useState<StudentMistakes | null>(null);
+  const [mistakesLoading, setMistakesLoading] = useState(true);
+  const [mistakesError, setMistakesError] = useState<string | null>(null);
+  const [erroresExpanded, setErroresExpanded] = useState(false);
+  const [mistakesPeriod, setMistakesPeriod] = useState<MistakePeriod>("ALL");
+  const [mistakesLabel, setMistakesLabel] = useState<string | null>(null);
+  const [mistakesPage, setMistakesPage] = useState(1);
+  const [mistakesReload, setMistakesReload] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMistakesLoading(true);
+    getStudentMistakes(studentId, {
+      period: mistakesPeriod,
+      label: mistakesLabel,
+      page: mistakesPage,
+    })
+      .then((data) => {
+        if (cancelled) return;
+        setMistakes(data);
+        setMistakesError(null);
+        // Selected label no longer present → server served "all labels".
+        if (mistakesLabel !== null && data.appliedLabel === null) {
+          setMistakesLabel(null);
+        }
+        if (data.page !== mistakesPage) setMistakesPage(data.page);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMistakesError(t("admin.studentProfile.mistakes.loadError"));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMistakesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    studentId,
+    mistakesPeriod,
+    mistakesLabel,
+    mistakesPage,
+    mistakesReload,
+    t,
+  ]);
+
+  const openMistake = (entry: StudentMistakeEntry) => {
+    if (isExerciseResultFormat(entry.homeworkFormat)) {
+      setOpenResultId(entry.submissionId);
+    } else {
+      setOpenSubmissionId(entry.submissionId);
+    }
+  };
+
   const reloadProfile = () => {
     getStudentProfile(studentId).then(setProfile);
     getStudentQuizzes(studentId)
       .then(setQuizzes)
       .catch(() => setQuizzes([]));
+    setMistakesReload((n) => n + 1);
     notifyBadgesChanged();
   };
 
@@ -223,7 +285,7 @@ function StudentProfilePage() {
               {formatDate(profile.createdAt)}
             </p>
 
-            <div className="mt-6 grid grid-cols-3 gap-4">
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
               <div className="rounded-lg border bg-card p-4 text-center">
                 <p className="text-2xl font-semibold">
                   {
@@ -273,6 +335,12 @@ function StudentProfilePage() {
                   {t("admin.studentProfile.stats.presentations")}
                 </p>
               </div>
+
+              <StudentMistakesBox
+                count={mistakes?.allTimeMistakeCount ?? null}
+                expanded={erroresExpanded}
+                onToggle={() => setErroresExpanded((open) => !open)}
+              />
             </div>
 
             {tareasExpanded && (
@@ -374,6 +442,28 @@ function StudentProfilePage() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {erroresExpanded && (
+              <div className="mt-4">
+                <StudentMistakesList
+                  data={mistakes}
+                  loading={mistakesLoading}
+                  error={mistakesError}
+                  period={mistakesPeriod}
+                  labelKey={mistakesLabel}
+                  onPeriodChange={(period) => {
+                    setMistakesPeriod(period);
+                    setMistakesPage(1);
+                  }}
+                  onLabelChange={(label) => {
+                    setMistakesLabel(label);
+                    setMistakesPage(1);
+                  }}
+                  onPageChange={setMistakesPage}
+                  onOpen={openMistake}
+                />
               </div>
             )}
           </div>

@@ -2,10 +2,12 @@ package com.kuky.backend.admin.controller;
 
 import com.kuky.backend.admin.dto.ExtendedClassEligibilityResponse;
 import com.kuky.backend.admin.dto.RegisteredUserResponse;
+import com.kuky.backend.admin.dto.StudentMistakesResponse;
 import com.kuky.backend.admin.dto.StudentProfileResponse;
 import com.kuky.backend.admin.dto.StudentResponse;
 import com.kuky.backend.admin.dto.UserRoleResponse;
 import com.kuky.backend.admin.exception.UserNotFoundException;
+import com.kuky.backend.admin.service.StudentMistakesAdminService;
 import com.kuky.backend.admin.service.StudentProfileAdminService;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -24,7 +27,8 @@ import java.util.UUID;
 
 /**
  * Student roster for the homework-assignment and presentation-sharing pickers,
- * per-student profile view, and the registered-user promotion/revocation flow.
+ * per-student profile view (including the auto-graded "Errores frecuentes" list),
+ * and the registered-user promotion/revocation flow.
  * Admin-only (covered by the /api/v1/admin/** security matcher).
  */
 @RestController
@@ -35,13 +39,16 @@ public class StudentAdminController {
 
     private final UserRepository userRepository;
     private final StudentProfileAdminService profileService;
+    private final StudentMistakesAdminService mistakesService;
     private final EmailService emailService;
 
     public StudentAdminController(UserRepository userRepository,
                                   StudentProfileAdminService profileService,
+                                  StudentMistakesAdminService mistakesService,
                                   EmailService emailService) {
         this.userRepository = userRepository;
         this.profileService = profileService;
+        this.mistakesService = mistakesService;
         this.emailService = emailService;
     }
 
@@ -66,6 +73,18 @@ public class StudentAdminController {
     @GetMapping("/students/{id}/profile")
     public StudentProfileResponse getProfile(@PathVariable UUID id) {
         return profileService.getProfile(id);
+    }
+
+    /**
+     * The student's wrong answers on auto-graded homework ("Errores frecuentes").
+     * Parameters are raw strings, normalised leniently by the service.
+     */
+    @GetMapping("/students/{id}/mistakes")
+    public StudentMistakesResponse getMistakes(@PathVariable UUID id,
+                                               @RequestParam(required = false) String period,
+                                               @RequestParam(required = false) String label,
+                                               @RequestParam(required = false) String page) {
+        return mistakesService.getMistakes(id, period, label, page);
     }
 
     @GetMapping("/users")

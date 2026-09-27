@@ -8,6 +8,7 @@ import type {
   ExerciseResult,
   HomeworkComposition,
   HomeworkFormat as LearningHomeworkFormat,
+  QuestionResult,
   StudentQuestion,
 } from "@/lib/learning";
 const API_BASE = `${API_ORIGIN}/api/v1/admin`;
@@ -346,6 +347,59 @@ export interface StudentProfile {
 
 export const getStudentProfile = (id: string) =>
   apiCall<StudentProfile>(`/students/${id}/profile`);
+
+// ---------------------------------------------------------------------------
+// Student common errors ("Errores frecuentes")
+// ---------------------------------------------------------------------------
+
+export type MistakePeriod = "ALL" | "DAYS_30" | "DAYS_90";
+
+/** One auto-graded question the student got (at least partly) wrong, as submitted. */
+export interface StudentMistakeEntry {
+  submissionId: string;
+  assignmentId: string;
+  homeworkTitle: string;
+  homeworkFormat: LearningHomeworkFormat;
+  labels: string[];
+  submittedAt: string;
+  questionPosition: number;
+  mistakeCount: number;
+  question: StudentQuestion;
+  result: QuestionResult;
+}
+
+export interface StudentMistakes {
+  /** Ignores period/label/page — shown on the collapsed profile box. */
+  allTimeMistakeCount: number;
+  summary: { mistakeCount: number; answeredCount: number };
+  /** `key` is the case-insensitive group key sent back as `label`. */
+  labelOptions: { key: string; label: string }[];
+  appliedPeriod: MistakePeriod;
+  appliedLabel: string | null;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  totalEntries: number;
+  entries: StudentMistakeEntry[];
+}
+
+export const getStudentMistakes = (
+  studentId: string,
+  params: {
+    period?: MistakePeriod;
+    label?: string | null;
+    page?: number;
+  } = {},
+) => {
+  const query = new URLSearchParams();
+  if (params.period) query.set("period", params.period);
+  if (params.label) query.set("label", params.label);
+  if (params.page) query.set("page", String(params.page));
+  const qs = query.toString();
+  return apiCall<StudentMistakes>(
+    `/students/${studentId}/mistakes${qs ? `?${qs}` : ""}`,
+  );
+};
 
 export type HomeworkType = "AUDIO" | "WRITE" | "GRAMMAR" | "READ";
 export type HomeworkLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
