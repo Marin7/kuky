@@ -90,5 +90,5 @@ npm run lint && npm run format
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan at
-`specs/049-email-preferences/plan.md`
+`specs/051-homework-admin-search-pagination/plan.md`
 <!-- SPECKIT END -->

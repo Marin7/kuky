@@ -28,6 +28,13 @@ import {
 import { HomeworkAdminCard } from "@/components/admin/homework/HomeworkAdminCard";
 import { HomeworkAssignDialog } from "@/components/admin/homework/HomeworkAssignDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+} from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -35,11 +42,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { flushSync } from "react-dom";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { onBadgesInvalidate } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 
 const EXPAND_MS = 500;
+const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 250;
+
+type SortOption = "createdAtDesc" | "createdAtAsc" | "titleAsc" | "titleDesc";
+const SORT_OPTIONS: SortOption[] = [
+  "createdAtDesc",
+  "createdAtAsc",
+  "titleAsc",
+  "titleDesc",
+];
+
+function normalizeForSearch(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("es")
+    .trim();
+}
+
+function titleSortKey(title: string): string {
+  return title.replace(/^[\s¿?]+/, "");
+}
+
+function compareTitles(a: HomeworkAdminItem, b: HomeworkAdminItem): number {
+  return titleSortKey(a.title).localeCompare(titleSortKey(b.title), "es", {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+// Relies on GET /admin/homework returning rows ORDER BY created_at DESC.
+function sortHomework(
+  list: HomeworkAdminItem[],
+  sort: SortOption,
+): HomeworkAdminItem[] {
+  switch (sort) {
+    case "createdAtDesc":
+      return list;
+    case "createdAtAsc":
+      return [...list].reverse();
+    case "titleAsc":
+      return [...list].sort(compareTitles);
+    case "titleDesc":
+      return [...list].sort((a, b) => compareTitles(b, a));
+  }
+}
+
+function pageWindow(current: number, total: number): (number | "gap")[] {
+  const pages = new Set([0, total - 1, current - 1, current, current + 1]);
+  const sorted = [...pages]
+    .filter((p) => p >= 0 && p < total)
+    .sort((a, b) => a - b);
+  const result: (number | "gap")[] = [];
+  for (const p of sorted) {
+    const prev = result[result.length - 1];
+    if (typeof prev === "number" && p - prev > 1) result.push("gap");
+    result.push(p);
+  }
+  return result;
+}
 
 function useGridColumnCount(
   ref: RefObject<HTMLDivElement | null>,
@@ -189,6 +258,11 @@ export function HomeworkAdminList() {
   const [filterType, setFilterType] = useState<HomeworkType | "ALL">("ALL");
   const [filterLevel, setFilterLevel] = useState<HomeworkLevel | "ALL">("ALL");
   const [filterLabel, setFilterLabel] = useState<string>("ALL");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
+  const [sort, setSort] = useState<SortOption>("createdAtDesc");
+  const [page, setPage] = useState(0);
+  const listTopRef = useRef<HTMLDivElement>(null);
   const [assignItem, setAssignItem] = useState<HomeworkAdminItem | null>(null);
   const [labelSavingId, setLabelSavingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -274,26 +348,40 @@ export function HomeworkAdminList() {
     load();
   };
 
-  const filtered = items
-    .filter((item) => {
+  const query = normalizeForSearch(debouncedSearch);
+  const filtered = sortHomework(
+    items.filter((item) => {
       if (filterType !== "ALL" && item.homeworkType !== filterType)
         return false;
       if (filterLevel !== "ALL" && item.level !== filterLevel) return false;
       if (filterLabel !== "ALL") {
         if (!homeworkHasLabelGroup(item, filterLabel)) return false;
       }
+      if (query && !normalizeForSearch(item.title).includes(query)) {
+        return false;
+      }
       return true;
-    })
-    .sort((a, b) =>
-      a.title.localeCompare(b.title, "es", {
-        numeric: true,
-        sensitivity: "base",
-      }),
-    );
+    }),
+    sort,
+  );
 
-  const showGrid = !loading && filtered.length > 0;
-  const filteredIds = filtered.map((item) => item.id);
-  const filteredIdKey = filteredIds.join(",");
+  useEffect(() => {
+    setPage(0);
+  }, [query, filterType, filterLevel, filterLabel, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages - 1);
+  const pageStart = currentPage * PAGE_SIZE;
+  const visible = filtered.slice(pageStart, pageStart + PAGE_SIZE);
+
+  const goToPage = (next: number) => {
+    setPage(next);
+    listTopRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  };
+
+  const showGrid = !loading && visible.length > 0;
+  const visibleIds = visible.map((item) => item.id);
+  const visibleIdKey = visibleIds.join(",");
   const cols = useGridColumnCount(gridRef, showGrid);
 
   useEffect(
@@ -305,13 +393,13 @@ export function HomeworkAdminList() {
   );
 
   useEffect(() => {
-    if (leadId && !filteredIds.includes(leadId)) {
+    if (leadId && !visibleIds.includes(leadId)) {
       setExpandedId(null);
       setLeadId(null);
       setFullWidth(false);
       setFromWidth(null);
     }
-  }, [filteredIdKey, leadId]);
+  }, [visibleIdKey, leadId]);
 
   const handleExpand = (id: string, open: boolean) => {
     if (collapseTimer.current) clearTimeout(collapseTimer.current);
@@ -349,9 +437,38 @@ export function HomeworkAdminList() {
   };
 
   return (
-    <div className="space-y-4">
+    <div ref={listTopRef} className="scroll-mt-4 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+            />
+            <Input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t("admin.homework.searchPlaceholder")}
+              aria-label={t("admin.homework.searchPlaceholder")}
+              className="h-8 w-56 pl-7 text-xs"
+            />
+          </div>
+          <Select value={sort} onValueChange={(v) => setSort(v as SortOption)}>
+            <SelectTrigger
+              className="h-8 w-44 text-xs"
+              aria-label={t("admin.homework.sortLabel")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {t(`admin.homework.sortOptions.${option}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select
             value={filterType}
             onValueChange={(v) => setFilterType(v as HomeworkType | "ALL")}
@@ -436,10 +553,10 @@ export function HomeworkAdminList() {
           ref={gridRef}
           className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-4"
         >
-          {filtered.map((item, index) => {
+          {visible.map((item, index) => {
             const layout = expandedRowLayout(
               index,
-              filteredIds,
+              visibleIds,
               leadId,
               fullWidth,
               cols,
@@ -478,6 +595,64 @@ export function HomeworkAdminList() {
               />
             );
           })}
+        </div>
+      )}
+      {showGrid && totalPages > 1 && (
+        <div className="flex flex-col items-center gap-2">
+          <Pagination aria-label={t("admin.homework.pagesLabel")}>
+            <PaginationContent>
+              <PaginationItem>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 pl-2.5"
+                  disabled={currentPage === 0}
+                  onClick={() => goToPage(currentPage - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span>{t("admin.homework.previousPage")}</span>
+                </Button>
+              </PaginationItem>
+              {pageWindow(currentPage, totalPages).map((p, i) =>
+                p === "gap" ? (
+                  <PaginationItem key={`gap-${i}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={p}>
+                    <Button
+                      variant={p === currentPage ? "outline" : "ghost"}
+                      size="icon"
+                      className="h-8 w-8"
+                      aria-current={p === currentPage ? "page" : undefined}
+                      onClick={() => goToPage(p)}
+                    >
+                      {p + 1}
+                    </Button>
+                  </PaginationItem>
+                ),
+              )}
+              <PaginationItem>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 pr-2.5"
+                  disabled={currentPage === totalPages - 1}
+                  onClick={() => goToPage(currentPage + 1)}
+                >
+                  <span>{t("admin.homework.nextPage")}</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+          <p className="text-xs text-muted-foreground">
+            {t("admin.homework.pageSummary", {
+              from: pageStart + 1,
+              to: pageStart + visible.length,
+              total: filtered.length,
+            })}
+          </p>
         </div>
       )}
       {assignItem && (
