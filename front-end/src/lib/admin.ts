@@ -1190,6 +1190,27 @@ export interface StudentQuizSummary {
   unseen?: boolean;
 }
 
+export interface QuizBreakdown {
+  toReview: number;
+  graded: number;
+}
+
+/** Two-bucket quiz attempt counts for the admin student profile Pruebas card. */
+export function quizBreakdownFromList(
+  quizzes: Pick<StudentQuizSummary, "status">[],
+): QuizBreakdown {
+  let toReview = 0;
+  let graded = 0;
+  for (const quiz of quizzes) {
+    if (quiz.status === "GRADED") {
+      graded++;
+    } else if (quiz.status === "SUBMITTED") {
+      toReview++;
+    }
+  }
+  return { toReview, graded };
+}
+
 export const listAdminQuizzes = () => apiCall<QuizAdminListItem[]>("/quizzes");
 
 export const createQuiz = (title: string, description?: string | null) =>

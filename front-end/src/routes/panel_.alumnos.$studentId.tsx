@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getMe } from "@/lib/auth";
 import {
@@ -8,6 +8,7 @@ import {
   getStudentQuizzes,
   homeworkBreakdownFromList,
   isExerciseResultFormat,
+  quizBreakdownFromList,
   setBookingNoShow,
   studentDisplayName,
   type MistakePeriod,
@@ -18,8 +19,10 @@ import {
   type StudentProfileHomework,
 } from "@/lib/admin";
 import { useTeacherTimezone } from "@/hooks/useTeacherTimezone";
-import { StudentHomeworkBreakdown } from "@/components/admin/students/StudentHomeworkBreakdown";
-import { StudentMistakesBox } from "@/components/admin/students/StudentMistakesBox";
+import { StudentStatBox } from "@/components/admin/students/StudentStatBox";
+import { StudentClassesPanel } from "@/components/admin/students/StudentClassesPanel";
+import { StudentPresentationsPanel } from "@/components/admin/students/StudentPresentationsPanel";
+import { StudentQuizzesPanel } from "@/components/admin/students/StudentQuizzesPanel";
 import { StudentMistakesList } from "@/components/admin/students/StudentMistakesList";
 import { HomeworkReviewDialog } from "@/components/admin/homework/HomeworkReviewDialog";
 import { ExerciseResultDialog } from "@/components/admin/homework/ExerciseResultDialog";
@@ -31,32 +34,16 @@ export const Route = createFileRoute("/panel_/alumnos/$studentId")({
   component: StudentProfilePage,
 });
 
-function formatSlot(
-  isoStart: string,
-  isoEnd: string,
-  timezone: string,
-): string {
-  const start = new Date(isoStart);
-  const end = new Date(isoEnd);
-  const datePart = new Intl.DateTimeFormat("es", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: timezone,
-  }).format(start);
-  const timePart = new Intl.DateTimeFormat("es", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: timezone,
-  }).format(start);
-  const endTime = new Intl.DateTimeFormat("es", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: timezone,
-  }).format(end);
-  return `${datePart}, ${timePart}–${endTime}`;
-}
+/** Box order on the profile; expanded panels render in the same order. */
+const BOX_ORDER = [
+  "classes",
+  "homework",
+  "presentations",
+  "mistakes",
+  "quizzes",
+] as const;
+
+type StudentBoxKey = (typeof BOX_ORDER)[number];
 
 function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("es", {
@@ -85,28 +72,6 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function Section({
-  title,
-  count,
-  children,
-}: {
-  title: string;
-  count: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}{" "}
-        <span className="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-normal">
-          {count}
-        </span>
-      </h2>
-      {children}
-    </div>
-  );
-}
-
 function sortHomeworks(homeworks: StudentProfileHomework[]) {
   return [...homeworks].sort((a, b) => {
     const aPending = a.status === "PENDING";
@@ -128,8 +93,8 @@ function StudentProfilePage() {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [quizzes, setQuizzes] = useState<StudentQuizSummary[]>([]);
-  const [tareasExpanded, setTareasExpanded] = useState(false);
+  const [quizzes, setQuizzes] = useState<StudentQuizSummary[] | null>(null);
+  const [expanded, setExpanded] = useState<Set<StudentBoxKey>>(new Set());
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
   const [openResultId, setOpenResultId] = useState<string | null>(null);
   const [openQuizAttempt, setOpenQuizAttempt] = useState<{
@@ -140,7 +105,6 @@ function StudentProfilePage() {
   const [mistakes, setMistakes] = useState<StudentMistakes | null>(null);
   const [mistakesLoading, setMistakesLoading] = useState(true);
   const [mistakesError, setMistakesError] = useState<string | null>(null);
-  const [erroresExpanded, setErroresExpanded] = useState(false);
   const [mistakesPeriod, setMistakesPeriod] = useState<MistakePeriod>("ALL");
   const [mistakesLabel, setMistakesLabel] = useState<string | null>(null);
   const [mistakesPage, setMistakesPage] = useState(1);
@@ -183,6 +147,14 @@ function StudentProfilePage() {
     mistakesReload,
     t,
   ]);
+
+  const toggleBox = (key: StudentBoxKey) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   const openMistake = (entry: StudentMistakeEntry) => {
     if (isExerciseResultFormat(entry.homeworkFormat)) {
@@ -246,9 +218,248 @@ function StudentProfilePage() {
     ) ?? [];
 
   const name = profile ? studentDisplayName(profile) : "…";
-  const homeworkBreakdown = profile
-    ? homeworkBreakdownFromList(profile.homeworks)
-    : { pending: 0, submitted: 0, completed: 0 };
+
+  const renderHomeworkPanel = (homeworks: StudentProfileHomework[]) =>
+    homeworks.length === 0 ? (
+      <p className="text-sm text-muted-foreground">
+        {t("admin.studentProfile.emptyHomework")}
+      </p>
+    ) : (
+      <div className="divide-y rounded-lg border">
+        {sortHomeworks(homeworks).map((hw) => (
+          <div
+            key={hw.id}
+            className="flex items-center justify-between px-4 py-3 text-sm"
+          >
+            <span className="inline-flex items-center gap-1.5">
+              {hw.title}
+              {hw.unseen && <NotificationDot label={t("notification.row")} />}
+              {hw.overdue && (
+                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                  {t("learning.homework.overdue")}
+                </span>
+              )}
+            </span>
+            <div className="flex items-center gap-2 ml-4 shrink-0">
+              {hw.dueOn && (
+                <span className="text-xs text-muted-foreground">
+                  {t("admin.homework.dueOn")}{" "}
+                  {new Intl.DateTimeFormat("es", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }).format(new Date(`${hw.dueOn}T00:00:00`))}
+                </span>
+              )}
+              {hw.submittedAt && (
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(hw.submittedAt)}
+                </span>
+              )}
+              <StatusBadge status={hw.status} />
+              {hw.status === "GRADED" && hw.scorePercent !== null && (
+                <span className="text-xs font-medium text-muted-foreground">
+                  {hw.scorePercent}%
+                </span>
+              )}
+              {hw.hasTeacherFeedback && (
+                <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
+                  {t("admin.exerciseResult.hasFeedbackBadge")}
+                </span>
+              )}
+              {hw.needsReview && hw.submissionId && (
+                <button
+                  type="button"
+                  onClick={() => setOpenSubmissionId(hw.submissionId)}
+                  className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:underline"
+                >
+                  {t("admin.homeworkReview.needsReviewBadge")}
+                </button>
+              )}
+              {!hw.needsReview &&
+                hw.unseen &&
+                hw.submissionId &&
+                hw.status !== "GRADED" && (
+                  <button
+                    type="button"
+                    onClick={() => setOpenSubmissionId(hw.submissionId)}
+                    className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
+                  >
+                    {t("admin.homeworkReview.reviewAction")}
+                  </button>
+                )}
+              {hw.status === "GRADED" && hw.submissionId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = hw.submissionId;
+                    if (!id) return;
+                    if (isExerciseResultFormat(hw.format)) {
+                      setOpenResultId(id);
+                    } else {
+                      setOpenSubmissionId(id);
+                    }
+                  }}
+                  className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
+                >
+                  {t("admin.exerciseResult.viewAction")}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+
+  const renderPanel = (key: StudentBoxKey, p: StudentProfile) => {
+    switch (key) {
+      case "classes":
+        return (
+          <StudentClassesPanel
+            upcoming={upcoming}
+            past={past}
+            teacherTimezone={teacherTimezone}
+            onToggleNoShow={handleToggleNoShow}
+          />
+        );
+      case "homework":
+        return renderHomeworkPanel(p.homeworks);
+      case "presentations":
+        return <StudentPresentationsPanel presentations={p.presentations} />;
+      case "mistakes":
+        return (
+          <StudentMistakesList
+            data={mistakes}
+            loading={mistakesLoading}
+            error={mistakesError}
+            period={mistakesPeriod}
+            labelKey={mistakesLabel}
+            onPeriodChange={(period) => {
+              setMistakesPeriod(period);
+              setMistakesPage(1);
+            }}
+            onLabelChange={(label) => {
+              setMistakesLabel(label);
+              setMistakesPage(1);
+            }}
+            onPageChange={setMistakesPage}
+            onOpen={openMistake}
+          />
+        );
+      case "quizzes":
+        return (
+          <StudentQuizzesPanel
+            quizzes={quizzes ?? []}
+            onOpenAttempt={(quizId, attemptId) =>
+              setOpenQuizAttempt({ quizId, attemptId })
+            }
+          />
+        );
+    }
+  };
+
+  const renderBox = (key: StudentBoxKey, p: StudentProfile) => {
+    const common = {
+      expanded: expanded.has(key),
+      onToggle: () => toggleBox(key),
+    };
+    switch (key) {
+      case "classes":
+        return (
+          <StudentStatBox
+            {...common}
+            title={t("admin.studentProfile.stats.classes")}
+            count={upcoming.length + past.length}
+            breakdown={[
+              {
+                label: t("admin.studentProfile.classesUpcoming"),
+                value: upcoming.length,
+              },
+              {
+                label: t("admin.studentProfile.classesPast"),
+                value: past.length,
+              },
+            ]}
+            expandLabel={t("admin.studentProfile.expandClasses")}
+            collapseLabel={t("admin.studentProfile.collapseClasses")}
+          />
+        );
+      case "homework": {
+        const hw = homeworkBreakdownFromList(p.homeworks);
+        return (
+          <StudentStatBox
+            {...common}
+            title={t("admin.studentProfile.stats.homework")}
+            count={p.homeworks.length}
+            breakdown={[
+              {
+                label: t("admin.studentProfile.homeworkPending"),
+                value: hw.pending,
+              },
+              {
+                label: t("admin.studentProfile.homeworkSubmitted"),
+                value: hw.submitted,
+              },
+              {
+                label: t("admin.studentProfile.homeworkCompleted"),
+                value: hw.completed,
+              },
+            ]}
+            unseen={p.homeworks.some((h) => h.unseen)}
+            expandLabel={t("admin.studentProfile.expandHomework")}
+            collapseLabel={t("admin.studentProfile.collapseHomework")}
+          />
+        );
+      }
+      case "presentations":
+        return (
+          <StudentStatBox
+            {...common}
+            title={t("admin.studentProfile.stats.presentations")}
+            count={p.presentations.length}
+            expandLabel={t("admin.studentProfile.expandPresentations")}
+            collapseLabel={t("admin.studentProfile.collapsePresentations")}
+          />
+        );
+      case "mistakes":
+        return (
+          <StudentStatBox
+            {...common}
+            title={t("admin.studentProfile.mistakes.title")}
+            count={mistakes?.allTimeMistakeCount ?? null}
+            expandLabel={t("admin.studentProfile.mistakes.expand")}
+            collapseLabel={t("admin.studentProfile.mistakes.collapse")}
+          />
+        );
+      case "quizzes": {
+        const qb = quizzes ? quizBreakdownFromList(quizzes) : null;
+        return (
+          <StudentStatBox
+            {...common}
+            title={t("admin.studentProfile.stats.quizzes")}
+            count={quizzes?.length ?? null}
+            breakdown={
+              qb
+                ? [
+                    {
+                      label: t("admin.studentProfile.quizzesToReview"),
+                      value: qb.toReview,
+                    },
+                    {
+                      label: t("admin.studentProfile.quizzesGraded"),
+                      value: qb.graded,
+                    },
+                  ]
+                : undefined
+            }
+            unseen={quizzes?.some((q) => q.unseen) ?? false}
+            expandLabel={t("admin.studentProfile.expandQuizzes")}
+            collapseLabel={t("admin.studentProfile.collapseQuizzes")}
+          />
+        );
+      }
+    }
+  };
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -269,378 +480,33 @@ function StudentProfilePage() {
       {error && <p className="mt-6 text-sm text-destructive">{error}</p>}
 
       {profile && (
-        <>
-          <div className="mt-6 mb-10">
-            <h1 className="font-display text-3xl font-semibold text-primary">
-              {name}
-            </h1>
-            <p className="mt-1 text-muted-foreground">
-              {profile.email}
-              {profile.username && (
-                <span className="ml-3 text-sm">@{profile.username}</span>
-              )}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {t("admin.studentProfile.studentSince")}{" "}
-              {formatDate(profile.createdAt)}
-            </p>
+        <div className="mt-6">
+          <h1 className="font-display text-3xl font-semibold text-primary">
+            {name}
+          </h1>
+          <p className="mt-1 text-muted-foreground">
+            {profile.email}
+            {profile.username && (
+              <span className="ml-3 text-sm">@{profile.username}</span>
+            )}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("admin.studentProfile.studentSince")}{" "}
+            {formatDate(profile.createdAt)}
+          </p>
 
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div className="rounded-lg border bg-card p-4 text-center">
-                <p className="text-2xl font-semibold">
-                  {
-                    profile.bookings.filter((b) => b.status === "CONFIRMED")
-                      .length
-                  }
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("admin.studentProfile.stats.classes")}
-                </p>
-              </div>
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+            {BOX_ORDER.map((key) => (
+              <Fragment key={key}>{renderBox(key, profile)}</Fragment>
+            ))}
+          </div>
 
-              <button
-                type="button"
-                aria-expanded={tareasExpanded}
-                onClick={() => setTareasExpanded((open) => !open)}
-                className={`rounded-lg border bg-card p-4 text-center transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  tareasExpanded ? "ring-2 ring-primary/30" : ""
-                }`}
-              >
-                <p className="text-2xl font-semibold">
-                  {profile.homeworks.length}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("admin.studentProfile.stats.homework")}
-                </p>
-                <div className="mt-3">
-                  <StudentHomeworkBreakdown
-                    pending={homeworkBreakdown.pending}
-                    submitted={homeworkBreakdown.submitted}
-                    completed={homeworkBreakdown.completed}
-                    compact
-                  />
-                </div>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  {tareasExpanded
-                    ? t("admin.studentProfile.collapseHomework")
-                    : t("admin.studentProfile.expandHomework")}
-                </p>
-              </button>
-
-              <div className="rounded-lg border bg-card p-4 text-center">
-                <p className="text-2xl font-semibold">
-                  {profile.presentations.length}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t("admin.studentProfile.stats.presentations")}
-                </p>
-              </div>
-
-              <StudentMistakesBox
-                count={mistakes?.allTimeMistakeCount ?? null}
-                expanded={erroresExpanded}
-                onToggle={() => setErroresExpanded((open) => !open)}
-              />
+          {BOX_ORDER.filter((key) => expanded.has(key)).map((key) => (
+            <div key={key} className="mt-4">
+              {renderPanel(key, profile)}
             </div>
-
-            {tareasExpanded && (
-              <div className="mt-4">
-                {profile.homeworks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {t("admin.studentProfile.emptyHomework")}
-                  </p>
-                ) : (
-                  <div className="divide-y rounded-lg border">
-                    {sortHomeworks(profile.homeworks).map((hw) => (
-                      <div
-                        key={hw.id}
-                        className="flex items-center justify-between px-4 py-3 text-sm"
-                      >
-                        <span className="inline-flex items-center gap-1.5">
-                          {hw.title}
-                          {hw.unseen && (
-                            <NotificationDot label={t("notification.row")} />
-                          )}
-                          {hw.overdue && (
-                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
-                              {t("learning.homework.overdue")}
-                            </span>
-                          )}
-                        </span>
-                        <div className="flex items-center gap-2 ml-4 shrink-0">
-                          {hw.dueOn && (
-                            <span className="text-xs text-muted-foreground">
-                              {t("admin.homework.dueOn")}{" "}
-                              {new Intl.DateTimeFormat("es", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              }).format(new Date(`${hw.dueOn}T00:00:00`))}
-                            </span>
-                          )}
-                          {hw.submittedAt && (
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(hw.submittedAt)}
-                            </span>
-                          )}
-                          <StatusBadge status={hw.status} />
-                          {hw.status === "GRADED" &&
-                            hw.scorePercent !== null && (
-                              <span className="text-xs font-medium text-muted-foreground">
-                                {hw.scorePercent}%
-                              </span>
-                            )}
-                          {hw.hasTeacherFeedback && (
-                            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800">
-                              {t("admin.exerciseResult.hasFeedbackBadge")}
-                            </span>
-                          )}
-                          {hw.needsReview && hw.submissionId && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setOpenSubmissionId(hw.submissionId)
-                              }
-                              className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:underline"
-                            >
-                              {t("admin.homeworkReview.needsReviewBadge")}
-                            </button>
-                          )}
-                          {!hw.needsReview &&
-                            hw.unseen &&
-                            hw.submissionId &&
-                            hw.status !== "GRADED" && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setOpenSubmissionId(hw.submissionId)
-                                }
-                                className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
-                              >
-                                {t("admin.homeworkReview.reviewAction")}
-                              </button>
-                            )}
-                          {hw.status === "GRADED" && hw.submissionId && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const id = hw.submissionId;
-                                if (!id) return;
-                                if (isExerciseResultFormat(hw.format)) {
-                                  setOpenResultId(id);
-                                } else {
-                                  setOpenSubmissionId(id);
-                                }
-                              }}
-                              className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:underline"
-                            >
-                              {t("admin.exerciseResult.viewAction")}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {erroresExpanded && (
-              <div className="mt-4">
-                <StudentMistakesList
-                  data={mistakes}
-                  loading={mistakesLoading}
-                  error={mistakesError}
-                  period={mistakesPeriod}
-                  labelKey={mistakesLabel}
-                  onPeriodChange={(period) => {
-                    setMistakesPeriod(period);
-                    setMistakesPage(1);
-                  }}
-                  onLabelChange={(label) => {
-                    setMistakesLabel(label);
-                    setMistakesPage(1);
-                  }}
-                  onPageChange={setMistakesPage}
-                  onOpen={openMistake}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-10">
-            <Section
-              title={t("admin.studentProfile.upcomingClasses")}
-              count={upcoming.length}
-            >
-              {upcoming.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("admin.studentProfile.emptyUpcoming")}
-                </p>
-              ) : (
-                <div className="divide-y rounded-lg border">
-                  {upcoming.map((b) => (
-                    <div
-                      key={b.id}
-                      className="flex items-center justify-between px-4 py-3 text-sm"
-                    >
-                      <span className="capitalize">
-                        {formatSlot(b.slotStart, b.slotEnd, teacherTimezone)}
-                      </span>
-                      {b.zoomJoinUrl && (
-                        <a
-                          href={b.zoomJoinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-primary hover:underline ml-4 shrink-0"
-                        >
-                          Zoom
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-
-            <Section
-              title={t("admin.studentProfile.pastClasses")}
-              count={past.length}
-            >
-              {past.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("admin.studentProfile.emptyPast")}
-                </p>
-              ) : (
-                <div className="divide-y rounded-lg border">
-                  {past.map((b) => (
-                    <div
-                      key={b.id}
-                      className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground"
-                    >
-                      <span className="capitalize">
-                        {formatSlot(b.slotStart, b.slotEnd, teacherTimezone)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleToggleNoShow(
-                            b.id,
-                            !b.noShow,
-                            b.isCompanionStudent,
-                          )
-                        }
-                        className={`ml-4 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium hover:underline ${
-                          b.noShow
-                            ? "bg-red-100 text-red-700"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {b.noShow
-                          ? t("admin.studentProfile.unmarkNoShow")
-                          : t("admin.studentProfile.markNoShow")}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-
-            <Section
-              title={t("admin.studentProfile.sharedPresentations")}
-              count={profile.presentations.length}
-            >
-              {profile.presentations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("admin.studentProfile.emptyPresentations")}
-                </p>
-              ) : (
-                <div className="divide-y rounded-lg border">
-                  {profile.presentations.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between px-4 py-3 text-sm"
-                    >
-                      <span>{p.title}</span>
-                      {p.level && (
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground ml-4 shrink-0">
-                          {p.level}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-
-            <Section
-              title={t("quiz.admin.studentQuizzes")}
-              count={quizzes.length}
-            >
-              {quizzes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("quiz.admin.noStudentQuizzes")}
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {quizzes.map((q) => (
-                    <div
-                      key={q.attemptId}
-                      className="rounded-lg border p-3 text-sm"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="inline-flex items-center gap-1.5 font-medium">
-                            {q.title}
-                            {q.unseen && (
-                              <NotificationDot label={t("notification.row")} />
-                            )}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {t(`quiz.status.${q.status}` as never)}
-                            {q.scorePercent != null
-                              ? ` · ${q.scorePercent}%`
-                              : ""}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setOpenQuizAttempt({
-                              quizId: q.quizId,
-                              attemptId: q.attemptId,
-                            })
-                          }
-                          className="shrink-0 text-xs font-medium text-primary hover:underline"
-                        >
-                          {q.status === "GRADED"
-                            ? t("quiz.admin.view")
-                            : t("quiz.admin.review")}
-                        </button>
-                      </div>
-                      {q.skills.length > 0 && (
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                          {q.skills.map((s) => (
-                            <div key={s.skill} className="rounded border p-2">
-                              <p className="font-medium">
-                                {t(`quiz.skills.${s.skill}`)}
-                              </p>
-                              <p>
-                                {s.awaitingTeacher
-                                  ? t("quiz.skillAwaiting")
-                                  : `${s.scorePercent}%`}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-          </div>
-        </>
+          ))}
+        </div>
       )}
 
       {openSubmissionId && (
