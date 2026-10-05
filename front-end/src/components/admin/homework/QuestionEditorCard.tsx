@@ -8,7 +8,9 @@ import type {
   TableFillStructure,
   MatchingStructure,
   SingleChoiceStructure,
+  SpotWrongWordsStructure,
 } from "@/lib/admin";
+import { carryMarks } from "@/lib/spotWrongWords";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +34,7 @@ import { DragDropEditor } from "./DragDropEditor";
 import { TableFillEditor } from "./TableFillEditor";
 import { MatchingEditor } from "./MatchingEditor";
 import { SingleChoiceItemsEditor } from "./SingleChoiceItemsEditor";
+import { SpotWrongWordsEditor } from "./SpotWrongWordsEditor";
 import { distinctMarkerNumbers } from "@/lib/singleChoiceMarkers";
 import { genId } from "@/lib/utils";
 
@@ -43,6 +46,7 @@ const KINDS: QuestionKind[] = [
   "DRAG_DROP",
   "TABLE_FILL",
   "MATCHING",
+  "SPOT_WRONG_WORDS",
   "FREE_TEXT",
 ];
 
@@ -81,6 +85,17 @@ export function QuestionEditorCard({
   };
 
   const setPrompt = (prompt: string) => {
+    if (question.kind === "SPOT_WRONG_WORDS") {
+      const errors =
+        (question.structure as SpotWrongWordsStructure | undefined)?.errors ??
+        [];
+      onChange({
+        ...question,
+        prompt,
+        structure: { errors: carryMarks(question.prompt, prompt, errors) },
+      });
+      return;
+    }
     if (question.kind !== "SINGLE_CHOICE") {
       onChange({ ...question, prompt });
       return;
@@ -194,6 +209,7 @@ export function QuestionEditorCard({
   const structured = isStructuredKind(question.kind);
   const isPassageKind =
     question.kind === "MULTI_BLANK" || question.kind === "DRAG_DROP";
+  const isSpotWrongWords = question.kind === "SPOT_WRONG_WORDS";
   const numberedSingleChoice =
     question.kind === "SINGLE_CHOICE" &&
     distinctMarkerNumbers(question.prompt).length > 0;
@@ -262,20 +278,23 @@ export function QuestionEditorCard({
           <Textarea
             value={question.prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            rows={isPassageKind ? 3 : 2}
+            rows={isSpotWrongWords ? 5 : isPassageKind ? 3 : 2}
+            maxLength={isSpotWrongWords ? 3000 : undefined}
             placeholder={t("admin.homework.questions.promptPlaceholder")}
           />
           <p className="text-xs text-muted-foreground">
             {isPassageKind
               ? t("admin.homework.questions.promptBlanksHint")
-              : question.kind === "SINGLE_CHOICE"
-                ? t("admin.homework.questions.promptSingleChoiceHint")
-                : question.kind === "FREE_TEXT"
-                  ? t("admin.homework.questions.freeTextHint")
-                  : question.kind === "TABLE_FILL" ||
-                      question.kind === "MATCHING"
-                    ? t("admin.homework.questions.promptOptionalHint")
-                    : null}
+              : isSpotWrongWords
+                ? t("admin.homework.questions.spotWrongWords.promptHint")
+                : question.kind === "SINGLE_CHOICE"
+                  ? t("admin.homework.questions.promptSingleChoiceHint")
+                  : question.kind === "FREE_TEXT"
+                    ? t("admin.homework.questions.freeTextHint")
+                    : question.kind === "TABLE_FILL" ||
+                        question.kind === "MATCHING"
+                      ? t("admin.homework.questions.promptOptionalHint")
+                      : null}
           </p>
         </div>
       </div>
@@ -318,6 +337,18 @@ export function QuestionEditorCard({
               left: [],
               right: [],
               pairs: [],
+            }
+          }
+          onChange={(structure) => onChange({ ...question, structure })}
+        />
+      )}
+
+      {isSpotWrongWords && (
+        <SpotWrongWordsEditor
+          prompt={question.prompt}
+          structure={
+            (question.structure as SpotWrongWordsStructure | undefined) ?? {
+              errors: [],
             }
           }
           onChange={(structure) => onChange({ ...question, structure })}

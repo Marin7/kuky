@@ -477,6 +477,15 @@ export const esDict = {
       true: "Verdadero",
       false: "Falso",
     },
+    spotWrongWords: {
+      instruction: "Encuentra las palabras incorrectas ({{count}}).",
+      counter: "{{marked}} / {{count}} marcadas",
+      capHint:
+        "Ya has marcado todas las que puedes. Desmarca una palabra para marcar otra.",
+      found: "Encontrada",
+      missed: "No encontrada",
+      extra: "Marcada por error",
+    },
     pastClasses: {
       title: "Clases anteriores",
       empty: "Aún no tienes clases anteriores.",
@@ -945,6 +954,20 @@ export const esDict = {
           MATCHING: "Emparejar",
           TRUE_FALSE: "Verdadero / Falso",
           FREE_TEXT: "Respuesta libre",
+          SPOT_WRONG_WORDS: "Encontrar errores",
+        },
+        spotWrongWords: {
+          promptHint:
+            "Escribe o pega el texto con errores (máx. 3000 caracteres). Después marca abajo las palabras incorrectas.",
+          markTitle: "Palabras incorrectas",
+          markHint:
+            "Haz clic en cada palabra incorrecta (máximo {{max}}). Vuelve a hacer clic para desmarcarla.",
+          emptyText: "Escribe el texto arriba para poder marcar palabras.",
+          markedCount: "Marcadas: {{count}}",
+          noMarks:
+            "Aún no has marcado ninguna palabra. Necesitas al menos una.",
+          correctionPlaceholder: "Corrección (opcional)",
+          correctionFor: "Corrección de «{{word}}»",
         },
         trueFalseHint: "Marca si el enunciado es verdadero o falso.",
         trueLabel: "Verdadero",

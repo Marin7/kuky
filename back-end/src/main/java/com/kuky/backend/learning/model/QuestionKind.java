@@ -11,6 +11,8 @@ package com.kuky.backend.learning.model;
  *   <li>{@code MATCHING} — left↔right pairs with optional distractors.</li>
  *   <li>{@code TRUE_FALSE} — fixed true/false options; scored 0/1 like single choice.</li>
  *   <li>{@code FREE_TEXT} — plain free-text prompt (manual grading; may mix with structured kinds).</li>
+ *   <li>{@code SPOT_WRONG_WORDS} — passage in prompt; wrong words by word index in {@code structure_json};
+ *       student toggles words, capped at the error count; score = found ÷ errors.</li>
  * </ul>
  */
 public enum QuestionKind {
@@ -21,10 +23,12 @@ public enum QuestionKind {
     TABLE_FILL,
     MATCHING,
     TRUE_FALSE,
-    FREE_TEXT;
+    FREE_TEXT,
+    SPOT_WRONG_WORDS;
 
     /** Kinds that store answer keys in {@code structure_json} rather than options rows. */
     public boolean isStructured() {
-        return this == MULTI_BLANK || this == DRAG_DROP || this == TABLE_FILL || this == MATCHING;
+        return this == MULTI_BLANK || this == DRAG_DROP || this == TABLE_FILL || this == MATCHING
+                || this == SPOT_WRONG_WORDS;
     }
 }

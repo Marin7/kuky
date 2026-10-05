@@ -12,7 +12,8 @@ export function isStructuredKind(kind: QuestionKind): boolean {
     kind === "MULTI_BLANK" ||
     kind === "DRAG_DROP" ||
     kind === "TABLE_FILL" ||
-    kind === "MATCHING"
+    kind === "MATCHING" ||
+    kind === "SPOT_WRONG_WORDS"
   );
 }
 
@@ -48,6 +49,8 @@ export function defaultStructureForKind(kind: QuestionKind): QuestionStructure {
         right: [{ id: genId(), label: "" }],
         pairs: [],
       };
+    case "SPOT_WRONG_WORDS":
+      return { errors: [] };
     default:
       return {};
   }

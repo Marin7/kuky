@@ -7,6 +7,7 @@ import { splitPromptByNumberedMarkers } from "@/lib/singleChoiceMarkers";
 import { stripLeadingEnumeration } from "@/lib/questionPrompt";
 import { QuestionResultBlock } from "@/components/learning/ExerciseResult";
 import { QuestionHeading } from "@/components/learning/QuestionHeading";
+import { SpotWrongWordsResult } from "@/components/learning/SpotWrongWordsResult";
 import { TextWithLinks } from "@/components/learning/TextWithLinks";
 
 /** Prompt text interleaved with answer slots (blanks, `(N)` markers). */
@@ -112,7 +113,8 @@ function WrongSlotSentences({
 /**
  * A mistake entry's answer detail showing only what the student got wrong:
  * wrong blanks / numbered items (with their sentence), wrong table cells, wrong
- * matching pairs. Other kinds are a single answer and use the standard block.
+ * matching pairs, the inline passage for spot-the-wrong-words. Other kinds are
+ * a single answer and use the standard block.
  */
 export function MistakeOnlyDetail({ entry }: { entry: StudentMistakeEntry }) {
   const { t } = useTranslation();
@@ -128,6 +130,17 @@ export function MistakeOnlyDetail({ entry }: { entry: StudentMistakeEntry }) {
         : { type: "slot", unit: s.index },
     );
     return <WrongSlotSentences parts={parts} unitFor={(i) => units[i]} />;
+  }
+
+  if (question.kind === "SPOT_WRONG_WORDS") {
+    return (
+      <SpotWrongWordsResult
+        index={1}
+        questionCount={1}
+        prompt={question.prompt}
+        unitResults={units}
+      />
+    );
   }
 
   if (

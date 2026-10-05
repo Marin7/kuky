@@ -4,6 +4,7 @@ import {
   type HomeworkAdminItem,
   type MatchingStructure,
   type SingleChoiceStructure,
+  type SpotWrongWordsStructure,
   type TableFillStructure,
 } from "@/lib/admin";
 import {
@@ -22,6 +23,7 @@ import { InlineSingleChoiceQuestion } from "@/components/learning/InlineSingleCh
 import { MatchingQuestion } from "@/components/learning/MatchingQuestion";
 import { MultiBlankQuestion } from "@/components/learning/MultiBlankQuestion";
 import { NumberedSingleChoiceQuestion } from "@/components/learning/NumberedSingleChoiceQuestion";
+import { SpotWrongWordsQuestion } from "@/components/learning/SpotWrongWordsQuestion";
 import {
   QuestionCard,
   QuestionHeading,
@@ -40,6 +42,7 @@ function hidesPromptLabel(
   return (
     kind === "MULTI_BLANK" ||
     kind === "DRAG_DROP" ||
+    kind === "SPOT_WRONG_WORDS" ||
     inlineChoice != null ||
     numbered
   );
@@ -78,6 +81,9 @@ function toStudentStructure(
   if (q.kind === "MATCHING") {
     const m = s as MatchingStructure;
     return { left: m.left ?? [], right: m.right ?? [] };
+  }
+  if (q.kind === "SPOT_WRONG_WORDS") {
+    return { errorCount: (s as SpotWrongWordsStructure).errors?.length ?? 0 };
   }
   if (q.kind === "SINGLE_CHOICE") {
     const sc = s as SingleChoiceStructure;
@@ -254,6 +260,18 @@ export function HomeworkPreview({ item }: Props) {
                     left={q.structure?.left ?? []}
                     right={q.structure?.right ?? []}
                     pairs={[]}
+                    onChange={noop}
+                    readOnly
+                  />
+                )}
+
+                {q.kind === "SPOT_WRONG_WORDS" && (
+                  <SpotWrongWordsQuestion
+                    index={i + 1}
+                    questionCount={questionCount}
+                    prompt={q.prompt}
+                    errorCount={q.structure?.errorCount ?? 0}
+                    selected={[]}
                     onChange={noop}
                     readOnly
                   />

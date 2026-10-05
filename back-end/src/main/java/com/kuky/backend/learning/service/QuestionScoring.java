@@ -45,6 +45,7 @@ public class QuestionScoring {
             case DRAG_DROP -> gradeDragDrop(q, given);
             case TABLE_FILL -> gradeTableFill(q, given);
             case MATCHING -> gradeMatching(q, given);
+            case SPOT_WRONG_WORDS -> SpotWrongWords.grade(q, answerJsonOf(given), objectMapper);
             case FREE_TEXT -> throw new IllegalStateException("FREE_TEXT no se califica automáticamente.");
         };
     }

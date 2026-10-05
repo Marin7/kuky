@@ -485,6 +485,7 @@ public class ExerciseGradingService {
             case MULTI_BLANK -> {
                 // Nothing beyond the prompt itself (blanks render from ___ tokens); {} is the wire shape.
             }
+            case SPOT_WRONG_WORDS -> result.put("errorCount", SpotWrongWords.errorCount(structure));
             default -> { }
         }
         return result;

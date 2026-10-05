@@ -413,7 +413,8 @@ export type QuestionKind =
   | "TABLE_FILL"
   | "MATCHING"
   | "TRUE_FALSE"
-  | "FREE_TEXT";
+  | "FREE_TEXT"
+  | "SPOT_WRONG_WORDS";
 
 export interface AdminOption {
   id?: string;
@@ -493,12 +494,24 @@ export interface SingleChoiceStructure {
   items: SingleChoiceItem[];
 }
 
+/** SPOT_WRONG_WORDS answer key: wrong words of the prompt, by word index. */
+export interface SpotWrongWordsError {
+  wordIndex: number;
+  word: string;
+  correction: string | null;
+}
+
+export interface SpotWrongWordsStructure {
+  errors: SpotWrongWordsError[];
+}
+
 export type QuestionStructure =
   | MultiBlankStructure
   | DragDropStructure
   | TableFillStructure
   | MatchingStructure
   | SingleChoiceStructure
+  | SpotWrongWordsStructure
   | Record<string, never>; // legacy kinds: {}
 
 export interface AdminQuestion {

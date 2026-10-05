@@ -26,6 +26,7 @@ import { MultiBlankQuestion } from "./MultiBlankQuestion";
 import { DragDropQuestion } from "./DragDropQuestion";
 import { TableFillQuestion } from "./TableFillQuestion";
 import { MatchingQuestion } from "./MatchingQuestion";
+import { SpotWrongWordsQuestion } from "./SpotWrongWordsQuestion";
 import { RichTextEditor } from "./richtext/RichTextEditor";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 import { TextWithLinks } from "./TextWithLinks";
@@ -39,6 +40,7 @@ interface AnswerState {
   placements: (string | null)[];
   cells: Record<string, string>;
   pairs: MatchingAnswer["pairs"];
+  wrongWords: number[];
   text: string;
   formatted: FormattedText;
 }
@@ -88,6 +90,7 @@ function hidesPromptLabel(
   return (
     kind === "MULTI_BLANK" ||
     kind === "DRAG_DROP" ||
+    kind === "SPOT_WRONG_WORDS" ||
     inlineChoice != null ||
     numbered
   );
@@ -111,6 +114,7 @@ function initialAnswerState(q: StudentQuestion): AnswerState {
         : [],
     cells: {},
     pairs: [],
+    wrongWords: [],
     text: "",
     formatted: [],
   };
@@ -210,6 +214,9 @@ export function MixedHomeworkForm({
   const setPairs = (qId: string, pairs: MatchingAnswer["pairs"]) =>
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], pairs } }));
 
+  const setWrongWords = (qId: string, wrongWords: number[]) =>
+    setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], wrongWords } }));
+
   const setText = (qId: string, text: string) =>
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], text } }));
 
@@ -264,6 +271,8 @@ export function MixedHomeworkForm({
             answerJson = { cells: a?.cells ?? {} };
           else if (q.kind === "MATCHING")
             answerJson = { pairs: a?.pairs ?? [] };
+          else if (q.kind === "SPOT_WRONG_WORDS")
+            answerJson = { selected: a?.wrongWords ?? [] };
           return {
             questionId: q.id,
             selectedOptionIds: a?.selectedOptionIds ?? [],
@@ -622,6 +631,19 @@ export function MixedHomeworkForm({
                             right={q.structure?.right ?? []}
                             pairs={answers[q.id]?.pairs ?? []}
                             onChange={(pairs) => setPairs(q.id, pairs)}
+                          />
+                        )}
+
+                        {q.kind === "SPOT_WRONG_WORDS" && (
+                          <SpotWrongWordsQuestion
+                            index={i + 1}
+                            questionCount={questionCount}
+                            prompt={q.prompt}
+                            errorCount={q.structure?.errorCount ?? 0}
+                            selected={answers[q.id]?.wrongWords ?? []}
+                            onChange={(selected) =>
+                              setWrongWords(q.id, selected)
+                            }
                           />
                         )}
                       </>

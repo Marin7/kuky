@@ -476,6 +476,15 @@
       true: "Adevărat",
       false: "Fals",
     },
+    spotWrongWords: {
+      instruction: "Găsește cuvintele greșite ({{count}}).",
+      counter: "{{marked}} / {{count}} marcate",
+      capHint:
+        "Ai marcat deja câte cuvinte poți. Demarchează unul ca să marchezi altul.",
+      found: "Găsit",
+      missed: "Negăsit",
+      extra: "Marcat din greșeală",
+    },
     pastClasses: {
       title: "Cursuri anterioare",
       empty: "Nu ai încă cursuri anterioare.",
@@ -943,6 +952,20 @@
           MATCHING: "Potrivire",
           TRUE_FALSE: "Adevărat / Fals",
           FREE_TEXT: "Răspuns liber",
+          SPOT_WRONG_WORDS: "Găsește greșelile",
+        },
+        spotWrongWords: {
+          promptHint:
+            "Scrie sau lipește textul cu greșeli (max. 3000 de caractere). Apoi marchează mai jos cuvintele greșite.",
+          markTitle: "Cuvinte greșite",
+          markHint:
+            "Fă clic pe fiecare cuvânt greșit (maximum {{max}}). Fă clic din nou ca să-l demarchezi.",
+          emptyText: "Scrie textul mai sus ca să poți marca cuvinte.",
+          markedCount: "Marcate: {{count}}",
+          noMarks:
+            "Nu ai marcat încă niciun cuvânt. Ai nevoie de cel puțin unul.",
+          correctionPlaceholder: "Corectură (opțional)",
+          correctionFor: "Corectura pentru „{{word}}”",
         },
         trueFalseHint: "Marchează dacă enunțul este adevărat sau fals.",
         trueLabel: "Adevărat",

@@ -467,6 +467,15 @@
       true: "True",
       false: "False",
     },
+    spotWrongWords: {
+      instruction: "Find the wrong words ({{count}}).",
+      counter: "{{marked}} / {{count}} marked",
+      capHint:
+        "You've marked as many words as you can. Unmark one to mark another.",
+      found: "Found",
+      missed: "Missed",
+      extra: "Marked by mistake",
+    },
     pastClasses: {
       title: "Past classes",
       empty: "You don't have any past classes yet.",
@@ -931,6 +940,19 @@
           MATCHING: "Matching",
           TRUE_FALSE: "True / False",
           FREE_TEXT: "Free text",
+          SPOT_WRONG_WORDS: "Spot the mistakes",
+        },
+        spotWrongWords: {
+          promptHint:
+            "Type or paste the text with mistakes (max. 3000 characters). Then mark the wrong words below.",
+          markTitle: "Wrong words",
+          markHint:
+            "Click each wrong word (max. {{max}}). Click again to unmark it.",
+          emptyText: "Type the text above to mark words.",
+          markedCount: "Marked: {{count}}",
+          noMarks: "No words marked yet. You need at least one.",
+          correctionPlaceholder: "Correction (optional)",
+          correctionFor: "Correction for “{{word}}”",
         },
         trueFalseHint: "Mark whether the statement is true or false.",
         trueLabel: "True",

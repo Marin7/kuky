@@ -40,7 +40,8 @@ export type QuestionKind =
   | "TABLE_FILL"
   | "MATCHING"
   | "TRUE_FALSE"
-  | "FREE_TEXT";
+  | "FREE_TEXT"
+  | "SPOT_WRONG_WORDS";
 
 export interface PresentationBlock {
   heading: string;
@@ -191,6 +192,7 @@ export interface StudentStructure {
   left?: StudentMatchItem[]; // MATCHING
   right?: StudentMatchItem[]; // MATCHING
   items?: StudentSingleChoiceItem[]; // numbered SINGLE_CHOICE (no `correct`)
+  errorCount?: number; // SPOT_WRONG_WORDS (no indices before submit)
   // MULTI_BLANK carries no extra structure — blanks render from `___` in prompt.
 }
 
@@ -230,6 +232,16 @@ export interface SingleChoiceSelectionsAnswer {
   selections: Record<string, string>;
 }
 
+/** SPOT_WRONG_WORDS: word indices the student marked as wrong. */
+export interface SpotWrongWordsAnswer {
+  selected: number[];
+}
+
+/**
+ * SPOT_WRONG_WORDS: `index` is the word index; one unit per error (found =
+ * `correct`, missed = no `studentDisplay`) plus one per wrongly marked word
+ * (`label === "EXTRA"`). `expectedDisplay[0]` is the teacher's correction.
+ */
 export interface UnitResult {
   index: number;
   score: number; // 0 or 1

@@ -523,6 +523,27 @@ class ExerciseGradingServiceTest {
                 .containsExactly("gato");
     }
 
+    @Test
+    void spotWrongWords_hidesKeyAndScoresFoundOverErrors() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        HomeworkQuestion q = structured(QuestionKind.SPOT_WRONG_WORDS,
+                "Yo sabo que tú estás aquí.",
+                """
+                {"errors":[{"wordIndex":1,"word":"sabo","correction":"sé"},
+                           {"wordIndex":4,"word":"estás","correction":null}]}
+                """);
+        when(questionRepository.findByAssignment(ASSIGNMENT_ID)).thenReturn(List.of(q));
+        var view = service.getExercise(EMAIL, ASSIGNMENT_ID);
+        assertThat(view.questions().getFirst().structure().toString()).isEqualTo("{\"errorCount\":2}");
+
+        ExerciseResultResponse r = grade(q, new AnswerDto(q.getId(), List.of(),
+                mapper.readTree("{\"selected\":[1,3]}")));
+        assertThat(r.questions().getFirst().score()).isEqualTo(0.5);
+        assertThat(r.scorePercent()).isEqualTo(50);
+        assertThat(r.fullyCorrectCount()).isZero();
+        assertThat(r.questions().getFirst().unitResults()).hasSize(3);
+    }
+
     // --- numbered SINGLE_CHOICE ----------------------------------------------
 
     private static HomeworkQuestion numberedSingleChoice(

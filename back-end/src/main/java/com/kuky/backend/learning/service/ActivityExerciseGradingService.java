@@ -268,6 +268,12 @@ public class ActivityExerciseGradingService {
             case DRAG_DROP -> gradeDragDrop(q, given);
             case TABLE_FILL -> gradeTableFill(q, given);
             case MATCHING -> gradeMatching(q, given);
+            case SPOT_WRONG_WORDS -> {
+                QuestionScoring.GradedAnswer graded =
+                        SpotWrongWords.grade(q, answerJsonOf(given), objectMapper);
+                yield new GradedAnswer(graded.score(), graded.selectedOptionIds(),
+                        graded.answerJson(), graded.unitResults());
+            }
             case FREE_TEXT -> throw new IllegalStateException("FREE_TEXT no se califica automáticamente.");
         };
     }
@@ -567,6 +573,7 @@ public class ActivityExerciseGradingService {
                 result.set("right", arrayOrEmpty(structure.path("right")));
             }
             case MULTI_BLANK -> { }
+            case SPOT_WRONG_WORDS -> result.put("errorCount", SpotWrongWords.errorCount(structure));
             default -> { }
         }
         return result;

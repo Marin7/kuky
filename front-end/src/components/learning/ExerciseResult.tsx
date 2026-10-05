@@ -12,6 +12,7 @@ import { MultiBlankResult } from "./MultiBlankResult";
 import { InlineSingleChoiceResult } from "./InlineSingleChoiceResult";
 import { NumberedInlineSingleChoiceResult } from "./NumberedInlineSingleChoiceResult";
 import { TableFillResult } from "./TableFillResult";
+import { SpotWrongWordsResult } from "./SpotWrongWordsResult";
 import { QuestionCard, QuestionHeading } from "./QuestionHeading";
 import { TextWithLinks } from "./TextWithLinks";
 
@@ -108,8 +109,11 @@ export function QuestionResultBlock({
       : "";
   const hasStudentChoice = studentChoiceText.length > 0;
   const isTrueFalse = question?.kind === "TRUE_FALSE";
+  const isSpotWrongWords = question?.kind === "SPOT_WRONG_WORDS";
   const isBlankPassage =
-    question?.kind === "MULTI_BLANK" || question?.kind === "DRAG_DROP";
+    question?.kind === "MULTI_BLANK" ||
+    question?.kind === "DRAG_DROP" ||
+    isSpotWrongWords;
   const inlineChoice = question
     ? matchClassicInlineSingleChoice(question)
     : null;
@@ -125,7 +129,14 @@ export function QuestionResultBlock({
     Boolean(filledChoicePrompt) ||
     numberedSingleChoice;
   const inlineResult =
-    isBlankPassage && question ? (
+    isSpotWrongWords && question ? (
+      <SpotWrongWordsResult
+        index={number}
+        questionCount={questionCount}
+        prompt={question.prompt}
+        unitResults={unitResults}
+      />
+    ) : isBlankPassage && question ? (
       <MultiBlankResult
         index={number}
         questionCount={questionCount}

@@ -52,6 +52,7 @@ import com.kuky.backend.learning.service.HomeworkCompositionSupport;
 import com.kuky.backend.learning.service.HomeworkDueDates;
 import com.kuky.backend.learning.service.NewHomeworkGrants;
 import com.kuky.backend.learning.service.SingleChoiceMarkerParser;
+import com.kuky.backend.learning.service.SpotWrongWords;
 import com.kuky.backend.notification.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,6 +70,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -976,8 +978,60 @@ public class HomeworkAdminService {
             case DRAG_DROP -> validateDragDrop(prompt, structure);
             case TABLE_FILL -> validateTableFill(structure);
             case MATCHING -> validateMatching(structure);
+            case SPOT_WRONG_WORDS -> validateSpotWrongWords(prompt, structure);
             default -> throw new IllegalStateException("Tipo de pregunta no estructurado: " + kind);
         };
+    }
+
+    /**
+     * SPOT_WRONG_WORDS: the prompt is the passage; each error names a word by index
+     * and must still match the token there ({@code specs/054-spot-wrong-words/data-model.md}).
+     */
+    private JsonNode validateSpotWrongWords(String prompt, JsonNode structure) {
+        if (prompt.length() > ExerciseStructureLimits.MAX_SPOT_TEXT_CHARS) {
+            throw new IllegalArgumentException(
+                    "El texto puede tener como máximo " + ExerciseStructureLimits.MAX_SPOT_TEXT_CHARS + " caracteres.");
+        }
+        List<String> words = SpotWrongWords.tokenize(prompt);
+        JsonNode errorsNode = structure.get("errors");
+        if (errorsNode == null || !errorsNode.isArray() || errorsNode.isEmpty()) {
+            throw new IllegalArgumentException("Marca al menos una palabra incorrecta.");
+        }
+        if (errorsNode.size() > ExerciseStructureLimits.MAX_SPOT_ERRORS) {
+            throw new IllegalArgumentException(
+                    "Puedes marcar como máximo " + ExerciseStructureLimits.MAX_SPOT_ERRORS + " palabras incorrectas.");
+        }
+        Map<Integer, ObjectNode> byIndex = new TreeMap<>();
+        for (JsonNode e : errorsNode) {
+            JsonNode indexNode = e == null ? null : e.get("wordIndex");
+            String word = textOrNull(e, "word");
+            if (indexNode == null || !indexNode.isIntegralNumber()
+                    || indexNode.asInt() < 0 || indexNode.asInt() >= words.size()
+                    || !words.get(indexNode.asInt()).equals(word)) {
+                throw new IllegalArgumentException(
+                        "Una palabra marcada ya no coincide con el texto. Vuelve a marcarla.");
+            }
+            int index = indexNode.asInt();
+            if (byIndex.containsKey(index)) {
+                throw new IllegalArgumentException("Una palabra está marcada dos veces.");
+            }
+            String correction = textOrNull(e, "correction");
+            correction = correction == null || correction.isBlank() ? null : correction.strip();
+            if (correction != null && correction.length() > ExerciseStructureLimits.MAX_SPOT_CORRECTION_CHARS) {
+                throw new IllegalArgumentException(
+                        "La corrección puede tener como máximo "
+                                + ExerciseStructureLimits.MAX_SPOT_CORRECTION_CHARS + " caracteres.");
+            }
+            ObjectNode entry = objectMapper.createObjectNode();
+            entry.put("wordIndex", index);
+            entry.put("word", word);
+            if (correction == null) entry.putNull("correction");
+            else entry.put("correction", correction);
+            byIndex.put(index, entry);
+        }
+        ArrayNode errors = objectMapper.createArrayNode();
+        byIndex.values().forEach(errors::add);
+        return objectMapper.createObjectNode().set("errors", errors);
     }
 
     private JsonNode validateMultiBlank(String prompt, JsonNode structure) {
