@@ -7,8 +7,8 @@ import java.util.UUID;
 
 /**
  * Student-facing activity detail (MANUAL, EXERCISE, or MIXED).
- * Placement: insert after {@code triggerPage} of {@code triggerFileId}.
- * Media: {@code instructionsText} + optional {@code youtubeUrl}.
+ * The instructions are page {@code page} of the unit PDF file {@code fileId}.
+ * Carries no score: students see per-answer marks and teacher feedback only.
  */
 public record ActivityItemResponse(
         UUID id,
@@ -16,19 +16,14 @@ public record ActivityItemResponse(
         String format,
         String composition,
         String status,
-        String level,
-        String homeworkType,
-        UUID triggerFileId,
-        Integer triggerPage,
-        String instructionsText,
-        String youtubeUrl,
-        UUID imageId,
+        UUID presentationId,
+        UUID fileId,
+        int page,
+        UUID unitId,
         String reviewModel,
         List<FormattedTextSegment> response,
         List<FormattedTextSegment> feedback,
         String feedbackText,
-        Integer scorePercent,
-        Integer provisionalScorePercent,
         List<ExerciseQuestionDto> questions,
         ExerciseResultResponse result,
         String teacherFeedback,

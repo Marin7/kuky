@@ -2,8 +2,6 @@ package com.kuky.backend.units.service;
 
 import com.kuky.backend.admin.dto.AssigneeDto;
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
-import com.kuky.backend.admin.dto.PresentationFileSummary;
-import com.kuky.backend.admin.dto.PresentationSummary;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
@@ -48,19 +46,22 @@ public class UnitService {
     private final HomeworkTargetRepository targetRepository;
     private final SchedulingProperties schedulingProperties;
     private final HomeworkAssignmentEmailService assignmentEmailService;
+    private final UnitPdfService unitPdfService;
 
     public UnitService(UnitRepository repository,
                        UserRepository userRepository,
                        PresentationRepository presentationRepository,
                        HomeworkTargetRepository targetRepository,
                        SchedulingProperties schedulingProperties,
-                       HomeworkAssignmentEmailService assignmentEmailService) {
+                       HomeworkAssignmentEmailService assignmentEmailService,
+                       UnitPdfService unitPdfService) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
         this.targetRepository = targetRepository;
         this.schedulingProperties = schedulingProperties;
         this.assignmentEmailService = assignmentEmailService;
+        this.unitPdfService = unitPdfService;
     }
 
     public List<UnitSummary> list() {
@@ -87,13 +88,21 @@ public class UnitService {
             throw new IllegalArgumentException("El nombre del tema no puede estar vacío.");
         }
         repository.updateLevelSubject(id, validLevel, subject.trim());
+        presentationRepository.updateOwnedTitleLevel(id, subject.trim(), validLevel);
         return detail(id);
     }
 
+    /** Cascades to the unit's PDF, its activities and their submissions; homeworks stay in the library. */
     public void delete(UUID id) {
+        unitPdfService.deleteFileAfterCommit(id);
         if (repository.delete(id) == 0) {
             throw new UnitNotFoundException("Unidad no encontrada.");
         }
+    }
+
+    public List<UnitActivityProgressRow> activityProgress(UUID id) {
+        requireUnit(id);
+        return repository.findActivityProgress(id);
     }
 
     public List<UnitSummary> reorder(String level, List<UUID> orderedIds) {
@@ -138,12 +147,6 @@ public class UnitService {
         }
 
         repository.reorderContents(id, cleaned);
-        return detail(id);
-    }
-
-    public UnitDetail setPresentations(UUID id, List<UUID> presentationIds) {
-        requireUnit(id);
-        repository.setPresentations(id, presentationIds);
         return detail(id);
     }
 
@@ -223,16 +226,11 @@ public class UnitService {
 
     private UnitDetail detail(UUID id) {
         Unit u = requireUnit(id);
-        List<PresentationSummary> presentations = repository.findPresentations(id);
-        Map<UUID, List<PresentationFileSummary>> filesByPresentation =
-                presentationRepository.listFilesGrouped(
-                        presentations.stream().map(PresentationSummary::id).toList());
-        Map<UUID, PresentationSummary> presentationsById = presentations.stream()
-                .map(p -> new PresentationSummary(
-                        p.id(), p.title(), p.level(),
-                        filesByPresentation.getOrDefault(p.id(), List.of()),
-                        p.sharedWithIds(), p.updatedAt()))
-                .collect(Collectors.toMap(PresentationSummary::id, Function.identity()));
+        UnitPdfInfo pdf = presentationRepository.findOwnedByUnit(id)
+                .filter(p -> p.fileId() != null && p.pageCount() != null)
+                .map(p -> new UnitPdfInfo(p.presentationId(), p.fileId(), p.originalName(),
+                        p.byteSize() == null ? 0 : p.byteSize(), p.pageCount()))
+                .orElse(null);
 
         Map<UUID, HomeworkAdminItem> homeworksById = repository.findHomeworks(id).stream()
                 .map(this::withAssignees)
@@ -240,28 +238,41 @@ public class UnitService {
 
         List<UnitContentItem> contents = new ArrayList<>();
         for (UnitRepository.ContentMember m : repository.findContentMembers(id)) {
-            if (UnitContentItem.PRESENTATION.equals(m.type())) {
-                PresentationSummary p = presentationsById.get(m.id());
-                if (p != null) {
-                    contents.add(new UnitContentItem(
-                            UnitContentItem.PRESENTATION, m.unitPosition(), p, null));
+            if (UnitContentItem.PDF.equals(m.type())) {
+                if (pdf != null) {
+                    contents.add(new UnitContentItem(UnitContentItem.PDF, m.unitPosition(), null));
                 }
             } else if (UnitContentItem.HOMEWORK.equals(m.type())) {
                 HomeworkAdminItem h = homeworksById.get(m.id());
                 if (h != null) {
-                    contents.add(new UnitContentItem(
-                            UnitContentItem.HOMEWORK, m.unitPosition(), null, h));
+                    contents.add(new UnitContentItem(UnitContentItem.HOMEWORK, m.unitPosition(), h));
                 }
             }
         }
+
+        List<UnitActivitySummary> activities = repository.findActivityCounts(id).stream()
+                .map(a -> new UnitActivitySummary(
+                        a.id(), a.page(), a.title(), a.format(), compositionOfFormat(a.format()),
+                        a.submitted(), a.awaitingCorrection(), a.graded(), a.hasUnseen()))
+                .toList();
 
         return new UnitDetail(
                 u.getId(),
                 u.getLevel(),
                 u.getSubject(),
                 u.getPosition(),
+                pdf,
                 contents,
+                activities,
                 repository.findAssignedStudents(id));
+    }
+
+    private static String compositionOfFormat(String format) {
+        return switch (format) {
+            case "MIXED" -> "MIXED";
+            case "EXERCISE" -> "ALL_AUTO";
+            default -> "ALL_MANUAL";
+        };
     }
 
     private HomeworkAdminItem withAssignees(HomeworkAdminItem h) {
@@ -304,7 +315,7 @@ public class UnitService {
             throw new InvalidContentOrderException("Tipo de contenido inválido.");
         }
         String upper = raw.toUpperCase(Locale.ROOT);
-        if (!UnitContentItem.PRESENTATION.equals(upper) && !UnitContentItem.HOMEWORK.equals(upper)) {
+        if (!UnitContentItem.PDF.equals(upper) && !UnitContentItem.HOMEWORK.equals(upper)) {
             throw new InvalidContentOrderException("Tipo de contenido inválido: " + raw);
         }
         return upper;

@@ -325,7 +325,13 @@ function StudentProfilePage() {
       case "homework":
         return renderHomeworkPanel(p.homeworks);
       case "presentations":
-        return <StudentPresentationsPanel presentations={p.presentations} />;
+        return (
+          <StudentPresentationsPanel
+            presentations={p.presentations}
+            unitActivities={p.unitActivities}
+            onActivityChanged={reloadProfile}
+          />
+        );
       case "mistakes":
         return (
           <StudentMistakesList
@@ -417,6 +423,7 @@ function StudentProfilePage() {
             {...common}
             title={t("admin.studentProfile.stats.presentations")}
             count={p.presentations.length}
+            unseen={p.unitActivities.some((a) => a.unseen)}
             expandLabel={t("admin.studentProfile.expandPresentations")}
             collapseLabel={t("admin.studentProfile.collapsePresentations")}
           />

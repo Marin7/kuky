@@ -6,6 +6,7 @@ import com.kuky.backend.auth.InterestCatalogue;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.config.SchedulingProperties;
+import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.learning.service.HomeworkDueDates;
 import com.kuky.backend.presentations.repository.PresentationRepository;
@@ -26,17 +27,20 @@ public class StudentProfileAdminService {
     private final HomeworkTargetRepository homeworkTargetRepository;
     private final PresentationRepository presentationRepository;
     private final SchedulingProperties schedulingProperties;
+    private final ActivitySubmissionRepository activitySubmissionRepository;
 
     public StudentProfileAdminService(UserRepository userRepository,
                                       BookingRepository bookingRepository,
                                       HomeworkTargetRepository homeworkTargetRepository,
                                       PresentationRepository presentationRepository,
-                                      SchedulingProperties schedulingProperties) {
+                                      SchedulingProperties schedulingProperties,
+                                      ActivitySubmissionRepository activitySubmissionRepository) {
         this.userRepository = userRepository;
         this.bookingRepository = bookingRepository;
         this.homeworkTargetRepository = homeworkTargetRepository;
         this.presentationRepository = presentationRepository;
         this.schedulingProperties = schedulingProperties;
+        this.activitySubmissionRepository = activitySubmissionRepository;
     }
 
     public StudentProfileResponse getProfile(UUID studentId) {
@@ -61,6 +65,13 @@ public class StudentProfileAdminService {
                 .map(s -> new StudentProfilePresentationDto(s.id(), s.title(), s.level()))
                 .toList();
 
+        List<StudentProfileUnitActivityDto> unitActivities = activitySubmissionRepository
+                .findUnitActivitiesForStudent(studentId).stream()
+                .map(r -> new StudentProfileUnitActivityDto(r.unitId(), r.unitLevel(), r.unitSubject(),
+                        r.activityId(), r.page(), r.title(), r.format(), r.status(), r.scorePercent(),
+                        r.submissionId(), r.unseen()))
+                .toList();
+
         return new StudentProfileResponse(
                 user.getId(),
                 user.getEmail(),
@@ -73,7 +84,8 @@ public class StudentProfileAdminService {
                 user.getInterestsNote(),
                 bookings,
                 homeworks,
-                presentations);
+                presentations,
+                unitActivities);
     }
 
     /**

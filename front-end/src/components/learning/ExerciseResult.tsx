@@ -61,12 +61,15 @@ export function QuestionResultBlock({
   number,
   questionCount,
   showAllAnswers = false,
+  showPartialPercent = true,
 }: {
   question: StudentQuestion | undefined;
   result: QuestionResult;
   number: number;
   questionCount: number;
   showAllAnswers?: boolean;
+  /** Off when the result carries no score (unit page activities). */
+  showPartialPercent?: boolean;
 }) {
   const { t } = useTranslation();
   const noAnswer = t("learning.exerciseResult.noAnswer");
@@ -85,7 +88,9 @@ export function QuestionResultBlock({
       }
     : partial
       ? {
-          text: `${t("learning.exerciseResult.questionPartial")} — ${Math.round(qr.score * 100)}%`,
+          text: showPartialPercent
+            ? `${t("learning.exerciseResult.questionPartial")} — ${Math.round(qr.score * 100)}%`
+            : t("learning.exerciseResult.questionPartial"),
           cls: "bg-amber-100 text-amber-700",
         }
       : {
@@ -285,6 +290,8 @@ export function ExerciseResult({
   hideScoreSummary = false,
 }: Props) {
   const { t } = useTranslation();
+  // Unit page activities come back without any score: show per-answer marks only.
+  const hasScore = result.scorePercent != null;
   const byId = new Map(questions.map((q) => [q.id, q]));
   const feedbackText = teacherFeedback?.trim() || null;
   const passageText = instructions?.trim() || null;
@@ -310,7 +317,7 @@ export function ExerciseResult({
         </div>
       )}
 
-      {!hideScoreSummary && (
+      {!hideScoreSummary && hasScore && (
         <div className="rounded-lg border bg-card p-4">
           <p className="text-2xl font-semibold text-primary">
             {result.scorePercent}%
@@ -358,6 +365,7 @@ export function ExerciseResult({
                   number={index + 1}
                   questionCount={questions.length}
                   showAllAnswers={showAllAnswers}
+                  showPartialPercent={hasScore}
                 />
               </QuestionCard>
             ))}

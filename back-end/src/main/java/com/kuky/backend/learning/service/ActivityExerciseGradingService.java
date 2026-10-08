@@ -5,33 +5,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.kuky.backend.auth.model.User;
-import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.dto.ExerciseQuestionDto;
 import com.kuky.backend.learning.dto.ExerciseResultResponse;
 import com.kuky.backend.learning.dto.SubmitExerciseRequest;
-import com.kuky.backend.learning.exception.ActivityAlreadySubmittedException;
-import com.kuky.backend.learning.exception.ActivityNotFoundException;
-import com.kuky.backend.learning.exception.ActivityValidationException;
-import com.kuky.backend.learning.model.Activity;
 import com.kuky.backend.learning.model.ActivityQuestion;
 import com.kuky.backend.learning.model.ActivitySubmission;
 import com.kuky.backend.learning.model.HomeworkAnswer;
-import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkQuestion;
-import com.kuky.backend.learning.model.HomeworkStatus;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.model.QuestionOption;
 import com.kuky.backend.learning.repository.ActivityAnswerRepository;
 import com.kuky.backend.learning.repository.ActivityQuestionRepository;
-import com.kuky.backend.learning.repository.ActivityRepository;
-import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
-import com.kuky.backend.presentations.repository.PresentationRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -39,7 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -49,27 +35,15 @@ import java.util.stream.Collectors;
 @Service
 public class ActivityExerciseGradingService {
 
-    private final ActivityRepository activityRepository;
     private final ActivityQuestionRepository questionRepository;
-    private final ActivitySubmissionRepository submissionRepository;
     private final ActivityAnswerRepository answerRepository;
-    private final PresentationRepository presentationRepository;
-    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    public ActivityExerciseGradingService(ActivityRepository activityRepository,
-                                          ActivityQuestionRepository questionRepository,
-                                          ActivitySubmissionRepository submissionRepository,
+    public ActivityExerciseGradingService(ActivityQuestionRepository questionRepository,
                                           ActivityAnswerRepository answerRepository,
-                                          PresentationRepository presentationRepository,
-                                          UserRepository userRepository,
                                           ObjectMapper objectMapper) {
-        this.activityRepository = activityRepository;
         this.questionRepository = questionRepository;
-        this.submissionRepository = submissionRepository;
         this.answerRepository = answerRepository;
-        this.presentationRepository = presentationRepository;
-        this.userRepository = userRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -133,38 +107,6 @@ public class ActivityExerciseGradingService {
         return new StructuredGradeResult(answers, questionResults, scoreSum, fullyCorrect, structuredCount);
     }
 
-    /** ALL_AUTO only — single submission → GRADED. Prefer {@code ActivityStudentService.submitAnswers}. */
-    @Transactional
-    public ExerciseResultResponse submit(String email, UUID activityId, SubmitExerciseRequest request) {
-        User user = requireUser(email);
-        requireAccessible(activityId, user.getId());
-        List<HomeworkQuestion> questions = toHomeworkQuestions(activityId);
-        HomeworkComposition composition = HomeworkCompositionSupport.activityComposition(
-                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
-        if (composition != HomeworkComposition.ALL_AUTO) {
-            throw new ActivityValidationException("Esta actividad no es un ejercicio autocorregible.");
-        }
-        Optional<ActivitySubmission> existing =
-                submissionRepository.findByUserAndActivity(user.getId(), activityId);
-        if (existing.isPresent() && HomeworkStatus.GRADED.name().equals(existing.get().getStatus())) {
-            throw new ActivityAlreadySubmittedException(
-                    "Este ejercicio ya ha sido entregado y no puede repetirse.");
-        }
-
-        Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion = (request == null || request.answers() == null)
-                ? Map.of()
-                : request.answers().stream()
-                    .filter(a -> a.questionId() != null)
-                    .collect(Collectors.toMap(SubmitExerciseRequest.AnswerDto::questionId, Function.identity(), (a, b) -> a));
-
-        StructuredGradeResult graded = gradeStructuredSubset(questions, byQuestion);
-        int scorePercent = graded.provisionalScorePercent();
-        ActivitySubmission saved = submissionRepository.upsertGraded(
-                user.getId(), activityId, scorePercent, Instant.now());
-        answerRepository.saveAll(saved.getId(), graded.structuredAnswers());
-        return graded.toProvisionalResult();
-    }
-
     public record GradedExerciseView(List<ExerciseQuestionDto> questions, ExerciseResultResponse result) {}
 
     public GradedExerciseView viewGradedSubmission(ActivitySubmission submission) {
@@ -196,20 +138,6 @@ public class ActivityExerciseGradingService {
     public List<HomeworkQuestion> toHomeworkQuestions(UUID activityId) {
         return questionRepository.findByActivityId(activityId).stream()
                 .map(ActivityQuestion::toHomeworkQuestion).toList();
-    }
-
-    private Activity requireAccessible(UUID activityId, UUID userId) {
-        Activity activity = activityRepository.findById(activityId)
-                .orElseThrow(() -> new ActivityNotFoundException("Actividad no encontrada."));
-        if (!presentationRepository.isSharedWith(activity.getPresentationId(), userId)) {
-            throw new ActivityNotFoundException("Actividad no encontrada.");
-        }
-        return activity;
-    }
-
-    private User requireUser(String email) {
-        return userRepository.findByEmailIgnoreCase(email.toLowerCase(Locale.ROOT))
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado."));
     }
 
     private ExerciseResultResponse buildStoredResult(List<HomeworkQuestion> questions,

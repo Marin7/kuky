@@ -6,6 +6,8 @@ export interface BadgeSummary {
   panel: boolean;
   homework: boolean;
   quiz: boolean;
+  /** Unseen activity submissions (unit page activities). */
+  units: boolean;
   learning: boolean;
 }
 
@@ -18,6 +20,7 @@ const EMPTY_BADGES: BadgeSummary = {
   panel: false,
   homework: false,
   quiz: false,
+  units: false,
   learning: false,
 };
 

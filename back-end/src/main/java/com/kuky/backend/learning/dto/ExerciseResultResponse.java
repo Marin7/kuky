@@ -6,13 +6,20 @@ import java.util.UUID;
 /**
  * The graded outcome of a self-correcting exercise — overall score plus
  * per-question feedback (including the correct answers, revealed post-submit).
+ * The three summary fields are null for unit page activities, which show students
+ * per-answer marks only (no score).
  */
 public record ExerciseResultResponse(
-        int scorePercent,            // 0–100, rounded
-        int fullyCorrectCount,
-        int totalQuestions,
+        Integer scorePercent,        // 0–100, rounded; null for page activities
+        Integer fullyCorrectCount,
+        Integer totalQuestions,
         List<QuestionResultDto> questions
 ) {
+    /** The per-question marks without the overall score (what a page activity shows a student). */
+    public ExerciseResultResponse withoutScore() {
+        return new ExerciseResultResponse(null, null, null, questions);
+    }
+
     public record QuestionResultDto(
             UUID questionId,
             double score,                 // 0..1 (fractional for MULTI_CHOICE / multi-unit)

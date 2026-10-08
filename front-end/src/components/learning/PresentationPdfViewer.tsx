@@ -9,6 +9,7 @@ export interface PresentationPdfViewerProps {
   displayName?: string;
   embedded?: boolean;
   onPageVisible?: (page: number) => void;
+  /** Page activities: each is shown right after its page. */
   activities?: ActivitySummary[];
   onActivityChanged?: (activityId: string) => void;
 }

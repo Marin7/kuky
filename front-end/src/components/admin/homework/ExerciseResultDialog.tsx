@@ -27,6 +27,12 @@ interface Props {
   onClose: () => void;
   /** Called after feedback is saved/cleared so parent lists can refresh indicators. */
   onFeedbackSaved?: () => void;
+  /** Endpoints to use; defaults to homework. Page activities pass their own. */
+  load?: (submissionId: string) => Promise<ExerciseSubmissionResultAdmin>;
+  saveFeedback?: (
+    submissionId: string,
+    feedback: string,
+  ) => Promise<ExerciseSubmissionResultAdmin>;
 }
 
 /** Graded exercise result for the teacher, with optional plain-text feedback. */
@@ -34,6 +40,8 @@ export function ExerciseResultDialog({
   submissionId,
   onClose,
   onFeedbackSaved,
+  load = getExerciseSubmissionResult,
+  saveFeedback = saveExerciseFeedback,
 }: Props) {
   const { t } = useTranslation();
   const [data, setData] = useState<ExerciseSubmissionResultAdmin | null>(null);
@@ -46,7 +54,7 @@ export function ExerciseResultDialog({
   useEffect(() => {
     setLoading(true);
     setLoadError(null);
-    getExerciseSubmissionResult(submissionId)
+    load(submissionId)
       .then((result) => {
         setData(result);
         setFeedbackDraft(result.teacherFeedback ?? "");
@@ -60,7 +68,7 @@ export function ExerciseResultDialog({
     setSaving(true);
     setSaveError(null);
     try {
-      const updated = await saveExerciseFeedback(submissionId, feedbackDraft);
+      const updated = await saveFeedback(submissionId, feedbackDraft);
       setData(updated);
       setFeedbackDraft(updated.teacherFeedback ?? "");
       onFeedbackSaved?.();

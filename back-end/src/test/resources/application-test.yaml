@@ -43,5 +43,3 @@ app:
     storage-dir: ./data/images-test
   presentation-files:
     storage-dir: ./data/presentation-files-test
-  activity-instructions:
-    storage-dir: ./data/activity-instructions-test

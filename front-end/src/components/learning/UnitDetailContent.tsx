@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   HomeworkItem,
@@ -217,21 +217,6 @@ interface Props {
   onHomeworkChanged: () => void;
 }
 
-function submittedAtDesc(a: HomeworkItem, b: HomeworkItem): number {
-  const aTime = a.submittedAt ? Date.parse(a.submittedAt) : 0;
-  const bTime = b.submittedAt ? Date.parse(b.submittedAt) : 0;
-  return bTime - aTime;
-}
-
-function scrollToHomework(homeworkId: string) {
-  document.getElementById(`unit-homework-${homeworkId}`)?.scrollIntoView({
-    // Instant: a smooth scroll started at the old (pending) index races the
-    // reorder and lands on whichever pending homework took that slot.
-    behavior: "auto",
-    block: "start",
-  });
-}
-
 export function UnitDetailContent({
   presentations,
   homework,
@@ -240,65 +225,26 @@ export function UnitDetailContent({
   const { t } = useTranslation();
   // Controlled Radix accordion: use "" (not undefined) so collapse stays controlled.
   const [openItem, setOpenItem] = useState("");
-  const pendingScrollHomeworkId = useRef<string | null>(null);
 
   const handleHomeworkChanged = (homeworkId: string) => {
-    pendingScrollHomeworkId.current = homeworkId;
+    // Keep the submitted homework open across the list refresh.
     setOpenItem(`h-${homeworkId}`);
     onHomeworkChanged();
   };
 
-  // After the list refresh, the completed homework moves below remaining pending
-  // items — scroll only then, so the viewport follows the same homework.
-  useLayoutEffect(() => {
-    const homeworkId = pendingScrollHomeworkId.current;
-    if (!homeworkId) return;
-    const updated = homework.find((h) => h.id === homeworkId);
-    if (!updated || updated.status === "PENDING") return;
-    pendingScrollHomeworkId.current = null;
-    setOpenItem(`h-${homeworkId}`);
-    const frame = requestAnimationFrame(() => scrollToHomework(homeworkId));
-    return () => cancelAnimationFrame(frame);
-  }, [homework]);
-
-  const byUnitPosition = (a: number, b: number) => a - b;
-
-  const pendingHomework = homework
-    .filter((h) => h.status === "PENDING")
-    .sort((a, b) =>
-      byUnitPosition(
-        a.unitPosition ?? Number.MAX_SAFE_INTEGER,
-        b.unitPosition ?? Number.MAX_SAFE_INTEGER,
-      ),
-    );
-  const submittedHomework = homework
-    .filter((h) => h.status !== "PENDING")
-    .sort(submittedAtDesc);
-  const sortedPresentations = [...presentations].sort((a, b) =>
-    byUnitPosition(
-      a.unitPosition ?? Number.MAX_SAFE_INTEGER,
-      b.unitPosition ?? Number.MAX_SAFE_INTEGER,
-    ),
-  );
-
-  // Pending homework on top, then submitted by date desc, then presentations (unit order).
+  // The teacher's order for the unit (PDF and homeworks by unit position), whatever their status.
   const items: UnitListItem[] = [
-    ...pendingHomework.map((h) => ({
+    ...homework.map((h) => ({
       kind: "homework" as const,
       position: h.unitPosition ?? Number.MAX_SAFE_INTEGER,
       homework: h,
     })),
-    ...submittedHomework.map((h) => ({
-      kind: "homework" as const,
-      position: h.unitPosition ?? Number.MAX_SAFE_INTEGER,
-      homework: h,
-    })),
-    ...sortedPresentations.map((p) => ({
+    ...presentations.map((p) => ({
       kind: "presentation" as const,
       position: p.unitPosition ?? Number.MAX_SAFE_INTEGER,
       presentation: p,
     })),
-  ];
+  ].sort((a, b) => a.position - b.position);
 
   if (items.length === 0) {
     return (

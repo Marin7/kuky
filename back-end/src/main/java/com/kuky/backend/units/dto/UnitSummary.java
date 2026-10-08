@@ -8,7 +8,10 @@ public record UnitSummary(
         String level,
         String subject,
         int position,
-        int presentationCount,
+        boolean hasPdf,
+        Integer pageCount,
+        int activityCount,
         int homeworkCount,
-        List<String> assignedStudentIds
+        List<String> assignedStudentIds,
+        boolean hasUnseenActivitySubmissions
 ) {}

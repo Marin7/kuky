@@ -303,6 +303,23 @@ export interface StudentProfilePresentation {
   level: HomeworkLevel | null;
 }
 
+export type SubmissionStatus = "PENDING" | "SUBMITTED" | "REVIEWED" | "GRADED";
+
+/** A page activity of a unit assigned to the student, with that student's submission state. */
+export interface StudentProfileUnitActivity {
+  unitId: string;
+  unitLevel: HomeworkLevel;
+  unitSubject: string;
+  activityId: string;
+  page: number;
+  title: string | null;
+  format: HomeworkFormat;
+  status: SubmissionStatus;
+  scorePercent: number | null;
+  submissionId: string | null;
+  unseen: boolean;
+}
+
 export interface HomeworkBreakdown {
   pending: number;
   submitted: number;
@@ -343,6 +360,7 @@ export interface StudentProfile {
   bookings: StudentProfileBooking[];
   homeworks: StudentProfileHomework[];
   presentations: StudentProfilePresentation[];
+  unitActivities: StudentProfileUnitActivity[];
 }
 
 export const getStudentProfile = (id: string) =>
@@ -901,62 +919,27 @@ export const downloadPresentationFile = async (
 };
 
 // ---------------------------------------------------------------------------
-// Presentation Activities
+// Page activities (pages of a unit's PDF)
 // ---------------------------------------------------------------------------
 
-export interface ActivityInstructionsMeta {
+export interface ActivityAdminDetail {
   id: string;
-  originalName: string;
-  contentType: string;
-  byteSize: number;
-}
-
-export interface ActivityAdminItem {
-  id: string;
-  title: string;
+  unitId: string | null;
+  presentationId: string;
+  page: number;
+  /** null → "Actividad – página N" fallback. */
+  title: string | null;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
-  level: HomeworkLevel | null;
-  homeworkType: HomeworkType | null;
-  presentationId: string;
-  presentationTitle: string;
-  position: number;
-  triggerFileId: string | null;
-  triggerPage: number | null;
-  instructionsText: string;
-  youtubeUrl: string | null;
-  imageId: string | null;
-  hasInstructions: boolean;
+  questions: AdminQuestion[];
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ActivityAdminDetail extends ActivityAdminItem {
-  questions: AdminQuestion[];
-  instructions: ActivityInstructionsMeta | null;
-}
-
 export interface ActivityWriteFields {
   title: string;
-  presentationId: string;
-  /** Ignored by server; format is derived from questions. */
-  format?: HomeworkFormat;
-  level?: HomeworkLevel | null;
-  homeworkType?: HomeworkType | null;
-  triggerFileId: string;
-  triggerPage: number;
-  instructionsText: string;
-  youtubeUrl?: string | null;
-  imageId?: string | null;
-  questions?: AdminQuestion[];
+  questions: AdminQuestion[];
 }
-
-export const listActivities = (presentationId?: string) => {
-  const qs = presentationId
-    ? `?presentationId=${encodeURIComponent(presentationId)}`
-    : "";
-  return apiCall<ActivityAdminItem[]>(`/activities${qs}`);
-};
 
 export const getActivityAdmin = (id: string) =>
   apiCall<ActivityAdminDetail>(`/activities/${id}`);
@@ -976,54 +959,40 @@ export const uploadAdminImage = async (
   return data as { id: string; contentType: string; byteSize: number };
 };
 
-export const createActivity = (fields: ActivityWriteFields) =>
-  apiCall<ActivityAdminDetail>("/activities", {
+/** Marks `page` of the unit's PDF as an activity. 409 ACTIVITY_PAGE_TAKEN if it already is one. */
+export const createPageActivity = (
+  unitId: string,
+  page: number,
+  fields: ActivityWriteFields,
+) =>
+  apiCall<ActivityAdminDetail>(`/units/${unitId}/activities`, {
     method: "POST",
-    body: JSON.stringify({
-      title: fields.title,
-      presentationId: fields.presentationId,
-      level: fields.level ?? null,
-      homeworkType: fields.homeworkType ?? null,
-      triggerFileId: fields.triggerFileId,
-      triggerPage: fields.triggerPage,
-      instructionsText: fields.instructionsText,
-      youtubeUrl: fields.youtubeUrl ?? null,
-      imageId: fields.imageId ?? null,
-      questions: fields.questions ?? [],
-    }),
+    body: JSON.stringify({ page, ...fields }),
   });
 
 export const updateActivity = (id: string, fields: ActivityWriteFields) =>
   apiCall<ActivityAdminDetail>(`/activities/${id}`, {
     method: "PUT",
-    body: JSON.stringify({
-      title: fields.title,
-      presentationId: fields.presentationId,
-      level: fields.level ?? null,
-      homeworkType: fields.homeworkType ?? null,
-      triggerFileId: fields.triggerFileId,
-      triggerPage: fields.triggerPage,
-      instructionsText: fields.instructionsText,
-      youtubeUrl: fields.youtubeUrl ?? null,
-      imageId: fields.imageId ?? null,
-      questions: fields.questions ?? [],
-    }),
+    body: JSON.stringify(fields),
   });
 
-export const deleteActivity = (id: string) =>
-  apiCall<void>(`/activities/${id}`, { method: "DELETE" });
+/** Unmarks the page. 409 ACTIVITY_HAS_SUBMISSIONS unless `deleteSubmissions`. */
+export const deleteActivity = (id: string, deleteSubmissions = false) =>
+  apiCall<void>(
+    `/activities/${id}${deleteSubmissions ? "?deleteSubmissions=true" : ""}`,
+    { method: "DELETE" },
+  );
 
-export const reorderActivities = (
-  presentationId: string,
-  activityIds: string[],
-) =>
-  apiCall<void>(`/presentations/${presentationId}/activities/reorder`, {
-    method: "PUT",
-    body: JSON.stringify({ activityIds }),
-  });
+export interface ActivityReviewQueueItem extends HomeworkReviewQueueItem {
+  activityId: string;
+  unitId: string | null;
+  page: number;
+}
 
-export const getActivityReviewQueue = () =>
-  apiCall<HomeworkReviewQueueItem[]>("/activities/submissions");
+export const getActivityReviewQueue = (unitId?: string) =>
+  apiCall<ActivityReviewQueueItem[]>(
+    `/activities/submissions${unitId ? `?unitId=${encodeURIComponent(unitId)}` : ""}`,
+  );
 
 export const getActivitySubmission = (submissionId: string) =>
   apiCall<HomeworkSubmissionAdmin>(`/activities/submissions/${submissionId}`);
@@ -1058,7 +1027,7 @@ export const saveActivityExerciseFeedback = (
   );
 
 // ---------------------------------------------------------------------------
-// Units (Class Packages)
+// Units (a PDF with page activities + homeworks)
 // ---------------------------------------------------------------------------
 
 export interface UnitSummary {
@@ -1066,16 +1035,41 @@ export interface UnitSummary {
   level: HomeworkLevel;
   subject: string;
   position: number;
-  presentationCount: number;
+  hasPdf: boolean;
+  pageCount: number | null;
+  activityCount: number;
   homeworkCount: number;
   assignedStudentIds: string[];
+  hasUnseenActivitySubmissions: boolean;
 }
 
+export type UnitContentType = "PDF" | "HOMEWORK";
+
 export interface UnitContentItem {
-  type: "PRESENTATION" | "HOMEWORK";
+  type: UnitContentType;
   unitPosition: number;
-  presentation: PresentationSummary | null;
   homework: HomeworkAdminItem | null;
+}
+
+export interface UnitPdfInfo {
+  presentationId: string;
+  fileId: string;
+  originalName: string;
+  byteSize: number;
+  pageCount: number;
+}
+
+/** Counts are over assigned students; submitted = awaitingCorrection + graded. */
+export interface UnitActivitySummary {
+  id: string;
+  page: number;
+  title: string | null;
+  format: HomeworkFormat;
+  composition: HomeworkComposition;
+  submittedCount: number;
+  awaitingCorrectionCount: number;
+  gradedCount: number;
+  hasUnseenSubmissions: boolean;
 }
 
 export interface UnitDetail {
@@ -1083,8 +1077,21 @@ export interface UnitDetail {
   level: HomeworkLevel;
   subject: string;
   position: number;
+  pdf: UnitPdfInfo | null;
   contents: UnitContentItem[];
+  activities: UnitActivitySummary[];
   assignedStudents: Student[];
+}
+
+export interface UnitActivityProgressRow {
+  activityId: string;
+  page: number;
+  studentId: string;
+  status: SubmissionStatus;
+  scorePercent: number | null;
+  submissionId: string | null;
+  submittedAt: string | null;
+  unseen: boolean;
 }
 
 export const listUnits = () => apiCall<UnitSummary[]>("/units");
@@ -1112,19 +1119,14 @@ export const reorderUnits = (level: HomeworkLevel, orderedIds: string[]) =>
     body: JSON.stringify({ level, orderedIds }),
   });
 
+/** `id` is the presentation id for the PDF item, the homework id otherwise. */
 export const reorderUnitContents = (
   id: string,
-  items: { type: "PRESENTATION" | "HOMEWORK"; id: string }[],
+  items: { type: UnitContentType; id: string }[],
 ) =>
   apiCall<UnitDetail>(`/units/${id}/contents/reorder`, {
     method: "PUT",
     body: JSON.stringify({ items }),
-  });
-
-export const setUnitPresentations = (id: string, presentationIds: string[]) =>
-  apiCall<UnitDetail>(`/units/${id}/presentations`, {
-    method: "PUT",
-    body: JSON.stringify({ presentationIds }),
   });
 
 export const setUnitHomeworks = (id: string, homeworkIds: string[]) =>
@@ -1138,6 +1140,44 @@ export const setUnitAssignees = (id: string, studentIds: string[]) =>
     method: "PUT",
     body: JSON.stringify({ studentIds }),
   });
+
+/**
+ * Uploads or replaces the unit's PDF. `pageCount` comes from pdf.js; replacing with fewer
+ * pages than the marked activities needs `removeOutOfRangeActivities` (else 409 ACTIVITIES_OUT_OF_RANGE).
+ */
+export const uploadUnitPdf = async (
+  unitId: string,
+  file: File,
+  pageCount: number,
+  removeOutOfRangeActivities = false,
+): Promise<UnitDetail> => {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("pageCount", String(pageCount));
+  form.append("removeOutOfRangeActivities", String(removeOutOfRangeActivities));
+  const res = await fetch(`${API_BASE}/units/${unitId}/pdf`, {
+    method: "POST",
+    credentials: "include",
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw data as ApiError;
+  return data as UnitDetail;
+};
+
+export const fetchUnitPdfBlob = async (unitId: string): Promise<Blob> => {
+  const res = await fetch(`${API_BASE}/units/${unitId}/pdf`, {
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw data as ApiError;
+  }
+  return res.blob();
+};
+
+export const getUnitActivityProgress = (unitId: string) =>
+  apiCall<UnitActivityProgressRow[]>(`/units/${unitId}/activity-progress`);
 
 // ---------------------------------------------------------------------------
 // Quizzes — /api/v1/admin/quizzes/**

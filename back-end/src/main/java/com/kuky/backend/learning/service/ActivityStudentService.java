@@ -13,7 +13,6 @@ import com.kuky.backend.learning.exception.ActivityAlreadySubmittedException;
 import com.kuky.backend.learning.exception.ActivityNotFoundException;
 import com.kuky.backend.learning.exception.ActivityValidationException;
 import com.kuky.backend.learning.model.Activity;
-import com.kuky.backend.learning.model.ActivityInstructionsFile;
 import com.kuky.backend.learning.model.ActivityQuestion;
 import com.kuky.backend.learning.model.ActivitySubmission;
 import com.kuky.backend.learning.model.FormattedTextSegment;
@@ -54,7 +53,6 @@ public class ActivityStudentService {
     private final ActivityAnswerRepository answerRepository;
     private final PresentationRepository presentationRepository;
     private final UserRepository userRepository;
-    private final ActivityInstructionsFileStore instructionsFileStore;
     private final ActivityExerciseGradingService gradingService;
 
     public ActivityStudentService(ActivityRepository activityRepository,
@@ -63,7 +61,6 @@ public class ActivityStudentService {
                                   ActivityAnswerRepository answerRepository,
                                   PresentationRepository presentationRepository,
                                   UserRepository userRepository,
-                                  ActivityInstructionsFileStore instructionsFileStore,
                                   ActivityExerciseGradingService gradingService) {
         this.activityRepository = activityRepository;
         this.submissionRepository = submissionRepository;
@@ -71,7 +68,6 @@ public class ActivityStudentService {
         this.answerRepository = answerRepository;
         this.presentationRepository = presentationRepository;
         this.userRepository = userRepository;
-        this.instructionsFileStore = instructionsFileStore;
         this.gradingService = gradingService;
     }
 
@@ -89,11 +85,8 @@ public class ActivityStudentService {
             for (Activity a : activityRepository.listByPresentationId(presentationId)) {
                 ActivitySubmission sub = byActivity.get(a.getId());
                 String status = sub == null ? HomeworkStatus.PENDING.name() : sub.getStatus();
-                Integer score = sub == null ? null : sub.getScorePercent();
                 list.add(new ActivitySummary(
-                        a.getId(), a.getTitle(), a.getFormat().name(), a.getPosition(),
-                        status, score, a.getTriggerFileId(), a.getTriggerPage(),
-                        a.getInstructionsText(), a.getYoutubeUrl(), a.getImageId()));
+                        a.getId(), a.getTitle(), a.getPage(), a.getFormat().name(), status));
             }
             result.put(presentationId, list);
         }
@@ -146,7 +139,8 @@ public class ActivityStudentService {
 
     /**
      * Unified submit: ALL_AUTO → GRADED; ALL_MANUAL → SUBMITTED;
-     * MIXED → SUBMITTED with auto scores + provisional %.
+     * MIXED → SUBMITTED with auto scores + provisional %. Scores are stored for the
+     * teacher only; the response to the student carries none.
      */
     @Transactional
     public ActivityItemResponse submitAnswers(String email, UUID activityId, SubmitExerciseRequest request) {
@@ -202,23 +196,6 @@ public class ActivityStudentService {
         }
     }
 
-    /** Thin delegate for ALL_AUTO-only grading path. Prefer {@link #submitAnswers}. */
-    public ExerciseResultResponse submitExercise(String email, UUID activityId, SubmitExerciseRequest request) {
-        return gradingService.submit(email, activityId, request);
-    }
-
-    public record InstructionsPdf(ActivityInstructionsFile meta, byte[] data) {}
-
-    public InstructionsPdf getInstructions(String email, UUID activityId) {
-        User user = requireUser(email);
-        requireAccessible(activityId, user.getId());
-        ActivityInstructionsFile meta = activityRepository.findInstructionsByActivityId(activityId)
-                .orElseThrow(() -> new ActivityNotFoundException("Instrucciones no encontradas."));
-        byte[] data = instructionsFileStore.read(meta.getId())
-                .orElseThrow(() -> new ActivityNotFoundException("Instrucciones no encontradas."));
-        return new InstructionsPdf(meta, data);
-    }
-
     private ActivityItemResponse toItemResponse(Activity activity, ActivitySubmission submission) {
         List<HomeworkQuestion> questions = gradingService.toHomeworkQuestions(activity.getId());
         List<HomeworkAnswer> answers = submission == null
@@ -251,29 +228,14 @@ public class ActivityStudentService {
         String format = activity.getFormat() == null ? HomeworkFormat.MANUAL.name() : activity.getFormat().name();
         boolean annotated = submission != null && "ANNOTATED".equals(submission.getReviewModel());
 
-        Integer scorePercent = submission == null ? null : submission.getScorePercent();
-        Integer provisionalScorePercent = null;
-        if (composition == HomeworkComposition.MIXED
-                && submission != null
-                && HomeworkStatus.SUBMITTED.name().equals(status)
-                && result != null) {
-            provisionalScorePercent = result.scorePercent();
-            scorePercent = null;
-        }
-
         List<ManualAnswerViewDto> answerViews = List.of();
         if (!answers.isEmpty()
                 && (composition == HomeworkComposition.ALL_MANUAL || composition == HomeworkComposition.MIXED)) {
-            boolean stripTeacherScores = HomeworkStatus.SUBMITTED.name().equals(status);
+            // Students never see scores on activities — not even the teacher's % per free-text answer.
             answerViews = answers.stream()
                     .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
-                    .map(a -> stripTeacherScores
-                            ? ManualAnswerViewDto.fromStored(
-                                    a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText())
-                            : ManualAnswerViewDto.fromStored(
-                                    a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
-                                    a.getTeacherScorePercent(),
-                                    a.getScore() == null ? null : a.getScore().doubleValue()))
+                    .map(a -> ManualAnswerViewDto.fromStored(
+                            a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
                     .toList();
         }
 
@@ -305,21 +267,16 @@ public class ActivityStudentService {
                 format,
                 composition.name(),
                 status,
-                activity.getLevel(),
-                activity.getHomeworkType(),
-                activity.getTriggerFileId(),
-                activity.getTriggerPage(),
-                activity.getInstructionsText(),
-                activity.getYoutubeUrl(),
-                activity.getImageId(),
+                activity.getPresentationId(),
+                presentationRepository.listFileIds(activity.getPresentationId()).stream().findFirst().orElse(null),
+                activity.getPage(),
+                activityRepository.findUnitId(activity.getId()).orElse(null),
                 submission == null ? null : submission.getReviewModel(),
                 List.of(),
                 feedback,
                 feedbackText,
-                scorePercent,
-                provisionalScorePercent,
                 studentQuestions,
-                result,
+                result == null ? null : result.withoutScore(),
                 teacherFeedback,
                 answerViews);
     }

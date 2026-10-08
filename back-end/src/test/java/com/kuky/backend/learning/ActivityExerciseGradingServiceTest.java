@@ -1,16 +1,12 @@
 package com.kuky.backend.learning;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kuky.backend.auth.repository.UserRepository;
 import com.kuky.backend.learning.dto.SubmitExerciseRequest.AnswerDto;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.repository.ActivityAnswerRepository;
 import com.kuky.backend.learning.repository.ActivityQuestionRepository;
-import com.kuky.backend.learning.repository.ActivityRepository;
-import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
 import com.kuky.backend.learning.service.ActivityExerciseGradingService;
-import com.kuky.backend.presentations.repository.PresentationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -29,12 +25,8 @@ class ActivityExerciseGradingServiceTest {
     @BeforeEach
     void setUp() {
         service = new ActivityExerciseGradingService(
-                mock(ActivityRepository.class),
                 mock(ActivityQuestionRepository.class),
-                mock(ActivitySubmissionRepository.class),
                 mock(ActivityAnswerRepository.class),
-                mock(PresentationRepository.class),
-                mock(UserRepository.class),
                 mapper);
     }
 

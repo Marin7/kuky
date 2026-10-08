@@ -9,6 +9,7 @@ import {
   type SaveHomeworkReviewPayload,
 } from "@/lib/admin";
 import { resolveComposition } from "@/lib/learning";
+import { notifyBadgesChanged } from "@/lib/notifications";
 import {
   Dialog,
   DialogContent,
@@ -127,7 +128,11 @@ export function ActivityReviewDialog({
 
   useEffect(() => {
     getActivitySubmission(submissionId)
-      .then(hydrate)
+      .then((data) => {
+        hydrate(data);
+        // Opening a submission marks it seen (Panel / Unidades dots).
+        notifyBadgesChanged();
+      })
       .catch(() => setLoadError(t("admin.activities.reviewLoadError")))
       .finally(() => setLoading(false));
   }, [submissionId, t]);

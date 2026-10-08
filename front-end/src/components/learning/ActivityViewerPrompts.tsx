@@ -13,8 +13,8 @@ interface Props {
 }
 
 /**
- * PDF viewer where activities are inserted after their trigger page
- * (between that page and the next), as collapsible slots with media + work.
+ * PDF viewer for a unit PDF: each page activity is a collapsible slot right after its
+ * page (the page above is the instructions).
  */
 export function ActivityViewerPrompts({
   presentationId,
@@ -32,10 +32,6 @@ export function ActivityViewerPrompts({
     setLocalActivities(activities);
   }, [activities]);
 
-  const fileActivities = localActivities.filter(
-    (a) => a.triggerFileId === fileId && a.triggerPage != null,
-  );
-
   return (
     <PresentationPdfViewer
       presentationId={presentationId}
@@ -43,7 +39,7 @@ export function ActivityViewerPrompts({
       title={title}
       displayName={displayName}
       embedded={embedded}
-      activities={fileActivities}
+      activities={localActivities}
       onActivityChanged={(activityId) => {
         setLocalActivities((prev) =>
           prev.map((a) => {

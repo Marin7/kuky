@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "@tanstack/react-router";
 import {
   updateUnit,
   deleteUnit,
@@ -10,7 +11,7 @@ import {
   type ApiError,
 } from "@/lib/admin";
 import { StudentLink } from "@/components/admin/students/StudentLink";
-import { UnitContentPicker } from "./UnitContentPicker";
+import { NotificationDot } from "@/components/NotificationDot";
 import { UnitAssignDialog } from "./UnitAssignDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,7 +47,6 @@ export function UnitCard({
   const [editLevel, setEditLevel] = useState<HomeworkLevel>(unit.level);
   const [editSubject, setEditSubject] = useState(unit.subject);
   const [saving, setSaving] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -199,7 +199,12 @@ export function UnitCard({
             >
               {unit.level}
             </span>
-            <span className="font-medium flex-1 truncate">{unit.subject}</span>
+            <span className="inline-flex min-w-0 flex-1 items-center gap-1.5 font-medium">
+              <span className="truncate">{unit.subject}</span>
+              {unit.hasUnseenActivitySubmissions && (
+                <NotificationDot label={t("notification.activity")} />
+              )}
+            </span>
             <span className="text-xs text-muted-foreground shrink-0">
               #{unit.position + 1}
             </span>
@@ -232,13 +237,10 @@ export function UnitCard({
             >
               {t("admin.units.assign")}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs shrink-0"
-              onClick={() => setExpanded((e) => !e)}
-            >
-              {expanded ? "▲" : "▼"} {t("admin.units.contents.sequence")}
+            <Button asChild size="sm" className="h-7 text-xs shrink-0">
+              <Link to="/panel/unidades/$unitId" params={{ unitId: unit.id }}>
+                {t("admin.units.open")}
+              </Link>
             </Button>
           </div>
         )}
@@ -257,23 +259,15 @@ export function UnitCard({
           </div>
         )}
 
-        {/* Expandable content */}
-        {expanded && (
-          <UnitContentPicker
-            unitId={unit.id}
-            onUpdated={(detail) =>
-              onUpdated({
-                ...unit,
-                presentationCount: detail.contents.filter(
-                  (c) => c.type === "PRESENTATION",
-                ).length,
-                homeworkCount: detail.contents.filter(
-                  (c) => c.type === "HOMEWORK",
-                ).length,
-              })
-            }
-          />
-        )}
+        <p className="text-xs text-muted-foreground">
+          {unit.hasPdf
+            ? t("admin.units.summaryPdf", { pages: unit.pageCount ?? 0 })
+            : t("admin.units.summaryNoPdf")}
+          {" · "}
+          {t("admin.units.summaryActivities", { count: unit.activityCount })}
+          {" · "}
+          {t("admin.units.summaryHomeworks", { count: unit.homeworkCount })}
+        </p>
 
         {error && <p className="text-xs text-destructive">{error}</p>}
       </CardContent>

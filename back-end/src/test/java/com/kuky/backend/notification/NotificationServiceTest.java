@@ -65,6 +65,25 @@ class NotificationServiceTest {
     }
 
     @Test
+    void adminActivityUnseen_setsPanelAndUnits() {
+        User admin = user("ADMIN");
+        when(repository.hasUnseenHomeworkSubmissions()).thenReturn(false);
+        when(repository.hasUnseenQuizAttempts()).thenReturn(false);
+        when(repository.hasUnseenActivitySubmissions()).thenReturn(true);
+        BadgeSummary badges = service.badges(admin);
+        assertThat(badges.panel()).isTrue();
+        assertThat(badges.units()).isTrue();
+        assertThat(badges.homework()).isFalse();
+    }
+
+    @Test
+    void markActivitySeen_delegatesToRepository() {
+        UUID submissionId = UUID.randomUUID();
+        service.markActivitySeen(submissionId);
+        org.mockito.Mockito.verify(repository).markActivityTeacherSeen(submissionId);
+    }
+
+    @Test
     void studentLearningUnseen_setsLearningOnly() {
         User student = user("STUDENT");
         when(repository.hasUnseenLearning(student.getId())).thenReturn(true);

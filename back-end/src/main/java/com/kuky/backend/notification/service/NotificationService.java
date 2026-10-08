@@ -24,19 +24,25 @@ public class NotificationService {
         }
         boolean homework = false;
         boolean quiz = false;
+        boolean units = false;
         boolean learning = false;
         if ("ADMIN".equals(user.getRole())) {
             homework = repository.hasUnseenHomeworkSubmissions();
             quiz = repository.hasUnseenQuizAttempts();
+            units = repository.hasUnseenActivitySubmissions();
         }
         if ("STUDENT".equals(user.getRole())) {
             learning = repository.hasUnseenLearning(user.getId());
         }
-        return new BadgeSummary(homework || quiz, homework, quiz, learning);
+        return new BadgeSummary(homework || quiz || units, homework, quiz, units, learning);
     }
 
     public void markHomeworkSeen(UUID submissionId) {
         repository.markHomeworkTeacherSeen(submissionId);
+    }
+
+    public void markActivitySeen(UUID submissionId) {
+        repository.markActivityTeacherSeen(submissionId);
     }
 
     public void markQuizAttemptSeen(UUID attemptId) {

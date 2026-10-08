@@ -262,9 +262,10 @@ export interface QuestionResult {
 }
 
 export interface ExerciseResult {
-  scorePercent: number;
-  fullyCorrectCount: number;
-  totalQuestions: number;
+  /** Overall score; null for unit page activities (students see per-answer marks only). */
+  scorePercent: number | null;
+  fullyCorrectCount: number | null;
+  totalQuestions: number | null;
   questions: QuestionResult[];
 }
 
@@ -324,20 +325,15 @@ export interface PresentationFileSummary {
   createdAt: string;
 }
 
+/** A page of a unit's PDF that is an activity (the page itself is the instructions). */
 export interface ActivitySummary {
   id: string;
-  title: string;
+  /** null → show the "Actividad – página N" fallback (`activityTitle`). */
+  title: string | null;
+  page: number;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
-  position: number;
   status: HomeworkItem["status"];
-  scorePercent: number | null;
-  triggerFileId: string | null;
-  /** Insert the activity after this PDF page (between N and N+1). */
-  triggerPage: number | null;
-  instructionsText: string;
-  youtubeUrl: string | null;
-  imageId: string | null;
 }
 
 export interface SharedPresentationSummary {
@@ -502,23 +498,19 @@ export const downloadPresentationFile = async (
 
 export interface ActivityItem {
   id: string;
-  title: string;
+  title: string | null;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
   status: HomeworkStatus;
-  level: HomeworkLevel | null;
-  homeworkType: HomeworkType | null;
-  triggerFileId: string | null;
-  triggerPage: number | null;
-  instructionsText: string;
-  youtubeUrl: string | null;
-  imageId: string | null;
+  /** The instructions: page `page` of the unit PDF file `fileId`. */
+  presentationId: string;
+  fileId: string | null;
+  page: number;
+  unitId: string | null;
   response: FormattedText | null;
   feedback: FormattedText | null;
   feedbackText?: string | null;
   reviewModel?: "LEGACY_RICH" | "ANNOTATED" | null;
-  scorePercent: number | null;
-  provisionalScorePercent?: number | null;
   questions: StudentQuestion[];
   /** Submitted answers (FREE_TEXT + optional auto metadata). */
   answers?: ManualAnswerItem[] | null;

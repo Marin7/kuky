@@ -38,6 +38,7 @@ public class PresentationRepository {
                        COALESCE(ARRAY_AGG(sh.user_id::text) FILTER (WHERE sh.user_id IS NOT NULL), '{}') AS shared_with_ids
                 FROM presentations p
                 LEFT JOIN presentation_shares sh ON sh.presentation_id = p.id
+                WHERE p.unit_id IS NULL
                 GROUP BY p.id, p.title, p.level, p.updated_at
                 ORDER BY p.updated_at DESC
                 """;
@@ -91,6 +92,58 @@ public class PresentationRepository {
 
     public void touch(UUID id) {
         jdbc.update("UPDATE presentations SET updated_at = NOW() WHERE id = :id", Map.of("id", id));
+    }
+
+    // --- unit-owned PDF (presentations.unit_id = owning unit; at most one per unit) ---
+
+    /** The unit's PDF: owned presentation + its single file (file fields null when none uploaded yet). */
+    public record OwnedPdf(UUID presentationId, UUID fileId, String originalName, Integer byteSize,
+                           Integer pageCount, int unitPosition) {}
+
+    public Optional<OwnedPdf> findOwnedByUnit(UUID unitId) {
+        return jdbc.query("""
+                SELECT p.id AS presentation_id, p.unit_position,
+                       f.id AS file_id, f.original_name, f.byte_size, f.page_count
+                FROM presentations p
+                LEFT JOIN presentation_files f ON f.presentation_id = p.id
+                WHERE p.unit_id = :uid
+                ORDER BY f.created_at DESC NULLS LAST
+                LIMIT 1
+                """, Map.of("uid", unitId), (rs, n) -> new OwnedPdf(
+                rs.getObject("presentation_id", UUID.class),
+                rs.getObject("file_id", UUID.class),
+                rs.getString("original_name"),
+                rs.getObject("byte_size", Integer.class),
+                rs.getObject("page_count", Integer.class),
+                rs.getInt("unit_position"))).stream().findFirst();
+    }
+
+    public UUID insertOwned(UUID unitId, String title, String level, int unitPosition) {
+        UUID id = UUID.randomUUID();
+        jdbc.update("""
+                INSERT INTO presentations (id, title, level, unit_id, unit_position)
+                VALUES (:id, :title, :level, :uid, :pos)
+                """, new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("title", title)
+                .addValue("level", level)
+                .addValue("uid", unitId)
+                .addValue("pos", unitPosition));
+        return id;
+    }
+
+    public void updateOwnedTitleLevel(UUID unitId, String title, String level) {
+        jdbc.update("""
+                UPDATE presentations SET title = :title, level = :level, updated_at = NOW()
+                WHERE unit_id = :uid
+                """, Map.of("uid", unitId, "title", title, "level", level));
+    }
+
+    public boolean isUnitOwned(UUID presentationId) {
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(1) FROM presentations WHERE id = :id AND unit_id IS NOT NULL",
+                Map.of("id", presentationId), Integer.class);
+        return count != null && count > 0;
     }
 
     // --- files ---------------------------------------------------------------
@@ -184,10 +237,15 @@ public class PresentationRepository {
 
     public void insertFile(UUID fileId, UUID presentationId, String originalName,
                            String displayName, String contentType, int byteSize) {
+        insertFile(fileId, presentationId, originalName, displayName, contentType, byteSize, null);
+    }
+
+    public void insertFile(UUID fileId, UUID presentationId, String originalName,
+                           String displayName, String contentType, int byteSize, Integer pageCount) {
         jdbc.update("""
                 INSERT INTO presentation_files
-                    (id, presentation_id, original_name, display_name, content_type, byte_size)
-                VALUES (:id, :pid, :name, :display, :ct, :size)
+                    (id, presentation_id, original_name, display_name, content_type, byte_size, page_count)
+                VALUES (:id, :pid, :name, :display, :ct, :size, :pageCount)
                 """,
                 new MapSqlParameterSource()
                         .addValue("id", fileId)
@@ -195,7 +253,8 @@ public class PresentationRepository {
                         .addValue("name", originalName)
                         .addValue("display", displayName)
                         .addValue("ct", contentType)
-                        .addValue("size", byteSize));
+                        .addValue("size", byteSize)
+                        .addValue("pageCount", pageCount));
     }
 
     public int deleteFile(UUID presentationId, UUID fileId) {

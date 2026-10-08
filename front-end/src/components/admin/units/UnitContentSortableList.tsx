@@ -20,10 +20,9 @@ import { GripVertical } from "lucide-react";
 import type { UnitContentItem } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 
+/** The unit has at most one PDF, so its type alone is a stable key. */
 function contentKey(item: UnitContentItem): string {
-  const id =
-    item.type === "PRESENTATION" ? item.presentation!.id : item.homework!.id;
-  return `${item.type}:${id}`;
+  return item.type === "PDF" ? "PDF" : `HOMEWORK:${item.homework!.id}`;
 }
 
 interface SortableRowProps {

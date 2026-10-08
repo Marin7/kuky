@@ -29,6 +29,7 @@ class UnitRepositoryTest extends AbstractIntegrationTest {
         jdbcTemplate.execute("DELETE FROM homework_targets");
         jdbcTemplate.execute("DELETE FROM homework_submissions");
         jdbcTemplate.execute("DELETE FROM homework_assignments");
+        jdbcTemplate.execute("DELETE FROM presentations WHERE unit_id IS NOT NULL");
         jdbcTemplate.execute("DELETE FROM units");
         jdbcTemplate.execute("""
                 INSERT INTO users (id, email, password_hash, status, role, gdpr_consent)
@@ -122,72 +123,88 @@ class UnitRepositoryTest extends AbstractIntegrationTest {
         assertThat(progress.get(0).completedHomeworks()).isZero();
     }
 
-    private UUID insertPresentation(UUID unitId, String title, int unitPosition) {
+    private UUID insertOwnedPdf(UUID unitId, int unitPosition) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update("""
                 INSERT INTO presentations (id, title, unit_id, unit_position)
-                VALUES (?, ?, ?, ?)
-                """, id, title, unitId, unitPosition);
+                VALUES (?, 'PDF de la unidad', ?, ?)
+                """, id, unitId, unitPosition);
         return id;
     }
 
     @Test
-    void reorderContentsRewritesMixedUnitPositions() {
+    void reorderContentsRewritesPdfAndHomeworkPositions() {
         UUID unitId = insertUnit("Orden", "A1", 0);
-        UUID p1 = insertPresentation(unitId, "P1", 0);
+        UUID pdf = insertOwnedPdf(unitId, 0);
         UUID h1 = insertHomework(unitId, "H1");
         jdbcTemplate.update("UPDATE homework_assignments SET unit_position = 1 WHERE id = ?", h1);
-        UUID p2 = insertPresentation(unitId, "P2", 2);
+        UUID h2 = insertHomework(unitId, "H2");
+        jdbcTemplate.update("UPDATE homework_assignments SET unit_position = 2 WHERE id = ?", h2);
 
         unitRepository.reorderContents(unitId, List.of(
                 new com.kuky.backend.units.dto.UnitContentRef("HOMEWORK", h1),
-                new com.kuky.backend.units.dto.UnitContentRef("PRESENTATION", p2),
-                new com.kuky.backend.units.dto.UnitContentRef("PRESENTATION", p1)
+                new com.kuky.backend.units.dto.UnitContentRef("PDF", pdf),
+                new com.kuky.backend.units.dto.UnitContentRef("HOMEWORK", h2)
         ));
 
         List<UnitRepository.ContentMember> members = unitRepository.findContentMembers(unitId);
         assertThat(members).extracting(UnitRepository.ContentMember::id)
-                .containsExactly(h1, p2, p1);
+                .containsExactly(h1, pdf, h2);
+        assertThat(members).extracting(UnitRepository.ContentMember::type)
+                .containsExactly("HOMEWORK", "PDF", "HOMEWORK");
         assertThat(members).extracting(UnitRepository.ContentMember::unitPosition)
                 .containsExactly(0, 1, 2);
     }
 
     @Test
-    void setPresentationsAppendsNewcomersAndKeepsRelativeOrder() {
+    void setHomeworksAppendsNewcomersAndKeepsThePdfInPlace() {
         UUID unitId = insertUnit("Membresía", "A1", 0);
-        UUID p1 = insertPresentation(unitId, "P1", 0);
+        UUID pdf = insertOwnedPdf(unitId, 0);
         UUID h1 = insertHomework(unitId, "H1");
         jdbcTemplate.update("UPDATE homework_assignments SET unit_position = 1 WHERE id = ?", h1);
+        UUID h2 = insertHomework(null, "H2");
 
-        UUID p2 = UUID.randomUUID();
-        jdbcTemplate.update("INSERT INTO presentations (id, title) VALUES (?, ?)", p2, "P2");
-
-        unitRepository.setPresentations(unitId, List.of(p1, p2));
+        unitRepository.setHomeworks(unitId, List.of(h1, h2));
 
         List<UnitRepository.ContentMember> members = unitRepository.findContentMembers(unitId);
         assertThat(members).extracting(UnitRepository.ContentMember::id)
-                .containsExactly(p1, h1, p2);
+                .containsExactly(pdf, h1, h2);
     }
 
     @Test
-    void setPresentationsDetachesAndCompactsRemaining() {
+    void setHomeworksDetachesAndCompactsRemaining() {
         UUID unitId = insertUnit("Detach", "A1", 0);
-        UUID p1 = insertPresentation(unitId, "P1", 0);
         UUID h1 = insertHomework(unitId, "H1");
-        jdbcTemplate.update("UPDATE homework_assignments SET unit_position = 1 WHERE id = ?", h1);
-        UUID p2 = insertPresentation(unitId, "P2", 2);
+        UUID pdf = insertOwnedPdf(unitId, 1);
+        UUID h2 = insertHomework(unitId, "H2");
+        jdbcTemplate.update("UPDATE homework_assignments SET unit_position = 2 WHERE id = ?", h2);
 
-        unitRepository.setPresentations(unitId, List.of(p2));
+        unitRepository.setHomeworks(unitId, List.of(h2));
 
         List<UnitRepository.ContentMember> members = unitRepository.findContentMembers(unitId);
         assertThat(members).extracting(UnitRepository.ContentMember::id)
-                .containsExactly(h1, p2);
+                .containsExactly(pdf, h2);
         assertThat(members).extracting(UnitRepository.ContentMember::unitPosition)
                 .containsExactly(0, 1);
 
         Integer detachedUnit = jdbcTemplate.queryForObject(
-                "SELECT CASE WHEN unit_id IS NULL THEN 1 ELSE 0 END FROM presentations WHERE id = ?",
-                Integer.class, p1);
+                "SELECT CASE WHEN unit_id IS NULL THEN 1 ELSE 0 END FROM homework_assignments WHERE id = ?",
+                Integer.class, h1);
         assertThat(detachedUnit).isEqualTo(1);
+    }
+
+    @Test
+    void deletingAUnitDeletesItsPdfButKeepsItsHomework() {
+        UUID unitId = insertUnit("Borrar", "A1", 0);
+        UUID pdf = insertOwnedPdf(unitId, 0);
+        UUID h1 = insertHomework(unitId, "H1");
+
+        unitRepository.delete(unitId);
+
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM presentations WHERE id = ?", Integer.class, pdf)).isZero();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM homework_assignments WHERE id = ? AND unit_id IS NULL",
+                Integer.class, h1)).isEqualTo(1);
     }
 }

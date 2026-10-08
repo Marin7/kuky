@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "@tanstack/react-router";
 import {
   listUnits,
   createUnit,
@@ -34,6 +35,7 @@ export { LEVELS, LEVEL_CLASS };
 
 export function UnitsTab() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [units, setUnits] = useState<UnitSummary[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,21 +68,11 @@ export function UnitsTab() {
       );
       setNewLevel("");
       setNewSubject("");
-      setUnits((prev) => [
-        ...prev,
-        {
-          id: detail.id,
-          level: detail.level,
-          subject: detail.subject,
-          position: detail.position,
-          presentationCount: detail.contents.filter(
-            (c) => c.type === "PRESENTATION",
-          ).length,
-          homeworkCount: detail.contents.filter((c) => c.type === "HOMEWORK")
-            .length,
-          assignedStudentIds: detail.assignedStudents.map((s) => s.id),
-        },
-      ]);
+      // A new unit starts empty: go straight to its view to upload the PDF.
+      navigate({
+        to: "/panel/unidades/$unitId",
+        params: { unitId: detail.id },
+      });
     } catch {
       setError(t("admin.units.saveError"));
     } finally {

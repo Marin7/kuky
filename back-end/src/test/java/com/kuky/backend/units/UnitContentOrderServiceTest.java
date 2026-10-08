@@ -39,25 +39,37 @@ class UnitContentOrderServiceTest extends AbstractIntegrationTest {
         presentationId = UUID.randomUUID();
         jdbcTemplate.update("""
                 INSERT INTO presentations (id, title, unit_id, unit_position)
-                VALUES (?, 'P1', ?, 0)
+                VALUES (?, 'PDF de la unidad', ?, 0)
                 """, presentationId, unitId);
     }
 
     @Test
     void reorderContentsRejectsNonPermutation() {
         assertThatThrownBy(() -> unitService.reorderContents(unitId, List.of(
-                new UnitContentRef("PRESENTATION", UUID.randomUUID())
+                new UnitContentRef("PDF", UUID.randomUUID())
         ))).isInstanceOf(InvalidContentOrderException.class);
     }
 
     @Test
     void reorderContentsRejectsExtraItem() {
         UUID extra = UUID.randomUUID();
-        jdbcTemplate.update("INSERT INTO presentations (id, title) VALUES (?, 'Other')", extra);
+        jdbcTemplate.update("INSERT INTO homework_assignments (id, title, instructions) VALUES (?, 'Other', 'x')", extra);
 
         assertThatThrownBy(() -> unitService.reorderContents(unitId, List.of(
-                new UnitContentRef("PRESENTATION", presentationId),
-                new UnitContentRef("PRESENTATION", extra)
+                new UnitContentRef("PDF", presentationId),
+                new UnitContentRef("HOMEWORK", extra)
         ))).isInstanceOf(InvalidContentOrderException.class);
+    }
+
+    @Test
+    void reorderContentsRejectsTheRetiredPresentationType() {
+        assertThatThrownBy(() -> unitService.reorderContents(unitId, List.of(
+                new UnitContentRef("PRESENTATION", presentationId)
+        ))).isInstanceOf(InvalidContentOrderException.class);
+    }
+
+    @Test
+    void reorderContentsAcceptsThePdfAsItsOwnItem() {
+        unitService.reorderContents(unitId, List.of(new UnitContentRef("PDF", presentationId)));
     }
 }

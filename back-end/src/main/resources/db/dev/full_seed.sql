@@ -4,7 +4,7 @@
 --   psql -U kuky -d kuky_dev -f back-end/src/main/resources/db/dev/full_seed.sql
 -- Safe to re-run: it deletes its own previously-seeded rows (matched by title/email) first.
 --
--- Login after seeding: estudiante.demo@kuky.es / Demo1234!
+-- Login after seeding: estudiante.demo@kuky.es / Demo1234! (student), admin.demo@kuky.es / Demo1234! (admin)
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -14,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 DELETE FROM homework_assignments WHERE title IN ('Redacción: preséntate', 'Ejercicio: presente de indicativo');
 DELETE FROM presentations WHERE title IN ('Saludos y presentaciones', 'La rutina diaria');
 DELETE FROM units WHERE (level, subject) IN (('A1', 'Primeros pasos'), ('A2', 'Vida cotidiana'));
-DELETE FROM users WHERE email = 'estudiante.demo@kuky.es' OR username = 'ana.demo';
+DELETE FROM users WHERE email IN ('estudiante.demo@kuky.es', 'admin.demo@kuky.es') OR username = 'ana.demo';
 
 DO $$
 DECLARE
@@ -39,6 +39,11 @@ BEGIN
     )
     RETURNING id INTO student_id;
 
+    -- Admin account for local QA of the panel (teacher-only screens)
+    INSERT INTO users (id, email, password_hash, status, role, gdpr_consent, first_name, last_name)
+    VALUES (gen_random_uuid(), 'admin.demo@kuky.es', crypt('Demo1234!', gen_salt('bf', 12)),
+            'ACTIVE', 'ADMIN', true, 'Admin', 'Demo');
+
     -- Units
     INSERT INTO units (id, level, subject, position)
     VALUES (gen_random_uuid(), 'A1', 'Primeros pasos', 1) RETURNING id INTO unit_a1;
@@ -48,14 +53,14 @@ BEGIN
     INSERT INTO unit_assignments (id, unit_id, user_id) VALUES (gen_random_uuid(), unit_a1, student_id);
     INSERT INTO unit_assignments (id, unit_id, user_id) VALUES (gen_random_uuid(), unit_a2, student_id);
 
-    -- Presentations: one shared directly (presentation_shares), one via unit_assignments only
-    INSERT INTO presentations (id, title, level, unit_id)
-    VALUES (gen_random_uuid(), 'Saludos y presentaciones', 'A1', unit_a1) RETURNING id INTO pres1;
-    INSERT INTO presentations (id, title, level, unit_id)
-    VALUES (gen_random_uuid(), 'La rutina diaria', 'A2', unit_a2) RETURNING id INTO pres2;
+    -- Standalone presentations (Presentations tab), shared directly. Unit PDFs are uploaded from the unit view.
+    INSERT INTO presentations (id, title, level)
+    VALUES (gen_random_uuid(), 'Saludos y presentaciones', 'A1') RETURNING id INTO pres1;
+    INSERT INTO presentations (id, title, level)
+    VALUES (gen_random_uuid(), 'La rutina diaria', 'A2') RETURNING id INTO pres2;
 
     INSERT INTO presentation_shares (id, presentation_id, user_id) VALUES (gen_random_uuid(), pres1, student_id);
-    -- pres2 stays without a direct share row, so it only shows up via the unit_assignments path.
+    INSERT INTO presentation_shares (id, presentation_id, user_id) VALUES (gen_random_uuid(), pres2, student_id);
 
     -- Homeworks: one MANUAL (submitted, awaiting review), one EXERCISE (graded)
     INSERT INTO homework_assignments (id, title, instructions, format, homework_type, unit_id, sort_order)

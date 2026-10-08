@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  unit: UnitSummary;
+  unit: Pick<UnitSummary, "id" | "level" | "subject" | "assignedStudentIds">;
   allStudents: Student[];
   onAssigned: (detail: UnitDetail) => void;
 }

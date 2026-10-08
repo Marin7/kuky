@@ -4,8 +4,6 @@ import com.kuky.backend.admin.dto.PresentationDetail;
 import com.kuky.backend.admin.dto.PresentationFileSummary;
 import com.kuky.backend.admin.dto.SlideRequest;
 import com.kuky.backend.auth.repository.UserRepository;
-import com.kuky.backend.learning.repository.ActivityRepository;
-import com.kuky.backend.learning.service.ActivityInstructionsFileStore;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.presentations.model.Presentation;
 import com.kuky.backend.presentations.model.PresentationFile;
@@ -35,8 +33,6 @@ class PresentationServiceTest {
     private PresentationRepository repository;
     private UserRepository userRepository;
     private PresentationFileStore fileStore;
-    private ActivityRepository activityRepository;
-    private ActivityInstructionsFileStore activityInstructionsFileStore;
     private PresentationService service;
 
     private final UUID deckId = UUID.randomUUID();
@@ -46,10 +42,7 @@ class PresentationServiceTest {
         repository = mock(PresentationRepository.class);
         userRepository = mock(UserRepository.class);
         fileStore = mock(PresentationFileStore.class);
-        activityRepository = mock(ActivityRepository.class);
-        activityInstructionsFileStore = mock(ActivityInstructionsFileStore.class);
-        service = new PresentationService(repository, userRepository, fileStore,
-                activityRepository, activityInstructionsFileStore);
+        service = new PresentationService(repository, userRepository, fileStore);
 
         Presentation p = new Presentation();
         p.setId(deckId);
@@ -59,8 +52,6 @@ class PresentationServiceTest {
         when(repository.listFiles(deckId)).thenReturn(List.of());
         when(repository.listDisplayNames(deckId)).thenReturn(List.of());
         when(repository.countFiles(deckId)).thenReturn(0);
-        lenient().when(activityRepository.findInstructionFileIdsByPresentationId(any()))
-                .thenReturn(List.of());
     }
 
     @Test
@@ -218,5 +209,20 @@ class PresentationServiceTest {
 
         verify(fileStore).deleteQuietly(a);
         verify(fileStore).deleteQuietly(b);
+    }
+
+    @Test
+    void unitOwnedPresentationIsNotReachableFromThePresentationsApi() {
+        UUID unitPdf = UUID.randomUUID();
+        when(repository.isUnitOwned(unitPdf)).thenReturn(true);
+        MockMultipartFile pdf = new MockMultipartFile("file", "x.pdf", "application/pdf", new byte[]{1});
+
+        assertThatThrownBy(() -> service.get(unitPdf)).isInstanceOf(PresentationNotFoundException.class);
+        assertThatThrownBy(() -> service.uploadFile(unitPdf, pdf)).isInstanceOf(PresentationNotFoundException.class);
+        assertThatThrownBy(() -> service.setShares(unitPdf, List.of())).isInstanceOf(PresentationNotFoundException.class);
+        assertThatThrownBy(() -> service.delete(unitPdf)).isInstanceOf(PresentationNotFoundException.class);
+        verify(repository, never()).delete(unitPdf);
+        verify(repository, never()).replaceShares(any(), any());
+        verify(fileStore, never()).write(any(), any());
     }
 }

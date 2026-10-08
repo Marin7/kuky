@@ -76,7 +76,8 @@ public class ActivitySubmissionRepository {
                     status = EXCLUDED.status,
                     response_text = EXCLUDED.response_text,
                     submitted_at = EXCLUDED.submitted_at,
-                    updated_at = EXCLUDED.updated_at
+                    updated_at = EXCLUDED.updated_at,
+                    teacher_seen_at = NULL
                 RETURNING *
                 """, new MapSqlParameterSource()
                 .addValue("uid", userId)
@@ -99,7 +100,8 @@ public class ActivitySubmissionRepository {
                     response_text = EXCLUDED.response_text,
                     score_percent = EXCLUDED.score_percent,
                     submitted_at = EXCLUDED.submitted_at,
-                    updated_at = EXCLUDED.updated_at
+                    updated_at = EXCLUDED.updated_at,
+                    teacher_seen_at = NULL
                 RETURNING *
                 """, new MapSqlParameterSource()
                 .addValue("uid", userId)
@@ -229,19 +231,30 @@ public class ActivitySubmissionRepository {
     public record ReviewQueueRow(
             UUID submissionId, UUID studentId, String studentEmail,
             String studentFirstName, String studentLastName, String studentUsername,
-            String activityTitle, Instant submittedAt) {}
+            UUID activityId, String activityTitle, int page, UUID unitId,
+            Instant submittedAt, boolean unseen) {}
 
-    public List<ReviewQueueRow> findSubmittedManualQueue() {
+    /** Submissions awaiting a teacher grade, optionally limited to one unit, oldest first. */
+    public List<ReviewQueueRow> findSubmittedManualQueue(UUID unitIdOrNull) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        String unitFilter = "";
+        if (unitIdOrNull != null) {
+            unitFilter = " AND p.unit_id = :unitId";
+            params.addValue("unitId", unitIdOrNull);
+        }
         return jdbc.query("""
                 SELECT s.id AS submission_id, u.id AS student_id, u.email AS student_email,
                        u.first_name AS student_first_name, u.last_name AS student_last_name,
-                       u.username AS student_username, a.title AS activity_title, s.submitted_at
+                       u.username AS student_username, a.id AS activity_id, a.title AS activity_title,
+                       a.page, p.unit_id, s.submitted_at, (s.teacher_seen_at IS NULL) AS unseen
                 FROM activity_submissions s
                 JOIN users u ON u.id = s.user_id
                 JOIN activities a ON a.id = s.activity_id
+                JOIN presentations p ON p.id = a.presentation_id
                 WHERE s.status = 'SUBMITTED' AND a.format IN ('MANUAL', 'MIXED')
-                ORDER BY s.submitted_at ASC
-                """, Map.of(), (rs, n) -> {
+                """ + unitFilter + """
+                 ORDER BY s.submitted_at ASC
+                """, params, (rs, n) -> {
             var submittedAt = rs.getTimestamp("submitted_at");
             return new ReviewQueueRow(
                     rs.getObject("submission_id", UUID.class),
@@ -250,60 +263,46 @@ public class ActivitySubmissionRepository {
                     rs.getString("student_first_name"),
                     rs.getString("student_last_name"),
                     rs.getString("student_username"),
+                    rs.getObject("activity_id", UUID.class),
                     rs.getString("activity_title"),
-                    submittedAt == null ? null : submittedAt.toInstant());
+                    rs.getInt("page"),
+                    rs.getObject("unit_id", UUID.class),
+                    submittedAt == null ? null : submittedAt.toInstant(),
+                    rs.getBoolean("unseen"));
         });
     }
 
-    public record Breakdown(int pending, int submitted, int completed) {}
+    public record StudentUnitActivityRow(
+            UUID unitId, String unitLevel, String unitSubject,
+            UUID activityId, int page, String title, String format,
+            String status, Integer scorePercent, UUID submissionId, boolean unseen) {}
 
-    /** Counts for activities the student can access (share or unit assignment). */
-    public Breakdown countBreakdownForStudent(UUID userId) {
-        Integer pending = jdbc.queryForObject("""
-                SELECT COUNT(1) FROM activities a
-                WHERE (
-                    EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = a.presentation_id AND s.user_id = :uid)
-                    OR EXISTS (
-                        SELECT 1 FROM presentations p
-                        JOIN unit_assignments ua ON ua.unit_id = p.unit_id
-                        WHERE p.id = a.presentation_id AND ua.user_id = :uid
-                    )
-                )
-                AND NOT EXISTS (
-                    SELECT 1 FROM activity_submissions s
-                    WHERE s.activity_id = a.id AND s.user_id = :uid
-                      AND s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED')
-                )
-                """, Map.of("uid", userId), Integer.class);
-        Integer submitted = jdbc.queryForObject("""
-                SELECT COUNT(1) FROM activity_submissions s
-                JOIN activities a ON a.id = s.activity_id
-                WHERE s.user_id = :uid AND s.status = 'SUBMITTED'
-                  AND (
-                    EXISTS (SELECT 1 FROM presentation_shares ps WHERE ps.presentation_id = a.presentation_id AND ps.user_id = :uid)
-                    OR EXISTS (
-                        SELECT 1 FROM presentations p
-                        JOIN unit_assignments ua ON ua.unit_id = p.unit_id
-                        WHERE p.id = a.presentation_id AND ua.user_id = :uid
-                    )
-                  )
-                """, Map.of("uid", userId), Integer.class);
-        Integer completed = jdbc.queryForObject("""
-                SELECT COUNT(1) FROM activity_submissions s
-                JOIN activities a ON a.id = s.activity_id
-                WHERE s.user_id = :uid AND s.status IN ('REVIEWED', 'GRADED')
-                  AND (
-                    EXISTS (SELECT 1 FROM presentation_shares ps WHERE ps.presentation_id = a.presentation_id AND ps.user_id = :uid)
-                    OR EXISTS (
-                        SELECT 1 FROM presentations p
-                        JOIN unit_assignments ua ON ua.unit_id = p.unit_id
-                        WHERE p.id = a.presentation_id AND ua.user_id = :uid
-                    )
-                  )
-                """, Map.of("uid", userId), Integer.class);
-        return new Breakdown(
-                pending == null ? 0 : pending,
-                submitted == null ? 0 : submitted,
-                completed == null ? 0 : completed);
+    /** Every activity of the units assigned to the student, with that student's submission (if any). */
+    public List<StudentUnitActivityRow> findUnitActivitiesForStudent(UUID userId) {
+        return jdbc.query("""
+                SELECT u.id AS unit_id, u.level AS unit_level, u.subject AS unit_subject,
+                       a.id AS activity_id, a.page, a.title, a.format,
+                       COALESCE(s.status, 'PENDING') AS status, s.score_percent,
+                       s.id AS submission_id,
+                       (s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED') AND s.teacher_seen_at IS NULL) AS unseen
+                FROM unit_assignments ua
+                JOIN units u ON u.id = ua.unit_id
+                JOIN presentations p ON p.unit_id = u.id
+                JOIN activities a ON a.presentation_id = p.id
+                LEFT JOIN activity_submissions s ON s.activity_id = a.id AND s.user_id = ua.user_id
+                WHERE ua.user_id = :uid
+                ORDER BY u.level, u.position, a.page
+                """, Map.of("uid", userId), (rs, n) -> new StudentUnitActivityRow(
+                rs.getObject("unit_id", UUID.class),
+                rs.getString("unit_level"),
+                rs.getString("unit_subject"),
+                rs.getObject("activity_id", UUID.class),
+                rs.getInt("page"),
+                rs.getString("title"),
+                rs.getString("format"),
+                rs.getString("status"),
+                rs.getObject("score_percent", Integer.class),
+                rs.getObject("submission_id", UUID.class),
+                rs.getBoolean("unseen")));
     }
 }

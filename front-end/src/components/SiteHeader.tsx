@@ -22,6 +22,7 @@ const EMPTY_BADGES: BadgeSummary = {
   panel: false,
   homework: false,
   quiz: false,
+  units: false,
   learning: false,
 };
 

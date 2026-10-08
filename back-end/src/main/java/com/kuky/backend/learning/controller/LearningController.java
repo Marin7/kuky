@@ -109,20 +109,6 @@ public class LearningController {
         return ResponseEntity.ok(activityStudentService.get(email, id));
     }
 
-    @GetMapping("/activities/{id}/instructions")
-    public ResponseEntity<byte[]> getActivityInstructions(
-            @AuthenticationPrincipal String email,
-            @PathVariable UUID id) {
-        var pdf = activityStudentService.getInstructions(email, id);
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.inline()
-                                .filename(pdf.meta().getOriginalName(), StandardCharsets.UTF_8)
-                                .build().toString())
-                .body(pdf.data());
-    }
-
     @PutMapping("/activities/{id}")
     public ResponseEntity<ActivityItemResponse> submitActivity(
             @AuthenticationPrincipal String email,

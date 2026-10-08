@@ -8,7 +8,6 @@ import { UsersTab } from "@/components/admin/students/UsersTab";
 import { UnitsTab } from "@/components/admin/units/UnitsTab";
 import { HomeworkTab } from "@/components/admin/homework/HomeworkTab";
 import { PresentationsTab } from "@/components/admin/presentations/PresentationsTab";
-import { ActivitiesTab } from "@/components/admin/activities/ActivitiesTab";
 import { QuizTab } from "@/components/quiz/admin/QuizTab";
 import { TestimonialsTab } from "@/components/admin/testimonials/TestimonialsTab";
 import { NotificationDot } from "@/components/NotificationDot";
@@ -26,7 +25,6 @@ const VALID_TABS = [
   "units",
   "homework",
   "presentations",
-  "activities",
   "quizzes",
   "testimonials",
 ];
@@ -35,6 +33,7 @@ const EMPTY_BADGES: BadgeSummary = {
   panel: false,
   homework: false,
   quiz: false,
+  units: false,
   learning: false,
 };
 
@@ -74,7 +73,12 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
           <TabsTrigger value="availability">
             {t("admin.tabs.availability")}
           </TabsTrigger>
-          <TabsTrigger value="units">{t("admin.tabs.units")}</TabsTrigger>
+          <TabsTrigger value="units" className="gap-1.5">
+            {t("admin.tabs.units")}
+            {badges.units && (
+              <NotificationDot label={t("notification.activity")} />
+            )}
+          </TabsTrigger>
           <TabsTrigger value="homework" className="gap-1.5">
             {t("admin.tabs.homework")}
             {badges.homework && (
@@ -83,9 +87,6 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
           </TabsTrigger>
           <TabsTrigger value="presentations">
             {t("admin.tabs.presentations")}
-          </TabsTrigger>
-          <TabsTrigger value="activities">
-            {t("admin.tabs.activities")}
           </TabsTrigger>
           <TabsTrigger value="quizzes" className="gap-1.5">
             {t("admin.tabs.quizzes")}
@@ -116,9 +117,6 @@ export function AdminPanel({ initialTab }: { initialTab?: string }) {
         </TabsContent>
         <TabsContent value="presentations" className="mt-6">
           <PresentationsTab />
-        </TabsContent>
-        <TabsContent value="activities" className="mt-6">
-          <ActivitiesTab />
         </TabsContent>
         <TabsContent value="quizzes" className="mt-6">
           <QuizTab />

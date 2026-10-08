@@ -36,11 +36,42 @@ public class NotificationRepository {
         return n != null && n > 0;
     }
 
+    /**
+     * Unseen activity work from students who still hold the unit — an unassigned student's
+     * submission is not reachable from the unit or profile views, so it must not raise a dot.
+     */
+    public boolean hasUnseenActivitySubmissions() {
+        Integer n = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM activity_submissions s
+                JOIN activities a ON a.id = s.activity_id
+                JOIN presentations p ON p.id = a.presentation_id
+                JOIN unit_assignments ua ON ua.unit_id = p.unit_id AND ua.user_id = s.user_id
+                WHERE s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED')
+                  AND s.teacher_seen_at IS NULL
+                """, Map.of(), Integer.class);
+        return n != null && n > 0;
+    }
+
+    public void markActivityTeacherSeen(UUID submissionId) {
+        jdbc.update("""
+                UPDATE activity_submissions
+                SET teacher_seen_at = NOW()
+                WHERE id = :id AND teacher_seen_at IS NULL
+                """, Map.of("id", submissionId));
+    }
+
     public boolean hasUnseenLearning(UUID userId) {
+        // A newly assigned unit only counts once it has something to open (a PDF or homework);
+        // otherwise the student would get a dot with no unit card to clear it from.
         Integer n = jdbc.queryForObject("""
                 SELECT (
-                    (SELECT COUNT(*) FROM unit_assignments
-                     WHERE user_id = :uid AND student_seen_at IS NULL)
+                    (SELECT COUNT(*) FROM unit_assignments ua
+                     WHERE ua.user_id = :uid AND ua.student_seen_at IS NULL
+                       AND (EXISTS (SELECT 1 FROM presentations p
+                                    JOIN presentation_files f ON f.presentation_id = p.id
+                                    WHERE p.unit_id = ua.unit_id)
+                            OR EXISTS (SELECT 1 FROM homework_assignments ha
+                                       WHERE ha.unit_id = ua.unit_id)))
                   + (SELECT COUNT(*) FROM quiz_assignees
                      WHERE user_id = :uid AND student_seen_at IS NULL)
                   + (SELECT COUNT(*) FROM homework_targets

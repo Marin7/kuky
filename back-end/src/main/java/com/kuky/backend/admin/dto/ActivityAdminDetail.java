@@ -4,31 +4,16 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/** A page activity of a unit's PDF. {@code title} null → "Actividad – página N" on the client. */
 public record ActivityAdminDetail(
         UUID id,
+        UUID unitId,
+        UUID presentationId,
+        int page,
         String title,
         String format,
         String composition,
-        String level,
-        String homeworkType,
-        UUID presentationId,
-        String presentationTitle,
-        int position,
-        UUID triggerFileId,
-        Integer triggerPage,
-        String instructionsText,
-        String youtubeUrl,
-        UUID imageId,
-        boolean hasInstructions,
-        Instant createdAt,
-        Instant updatedAt,
         List<HomeworkQuestionDto> questions,
-        InstructionsMeta instructions
-) {
-    public record InstructionsMeta(
-            UUID id,
-            String originalName,
-            String contentType,
-            long byteSize
-    ) {}
-}
+        Instant createdAt,
+        Instant updatedAt
+) {}

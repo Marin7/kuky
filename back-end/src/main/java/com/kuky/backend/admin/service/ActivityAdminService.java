@@ -4,18 +4,18 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kuky.backend.admin.dto.ActivityAdminDetail;
-import com.kuky.backend.admin.dto.ActivityAdminItem;
+import com.kuky.backend.admin.dto.ActivityReviewQueueItemDto;
 import com.kuky.backend.admin.dto.ExerciseSubmissionResultAdminDto;
 import com.kuky.backend.admin.dto.HomeworkQuestionDto;
-import com.kuky.backend.admin.dto.HomeworkReviewQueueItemDto;
 import com.kuky.backend.admin.dto.HomeworkSubmissionAdminDto;
 import com.kuky.backend.admin.dto.SaveActivityRequest;
 import com.kuky.backend.admin.dto.SaveHomeworkFeedbackRequest;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
+import com.kuky.backend.learning.exception.ActivityHasSubmissionsException;
 import com.kuky.backend.learning.exception.ActivityNotFoundException;
-import com.kuky.backend.learning.exception.ActivityReorderInvalidException;
+import com.kuky.backend.learning.exception.ActivityPageTakenException;
 import com.kuky.backend.learning.exception.ActivityValidationException;
 import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.NotSubmittedException;
@@ -36,230 +36,135 @@ import com.kuky.backend.learning.repository.ActivityQuestionRepository;
 import com.kuky.backend.learning.repository.ActivityRepository;
 import com.kuky.backend.learning.repository.ActivitySubmissionRepository;
 import com.kuky.backend.learning.service.ActivityExerciseGradingService;
-import com.kuky.backend.learning.service.ActivityInstructionsFileStore;
 import com.kuky.backend.learning.service.HomeworkCompositionSupport;
-import com.kuky.backend.learning.util.YoutubeUrls;
-import com.kuky.backend.presentations.repository.ImageRepository;
+import com.kuky.backend.notification.service.NotificationService;
 import com.kuky.backend.presentations.repository.PresentationRepository;
+import com.kuky.backend.units.exception.UnitNotFoundException;
+import com.kuky.backend.units.repository.UnitRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/** Page activities of unit PDFs: authoring (mark/edit/unmark a page) and teacher review. */
 @Service
 @Transactional
 public class ActivityAdminService {
+
+    private static final int MAX_TITLE_LENGTH = 200;
 
     private final ActivityRepository activityRepository;
     private final ActivityQuestionRepository questionRepository;
     private final ActivitySubmissionRepository submissionRepository;
     private final ActivityAnswerRepository answerRepository;
-    private final ActivityInstructionsFileStore instructionsFileStore;
     private final PresentationRepository presentationRepository;
-    private final ImageRepository imageRepository;
+    private final UnitRepository unitRepository;
     private final UserRepository userRepository;
     private final HomeworkAdminService homeworkAdminService;
     private final ActivityExerciseGradingService exerciseGradingService;
+    private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
 
     public ActivityAdminService(ActivityRepository activityRepository,
                                 ActivityQuestionRepository questionRepository,
                                 ActivitySubmissionRepository submissionRepository,
                                 ActivityAnswerRepository answerRepository,
-                                ActivityInstructionsFileStore instructionsFileStore,
                                 PresentationRepository presentationRepository,
-                                ImageRepository imageRepository,
+                                UnitRepository unitRepository,
                                 UserRepository userRepository,
                                 HomeworkAdminService homeworkAdminService,
                                 ActivityExerciseGradingService exerciseGradingService,
+                                NotificationService notificationService,
                                 ObjectMapper objectMapper) {
         this.activityRepository = activityRepository;
         this.questionRepository = questionRepository;
         this.submissionRepository = submissionRepository;
         this.answerRepository = answerRepository;
-        this.instructionsFileStore = instructionsFileStore;
         this.presentationRepository = presentationRepository;
-        this.imageRepository = imageRepository;
+        this.unitRepository = unitRepository;
         this.userRepository = userRepository;
         this.homeworkAdminService = homeworkAdminService;
         this.exerciseGradingService = exerciseGradingService;
+        this.notificationService = notificationService;
         this.objectMapper = objectMapper;
-    }
-
-    public List<ActivityAdminItem> list(UUID presentationId) {
-        return activityRepository.listAll(presentationId).stream()
-                .map(row -> toItem(row.activity(), row.presentationTitle(), row.hasInstructions()))
-                .toList();
     }
 
     public ActivityAdminDetail get(UUID id) {
         return toDetail(requireActivity(id));
     }
 
-    public ActivityAdminDetail create(SaveActivityRequest request) {
-        return create(
-                request.title(),
-                request.presentationId(),
-                request.format(),
-                request.level(),
-                request.homeworkType(),
-                request.triggerFileId(),
-                request.triggerPage(),
-                request.instructionsText(),
-                request.youtubeUrl(),
-                request.imageId(),
-                request.questions());
-    }
-
-    public ActivityAdminDetail update(UUID id, SaveActivityRequest request) {
-        return update(
-                id,
-                request.title(),
-                request.presentationId(),
-                request.format(),
-                request.level(),
-                request.homeworkType(),
-                request.triggerFileId(),
-                request.triggerPage(),
-                request.instructionsText(),
-                request.youtubeUrl(),
-                request.imageId(),
-                request.questions());
-    }
-
-    public ActivityAdminDetail create(String title, UUID presentationId, String formatRaw,
-                                      String level, String homeworkType,
-                                      UUID triggerFileId, Integer triggerPage,
-                                      String instructionsText, String youtubeUrl, UUID imageId,
-                                      List<HomeworkQuestionDto> questionDtos) {
-        if (title == null || title.isBlank()) {
-            throw new ActivityValidationException("El título es obligatorio.");
+    /** Marks {@code page} of the unit's PDF as an activity with the given work. */
+    public ActivityAdminDetail createOnPage(UUID unitId, int page, String title,
+                                            List<HomeworkQuestionDto> questionDtos) {
+        unitRepository.findById(unitId)
+                .orElseThrow(() -> new UnitNotFoundException("Unidad no encontrada."));
+        PresentationRepository.OwnedPdf pdf = presentationRepository.findOwnedByUnit(unitId)
+                .filter(p -> p.fileId() != null && p.pageCount() != null)
+                .orElseThrow(() -> new ActivityValidationException("La unidad no tiene PDF."));
+        if (page < 1 || page > pdf.pageCount()) {
+            throw new ActivityValidationException(
+                    "La página debe estar entre 1 y " + pdf.pageCount() + ".");
         }
-        if (presentationId == null || !activityRepository.presentationExists(presentationId)) {
-            throw new ActivityValidationException("La presentación no existe.");
+        if (activityRepository.findByPresentationAndPage(pdf.presentationId(), page).isPresent()) {
+            throw new ActivityPageTakenException("La página " + page + " ya es una actividad.");
         }
-        // Client format is ignored — derived from question kinds.
-        requirePageTrigger(presentationId, triggerFileId, triggerPage);
-        String resolvedInstructions = requireInstructionsText(instructionsText);
-        String resolvedYoutube = normalizeYoutubeUrl(youtubeUrl);
-        UUID resolvedImageId = requireMedia(resolvedYoutube, imageId);
         List<ActivityQuestion> questions = mapQuestions(questionDtos);
-        HomeworkFormat derived = HomeworkCompositionSupport.deriveActivityFormat(
-                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
 
         Activity activity = new Activity();
-        activity.setPresentationId(presentationId);
-        activity.setTitle(title.strip());
-        activity.setFormat(derived);
-        activity.setLevel(blankToNull(level));
-        activity.setHomeworkType(blankToNull(homeworkType));
-        activity.setPosition(activityRepository.maxPosition(presentationId) + 1);
-        activity.setTriggerFileId(triggerFileId);
-        activity.setTriggerPage(triggerPage);
-        activity.setInstructionsText(resolvedInstructions);
-        activity.setYoutubeUrl(resolvedYoutube);
-        activity.setImageId(resolvedImageId);
+        activity.setPresentationId(pdf.presentationId());
+        activity.setPage(page);
+        activity.setTitle(normalizeTitle(title));
+        activity.setFormat(deriveFormat(questions));
         activityRepository.insert(activity);
-
         questionRepository.replaceQuestions(activity.getId(), questions);
         return toDetail(requireActivity(activity.getId()));
     }
 
-    public ActivityAdminDetail update(UUID id, String title, UUID presentationId, String formatRaw,
-                                      String level, String homeworkType,
-                                      UUID triggerFileId, Integer triggerPage,
-                                      String instructionsText, String youtubeUrl, UUID imageId,
-                                      List<HomeworkQuestionDto> questionDtos) {
+    public ActivityAdminDetail update(UUID id, SaveActivityRequest request) {
         Activity existing = requireActivity(id);
-        if (title == null || title.isBlank()) {
-            throw new ActivityValidationException("El título es obligatorio.");
-        }
-        UUID targetPresentationId = presentationId != null ? presentationId : existing.getPresentationId();
-        if (!activityRepository.presentationExists(targetPresentationId)) {
-            throw new ActivityValidationException("La presentación no existe.");
-        }
-        // Client format is ignored — derived from question kinds.
-        UUID resolvedTriggerFile = triggerFileId;
-        Integer resolvedTriggerPage = triggerPage;
-        // Changing presentation clears invalid triggers
-        if (!targetPresentationId.equals(existing.getPresentationId())) {
-            if (resolvedTriggerFile != null
-                    && !activityRepository.fileBelongsToPresentation(targetPresentationId, resolvedTriggerFile)) {
-                resolvedTriggerFile = null;
-                resolvedTriggerPage = null;
-            }
-            existing.setPosition(activityRepository.maxPosition(targetPresentationId) + 1);
-        }
-        requirePageTrigger(targetPresentationId, resolvedTriggerFile, resolvedTriggerPage);
-        String resolvedInstructions = requireInstructionsText(instructionsText);
-        String resolvedYoutube = normalizeYoutubeUrl(youtubeUrl);
-        UUID resolvedImageId = requireMedia(resolvedYoutube, imageId);
-        List<ActivityQuestion> questions = mapQuestions(questionDtos);
-        HomeworkFormat derived = HomeworkCompositionSupport.deriveActivityFormat(
-                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
-
-        existing.setPresentationId(targetPresentationId);
-        existing.setTitle(title.strip());
-        existing.setFormat(derived);
-        existing.setLevel(blankToNull(level));
-        existing.setHomeworkType(blankToNull(homeworkType));
-        existing.setTriggerFileId(resolvedTriggerFile);
-        existing.setTriggerPage(resolvedTriggerPage);
-        existing.setInstructionsText(resolvedInstructions);
-        existing.setYoutubeUrl(resolvedYoutube);
-        existing.setImageId(resolvedImageId);
+        List<ActivityQuestion> questions = mapQuestions(request == null ? null : request.questions());
+        existing.setTitle(normalizeTitle(request == null ? null : request.title()));
+        existing.setFormat(deriveFormat(questions));
         activityRepository.update(existing);
         questionRepository.replaceQuestions(id, questions);
         return toDetail(requireActivity(id));
     }
 
-    public void delete(UUID id) {
-        Activity activity = requireActivity(id);
-        activityRepository.findInstructionsByActivityId(id).ifPresent(f -> {
-            instructionsFileStore.deleteQuietly(f.getId());
-        });
-        if (activityRepository.delete(activity.getId()) == 0) {
+    /** Unmarks the page. Student work is only deleted when the teacher confirmed it. */
+    public void delete(UUID id, boolean deleteSubmissions) {
+        requireActivity(id);
+        int submissions = activityRepository.countSubmissions(id);
+        if (submissions > 0 && !deleteSubmissions) {
+            throw new ActivityHasSubmissionsException(
+                    "La actividad tiene " + submissions + " respuesta(s) de alumnos que se borrarían.");
+        }
+        if (activityRepository.delete(id) == 0) {
             throw new ActivityNotFoundException("Actividad no encontrada.");
         }
     }
 
-    public void reorder(UUID presentationId, List<UUID> activityIds) {
-        if (!activityRepository.presentationExists(presentationId)) {
-            throw new ActivityValidationException("La presentación no existe.");
-        }
-        List<UUID> existing = activityRepository.listByPresentationId(presentationId).stream()
-                .map(Activity::getId).toList();
-        if (activityIds == null
-                || activityIds.size() != existing.size()
-                || !new HashSet<>(existing).equals(new HashSet<>(activityIds))) {
-            throw new ActivityReorderInvalidException(
-                    "La lista de actividades no es una permutación completa de la presentación.");
-        }
-        activityRepository.reorderPositions(presentationId, activityIds);
-    }
-
     // --- review --------------------------------------------------------------
 
-    public List<HomeworkReviewQueueItemDto> getReviewQueue() {
-        return submissionRepository.findSubmittedManualQueue().stream()
-                .map(r -> new HomeworkReviewQueueItemDto(
+    public List<ActivityReviewQueueItemDto> getReviewQueue(UUID unitIdOrNull) {
+        return submissionRepository.findSubmittedManualQueue(unitIdOrNull).stream()
+                .map(r -> new ActivityReviewQueueItemDto(
                         r.submissionId(), r.studentId(), r.studentEmail(), r.studentFirstName(),
-                        r.studentLastName(), r.studentUsername(), r.activityTitle(), r.submittedAt(), false))
+                        r.studentLastName(), r.studentUsername(),
+                        displayTitle(r.activityTitle(), r.page()), r.submittedAt(), r.unseen(),
+                        r.activityId(), r.unitId(), r.page()))
                 .toList();
     }
 
     public HomeworkSubmissionAdminDto getSubmissionDetail(UUID submissionId) {
         ActivitySubmission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Entrega no encontrada."));
+        notificationService.markActivitySeen(submissionId);
         return toSubmissionAdminDto(submission);
     }
 
@@ -274,13 +179,14 @@ public class ActivityAdminService {
                 && activity.getFormat() != HomeworkFormat.MIXED) {
             throw new ActivityNotFoundException("Esta entrega no es un ejercicio auto-corregible.");
         }
+        notificationService.markActivitySeen(submissionId);
         User student = userRepository.findById(submission.getUserId())
                 .orElseThrow(() -> new StudentNotFoundException("Alumno no encontrado."));
         var view = exerciseGradingService.viewGradedSubmission(submission);
         return new ExerciseSubmissionResultAdminDto(
                 submission.getId(),
                 activity.getId(),
-                activity.getTitle(),
+                activity.displayTitle(),
                 student.getId(),
                 student.getEmail(),
                 student.getFirstName(),
@@ -484,50 +390,30 @@ public class ActivityAdminService {
                 .orElseThrow(() -> new ActivityNotFoundException("Actividad no encontrada."));
     }
 
-    private void requirePageTrigger(UUID presentationId, UUID triggerFileId, Integer triggerPage) {
-        if (triggerFileId == null || triggerPage == null) {
-            throw new ActivityValidationException(
-                    "Debes indicar el PDF y la página tras la que se inserta la actividad.");
-        }
-        if (triggerPage < 1) {
-            throw new ActivityValidationException("La página debe ser al menos 1.");
-        }
-        if (!activityRepository.fileBelongsToPresentation(presentationId, triggerFileId)) {
-            throw new ActivityValidationException(
-                    "El archivo del disparador no pertenece a la presentación.");
-        }
-    }
-
-    private static String requireInstructionsText(String instructionsText) {
-        if (instructionsText == null || instructionsText.isBlank()) {
-            throw new ActivityValidationException("Las instrucciones son obligatorias.");
-        }
-        return instructionsText.strip();
-    }
-
-    /** Blank → null; non-blank must be a valid YouTube URL. */
-    private static String normalizeYoutubeUrl(String youtubeUrl) {
-        if (youtubeUrl == null || youtubeUrl.isBlank()) {
+    private static String normalizeTitle(String title) {
+        if (title == null || title.isBlank()) {
             return null;
         }
-        return YoutubeUrls.extractVideoId(youtubeUrl)
-                .map(id -> "https://www.youtube.com/watch?v=" + id)
-                .orElseThrow(() -> new ActivityValidationException(
-                        "Indica una URL de YouTube válida."));
+        String trimmed = title.strip();
+        if (trimmed.length() > MAX_TITLE_LENGTH) {
+            throw new ActivityValidationException("El título no puede superar los 200 caracteres.");
+        }
+        return trimmed;
     }
 
-    private UUID requireMedia(String youtubeUrl, UUID imageId) {
-        if ((youtubeUrl == null || youtubeUrl.isBlank()) && imageId == null) {
-            throw new ActivityValidationException(
-                    "Añade un vídeo de YouTube o una foto (o ambos).");
-        }
-        if (imageId != null && imageRepository.findById(imageId).isEmpty()) {
-            throw new ActivityValidationException("La imagen no existe.");
-        }
-        return imageId;
+    private static String displayTitle(String title, int page) {
+        return title == null || title.isBlank() ? "Actividad – página " + page : title;
+    }
+
+    private static HomeworkFormat deriveFormat(List<ActivityQuestion> questions) {
+        return HomeworkCompositionSupport.deriveActivityFormat(
+                questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
     }
 
     private List<ActivityQuestion> mapQuestions(List<HomeworkQuestionDto> questionDtos) {
+        if (questionDtos == null || questionDtos.isEmpty()) {
+            throw new ActivityValidationException("Añade al menos una pregunta.");
+        }
         List<HomeworkQuestion> mapped;
         try {
             mapped = homeworkAdminService.validateAndMapQuestions(false, questionDtos);
@@ -539,51 +425,31 @@ public class ActivityAdminService {
                 .toList();
     }
 
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value.strip();
-    }
-
     private HomeworkComposition compositionOf(Activity a, List<ActivityQuestion> questions) {
         if (questions != null && !questions.isEmpty()) {
             return HomeworkCompositionSupport.activityComposition(
                     questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
         }
-        // Fall back to stored format when questions not loaded for list rows.
         if (a.getFormat() == HomeworkFormat.MIXED) return HomeworkComposition.MIXED;
         if (a.getFormat() == HomeworkFormat.EXERCISE) return HomeworkComposition.ALL_AUTO;
         return HomeworkComposition.ALL_MANUAL;
     }
 
-    private ActivityAdminItem toItem(Activity a, String presentationTitle, boolean hasInstructions) {
-        HomeworkComposition composition = compositionOf(a, null);
-        return new ActivityAdminItem(
-                a.getId(), a.getTitle(), a.getFormat().name(), composition.name(),
-                a.getLevel(), a.getHomeworkType(),
-                a.getPresentationId(), presentationTitle, a.getPosition(),
-                a.getTriggerFileId(), a.getTriggerPage(),
-                a.getInstructionsText(), a.getYoutubeUrl(), a.getImageId(), hasInstructions,
-                a.getCreatedAt(), a.getUpdatedAt());
-    }
-
     private ActivityAdminDetail toDetail(Activity a) {
-        String presentationTitle = presentationRepository.findById(a.getPresentationId())
-                .map(p -> p.getTitle())
-                .orElse("");
-        var instructions = activityRepository.findInstructionsByActivityId(a.getId()).orElse(null);
         List<ActivityQuestion> questionModels = questionRepository.findByActivityId(a.getId());
         List<HomeworkQuestionDto> questions = questionModels.stream().map(this::toQuestionDto).toList();
         HomeworkComposition composition = compositionOf(a, questionModels);
-        ActivityAdminDetail.InstructionsMeta meta = instructions == null ? null
-                : new ActivityAdminDetail.InstructionsMeta(
-                        instructions.getId(), instructions.getOriginalName(),
-                        instructions.getContentType(), instructions.getByteSize());
         return new ActivityAdminDetail(
-                a.getId(), a.getTitle(), a.getFormat().name(), composition.name(),
-                a.getLevel(), a.getHomeworkType(),
-                a.getPresentationId(), presentationTitle, a.getPosition(),
-                a.getTriggerFileId(), a.getTriggerPage(),
-                a.getInstructionsText(), a.getYoutubeUrl(), a.getImageId(), instructions != null,
-                a.getCreatedAt(), a.getUpdatedAt(), questions, meta);
+                a.getId(),
+                activityRepository.findUnitId(a.getId()).orElse(null),
+                a.getPresentationId(),
+                a.getPage(),
+                a.getTitle(),
+                a.getFormat().name(),
+                composition.name(),
+                questions,
+                a.getCreatedAt(),
+                a.getUpdatedAt());
     }
 
     private HomeworkQuestionDto toQuestionDto(ActivityQuestion q) {
@@ -633,7 +499,7 @@ public class ActivityAdminService {
                 student.getFirstName(),
                 student.getLastName(),
                 student.getUsername(),
-                activity.getTitle(),
+                activity.displayTitle(),
                 submission.getStatus(),
                 formatName,
                 composition.name(),

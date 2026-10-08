@@ -13,7 +13,8 @@ import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.admin.exception.UserNotFoundException;
 import com.kuky.backend.learning.exception.ActivityAlreadySubmittedException;
 import com.kuky.backend.learning.exception.ActivityNotFoundException;
-import com.kuky.backend.learning.exception.ActivityReorderInvalidException;
+import com.kuky.backend.learning.exception.ActivityHasSubmissionsException;
+import com.kuky.backend.learning.exception.ActivityPageTakenException;
 import com.kuky.backend.learning.exception.ActivityValidationException;
 import com.kuky.backend.learning.exception.AlreadyReviewedException;
 import com.kuky.backend.learning.exception.AssignmentNotFoundException;
@@ -27,6 +28,7 @@ import com.kuky.backend.quiz.exception.QuizNotAssignedException;
 import com.kuky.backend.quiz.exception.QuizNotFoundException;
 import com.kuky.backend.presentations.exception.InvalidImageException;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
+import com.kuky.backend.units.exception.ActivitiesOutOfRangeException;
 import com.kuky.backend.units.exception.InvalidContentOrderException;
 import com.kuky.backend.units.exception.UnitNotFoundException;
 import com.kuky.backend.scheduling.exception.BookingNotAllowedException;
@@ -198,10 +200,22 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "ACTIVITY_VALIDATION", "message", ex.getMessage()));
     }
 
-    @ExceptionHandler(ActivityReorderInvalidException.class)
-    public ResponseEntity<Map<String, String>> handleActivityReorder(ActivityReorderInvalidException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", "ACTIVITY_REORDER_INVALID", "message", ex.getMessage()));
+    @ExceptionHandler(ActivityPageTakenException.class)
+    public ResponseEntity<Map<String, String>> handleActivityPageTaken(ActivityPageTakenException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "ACTIVITY_PAGE_TAKEN", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ActivityHasSubmissionsException.class)
+    public ResponseEntity<Map<String, String>> handleActivityHasSubmissions(ActivityHasSubmissionsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "ACTIVITY_HAS_SUBMISSIONS", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ActivitiesOutOfRangeException.class)
+    public ResponseEntity<Map<String, String>> handleActivitiesOutOfRange(ActivitiesOutOfRangeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "ACTIVITIES_OUT_OF_RANGE", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(ActivityAlreadySubmittedException.class)

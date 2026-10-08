@@ -1,25 +1,36 @@
 package com.kuky.backend.units.repository;
 
 import com.kuky.backend.admin.dto.HomeworkAdminItem;
-import com.kuky.backend.admin.dto.PresentationSummary;
 import com.kuky.backend.admin.dto.StudentResponse;
+import com.kuky.backend.units.dto.UnitActivityProgressRow;
 import com.kuky.backend.units.dto.UnitContentItem;
 import com.kuky.backend.units.dto.UnitContentRef;
-import com.kuky.backend.units.model.Unit;
 import com.kuky.backend.units.dto.UnitSummary;
+import com.kuky.backend.units.model.Unit;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public class UnitRepository {
+
+    /** Activity work from a student who still holds the unit and that the teacher has not opened yet. */
+    private static final String UNSEEN_SUBMISSION = """
+            (s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED') AND s.teacher_seen_at IS NULL
+             AND EXISTS (SELECT 1 FROM unit_assignments ua2
+                         WHERE ua2.unit_id = p.unit_id AND ua2.user_id = s.user_id))
+            """;
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -32,14 +43,22 @@ public class UnitRepository {
     public List<UnitSummary> listSummaries() {
         String sql = """
                 SELECT u.id, u.level, u.subject, u.position,
-                       COUNT(DISTINCT p.id)  AS presentation_count,
-                       COUNT(DISTINCT ha.id) AS homework_count,
-                       COALESCE(ARRAY_AGG(DISTINCT ua.user_id::text) FILTER (WHERE ua.user_id IS NOT NULL), '{}') AS assigned_student_ids
+                       (SELECT f.page_count FROM presentations p
+                        JOIN presentation_files f ON f.presentation_id = p.id
+                        WHERE p.unit_id = u.id
+                        ORDER BY f.created_at DESC LIMIT 1) AS page_count,
+                       (SELECT COUNT(*) FROM presentations p
+                        JOIN activities a ON a.presentation_id = p.id
+                        WHERE p.unit_id = u.id) AS activity_count,
+                       (SELECT COUNT(*) FROM homework_assignments ha WHERE ha.unit_id = u.id) AS homework_count,
+                       (SELECT COALESCE(ARRAY_AGG(ua.user_id::text), '{}') FROM unit_assignments ua
+                        WHERE ua.unit_id = u.id) AS assigned_student_ids,
+                       EXISTS (SELECT 1 FROM presentations p
+                               JOIN activities a ON a.presentation_id = p.id
+                               JOIN activity_submissions s ON s.activity_id = a.id
+                               WHERE p.unit_id = u.id AND """ + UNSEEN_SUBMISSION + """
+                       ) AS has_unseen
                 FROM units u
-                LEFT JOIN presentations p ON p.unit_id = u.id
-                LEFT JOIN homework_assignments ha ON ha.unit_id = u.id
-                LEFT JOIN unit_assignments ua ON ua.unit_id = u.id
-                GROUP BY u.id, u.level, u.subject, u.position
                 ORDER BY u.level, u.position
                 """;
         return jdbc.query(sql, Map.of(), (rs, n) -> {
@@ -48,14 +67,18 @@ public class UnitRepository {
                     : Arrays.stream((Object[]) arr.getArray())
                             .map(Object::toString)
                             .toList();
+            Integer pageCount = rs.getObject("page_count", Integer.class);
             return new UnitSummary(
                     rs.getObject("id", UUID.class),
                     rs.getString("level"),
                     rs.getString("subject"),
                     rs.getInt("position"),
-                    rs.getInt("presentation_count"),
+                    pageCount != null,
+                    pageCount,
+                    rs.getInt("activity_count"),
                     rs.getInt("homework_count"),
-                    ids);
+                    ids,
+                    rs.getBoolean("has_unseen"));
         });
     }
 
@@ -130,13 +153,16 @@ public class UnitRepository {
 
     // --- Content membership --------------------------------------------------
 
-    /** Ordered mixed content refs for a unit (presentations + homeworks by unit_position). */
+    /**
+     * Ordered mixed content of a unit: its own PDF (the owned presentation, type {@code PDF})
+     * and its homeworks, by {@code unit_position}.
+     */
     public record ContentMember(String type, UUID id, int unitPosition) {}
 
     public List<ContentMember> findContentMembers(UUID unitId) {
         String sql = """
                 SELECT type, id, unit_position FROM (
-                    SELECT 'PRESENTATION' AS type, id, unit_position
+                    SELECT 'PDF' AS type, id, unit_position
                     FROM presentations WHERE unit_id = :uid
                     UNION ALL
                     SELECT 'HOMEWORK' AS type, id, unit_position
@@ -150,85 +176,56 @@ public class UnitRepository {
                 rs.getInt("unit_position")));
     }
 
+    /** Next free slot at the end of the unit's sequence. */
+    public int nextContentPosition(UUID unitId) {
+        List<ContentMember> members = findContentMembers(unitId);
+        return members.isEmpty() ? 0 : members.get(members.size() - 1).unitPosition() + 1;
+    }
+
     @Transactional
     public void reorderContents(UUID unitId, List<UnitContentRef> items) {
-        for (int i = 0; i < items.size(); i++) {
-            UnitContentRef ref = items.get(i);
-            String type = ref.type() == null ? "" : ref.type().toUpperCase(java.util.Locale.ROOT);
-            if (UnitContentItem.PRESENTATION.equals(type)) {
-                jdbc.update("""
-                        UPDATE presentations SET unit_position = :pos, updated_at = NOW()
-                        WHERE id = :id AND unit_id = :uid
-                        """, new MapSqlParameterSource()
-                        .addValue("pos", i)
-                        .addValue("id", ref.id())
-                        .addValue("uid", unitId));
-            } else if (UnitContentItem.HOMEWORK.equals(type)) {
-                jdbc.update("""
-                        UPDATE homework_assignments SET unit_position = :pos
-                        WHERE id = :id AND unit_id = :uid
-                        """, new MapSqlParameterSource()
-                        .addValue("pos", i)
-                        .addValue("id", ref.id())
-                        .addValue("uid", unitId));
-            }
+        List<ContentMember> ordered = new ArrayList<>();
+        for (UnitContentRef ref : items) {
+            String type = ref.type() == null ? "" : ref.type().toUpperCase(Locale.ROOT);
+            ordered.add(new ContentMember(type, ref.id(), ordered.size()));
         }
+        rewritePositions(unitId, ordered);
         touch(unitId);
     }
 
     private void rewritePositions(UUID unitId, List<ContentMember> ordered) {
         for (int i = 0; i < ordered.size(); i++) {
             ContentMember m = ordered.get(i);
-            if (UnitContentItem.PRESENTATION.equals(m.type())) {
-                jdbc.update("""
-                        UPDATE presentations SET unit_position = :pos, updated_at = NOW()
-                        WHERE id = :id AND unit_id = :uid
-                        """, new MapSqlParameterSource()
-                        .addValue("pos", i)
-                        .addValue("id", m.id())
-                        .addValue("uid", unitId));
-            } else {
-                jdbc.update("""
-                        UPDATE homework_assignments SET unit_position = :pos
-                        WHERE id = :id AND unit_id = :uid
-                        """, new MapSqlParameterSource()
-                        .addValue("pos", i)
-                        .addValue("id", m.id())
-                        .addValue("uid", unitId));
-            }
+            String table = UnitContentItem.PDF.equals(m.type()) ? "presentations" : "homework_assignments";
+            jdbc.update("UPDATE " + table + " SET unit_position = :pos WHERE id = :id AND unit_id = :uid",
+                    new MapSqlParameterSource()
+                            .addValue("pos", i)
+                            .addValue("id", m.id())
+                            .addValue("uid", unitId));
         }
     }
 
-    @Transactional
-    public void setPresentations(UUID unitId, List<UUID> presentationIds) {
-        applyMembership(unitId, UnitContentItem.PRESENTATION, presentationIds);
-    }
-
+    /** Replaces the unit's homeworks, keeping the PDF and retained homeworks in their order. */
     @Transactional
     public void setHomeworks(UUID unitId, List<UUID> homeworkIds) {
-        applyMembership(unitId, UnitContentItem.HOMEWORK, homeworkIds == null ? List.of() : homeworkIds);
-    }
-
-    private void applyMembership(UUID unitId, String memberType, List<UUID> desiredIds) {
-        List<UUID> desired = desiredIds == null ? List.of() : desiredIds;
-        java.util.LinkedHashSet<UUID> desiredSet = new java.util.LinkedHashSet<>(desired);
-
+        List<UUID> desired = homeworkIds == null ? List.of() : homeworkIds;
+        LinkedHashSet<UUID> desiredSet = new LinkedHashSet<>(desired);
         List<ContentMember> current = findContentMembers(unitId);
 
         for (ContentMember m : current) {
-            if (memberType.equals(m.type()) && !desiredSet.contains(m.id())) {
-                detachMember(m);
+            if (UnitContentItem.HOMEWORK.equals(m.type()) && !desiredSet.contains(m.id())) {
+                jdbc.update("UPDATE homework_assignments SET unit_id = NULL, unit_position = 0 WHERE id = :id",
+                        Map.of("id", m.id()));
             }
         }
-
         for (UUID id : desired) {
-            compactAfterMoveFromOtherUnit(memberType, id, unitId);
+            detachFromOtherUnit(id, unitId);
         }
 
-        List<ContentMember> next = new java.util.ArrayList<>();
-        java.util.HashSet<UUID> retained = new java.util.HashSet<>();
+        List<ContentMember> next = new ArrayList<>();
+        HashSet<UUID> retained = new HashSet<>();
         for (ContentMember m : current) {
-            if (!memberType.equals(m.type())) {
+            if (!UnitContentItem.HOMEWORK.equals(m.type())) {
                 next.add(m);
             } else if (desiredSet.contains(m.id())) {
                 next.add(m);
@@ -237,14 +234,9 @@ public class UnitRepository {
         }
         for (UUID id : desired) {
             if (!retained.contains(id)) {
-                attachMember(memberType, id, unitId);
-                next.add(new ContentMember(memberType, id, next.size()));
-            }
-        }
-
-        for (UUID id : desired) {
-            if (retained.contains(id)) {
-                attachMember(memberType, id, unitId);
+                jdbc.update("UPDATE homework_assignments SET unit_id = :uid WHERE id = :id",
+                        Map.of("uid", unitId, "id", id));
+                next.add(new ContentMember(UnitContentItem.HOMEWORK, id, next.size()));
             }
         }
 
@@ -252,89 +244,23 @@ public class UnitRepository {
         touch(unitId);
     }
 
-    private void detachMember(ContentMember m) {
-        if (UnitContentItem.PRESENTATION.equals(m.type())) {
-            jdbc.update("""
-                    UPDATE presentations SET unit_id = NULL, unit_position = 0, updated_at = NOW()
-                    WHERE id = :id
-                    """, Map.of("id", m.id()));
-        } else {
-            jdbc.update("""
-                    UPDATE homework_assignments SET unit_id = NULL, unit_position = 0
-                    WHERE id = :id
-                    """, Map.of("id", m.id()));
+    /** If the homework belongs to another unit, detach it and compact that unit's remaining sequence. */
+    private void detachFromOtherUnit(UUID homeworkId, UUID keepUnitId) {
+        UUID previousUnitId = jdbc.query("""
+                SELECT unit_id FROM homework_assignments
+                WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
+                """, Map.of("id", homeworkId, "uid", keepUnitId),
+                (rs, n) -> rs.getObject("unit_id", UUID.class)).stream().findFirst().orElse(null);
+        if (previousUnitId == null) {
+            return;
         }
-    }
-
-    /** If the item belongs to another unit, detach it and compact that unit's remaining sequence. */
-    private void compactAfterMoveFromOtherUnit(String type, UUID id, UUID keepUnitId) {
-        UUID previousUnitId = null;
-        if (UnitContentItem.PRESENTATION.equals(type)) {
-            previousUnitId = jdbc.query("""
-                    SELECT unit_id FROM presentations
-                    WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
-                    """, Map.of("id", id, "uid", keepUnitId),
-                    (rs, n) -> rs.getObject("unit_id", UUID.class)).stream().findFirst().orElse(null);
-            jdbc.update("""
-                    UPDATE presentations SET unit_id = NULL, unit_position = 0, updated_at = NOW()
-                    WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
-                    """, Map.of("id", id, "uid", keepUnitId));
-        } else {
-            previousUnitId = jdbc.query("""
-                    SELECT unit_id FROM homework_assignments
-                    WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
-                    """, Map.of("id", id, "uid", keepUnitId),
-                    (rs, n) -> rs.getObject("unit_id", UUID.class)).stream().findFirst().orElse(null);
-            jdbc.update("""
-                    UPDATE homework_assignments SET unit_id = NULL, unit_position = 0
-                    WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
-                    """, Map.of("id", id, "uid", keepUnitId));
-        }
-        if (previousUnitId != null) {
-            rewritePositions(previousUnitId, findContentMembers(previousUnitId));
-            touch(previousUnitId);
-        }
-    }
-
-    private void attachMember(String type, UUID id, UUID unitId) {
-        if (UnitContentItem.PRESENTATION.equals(type)) {
-            jdbc.update("""
-                    UPDATE presentations SET unit_id = :uid, updated_at = NOW()
-                    WHERE id = :id
-                    """, Map.of("uid", unitId, "id", id));
-        } else {
-            jdbc.update("""
-                    UPDATE homework_assignments SET unit_id = :uid
-                    WHERE id = :id
-                    """, Map.of("uid", unitId, "id", id));
-        }
+        jdbc.update("UPDATE homework_assignments SET unit_id = NULL, unit_position = 0 WHERE id = :id",
+                Map.of("id", homeworkId));
+        rewritePositions(previousUnitId, findContentMembers(previousUnitId));
+        touch(previousUnitId);
     }
 
     // --- Detail loaders ------------------------------------------------------
-
-    public List<PresentationSummary> findPresentations(UUID unitId) {
-        String sql = """
-                SELECT p.id, p.title, p.level, p.updated_at, p.unit_position,
-                       COALESCE(ARRAY_AGG(sh.user_id::text) FILTER (WHERE sh.user_id IS NOT NULL), '{}') AS shared_with_ids
-                FROM presentations p
-                LEFT JOIN presentation_shares sh ON sh.presentation_id = p.id
-                WHERE p.unit_id = :uid
-                GROUP BY p.id, p.title, p.level, p.updated_at, p.unit_position
-                ORDER BY p.unit_position
-                """;
-        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> {
-            java.sql.Array arr = rs.getArray("shared_with_ids");
-            List<String> ids = arr == null ? List.of()
-                    : Arrays.stream((Object[]) arr.getArray()).map(Object::toString).toList();
-            return new PresentationSummary(
-                    rs.getObject("id", UUID.class),
-                    rs.getString("title"),
-                    rs.getString("level"),
-                    List.of(),
-                    ids,
-                    rs.getTimestamp("updated_at").toInstant());
-        });
-    }
 
     public List<HomeworkAdminItem> findHomeworks(UUID unitId) {
         String sql = """
@@ -400,6 +326,69 @@ public class UnitRepository {
                         rs.getString("username")));
     }
 
+    // --- Page activities -------------------------------------------------------
+
+    /** Per-activity submission counts (assigned students only) for the unit's PDF, in page order. */
+    public record ActivityCounts(UUID id, int page, String title, String format,
+                                 int submitted, int awaitingCorrection, int graded, boolean hasUnseen) {}
+
+    public List<ActivityCounts> findActivityCounts(UUID unitId) {
+        String sql = """
+                SELECT a.id, a.page, a.title, a.format,
+                       COUNT(ua.user_id) FILTER (WHERE s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED')) AS submitted,
+                       COUNT(ua.user_id) FILTER (WHERE s.status = 'SUBMITTED') AS awaiting,
+                       COUNT(ua.user_id) FILTER (WHERE s.status IN ('REVIEWED', 'GRADED')) AS graded,
+                       COALESCE(BOOL_OR(ua.user_id IS NOT NULL
+                                        AND s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED')
+                                        AND s.teacher_seen_at IS NULL), false) AS has_unseen
+                FROM presentations p
+                JOIN activities a ON a.presentation_id = p.id
+                LEFT JOIN activity_submissions s ON s.activity_id = a.id
+                LEFT JOIN unit_assignments ua ON ua.unit_id = p.unit_id AND ua.user_id = s.user_id
+                WHERE p.unit_id = :uid
+                GROUP BY a.id, a.page, a.title, a.format
+                ORDER BY a.page
+                """;
+        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> new ActivityCounts(
+                rs.getObject("id", UUID.class),
+                rs.getInt("page"),
+                rs.getString("title"),
+                rs.getString("format"),
+                rs.getInt("submitted"),
+                rs.getInt("awaiting"),
+                rs.getInt("graded"),
+                rs.getBoolean("has_unseen")));
+    }
+
+    /** One row per (activity × assigned student); a missing submission reads as PENDING. */
+    public List<UnitActivityProgressRow> findActivityProgress(UUID unitId) {
+        String sql = """
+                SELECT a.id AS activity_id, a.page, ua.user_id AS student_id,
+                       COALESCE(s.status, 'PENDING') AS status, s.score_percent,
+                       s.id AS submission_id, s.submitted_at,
+                       COALESCE(s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED')
+                                AND s.teacher_seen_at IS NULL, false) AS unseen
+                FROM presentations p
+                JOIN activities a ON a.presentation_id = p.id
+                JOIN unit_assignments ua ON ua.unit_id = p.unit_id
+                LEFT JOIN activity_submissions s ON s.activity_id = a.id AND s.user_id = ua.user_id
+                WHERE p.unit_id = :uid
+                ORDER BY a.page, ua.user_id
+                """;
+        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> {
+            var submittedAt = rs.getTimestamp("submitted_at");
+            return new UnitActivityProgressRow(
+                    rs.getObject("activity_id", UUID.class),
+                    rs.getInt("page"),
+                    rs.getObject("student_id", UUID.class),
+                    rs.getString("status"),
+                    rs.getObject("score_percent", Integer.class),
+                    rs.getObject("submission_id", UUID.class),
+                    submittedAt == null ? null : submittedAt.toInstant(),
+                    rs.getBoolean("unseen"));
+        });
+    }
+
     // --- Assignees -----------------------------------------------------------
 
     public List<UUID> findAssigneeIds(UUID unitId) {
@@ -414,7 +403,7 @@ public class UnitRepository {
                 """, Map.of("uid", unitId), (rs, n) -> rs.getObject("id", UUID.class));
     }
 
-    public java.util.Optional<UUID> findUnitIdForHomework(UUID homeworkId) {
+    public Optional<UUID> findUnitIdForHomework(UUID homeworkId) {
         return jdbc.query("""
                 SELECT unit_id FROM homework_assignments WHERE id = :id AND unit_id IS NOT NULL
                 """, Map.of("id", homeworkId), (rs, n) -> rs.getObject("unit_id", UUID.class))
@@ -476,48 +465,4 @@ public class UnitRepository {
                 rs.getInt("total_homeworks"),
                 rs.getInt("completed_homeworks")));
     }
-
-    // --- Unit-derived presentation access (for LearningService) --------------
-
-    public boolean isAccessibleByUser(UUID presentationId, UUID userId) {
-        Integer count = jdbc.queryForObject("""
-                SELECT COUNT(1) FROM presentations p
-                WHERE p.id = :pid
-                  AND (
-                      EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = p.id AND s.user_id = :uid)
-                      OR
-                      EXISTS (SELECT 1 FROM unit_assignments ua WHERE ua.unit_id = p.unit_id AND ua.user_id = :uid)
-                  )
-                """, Map.of("pid", presentationId, "uid", userId), Integer.class);
-        return count != null && count > 0;
-    }
-
-    public record UnitInfo(String level, String subject, int position) {}
-
-    public List<PresentationWithUnit> findAccessiblePresentationsForUser(UUID userId) {
-        String sql = """
-                SELECT p.id, p.title, p.level AS p_level, p.updated_at,
-                       EXISTS (SELECT 1 FROM presentation_files pf WHERE pf.presentation_id = p.id) AS has_file,
-                       u.level AS unit_level, u.subject AS unit_subject, u.position AS unit_position
-                FROM presentations p
-                LEFT JOIN units u ON u.id = p.unit_id
-                WHERE
-                    EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = p.id AND s.user_id = :uid)
-                    OR
-                    EXISTS (SELECT 1 FROM unit_assignments ua WHERE ua.unit_id = p.unit_id AND ua.user_id = :uid)
-                ORDER BY COALESCE(u.level, 'ZZ'), COALESCE(u.position, 999), p.updated_at DESC
-                """;
-        return jdbc.query(sql, Map.of("uid", userId), (rs, n) -> {
-            String unitLevel = rs.getString("unit_level");
-            UnitInfo unitInfo = unitLevel == null ? null
-                    : new UnitInfo(unitLevel, rs.getString("unit_subject"), rs.getInt("unit_position"));
-            return new PresentationWithUnit(
-                    rs.getObject("id", UUID.class),
-                    rs.getString("title"),
-                    rs.getBoolean("has_file"),
-                    unitInfo);
-        });
-    }
-
-    public record PresentationWithUnit(UUID id, String title, boolean hasFile, UnitInfo unit) {}
 }

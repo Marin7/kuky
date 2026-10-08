@@ -38,7 +38,8 @@ class StudentProfileAdminServiceTest {
         homeworkTargetRepository = mock(HomeworkTargetRepository.class);
         presentationRepository = mock(PresentationRepository.class);
         service = new StudentProfileAdminService(userRepository, bookingRepository,
-                homeworkTargetRepository, presentationRepository, new com.kuky.backend.config.SchedulingProperties());
+                homeworkTargetRepository, presentationRepository, new com.kuky.backend.config.SchedulingProperties(),
+                mock(com.kuky.backend.learning.repository.ActivitySubmissionRepository.class));
 
         User student = new User();
         student.setId(studentId);

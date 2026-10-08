@@ -4,9 +4,10 @@ public record BadgeSummary(
         boolean panel,
         boolean homework,
         boolean quiz,
+        boolean units,
         boolean learning
 ) {
     public static BadgeSummary none() {
-        return new BadgeSummary(false, false, false, false);
+        return new BadgeSummary(false, false, false, false, false);
     }
 }
