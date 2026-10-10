@@ -10,6 +10,7 @@ public record SharedPresentationSummary(
         String title,
         List<PresentationFileSummary> files,
         UnitRef unit,
-        Integer unitPosition,
-        List<ActivitySummary> activities
+        List<ActivitySummary> activities,
+        /** For a unit PDF: one title per page (index 0 = page 1); empty for shared presentations. */
+        List<String> pageTitles
 ) {}

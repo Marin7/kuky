@@ -156,7 +156,7 @@ public class ActivityAdminService {
                 .map(r -> new ActivityReviewQueueItemDto(
                         r.submissionId(), r.studentId(), r.studentEmail(), r.studentFirstName(),
                         r.studentLastName(), r.studentUsername(),
-                        displayTitle(r.activityTitle(), r.page()), r.submittedAt(), r.unseen(),
+                        r.activityTitle(), r.submittedAt(), r.unseen(),
                         r.activityId(), r.unitId(), r.page()))
                 .toList();
     }
@@ -186,7 +186,7 @@ public class ActivityAdminService {
         return new ExerciseSubmissionResultAdminDto(
                 submission.getId(),
                 activity.getId(),
-                activity.displayTitle(),
+                activity.getTitle(),
                 student.getId(),
                 student.getEmail(),
                 student.getFirstName(),
@@ -392,17 +392,13 @@ public class ActivityAdminService {
 
     private static String normalizeTitle(String title) {
         if (title == null || title.isBlank()) {
-            return null;
+            throw new ActivityValidationException("La actividad necesita un título.");
         }
         String trimmed = title.strip();
         if (trimmed.length() > MAX_TITLE_LENGTH) {
             throw new ActivityValidationException("El título no puede superar los 200 caracteres.");
         }
         return trimmed;
-    }
-
-    private static String displayTitle(String title, int page) {
-        return title == null || title.isBlank() ? "Actividad – página " + page : title;
     }
 
     private static HomeworkFormat deriveFormat(List<ActivityQuestion> questions) {
@@ -499,7 +495,7 @@ public class ActivityAdminService {
                 student.getFirstName(),
                 student.getLastName(),
                 student.getUsername(),
-                activity.displayTitle(),
+                activity.getTitle(),
                 submission.getStatus(),
                 formatName,
                 composition.name(),

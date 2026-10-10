@@ -43,6 +43,30 @@ public class QuizRepository {
                 """, Map.of("uid", userId), MAPPER);
     }
 
+    /** A quiz at the end of a unit the student holds and was given, with their attempt status (if any). */
+    public record UnitQuizRow(UUID quizId, String title, UUID unitId, String unitLevel, String unitSubject,
+                              int unitLevelPosition, String attemptStatus) {}
+
+    public List<UnitQuizRow> findUnitQuizzesForUser(UUID userId) {
+        return jdbc.query("""
+                SELECT q.id, q.title, u.id AS unit_id, u.level, u.subject, u.position AS unit_level_position,
+                       t.status AS attempt_status
+                FROM quizzes q
+                JOIN units u ON u.id = q.unit_id
+                JOIN unit_assignments ua ON ua.unit_id = u.id AND ua.user_id = :uid
+                JOIN quiz_assignees qa ON qa.quiz_id = q.id AND qa.user_id = :uid
+                LEFT JOIN quiz_attempts t ON t.quiz_id = q.id AND t.user_id = :uid
+                ORDER BY u.level, u.position, q.unit_position, q.title
+                """, Map.of("uid", userId), (rs, n) -> new UnitQuizRow(
+                rs.getObject("id", UUID.class),
+                rs.getString("title"),
+                rs.getObject("unit_id", UUID.class),
+                rs.getString("level"),
+                rs.getString("subject"),
+                rs.getInt("unit_level_position"),
+                rs.getString("attempt_status")));
+    }
+
     public Optional<Quiz> findById(UUID id) {
         List<Quiz> rows = jdbc.query("SELECT * FROM quizzes WHERE id = :id", Map.of("id", id), MAPPER);
         return rows.stream().findFirst();
@@ -80,7 +104,7 @@ public class QuizRepository {
     }
 
     public record QuizListRow(UUID id, String title, int questionCount, int assigneeCount, int attemptCount,
-                              boolean hasUnseenAttempts) {}
+                              boolean hasUnseenAttempts, UUID unitId, String unitLabel) {}
 
     public List<QuizListRow> listWithCounts() {
         return jdbc.query("""
@@ -93,8 +117,10 @@ public class QuizRepository {
                            WHERE t.quiz_id = q.id
                              AND t.status IN ('SUBMITTED', 'GRADED')
                              AND t.teacher_seen_at IS NULL
-                       ) AS has_unseen
+                       ) AS has_unseen,
+                       u.id AS unit_id, u.level || ' · ' || u.subject AS unit_label
                 FROM quizzes q
+                LEFT JOIN units u ON u.id = q.unit_id
                 ORDER BY q.updated_at DESC
                 """, (rs, n) -> new QuizListRow(
                 rs.getObject("id", UUID.class),
@@ -102,6 +128,8 @@ public class QuizRepository {
                 rs.getInt("question_count"),
                 rs.getInt("assignee_count"),
                 rs.getInt("attempt_count"),
-                rs.getBoolean("has_unseen")));
+                rs.getBoolean("has_unseen"),
+                rs.getObject("unit_id", UUID.class),
+                rs.getString("unit_label")));
     }
 }

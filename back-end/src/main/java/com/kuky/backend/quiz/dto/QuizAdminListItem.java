@@ -9,5 +9,7 @@ public record QuizAdminListItem(
         int questionCount,
         int assigneeCount,
         int attemptCount,
-        boolean hasUnseenAttempts
+        boolean hasUnseenAttempts,
+        UUID unitId,       // unit the quiz is shown at the end of (null when standalone)
+        String unitLabel   // "A1 · La familia"
 ) {}

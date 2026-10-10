@@ -63,16 +63,16 @@ BEGIN
     INSERT INTO presentation_shares (id, presentation_id, user_id) VALUES (gen_random_uuid(), pres2, student_id);
 
     -- Homeworks: one MANUAL (submitted, awaiting review), one EXERCISE (graded)
-    INSERT INTO homework_assignments (id, title, instructions, format, homework_type, unit_id, sort_order)
+    INSERT INTO homework_assignments (id, title, instructions, format, homework_type, sort_order)
     VALUES (gen_random_uuid(), 'Redacción: preséntate',
             'Escribe entre 8 y 10 frases presentándote: nombre, de dónde eres, qué te gusta.',
-            'MANUAL', 'WRITE', unit_a1, 1)
+            'MANUAL', 'WRITE', 1)
     RETURNING id INTO hw_manual;
 
-    INSERT INTO homework_assignments (id, title, instructions, format, unit_id, sort_order)
+    INSERT INTO homework_assignments (id, title, instructions, format, sort_order)
     VALUES (gen_random_uuid(), 'Ejercicio: presente de indicativo',
             'Responde a las preguntas sobre el presente de indicativo.',
-            'EXERCISE', unit_a1, 2)
+            'EXERCISE', 2)
     RETURNING id INTO hw_exercise;
 
     INSERT INTO homework_targets (id, assignment_id, user_id) VALUES (gen_random_uuid(), hw_manual, student_id);

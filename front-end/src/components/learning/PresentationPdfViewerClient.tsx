@@ -17,9 +17,11 @@ function PdfPageStack({
   pdf,
   onPageVisible,
   activitiesByPage,
+  pageTitles,
   onActivityChanged,
 }: {
   pdf: PDFDocumentProxy;
+  pageTitles: string[];
   onPageVisible?: (page: number) => void;
   activitiesByPage: Map<number, ActivitySummary>;
   onActivityChanged?: (activityId: string) => void;
@@ -47,6 +49,11 @@ function PdfPageStack({
           const activity = activitiesByPage.get(pageNumber);
           return (
             <div key={pageNumber} className="flex flex-col gap-3">
+              {pageTitles[i] && (
+                <h2 className="font-display text-lg font-semibold text-foreground">
+                  {pageTitles[i]}
+                </h2>
+              )}
               <PdfSinglePage
                 pdf={pdf}
                 pageNumber={pageNumber}
@@ -75,6 +82,7 @@ export function PresentationPdfViewerClient({
   embedded = false,
   onPageVisible,
   activities = [],
+  pageTitles = [],
   onActivityChanged,
 }: PresentationPdfViewerProps) {
   const { t } = useTranslation();
@@ -118,6 +126,7 @@ export function PresentationPdfViewerClient({
           pdf={state.pdf}
           onPageVisible={onPageVisible}
           activitiesByPage={activitiesByPage}
+          pageTitles={pageTitles}
           onActivityChanged={onActivityChanged}
         />
       )}

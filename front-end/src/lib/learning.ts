@@ -95,8 +95,6 @@ export interface HomeworkItem {
   audioUrl: string | null; // listening homework external source
   audioFileId: string | null; // listening homework uploaded file
   mediaSourceKind?: MediaSourceKind | null;
-  unit: UnitRef | null; // owning unit for grouping (null for legacy/unattached)
-  unitPosition?: number | null; // rank within unit mixed sequence
   hasTeacherFeedback: boolean;
   /** Non-WRITE questions (manual, auto, or mixed). */
   questions?: StudentQuestion[];
@@ -328,8 +326,7 @@ export interface PresentationFileSummary {
 /** A page of a unit's PDF that is an activity (the page itself is the instructions). */
 export interface ActivitySummary {
   id: string;
-  /** null → show the "Actividad – página N" fallback (`activityTitle`). */
-  title: string | null;
+  title: string;
   page: number;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
@@ -341,8 +338,18 @@ export interface SharedPresentationSummary {
   title: string;
   files: PresentationFileSummary[];
   unit: UnitRef | null;
-  unitPosition?: number | null;
   activities?: ActivitySummary[];
+  /** For a unit PDF: one title per page (index 0 = page 1). */
+  pageTitles?: string[];
+}
+
+/** A quiz at the end of one of the student's units (opens on /quizzes/$quizId). */
+export interface UnitQuizSummary {
+  id: string;
+  title: string;
+  unit: UnitRef;
+  status: "AVAILABLE" | "IN_PROGRESS" | "SUBMITTED" | "GRADED";
+  unseen: boolean;
 }
 
 export interface LearningResponse {
@@ -350,6 +357,7 @@ export interface LearningResponse {
   pastClasses: PastClass[];
   homework: HomeworkItem[];
   sharedPresentations: SharedPresentationSummary[];
+  unitQuizzes: UnitQuizSummary[];
 }
 
 export interface ApiError {
@@ -498,7 +506,7 @@ export const downloadPresentationFile = async (
 
 export interface ActivityItem {
   id: string;
-  title: string | null;
+  title: string;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
   status: HomeworkStatus;

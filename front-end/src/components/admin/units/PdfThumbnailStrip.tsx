@@ -14,6 +14,8 @@ interface Props {
   activityPages: Set<number>;
   /** Activity pages with student work the teacher has not opened yet. */
   unseenPages: Set<number>;
+  /** Title per page (index 0 = page 1), shown under each thumbnail. */
+  pageTitles: string[];
 }
 
 /** Horizontal strip of page thumbnails; each renders only once scrolled into view. */
@@ -23,6 +25,7 @@ export function PdfThumbnailStrip({
   onSelect,
   activityPages,
   unseenPages,
+  pageTitles,
 }: Props) {
   const stripRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +50,7 @@ export function PdfThumbnailStrip({
           selected={page === selectedPage}
           isActivity={activityPages.has(page)}
           unseen={unseenPages.has(page)}
+          title={pageTitles[page - 1] ?? ""}
           onSelect={() => onSelect(page)}
         />
       ))}
@@ -60,6 +64,7 @@ function Thumbnail({
   selected,
   isActivity,
   unseen,
+  title,
   onSelect,
 }: {
   pdf: PDFDocumentProxy;
@@ -67,6 +72,7 @@ function Thumbnail({
   selected: boolean;
   isActivity: boolean;
   unseen: boolean;
+  title: string;
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
@@ -93,6 +99,7 @@ function Thumbnail({
       role="option"
       aria-selected={selected}
       data-thumb={page}
+      title={title}
       onClick={onSelect}
       className={[
         "relative flex shrink-0 flex-col items-center gap-1 rounded-md p-1 transition-colors",
@@ -114,6 +121,9 @@ function Thumbnail({
           />
         )}
       </div>
+      <span className="w-full truncate text-center text-[11px] font-medium text-foreground">
+        {title}
+      </span>
       <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
         {page}
         {isActivity && (

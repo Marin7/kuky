@@ -1,10 +1,6 @@
 package com.kuky.backend.units.repository;
 
-import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.dto.StudentResponse;
-import com.kuky.backend.units.dto.UnitActivityProgressRow;
-import com.kuky.backend.units.dto.UnitContentItem;
-import com.kuky.backend.units.dto.UnitContentRef;
 import com.kuky.backend.units.dto.UnitSummary;
 import com.kuky.backend.units.model.Unit;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -12,12 +8,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,7 +42,7 @@ public class UnitRepository {
                        (SELECT COUNT(*) FROM presentations p
                         JOIN activities a ON a.presentation_id = p.id
                         WHERE p.unit_id = u.id) AS activity_count,
-                       (SELECT COUNT(*) FROM homework_assignments ha WHERE ha.unit_id = u.id) AS homework_count,
+                       (SELECT COUNT(*) FROM quizzes q WHERE q.unit_id = u.id) AS quiz_count,
                        (SELECT COALESCE(ARRAY_AGG(ua.user_id::text), '{}') FROM unit_assignments ua
                         WHERE ua.unit_id = u.id) AS assigned_student_ids,
                        EXISTS (SELECT 1 FROM presentations p
@@ -76,7 +68,7 @@ public class UnitRepository {
                     pageCount != null,
                     pageCount,
                     rs.getInt("activity_count"),
-                    rs.getInt("homework_count"),
+                    rs.getInt("quiz_count"),
                     ids,
                     rs.getBoolean("has_unseen"));
         });
@@ -151,167 +143,6 @@ public class UnitRepository {
         }
     }
 
-    // --- Content membership --------------------------------------------------
-
-    /**
-     * Ordered mixed content of a unit: its own PDF (the owned presentation, type {@code PDF})
-     * and its homeworks, by {@code unit_position}.
-     */
-    public record ContentMember(String type, UUID id, int unitPosition) {}
-
-    public List<ContentMember> findContentMembers(UUID unitId) {
-        String sql = """
-                SELECT type, id, unit_position FROM (
-                    SELECT 'PDF' AS type, id, unit_position
-                    FROM presentations WHERE unit_id = :uid
-                    UNION ALL
-                    SELECT 'HOMEWORK' AS type, id, unit_position
-                    FROM homework_assignments WHERE unit_id = :uid
-                ) c
-                ORDER BY unit_position, type, id
-                """;
-        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> new ContentMember(
-                rs.getString("type"),
-                rs.getObject("id", UUID.class),
-                rs.getInt("unit_position")));
-    }
-
-    /** Next free slot at the end of the unit's sequence. */
-    public int nextContentPosition(UUID unitId) {
-        List<ContentMember> members = findContentMembers(unitId);
-        return members.isEmpty() ? 0 : members.get(members.size() - 1).unitPosition() + 1;
-    }
-
-    @Transactional
-    public void reorderContents(UUID unitId, List<UnitContentRef> items) {
-        List<ContentMember> ordered = new ArrayList<>();
-        for (UnitContentRef ref : items) {
-            String type = ref.type() == null ? "" : ref.type().toUpperCase(Locale.ROOT);
-            ordered.add(new ContentMember(type, ref.id(), ordered.size()));
-        }
-        rewritePositions(unitId, ordered);
-        touch(unitId);
-    }
-
-    private void rewritePositions(UUID unitId, List<ContentMember> ordered) {
-        for (int i = 0; i < ordered.size(); i++) {
-            ContentMember m = ordered.get(i);
-            String table = UnitContentItem.PDF.equals(m.type()) ? "presentations" : "homework_assignments";
-            jdbc.update("UPDATE " + table + " SET unit_position = :pos WHERE id = :id AND unit_id = :uid",
-                    new MapSqlParameterSource()
-                            .addValue("pos", i)
-                            .addValue("id", m.id())
-                            .addValue("uid", unitId));
-        }
-    }
-
-    /** Replaces the unit's homeworks, keeping the PDF and retained homeworks in their order. */
-    @Transactional
-    public void setHomeworks(UUID unitId, List<UUID> homeworkIds) {
-        List<UUID> desired = homeworkIds == null ? List.of() : homeworkIds;
-        LinkedHashSet<UUID> desiredSet = new LinkedHashSet<>(desired);
-        List<ContentMember> current = findContentMembers(unitId);
-
-        for (ContentMember m : current) {
-            if (UnitContentItem.HOMEWORK.equals(m.type()) && !desiredSet.contains(m.id())) {
-                jdbc.update("UPDATE homework_assignments SET unit_id = NULL, unit_position = 0 WHERE id = :id",
-                        Map.of("id", m.id()));
-            }
-        }
-        for (UUID id : desired) {
-            detachFromOtherUnit(id, unitId);
-        }
-
-        List<ContentMember> next = new ArrayList<>();
-        HashSet<UUID> retained = new HashSet<>();
-        for (ContentMember m : current) {
-            if (!UnitContentItem.HOMEWORK.equals(m.type())) {
-                next.add(m);
-            } else if (desiredSet.contains(m.id())) {
-                next.add(m);
-                retained.add(m.id());
-            }
-        }
-        for (UUID id : desired) {
-            if (!retained.contains(id)) {
-                jdbc.update("UPDATE homework_assignments SET unit_id = :uid WHERE id = :id",
-                        Map.of("uid", unitId, "id", id));
-                next.add(new ContentMember(UnitContentItem.HOMEWORK, id, next.size()));
-            }
-        }
-
-        rewritePositions(unitId, next);
-        touch(unitId);
-    }
-
-    /** If the homework belongs to another unit, detach it and compact that unit's remaining sequence. */
-    private void detachFromOtherUnit(UUID homeworkId, UUID keepUnitId) {
-        UUID previousUnitId = jdbc.query("""
-                SELECT unit_id FROM homework_assignments
-                WHERE id = :id AND unit_id IS NOT NULL AND unit_id <> :uid
-                """, Map.of("id", homeworkId, "uid", keepUnitId),
-                (rs, n) -> rs.getObject("unit_id", UUID.class)).stream().findFirst().orElse(null);
-        if (previousUnitId == null) {
-            return;
-        }
-        jdbc.update("UPDATE homework_assignments SET unit_id = NULL, unit_position = 0 WHERE id = :id",
-                Map.of("id", homeworkId));
-        rewritePositions(previousUnitId, findContentMembers(previousUnitId));
-        touch(previousUnitId);
-    }
-
-    // --- Detail loaders ------------------------------------------------------
-
-    public List<HomeworkAdminItem> findHomeworks(UUID unitId) {
-        String sql = """
-                SELECT ha.id, ha.title, ha.instructions, ha.homework_type,
-                       ha.level, ha.format, ha.audio_url, ha.audio_file_id, ha.media_source_kind,
-                       ha.labels, ha.unit_position
-                FROM homework_assignments ha
-                WHERE ha.unit_id = :uid
-                ORDER BY ha.unit_position
-                """;
-        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> {
-            String homeworkType = rs.getString("homework_type");
-            String format = rs.getString("format");
-            return new HomeworkAdminItem(
-                    rs.getObject("id", UUID.class),
-                    rs.getString("title"),
-                    rs.getString("instructions"),
-                    homeworkType,
-                    rs.getString("level"),
-                    format,
-                    compositionFrom(homeworkType, format),
-                    List.of(),
-                    rs.getString("audio_url"),
-                    rs.getObject("audio_file_id", UUID.class),
-                    null,
-                    rs.getString("media_source_kind"),
-                    readLabels(rs),
-                    List.of(),
-                    false);
-        });
-    }
-
-    private static String compositionFrom(String homeworkType, String format) {
-        if ("WRITE".equals(homeworkType)) return "WRITE";
-        if ("MIXED".equals(format)) return "MIXED";
-        if ("EXERCISE".equals(format)) return "ALL_AUTO";
-        return "ALL_MANUAL";
-    }
-
-    private static List<String> readLabels(java.sql.ResultSet rs) throws java.sql.SQLException {
-        java.sql.Array arr = rs.getArray("labels");
-        if (arr == null) {
-            return List.of();
-        }
-        Object raw = arr.getArray();
-        if (raw instanceof String[] strings) {
-            return List.of(strings);
-        }
-        return Arrays.stream((Object[]) raw).map(Object::toString).toList();
-    }
-
     public List<StudentResponse> findAssignedStudents(UUID unitId) {
         return jdbc.query("""
                 SELECT u.id, u.email, u.first_name, u.last_name, u.username
@@ -360,55 +191,60 @@ public class UnitRepository {
                 rs.getBoolean("has_unseen")));
     }
 
-    /** One row per (activity × assigned student); a missing submission reads as PENDING. */
-    public List<UnitActivityProgressRow> findActivityProgress(UUID unitId) {
-        String sql = """
-                SELECT a.id AS activity_id, a.page, ua.user_id AS student_id,
-                       COALESCE(s.status, 'PENDING') AS status, s.score_percent,
-                       s.id AS submission_id, s.submitted_at,
-                       COALESCE(s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED')
-                                AND s.teacher_seen_at IS NULL, false) AS unseen
-                FROM presentations p
-                JOIN activities a ON a.presentation_id = p.id
-                JOIN unit_assignments ua ON ua.unit_id = p.unit_id
-                LEFT JOIN activity_submissions s ON s.activity_id = a.id AND s.user_id = ua.user_id
-                WHERE p.unit_id = :uid
-                ORDER BY a.page, ua.user_id
-                """;
-        return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> {
-            var submittedAt = rs.getTimestamp("submitted_at");
-            return new UnitActivityProgressRow(
-                    rs.getObject("activity_id", UUID.class),
-                    rs.getInt("page"),
-                    rs.getObject("student_id", UUID.class),
-                    rs.getString("status"),
-                    rs.getObject("score_percent", Integer.class),
-                    rs.getObject("submission_id", UUID.class),
-                    submittedAt == null ? null : submittedAt.toInstant(),
-                    rs.getBoolean("unseen"));
-        });
+    // --- Quizzes at the end of the unit ----------------------------------------
+
+    public record UnitQuiz(UUID id, String title, int questionCount) {}
+
+    /** The unit's quizzes in the teacher's order. */
+    public List<UnitQuiz> findQuizzes(UUID unitId) {
+        return jdbc.query("""
+                SELECT q.id, q.title,
+                       (SELECT COUNT(*) FROM quiz_questions qq
+                        WHERE qq.quiz_id = q.id AND NOT qq.retired) AS question_count
+                FROM quizzes q
+                WHERE q.unit_id = :uid
+                ORDER BY q.unit_position, q.title
+                """, Map.of("uid", unitId), (rs, n) -> new UnitQuiz(
+                rs.getObject("id", UUID.class),
+                rs.getString("title"),
+                rs.getInt("question_count")));
+    }
+
+    /** The unit (if any) a quiz currently belongs to. */
+    public Optional<UUID> findUnitIdForQuiz(UUID quizId) {
+        return jdbc.query("SELECT unit_id FROM quizzes WHERE id = :id AND unit_id IS NOT NULL",
+                Map.of("id", quizId), (rs, n) -> rs.getObject("unit_id", UUID.class)).stream().findFirst();
+    }
+
+    /** Makes {@code quizIds} (in that order) the unit's quizzes; quizzes no longer listed are unlinked. */
+    @Transactional
+    public void setQuizzes(UUID unitId, List<UUID> quizIds) {
+        if (quizIds.isEmpty()) {
+            jdbc.update("UPDATE quizzes SET unit_id = NULL, unit_position = 0 WHERE unit_id = :uid",
+                    Map.of("uid", unitId));
+        } else {
+            jdbc.update("""
+                    UPDATE quizzes SET unit_id = NULL, unit_position = 0
+                    WHERE unit_id = :uid AND id NOT IN (:ids)
+                    """, Map.of("uid", unitId, "ids", quizIds));
+        }
+        for (int i = 0; i < quizIds.size(); i++) {
+            jdbc.update("UPDATE quizzes SET unit_id = :uid, unit_position = :pos WHERE id = :id",
+                    new MapSqlParameterSource()
+                            .addValue("uid", unitId)
+                            .addValue("pos", i)
+                            .addValue("id", quizIds.get(i)));
+        }
+        touch(unitId);
     }
 
     // --- Assignees -----------------------------------------------------------
 
     public List<UUID> findAssigneeIds(UUID unitId) {
-        return jdbc.query("""
-                SELECT user_id FROM unit_assignments WHERE unit_id = :uid ORDER BY user_id
-                """, Map.of("uid", unitId), (rs, n) -> rs.getObject("user_id", UUID.class));
+        return jdbc.query("SELECT user_id FROM unit_assignments WHERE unit_id = :uid",
+                Map.of("uid", unitId), (rs, n) -> rs.getObject("user_id", UUID.class));
     }
 
-    public List<UUID> findHomeworkIds(UUID unitId) {
-        return jdbc.query("""
-                SELECT id FROM homework_assignments WHERE unit_id = :uid ORDER BY unit_position, id
-                """, Map.of("uid", unitId), (rs, n) -> rs.getObject("id", UUID.class));
-    }
-
-    public Optional<UUID> findUnitIdForHomework(UUID homeworkId) {
-        return jdbc.query("""
-                SELECT unit_id FROM homework_assignments WHERE id = :id AND unit_id IS NOT NULL
-                """, Map.of("id", homeworkId), (rs, n) -> rs.getObject("unit_id", UUID.class))
-                .stream().findFirst();
-    }
 
     @Transactional
     public void replaceAssignees(UUID unitId, List<UUID> studentIds) {
@@ -434,35 +270,4 @@ public class UnitRepository {
         touch(unitId);
     }
 
-    // --- Student progress ------------------------------------------------------
-
-    /**
-     * Homework totals for a student on an assigned unit: homeworks in the unit that
-     * are targeted at the student ({@code homework_targets}). Unit assignment now
-     * auto-targets unit homeworks; targets remain the access source of truth.
-     */
-    public record UnitProgressView(UUID unitId, String subject, String level,
-                                   int totalHomeworks, int completedHomeworks) {}
-
-    public List<UnitProgressView> findProgressForStudent(UUID studentId) {
-        String sql = """
-                SELECT u.id AS unit_id, u.subject, u.level,
-                       COUNT(t.id) AS total_homeworks,
-                       COUNT(t.id) FILTER (WHERE COALESCE(s.status, 'PENDING') IN ('REVIEWED', 'GRADED')) AS completed_homeworks
-                FROM unit_assignments ua
-                JOIN units u ON u.id = ua.unit_id
-                LEFT JOIN homework_assignments ha ON ha.unit_id = u.id
-                LEFT JOIN homework_targets t ON t.assignment_id = ha.id AND t.user_id = ua.user_id
-                LEFT JOIN homework_submissions s ON s.assignment_id = ha.id AND s.user_id = ua.user_id
-                WHERE ua.user_id = :studentId
-                GROUP BY u.id, u.subject, u.level, u.position
-                ORDER BY u.position
-                """;
-        return jdbc.query(sql, Map.of("studentId", studentId), (rs, n) -> new UnitProgressView(
-                rs.getObject("unit_id", UUID.class),
-                rs.getString("subject"),
-                rs.getString("level"),
-                rs.getInt("total_homeworks"),
-                rs.getInt("completed_homeworks")));
-    }
 }

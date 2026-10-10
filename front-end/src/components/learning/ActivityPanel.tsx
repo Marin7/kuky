@@ -86,8 +86,7 @@ export function ActivityPanel({ activityId, onChanged }: Props) {
   if (!item) return null;
 
   const composition = resolveComposition(item);
-  const title =
-    item.title ?? t("learning.activities.pageTitle", { page: item.page });
+  const title = item.title;
   return (
     <div className="space-y-4">
       {composition === "MIXED" ? (
@@ -147,6 +146,8 @@ export function ActivityPanel({ activityId, onChanged }: Props) {
               submitActivity(id, undefined, answers)
             }
             onSubmitted={handleChanged}
+            hideTitle
+            submitLabel={t("learning.activities.submit")}
           />
         </>
       )}

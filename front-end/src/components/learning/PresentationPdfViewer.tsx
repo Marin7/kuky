@@ -9,6 +9,8 @@ export interface PresentationPdfViewerProps {
   displayName?: string;
   embedded?: boolean;
   onPageVisible?: (page: number) => void;
+  /** Title per page (index 0 = page 1), shown above each page. */
+  pageTitles?: string[];
   /** Page activities: each is shown right after its page. */
   activities?: ActivitySummary[];
   onActivityChanged?: (activityId: string) => void;

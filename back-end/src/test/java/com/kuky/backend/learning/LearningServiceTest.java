@@ -56,6 +56,8 @@ class LearningServiceTest {
     private PresentationRepository presentationRepository;
     @Mock
     private com.kuky.backend.presentations.service.PresentationFileStore presentationFileStore;
+    @Mock
+    private com.kuky.backend.quiz.repository.QuizRepository quizRepository;
 
     private LearningService service;
 
@@ -69,9 +71,10 @@ class LearningServiceTest {
         com.kuky.backend.notification.service.NotificationService notifications =
                 mock(com.kuky.backend.notification.service.NotificationService.class);
         lenient().when(notifications.unseenUnitIds(any())).thenReturn(java.util.Set.of());
+        lenient().when(notifications.unseenQuizIds(any())).thenReturn(java.util.Set.of());
         service = new LearningService(contentRepository, submissionRepository, questionRepository, answerRepository,
                 targetRepository,
-                userRepository, presentationRepository, presentationFileStore, activityStudentService,
+                userRepository, presentationRepository, quizRepository, presentationFileStore, activityStudentService,
                 new com.kuky.backend.learning.service.AssignmentSnapshot(new com.fasterxml.jackson.databind.ObjectMapper()),
                 new SchedulingProperties(), notifications);
         User user = new User();
@@ -81,7 +84,6 @@ class LearningServiceTest {
         when(userRepository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.of(user));
         lenient().when(presentationRepository.findSharedSummariesForUser(userId)).thenReturn(List.of());
         lenient().when(presentationRepository.listFilesGrouped(any())).thenReturn(java.util.Map.of());
-        lenient().when(contentRepository.findAssignmentUnitsForUser(userId)).thenReturn(List.of());
         lenient().when(targetRepository.findDueOnsForUser(userId)).thenReturn(Map.of());
     }
 
@@ -101,6 +103,26 @@ class LearningServiceTest {
         assertThat(overview.pastClasses()).hasSize(1);
         assertThat(overview.pastClasses().get(0).title()).isEqualTo("El indefinido");
         assertThat(overview.homework()).isEmpty();
+    }
+
+    @Test
+    void getOverview_listsUnitQuizzesWithAttemptStatus() {
+        UUID unitId = UUID.randomUUID();
+        UUID notStarted = UUID.randomUUID();
+        UUID graded = UUID.randomUUID();
+        when(contentRepository.findAssignmentsForUser(userId)).thenReturn(List.of());
+        when(submissionRepository.findByUserId(userId)).thenReturn(List.of());
+        when(quizRepository.findUnitQuizzesForUser(userId)).thenReturn(List.of(
+                new com.kuky.backend.quiz.repository.QuizRepository.UnitQuizRow(
+                        notStarted, "Repaso", unitId, "A1", "La familia", 0, null),
+                new com.kuky.backend.quiz.repository.QuizRepository.UnitQuizRow(
+                        graded, "Final", unitId, "A1", "La familia", 0, "GRADED")));
+
+        LearningResponse overview = service.getOverview(EMAIL);
+
+        assertThat(overview.unitQuizzes()).extracting(q -> q.title()).containsExactly("Repaso", "Final");
+        assertThat(overview.unitQuizzes()).extracting(q -> q.status()).containsExactly("AVAILABLE", "GRADED");
+        assertThat(overview.unitQuizzes().get(0).unit().id()).isEqualTo(unitId);
     }
 
     @Test

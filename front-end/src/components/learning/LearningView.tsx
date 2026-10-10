@@ -51,6 +51,7 @@ export function LearningView() {
           <LearningContent
             presentations={data.sharedPresentations}
             homework={data.homework}
+            unitQuizzes={data.unitQuizzes}
           />
           <AssignedQuizList />
           <PastClassesList classes={data.pastClasses} />

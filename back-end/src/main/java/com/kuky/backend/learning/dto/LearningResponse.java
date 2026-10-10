@@ -6,5 +6,6 @@ public record LearningResponse(
         List<PresentationBlockResponse> presentation,
         List<PastClassResponse> pastClasses,
         List<HomeworkItemResponse> homework,
-        List<SharedPresentationSummary> sharedPresentations
+        List<SharedPresentationSummary> sharedPresentations,
+        List<UnitQuizSummary> unitQuizzes
 ) {}

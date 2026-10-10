@@ -9,6 +9,8 @@ interface Props {
   title?: string;
   displayName?: string;
   embedded?: boolean;
+  /** Title per page (index 0 = page 1), shown above each page. */
+  pageTitles?: string[];
   onActivitiesChanged?: () => void;
 }
 
@@ -23,6 +25,7 @@ export function ActivityViewerPrompts({
   title,
   displayName,
   embedded,
+  pageTitles,
   onActivitiesChanged,
 }: Props) {
   const [localActivities, setLocalActivities] =
@@ -39,6 +42,7 @@ export function ActivityViewerPrompts({
       title={title}
       displayName={displayName}
       embedded={embedded}
+      pageTitles={pageTitles}
       activities={localActivities}
       onActivityChanged={(activityId) => {
         setLocalActivities((prev) =>

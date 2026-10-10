@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { getLearning, type LearningResponse } from "@/lib/learning";
 import { markUnitSeen, notifyBadgesChanged } from "@/lib/notifications";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  getLearning,
+  isPresentationPdf,
+  type LearningResponse,
+  type SharedPresentationSummary,
+} from "@/lib/learning";
+import { ActivityViewerPrompts } from "./ActivityViewerPrompts";
 import { UnitDetailContent } from "./UnitDetailContent";
 import { buildGroups, findUnitGroup } from "./unitGroups";
 
@@ -22,6 +28,38 @@ function UnitSkeleton() {
         <Skeleton className="h-24 w-full rounded-lg" />
       </div>
       <Skeleton className="h-20 w-full rounded-lg" />
+    </div>
+  );
+}
+
+/** A unit's PDF, view-only (units are not downloadable), with its activities after their pages. */
+function UnitPdf({
+  presentation,
+  onChanged,
+}: {
+  presentation: SharedPresentationSummary;
+  onChanged: () => void;
+}) {
+  const { t } = useTranslation();
+  const pdf = presentation.files.find((f) => isPresentationPdf(f.contentType));
+  if (!pdf) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {t("learning.units.unitEmpty")}
+      </p>
+    );
+  }
+  return (
+    <div className="rounded-md border bg-background p-2">
+      <ActivityViewerPrompts
+        presentationId={presentation.id}
+        fileId={pdf.id}
+        activities={presentation.activities ?? []}
+        pageTitles={presentation.pageTitles}
+        title={presentation.title}
+        embedded
+        onActivitiesChanged={onChanged}
+      />
     </div>
   );
 }
@@ -55,7 +93,7 @@ export function UnitLearningView({ unitId }: Props) {
   }, [unitId]);
 
   const groups = data
-    ? buildGroups(data.sharedPresentations, data.homework)
+    ? buildGroups(data.sharedPresentations, data.homework, data.unitQuizzes)
     : [];
   const group = data ? findUnitGroup(groups, unitId) : undefined;
   const title =
@@ -86,6 +124,17 @@ export function UnitLearningView({ unitId }: Props) {
             <p className="text-sm text-muted-foreground">
               {t("learning.units.notFound")}
             </p>
+          ) : unitId !== null ? (
+            // A unit opens straight on its PDF (activities sit after their pages).
+            group.presentations.length > 0 ? (
+              group.presentations.map((p) => (
+                <UnitPdf key={p.id} presentation={p} onChanged={reload} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {t("learning.units.unitEmpty")}
+              </p>
+            )
           ) : (
             <UnitDetailContent
               presentations={group.presentations}

@@ -4,17 +4,12 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   deleteUnit,
   fetchUnitPdfBlob,
-  getHomework,
   getStudents,
   getUnit,
-  reorderUnitContents,
-  setUnitHomeworks,
   updateUnit,
   type ApiError,
-  type HomeworkAdminItem,
   type HomeworkLevel,
   type Student,
-  type UnitContentItem,
   type UnitDetail,
 } from "@/lib/admin";
 import { getMe } from "@/lib/auth";
@@ -32,37 +27,28 @@ import {
 import { PdfSinglePage } from "@/components/learning/PdfSinglePage";
 import { StudentLink } from "@/components/admin/students/StudentLink";
 import { LEVELS, LEVEL_CLASS } from "./UnitsTab";
-import { AddContentCombobox } from "./AddContentCombobox";
-import { UnitContentSortableList } from "./UnitContentSortableList";
 import { UnitAssignDialog } from "./UnitAssignDialog";
 import { UnitPdfUploader } from "./UnitPdfUploader";
 import { PdfThumbnailStrip } from "./PdfThumbnailStrip";
 import { PageActivityEditor } from "./PageActivityEditor";
-import { UnitActivityProgress } from "./UnitActivityProgress";
+import { PageTitleField } from "./PageTitleField";
+import { UnitQuizzesSection } from "./UnitQuizzesSection";
 
 interface Props {
   unitId: string;
 }
 
-function homeworkIds(detail: UnitDetail): string[] {
-  return detail.contents
-    .filter((c) => c.type === "HOMEWORK" && c.homework)
-    .map((c) => c.homework!.id);
-}
-
 /**
  * The whole unit in one view: its PDF (upload / replace, page by page), which pages are
- * activities and their questions, the order of the PDF and the unit's homeworks, students.
+ * activities and their questions, the quizzes at its end, and the students it is assigned to.
  */
 export function UnitEditorPage({ unitId }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
   const [unit, setUnit] = useState<UnitDetail | null>(null);
-  const [allHomeworks, setAllHomeworks] = useState<HomeworkAdminItem[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedPage, setSelectedPage] = useState(1);
-  const [progressKey, setProgressKey] = useState(0);
   const [editLevel, setEditLevel] = useState<HomeworkLevel>("A1");
   const [editSubject, setEditSubject] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -91,10 +77,9 @@ export function UnitEditorPage({ unitId }: Props) {
 
   useEffect(() => {
     if (!authChecked) return;
-    Promise.all([getUnit(unitId), getHomework(), getStudents()])
-      .then(([u, h, s]) => {
+    Promise.all([getUnit(unitId), getStudents()])
+      .then(([u, s]) => {
         applyUnit(u);
-        setAllHomeworks(h);
         setStudents(s);
       })
       .catch(() => setError(t("admin.units.loadError")));
@@ -178,40 +163,8 @@ export function UnitEditorPage({ unitId }: Props) {
     }
   };
 
-  const changeHomeworks = async (ids: string[]) => {
-    setError(null);
-    try {
-      applyUnit(await setUnitHomeworks(unit.id, ids));
-    } catch {
-      setError(t("admin.units.contents.detachError"));
-    }
-  };
-
-  const handleReorder = async (items: UnitContentItem[]) => {
-    try {
-      applyUnit(
-        await reorderUnitContents(
-          unit.id,
-          items.map((c) => ({
-            type: c.type,
-            id: c.type === "PDF" ? unit.pdf!.presentationId : c.homework!.id,
-          })),
-        ),
-      );
-    } catch {
-      setError(t("admin.units.contents.reorderError"));
-      void reloadUnit();
-    }
-  };
-
-  const unitHomeworkIds = new Set(homeworkIds(unit));
-  const availableHomeworks = allHomeworks.filter(
-    (h) => !unitHomeworkIds.has(h.id),
-  );
-
   const onActivitiesChanged = () => {
     void reloadUnit();
-    setProgressKey((k) => k + 1);
     notifyBadgesChanged();
   };
 
@@ -309,13 +262,7 @@ export function UnitEditorPage({ unitId }: Props) {
         <h2 className="text-lg font-semibold">
           {t("admin.units.editor.pdfTitle")}
         </h2>
-        <UnitPdfUploader
-          unit={unit}
-          onUploaded={(detail) => {
-            applyUnit(detail);
-            setProgressKey((k) => k + 1);
-          }}
-        />
+        <UnitPdfUploader unit={unit} onUploaded={applyUnit} />
 
         {!unit.pdf ? (
           <p className="text-sm text-muted-foreground">
@@ -335,6 +282,7 @@ export function UnitEditorPage({ unitId }: Props) {
               pdf={pdfState.pdf}
               selectedPage={selectedPage}
               onSelect={setSelectedPage}
+              pageTitles={unit.pdf.pageTitles}
               activityPages={activityPages}
               unseenPages={unseenPages}
             />
@@ -356,8 +304,7 @@ export function UnitEditorPage({ unitId }: Props) {
                     ].join(" ")}
                   >
                     {t("learning.activities.pageShort", { page: a.page })} ·{" "}
-                    {a.title ??
-                      t("learning.activities.pageTitle", { page: a.page })}
+                    {a.title}
                     {a.awaitingCorrectionCount > 0 &&
                       ` · ${t("admin.units.editor.toCorrect", { count: a.awaitingCorrectionCount })}`}
                   </button>
@@ -366,6 +313,12 @@ export function UnitEditorPage({ unitId }: Props) {
             )}
             {/* The selected page at full width; its activity editor sits below it. */}
             <div className="space-y-4">
+              <PageTitleField
+                unitId={unit.id}
+                page={selectedPage}
+                title={unit.pdf.pageTitles[selectedPage - 1] ?? ""}
+                onSaved={applyUnit}
+              />
               <div ref={previewRef} className="min-w-0">
                 {previewWidth > 0 && (
                   <PdfSinglePage
@@ -394,101 +347,12 @@ export function UnitEditorPage({ unitId }: Props) {
         )}
       </section>
 
-      {/* Student progress on the activities */}
-      {unit.activities.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">
-            {t("admin.units.editor.progressTitle")}
-          </h2>
-          <UnitActivityProgress
-            unit={unit}
-            reloadKey={progressKey}
-            onChanged={() => {
-              void reloadUnit();
-              notifyBadgesChanged();
-            }}
-          />
-        </section>
-      )}
-
-      {/* Order of the PDF and the unit's homeworks */}
+      {/* Quizzes at the end of the unit, after the PDF */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">
-          {t("admin.units.contents.sequence")}
+          {t("admin.units.quizzes.title")}
         </h2>
-        {unit.contents.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("admin.units.contents.empty")}
-          </p>
-        ) : (
-          <UnitContentSortableList
-            items={unit.contents}
-            onReorder={handleReorder}
-            moveUpLabel={t("admin.units.contents.moveUp")}
-            moveDownLabel={t("admin.units.contents.moveDown")}
-            renderItem={(item) =>
-              item.type === "PDF" ? (
-                <div className="flex items-center gap-2 px-2 py-1.5 text-xs">
-                  <span className="rounded bg-background px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-                    {t("admin.units.contents.typePdf")}
-                  </span>
-                  <span className="flex-1 truncate font-medium">
-                    {unit.pdf?.originalName}
-                  </span>
-                </div>
-              ) : item.homework ? (
-                <div className="flex flex-wrap items-center gap-2 px-2 py-1.5 text-xs">
-                  <span className="rounded bg-background px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
-                    {t("admin.units.contents.typeHomework")}
-                  </span>
-                  <span className="flex-1 truncate font-medium">
-                    {item.homework.title}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-1 text-xs"
-                    onClick={() =>
-                      navigate({
-                        to: "/panel/tareas/$homeworkId",
-                        params: { homeworkId: item.homework!.id },
-                      })
-                    }
-                  >
-                    {t("admin.units.contents.editHomework")}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-1 text-xs text-destructive"
-                    onClick={() =>
-                      changeHomeworks(
-                        homeworkIds(unit).filter(
-                          (id) => id !== item.homework!.id,
-                        ),
-                      )
-                    }
-                  >
-                    {t("admin.units.contents.detach")}
-                  </Button>
-                </div>
-              ) : null
-            }
-          />
-        )}
-        {availableHomeworks.length > 0 && (
-          <AddContentCombobox
-            triggerLabel={t("admin.units.contents.addHomework")}
-            searchPlaceholder={t("admin.units.contents.searchHomeworks")}
-            emptyLabel={t("admin.units.contents.noMatches")}
-            options={availableHomeworks.map((h) => ({
-              id: h.id,
-              title: h.title,
-              level: h.level,
-            }))}
-            onSelect={(id) => changeHomeworks([...homeworkIds(unit), id])}
-          />
-        )}
+        <UnitQuizzesSection unit={unit} onChanged={applyUnit} />
       </section>
 
       {assignOpen && (
@@ -500,10 +364,7 @@ export function UnitEditorPage({ unitId }: Props) {
             assignedStudentIds: unit.assignedStudents.map((s) => s.id),
           }}
           allStudents={students}
-          onAssigned={(detail) => {
-            applyUnit(detail);
-            setProgressKey((k) => k + 1);
-          }}
+          onAssigned={applyUnit}
         />
       )}
     </div>

@@ -66,22 +66,21 @@ public class UnitAdminController {
         return service.reorder(req.level(), req.orderedIds());
     }
 
-    @PutMapping("/{id}/contents/reorder")
-    public UnitDetail reorderContents(@PathVariable UUID id,
-                                      @Valid @RequestBody ReorderUnitContentsRequest req) {
-        return service.reorderContents(id, req.items());
-    }
-
-    @PutMapping("/{id}/homeworks")
-    public UnitDetail setHomeworks(@PathVariable UUID id,
-                                   @Valid @RequestBody SetUnitHomeworksRequest req) {
-        return service.setHomeworks(id, req.homeworkIds());
-    }
-
     @PutMapping("/{id}/assignees")
     public UnitDetail setAssignees(@PathVariable UUID id,
                                    @Valid @RequestBody SetUnitAssigneesRequest req) {
         return service.setAssignees(id, req.studentIds());
+    }
+
+    @PutMapping("/{id}/pages/{page}/title")
+    public UnitDetail setPageTitle(@PathVariable UUID id, @PathVariable int page,
+                                   @Valid @RequestBody SetPageTitleRequest req) {
+        return service.setPageTitle(id, page, req.title());
+    }
+
+    @PutMapping("/{id}/quizzes")
+    public UnitDetail setQuizzes(@PathVariable UUID id, @Valid @RequestBody SetUnitQuizzesRequest req) {
+        return service.setQuizzes(id, req.quizIds());
     }
 
     // --- the unit's PDF ------------------------------------------------------
@@ -115,10 +114,5 @@ public class UnitAdminController {
                                                               @Valid @RequestBody CreatePageActivityRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(activityService.createOnPage(id, req.page(), req.title(), req.questions()));
-    }
-
-    @GetMapping("/{id}/activity-progress")
-    public List<UnitActivityProgressRow> activityProgress(@PathVariable UUID id) {
-        return service.activityProgress(id);
     }
 }

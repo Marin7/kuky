@@ -245,7 +245,7 @@ public class HomeworkSubmissionService {
         LocalDate today = LocalDate.now(ZoneId.of(props.getScheduling().getTeacherTimezone()));
         UUID userId = submission != null ? submission.getUserId() : null;
         LocalDate dueOn = userId == null ? null : targetRepository.findDueOn(assignment.getId(), userId);
-        return HomeworkItems.toResponse(assignment, submission, today, dueOn, null, null,
+        return HomeworkItems.toResponse(assignment, submission, today, dueOn,
                 questions, answers, studentQuestions, result, false);
     }
 

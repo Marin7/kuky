@@ -66,8 +66,7 @@ export function StudentPresentationsPanel({
           </p>
           <div className="divide-y rounded-lg border">
             {activities.map((a) => {
-              const title =
-                a.title ?? t("learning.activities.pageTitle", { page: a.page });
+              const title = a.title;
               const label = (
                 <>
                   <span className="min-w-0 truncate">

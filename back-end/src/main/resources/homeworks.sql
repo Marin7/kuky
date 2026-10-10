@@ -1,7 +1,7 @@
 -- C7 · Escucha: Juanes – A Dios le pido — completa la letra con el verbo
 -- entre paréntesis en presente de subjuntivo.
 -- One MULTI_BLANK question covering the whole song passage.
--- Unassigned: no unit_id, no homework_targets. Assign later from /panel.
+-- Unassigned: no homework_targets. Assign later from /panel.
 --
 -- This file is UTF-8; without this psql assumes the shell's locale encoding and
 -- stores the Spanish accents as mojibake.
@@ -89,7 +89,7 @@ $body$;
 COMMIT;
 
 -- Verify
-SELECT a.id, a.title, a.format, a.homework_type, a.level, a.unit_id,
+SELECT a.id, a.title, a.format, a.homework_type, a.level,
        a.media_source_kind, a.audio_url,
        (SELECT COUNT(*) FROM homework_questions q WHERE q.assignment_id = a.id) AS questions
 FROM homework_assignments a

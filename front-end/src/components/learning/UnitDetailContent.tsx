@@ -20,12 +20,8 @@ import { HomeworkInlinePanel } from "./HomeworkInlinePanel";
 import { HomeworkDueOn } from "./HomeworkDueOn";
 
 type UnitListItem =
-  | {
-      kind: "presentation";
-      position: number;
-      presentation: SharedPresentationSummary;
-    }
-  | { kind: "homework"; position: number; homework: HomeworkItem };
+  | { kind: "presentation"; presentation: SharedPresentationSummary }
+  | { kind: "homework"; homework: HomeworkItem };
 
 const STATUS_CLASS: Record<HomeworkItem["status"], string> = {
   PENDING: "bg-muted text-muted-foreground",
@@ -232,19 +228,14 @@ export function UnitDetailContent({
     onHomeworkChanged();
   };
 
-  // The teacher's order for the unit (PDF and homeworks by unit position), whatever their status.
+  // The "other" bucket: homework, then presentations shared directly.
   const items: UnitListItem[] = [
-    ...homework.map((h) => ({
-      kind: "homework" as const,
-      position: h.unitPosition ?? Number.MAX_SAFE_INTEGER,
-      homework: h,
-    })),
+    ...homework.map((h) => ({ kind: "homework" as const, homework: h })),
     ...presentations.map((p) => ({
       kind: "presentation" as const,
-      position: p.unitPosition ?? Number.MAX_SAFE_INTEGER,
       presentation: p,
     })),
-  ].sort((a, b) => a.position - b.position);
+  ];
 
   if (items.length === 0) {
     return (

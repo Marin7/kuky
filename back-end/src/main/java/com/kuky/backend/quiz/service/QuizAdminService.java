@@ -88,7 +88,7 @@ public class QuizAdminService {
     public List<QuizAdminListItem> list() {
         return quizRepository.listWithCounts().stream()
                 .map(r -> new QuizAdminListItem(r.id(), r.title(), r.questionCount(), r.assigneeCount(),
-                        r.attemptCount(), r.hasUnseenAttempts()))
+                        r.attemptCount(), r.hasUnseenAttempts(), r.unitId(), r.unitLabel()))
                 .toList();
     }
 

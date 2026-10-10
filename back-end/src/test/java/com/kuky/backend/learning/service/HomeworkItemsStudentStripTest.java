@@ -28,7 +28,7 @@ class HomeworkItemsStudentStripTest {
         HomeworkSubmission submission = submitted();
 
         HomeworkItemResponse response = HomeworkItems.toResponse(
-                assignment, submission, LocalDate.now(), null, null,
+                assignment, submission, LocalDate.now(),
                 List.of(q), List.of(answer), List.of(), null);
 
         assertThat(response.status()).isEqualTo("SUBMITTED");
@@ -48,7 +48,7 @@ class HomeworkItemsStudentStripTest {
         HomeworkSubmission submission = graded(70);
 
         HomeworkItemResponse response = HomeworkItems.toResponse(
-                assignment, submission, LocalDate.now(), null, null,
+                assignment, submission, LocalDate.now(),
                 List.of(q), List.of(answer), List.of(), null);
 
         assertThat(response.status()).isEqualTo("GRADED");

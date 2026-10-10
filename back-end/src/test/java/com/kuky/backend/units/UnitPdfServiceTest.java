@@ -60,7 +60,7 @@ class UnitPdfServiceTest {
 
     private void givenExistingPdf() {
         when(presentationRepository.findOwnedByUnit(unitId)).thenReturn(Optional.of(
-                new PresentationRepository.OwnedPdf(presentationId, oldFileId, "old.pdf", 10, 10, 0)));
+                new PresentationRepository.OwnedPdf(presentationId, oldFileId, "old.pdf", 10, 10)));
     }
 
     @Test
@@ -80,16 +80,16 @@ class UnitPdfServiceTest {
     }
 
     @Test
-    void firstUploadCreatesTheOwnedPresentationAtTheEndOfTheSequence() {
+    void firstUploadCreatesTheOwnedPresentation() {
         when(presentationRepository.findOwnedByUnit(unitId)).thenReturn(Optional.empty());
-        when(unitRepository.nextContentPosition(unitId)).thenReturn(2);
-        when(presentationRepository.insertOwned(unitId, "La familia", "A1", 2)).thenReturn(presentationId);
+        when(presentationRepository.insertOwned(unitId, "La familia", "A1")).thenReturn(presentationId);
 
         service.upload(unitId, pdf("familia.pdf"), 12, false);
 
-        verify(presentationRepository).insertOwned(unitId, "La familia", "A1", 2);
+        verify(presentationRepository).insertOwned(unitId, "La familia", "A1");
         verify(presentationRepository).insertFile(any(), eq(presentationId), eq("familia.pdf"), eq("familia.pdf"),
                 eq("application/pdf"), anyInt(), eq(12));
+        verify(presentationRepository).syncPageTitles(presentationId, 12);
     }
 
     @Test
@@ -124,5 +124,6 @@ class UnitPdfServiceTest {
 
         verify(activityRepository).deleteBeyondPage(presentationId, 6);
         verify(presentationRepository).insertFile(any(), eq(presentationId), any(), any(), any(), anyInt(), eq(6));
+        verify(presentationRepository).syncPageTitles(presentationId, 6);
     }
 }

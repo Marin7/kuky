@@ -1,4 +1,8 @@
-import type { HomeworkItem, SharedPresentationSummary } from "@/lib/learning";
+import type {
+  HomeworkItem,
+  SharedPresentationSummary,
+  UnitQuizSummary,
+} from "@/lib/learning";
 
 export const OTHER_KEY = "__other__";
 
@@ -11,11 +15,14 @@ export interface UnitGroup {
   unseen: boolean;
   presentations: SharedPresentationSummary[];
   homework: HomeworkItem[];
+  /** Quizzes at the end of the unit, in the teacher's order (never in the "other" bucket). */
+  quizzes: UnitQuizSummary[];
 }
 
 export function buildGroups(
   presentations: SharedPresentationSummary[],
   homework: HomeworkItem[],
+  quizzes: UnitQuizSummary[] = [],
 ): UnitGroup[] {
   const map = new Map<string, UnitGroup>();
   const other: UnitGroup = {
@@ -27,6 +34,7 @@ export function buildGroups(
     unseen: false,
     presentations: [],
     homework: [],
+    quizzes: [],
   };
 
   const ensure = (unit: {
@@ -48,6 +56,7 @@ export function buildGroups(
         unseen: Boolean(unit.unseen),
         presentations: [],
         homework: [],
+        quizzes: [],
       };
       map.set(key, g);
     } else if (unit.unseen) {
@@ -60,15 +69,15 @@ export function buildGroups(
     if (p.unit) ensure(p.unit).presentations.push(p);
     else other.presentations.push(p);
   }
+  // Homework is never part of a unit: it all lives in the "other" bucket.
   for (const h of homework) {
-    if (h.unit) {
-      const g = ensure(h.unit);
-      g.homework.push(h);
-      if (h.unseen) g.unseen = true;
-    } else {
-      other.homework.push(h);
-      if (h.unseen) other.unseen = true;
-    }
+    other.homework.push(h);
+    if (h.unseen) other.unseen = true;
+  }
+  for (const q of quizzes) {
+    const g = ensure(q.unit);
+    g.quizzes.push(q);
+    if (q.unseen) g.unseen = true;
   }
 
   const groups = [...map.values()].sort((a, b) => {

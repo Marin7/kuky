@@ -112,6 +112,15 @@ class NotificationUnseenIntegrationTest extends AbstractIntegrationTest {
                 INSERT INTO units (id, level, subject, position)
                 VALUES (?, 'A1', 'Notificaciones', 0)
                 """, unitId);
+        // A unit only raises the "new unit" dot once it has a PDF to open.
+        UUID unitPdfId = UUID.randomUUID();
+        jdbcTemplate.update("INSERT INTO presentations (id, title, unit_id) VALUES (?, 'Notificaciones', ?)",
+                unitPdfId, unitId);
+        jdbcTemplate.update("""
+                INSERT INTO presentation_files
+                    (id, presentation_id, original_name, display_name, content_type, byte_size, page_count)
+                VALUES (?, ?, 'u.pdf', 'u.pdf', 'application/pdf', 1, 1)
+                """, UUID.randomUUID(), unitPdfId);
 
         quizId = UUID.randomUUID();
         jdbcTemplate.update("INSERT INTO quizzes (id, title) VALUES (?, 'Notify Quiz')", quizId);

@@ -61,17 +61,15 @@ public class NotificationRepository {
     }
 
     public boolean hasUnseenLearning(UUID userId) {
-        // A newly assigned unit only counts once it has something to open (a PDF or homework);
+        // A newly assigned unit only counts once it has something to open (its PDF);
         // otherwise the student would get a dot with no unit card to clear it from.
         Integer n = jdbc.queryForObject("""
                 SELECT (
                     (SELECT COUNT(*) FROM unit_assignments ua
                      WHERE ua.user_id = :uid AND ua.student_seen_at IS NULL
-                       AND (EXISTS (SELECT 1 FROM presentations p
-                                    JOIN presentation_files f ON f.presentation_id = p.id
-                                    WHERE p.unit_id = ua.unit_id)
-                            OR EXISTS (SELECT 1 FROM homework_assignments ha
-                                       WHERE ha.unit_id = ua.unit_id)))
+                       AND EXISTS (SELECT 1 FROM presentations p
+                                   JOIN presentation_files f ON f.presentation_id = p.id
+                                   WHERE p.unit_id = ua.unit_id))
                   + (SELECT COUNT(*) FROM quiz_assignees
                      WHERE user_id = :uid AND student_seen_at IS NULL)
                   + (SELECT COUNT(*) FROM homework_targets

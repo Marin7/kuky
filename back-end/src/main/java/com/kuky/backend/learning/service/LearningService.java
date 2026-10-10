@@ -21,6 +21,8 @@ import com.kuky.backend.learning.repository.HomeworkSubmissionRepository;
 import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.notification.dto.UnitSeenResponse;
 import com.kuky.backend.notification.service.NotificationService;
+import com.kuky.backend.quiz.repository.QuizRepository;
+import com.kuky.backend.learning.dto.UnitQuizSummary;
 import com.kuky.backend.presentations.exception.PresentationNotFoundException;
 import com.kuky.backend.presentations.model.PresentationFile;
 import com.kuky.backend.presentations.repository.PresentationRepository;
@@ -46,6 +48,7 @@ public class LearningService {
     private final HomeworkTargetRepository targetRepository;
     private final UserRepository userRepository;
     private final PresentationRepository presentationRepository;
+    private final QuizRepository quizRepository;
     private final PresentationFileStore presentationFileStore;
     private final ActivityStudentService activityStudentService;
     private final AssignmentSnapshot assignmentSnapshot;
@@ -59,6 +62,7 @@ public class LearningService {
                            HomeworkTargetRepository targetRepository,
                            UserRepository userRepository,
                            PresentationRepository presentationRepository,
+                           QuizRepository quizRepository,
                            PresentationFileStore presentationFileStore,
                            ActivityStudentService activityStudentService,
                            AssignmentSnapshot assignmentSnapshot,
@@ -71,6 +75,7 @@ public class LearningService {
         this.targetRepository = targetRepository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
+        this.quizRepository = quizRepository;
         this.presentationFileStore = presentationFileStore;
         this.activityStudentService = activityStudentService;
         this.assignmentSnapshot = assignmentSnapshot;
@@ -99,22 +104,10 @@ public class LearningService {
 
         LocalDate today = LocalDate.now(teacherZone());
 
-        Map<UUID, ContentRepository.AssignmentUnit> assignmentUnits = contentRepository
-                .findAssignmentUnitsForUser(user.getId())
-                .stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        ContentRepository.AssignmentUnit::assignmentId,
-                        au -> au));
-
         Map<UUID, LocalDate> dueOns = targetRepository.findDueOnsForUser(user.getId());
 
         List<HomeworkItemResponse> homework = contentRepository.findAssignmentsForUser(user.getId()).stream()
                 .map(a -> {
-                    ContentRepository.AssignmentUnit au = assignmentUnits.get(a.getId());
-                    UnitRef unit = au == null ? null
-                            : new UnitRef(au.unitId(), au.level(), au.subject(), au.position(),
-                                    unseenUnits.contains(au.unitId()));
-                    Integer unitPosition = au == null ? null : au.unitPosition();
                     HomeworkSubmission submission = submissionsByAssignment.get(a.getId());
                     List<HomeworkQuestion> questions;
                     if (assignmentSnapshot.present(submission)) {
@@ -126,7 +119,7 @@ public class LearningService {
                             ? List.of()
                             : answerRepository.findBySubmission(submission.getId());
                     // unseen = newly assigned homework OR teacher review/feedback not yet opened
-                    return HomeworkItems.toResponse(a, submission, today, dueOns.get(a.getId()), unit, unitPosition,
+                    return HomeworkItems.toResponse(a, submission, today, dueOns.get(a.getId()),
                             questions, answers, null, null, unseenHomework.contains(a.getId()));
                 })
                 .toList();
@@ -137,6 +130,7 @@ public class LearningService {
                 presentationRepository.listFilesGrouped(presentationIds);
         Map<UUID, List<ActivitySummary>> activitiesByPresentation =
                 activityStudentService.summariesForPresentations(user.getId(), presentationIds);
+        Map<UUID, List<String>> pageTitlesByPresentation = presentationRepository.findPageTitlesGrouped(presentationIds);
         List<SharedPresentationSummary> sharedPresentations = sharedRows.stream()
                 .map(s -> new SharedPresentationSummary(
                         s.id(),
@@ -146,11 +140,22 @@ public class LearningService {
                                 : new UnitRef(
                                         s.unit().id(), s.unit().level(), s.unit().subject(),
                                         s.unit().position(), unseenUnits.contains(s.unit().id())),
-                        s.contentUnitPosition(),
-                        activitiesByPresentation.getOrDefault(s.id(), List.of())))
+                        activitiesByPresentation.getOrDefault(s.id(), List.of()),
+                        pageTitlesByPresentation.getOrDefault(s.id(), List.of())))
                 .toList();
 
-        return new LearningResponse(presentation, pastClasses, homework, sharedPresentations);
+        Set<UUID> unseenQuizzes = notificationService.unseenQuizIds(user.getId());
+        List<UnitQuizSummary> unitQuizzes = quizRepository.findUnitQuizzesForUser(user.getId()).stream()
+                .map(q -> new UnitQuizSummary(
+                        q.quizId(),
+                        q.title(),
+                        new UnitRef(q.unitId(), q.unitLevel(), q.unitSubject(), q.unitLevelPosition(),
+                                unseenUnits.contains(q.unitId())),
+                        q.attemptStatus() == null ? "AVAILABLE" : q.attemptStatus(),
+                        unseenQuizzes.contains(q.quizId())))
+                .toList();
+
+        return new LearningResponse(presentation, pastClasses, homework, sharedPresentations, unitQuizzes);
     }
 
     public UnitSeenResponse markUnitSeen(String userEmail, UUID unitId) {

@@ -49,6 +49,35 @@ public class QuizAssigneeRepository {
                 rs.getString("username")));
     }
 
+    /**
+     * Assigns the quiz to students through their unit. Rows are created already seen: the unit
+     * assignment carries the student notification (as unit homework used to).
+     */
+    public void addUnitAssignees(UUID quizId, List<UUID> userIds) {
+        for (UUID userId : userIds) {
+            jdbc.update("""
+                    INSERT INTO quiz_assignees (quiz_id, user_id, student_seen_at)
+                    VALUES (:qid, :uid, NOW())
+                    ON CONFLICT (quiz_id, user_id) DO NOTHING
+                    """, new MapSqlParameterSource()
+                    .addValue("qid", quizId)
+                    .addValue("uid", userId));
+        }
+    }
+
+    /** Unassigns the quiz from students who have not started it; anyone with an attempt keeps it. */
+    public void removeUnstartedAssignees(UUID quizId, List<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return;
+        }
+        jdbc.update("""
+                DELETE FROM quiz_assignees qa
+                WHERE qa.quiz_id = :qid AND qa.user_id IN (:uids)
+                  AND NOT EXISTS (SELECT 1 FROM quiz_attempts t
+                                  WHERE t.quiz_id = qa.quiz_id AND t.user_id = qa.user_id)
+                """, Map.of("qid", quizId, "uids", userIds));
+    }
+
     @Transactional
     public void replaceAssignees(UUID quizId, List<UUID> userIds) {
         List<UUID> ids = userIds == null ? List.of() : userIds;

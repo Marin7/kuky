@@ -122,7 +122,7 @@ The teacher reviews activity submissions needing her input and sees self-correct
 - **FR-012**: Replacing a unit's PDF MUST keep activities whose page still exists and MUST remove (after explicit teacher confirmation that states how many) activities whose page no longer exists, together with their submissions.
 - **FR-013**: Deleting a unit MUST delete its PDF, its activities and all submissions on those activities; its homeworks MUST stay in the Homework library. Unmarking an activity page that has submissions MUST require explicit confirmation and then delete those submissions.
 - **FR-014**: Existing unit data (units, their presentation/homework links, existing activities and activity submissions) MAY be discarded; standalone presentations and homeworks themselves are kept when this feature is introduced; no migration of existing unit content is required.
-- **FR-015**: A unit MUST still be able to contain homeworks chosen from the Homework library, managed from the same unit view. Assigning a unit MUST keep granting its homeworks to the student (with today's new-homework email behavior), and the student's unit view MUST show the unit's PDF together with its homeworks in a teacher-defined order.
+- **FR-015**: *(Dropped 2026-10-10 at the teacher's request: homework is no longer linked to units; it is assigned only from the Homework tab.)*
 - **FR-016**: The Presentations tab MUST remain for standalone presentations that do not belong to any unit, including sharing them directly with students. Standalone presentations MUST NOT have activities; activities exist only on unit PDF pages. Presentations can no longer be attached to units.
 
 ### Key Entities

@@ -98,11 +98,11 @@ public class PresentationRepository {
 
     /** The unit's PDF: owned presentation + its single file (file fields null when none uploaded yet). */
     public record OwnedPdf(UUID presentationId, UUID fileId, String originalName, Integer byteSize,
-                           Integer pageCount, int unitPosition) {}
+                           Integer pageCount) {}
 
     public Optional<OwnedPdf> findOwnedByUnit(UUID unitId) {
         return jdbc.query("""
-                SELECT p.id AS presentation_id, p.unit_position,
+                SELECT p.id AS presentation_id,
                        f.id AS file_id, f.original_name, f.byte_size, f.page_count
                 FROM presentations p
                 LEFT JOIN presentation_files f ON f.presentation_id = p.id
@@ -114,21 +114,19 @@ public class PresentationRepository {
                 rs.getObject("file_id", UUID.class),
                 rs.getString("original_name"),
                 rs.getObject("byte_size", Integer.class),
-                rs.getObject("page_count", Integer.class),
-                rs.getInt("unit_position"))).stream().findFirst();
+                rs.getObject("page_count", Integer.class))).stream().findFirst();
     }
 
-    public UUID insertOwned(UUID unitId, String title, String level, int unitPosition) {
+    public UUID insertOwned(UUID unitId, String title, String level) {
         UUID id = UUID.randomUUID();
         jdbc.update("""
-                INSERT INTO presentations (id, title, level, unit_id, unit_position)
-                VALUES (:id, :title, :level, :uid, :pos)
+                INSERT INTO presentations (id, title, level, unit_id)
+                VALUES (:id, :title, :level, :uid)
                 """, new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("title", title)
                 .addValue("level", level)
-                .addValue("uid", unitId)
-                .addValue("pos", unitPosition));
+                .addValue("uid", unitId));
         return id;
     }
 
@@ -137,6 +135,49 @@ public class PresentationRepository {
                 UPDATE presentations SET title = :title, level = :level, updated_at = NOW()
                 WHERE unit_id = :uid
                 """, Map.of("uid", unitId, "title", title, "level", level));
+    }
+
+    // --- page titles of a unit's PDF (every page has one) --------------------
+
+    /** Gives pages 1..pageCount a title ("Página N" unless already named) and drops titles past the end. */
+    public void syncPageTitles(UUID presentationId, int pageCount) {
+        jdbc.update("DELETE FROM unit_page_titles WHERE presentation_id = :pid AND page > :n",
+                Map.of("pid", presentationId, "n", pageCount));
+        jdbc.update("""
+                INSERT INTO unit_page_titles (presentation_id, page, title)
+                SELECT :pid, gs.page, 'Página ' || gs.page FROM generate_series(1, :n) AS gs(page)
+                ON CONFLICT (presentation_id, page) DO NOTHING
+                """, Map.of("pid", presentationId, "n", pageCount));
+    }
+
+    public int setPageTitle(UUID presentationId, int page, String title) {
+        return jdbc.update("""
+                UPDATE unit_page_titles SET title = :title
+                WHERE presentation_id = :pid AND page = :page
+                """, Map.of("pid", presentationId, "page", page, "title", title));
+    }
+
+    /** Page titles in page order (index 0 = page 1). */
+    public List<String> findPageTitles(UUID presentationId) {
+        return jdbc.query(
+                "SELECT title FROM unit_page_titles WHERE presentation_id = :pid ORDER BY page",
+                Map.of("pid", presentationId), (rs, n) -> rs.getString("title"));
+    }
+
+    public Map<UUID, List<String>> findPageTitlesGrouped(List<UUID> presentationIds) {
+        Map<UUID, List<String>> result = new HashMap<>();
+        if (presentationIds == null || presentationIds.isEmpty()) {
+            return result;
+        }
+        jdbc.query("""
+                SELECT presentation_id, title FROM unit_page_titles
+                WHERE presentation_id IN (:pids) ORDER BY presentation_id, page
+                """, Map.of("pids", presentationIds), (rs, n) -> {
+            result.computeIfAbsent(rs.getObject("presentation_id", UUID.class), k -> new ArrayList<>())
+                    .add(rs.getString("title"));
+            return null;
+        });
+        return result;
     }
 
     public boolean isUnitOwned(UUID presentationId) {
@@ -370,12 +411,11 @@ public class PresentationRepository {
     }
 
     public record UnitRef(UUID id, String level, String subject, int position) {}
-    public record SharedSummaryWithUnit(UUID id, String title, String level, UnitRef unit,
-                                        Integer contentUnitPosition) {}
+    public record SharedSummaryWithUnit(UUID id, String title, String level, UnitRef unit) {}
 
     public List<SharedSummaryWithUnit> findSharedSummariesForUser(UUID userId) {
         String sql = """
-                SELECT p.id, p.title, p.level, p.updated_at, p.unit_position AS content_position,
+                SELECT p.id, p.title, p.level, p.updated_at,
                        u.id AS unit_id, u.level AS unit_level, u.subject AS unit_subject,
                        u.position AS unit_level_position
                 FROM presentations p
@@ -384,21 +424,18 @@ public class PresentationRepository {
                     EXISTS (SELECT 1 FROM presentation_shares s WHERE s.presentation_id = p.id AND s.user_id = :uid)
                     OR
                     EXISTS (SELECT 1 FROM unit_assignments ua WHERE ua.unit_id = p.unit_id AND ua.user_id = :uid)
-                ORDER BY COALESCE(u.level, 'ZZ'), COALESCE(u.position, 999),
-                         COALESCE(p.unit_position, 999), p.updated_at DESC
+                ORDER BY COALESCE(u.level, 'ZZ'), COALESCE(u.position, 999), p.updated_at DESC
                 """;
         return jdbc.query(sql, Map.of("uid", userId), (rs, n) -> {
             UUID unitId = rs.getObject("unit_id", UUID.class);
             UnitRef unitRef = unitId == null ? null
                     : new UnitRef(unitId, rs.getString("unit_level"), rs.getString("unit_subject"),
                             rs.getInt("unit_level_position"));
-            Integer contentPos = unitId == null ? null : rs.getInt("content_position");
             return new SharedSummaryWithUnit(
                     rs.getObject("id", UUID.class),
                     rs.getString("title"),
                     rs.getString("level"),
-                    unitRef,
-                    contentPos);
+                    unitRef);
         });
     }
 }

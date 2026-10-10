@@ -3,7 +3,7 @@ package com.kuky.backend.learning.model;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Student work tied to one page of a unit's PDF (the page is the instructions). */
+/** Student work tied to one page of a unit's PDF (the page is the instructions); always titled. */
 public class Activity {
 
     private UUID id;
@@ -13,11 +13,6 @@ public class Activity {
     private HomeworkFormat format = HomeworkFormat.MANUAL;
     private Instant createdAt;
     private Instant updatedAt;
-
-    /** Title, or the "Actividad – página N" fallback when the teacher left it blank. */
-    public String displayTitle() {
-        return title == null || title.isBlank() ? "Actividad – página " + page : title;
-    }
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }

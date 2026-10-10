@@ -35,6 +35,10 @@ interface Props {
     response?: unknown,
     answers?: ManualAnswerPayload[],
   ) => Promise<unknown>;
+  /** Hide the "Tus respuestas" heading (activities show the questions without it). */
+  hideTitle?: boolean;
+  /** Submit button text; defaults to "Entregar tarea". */
+  submitLabel?: string;
 }
 
 function initialTextMap(
@@ -69,6 +73,8 @@ export function ManualMultiAnswerForm({
   contentRevisedAt,
   onHomeworkUpdated,
   submitAnswer,
+  hideTitle = false,
+  submitLabel,
 }: Props) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -142,9 +148,11 @@ export function ManualMultiAnswerForm({
 
   return (
     <div className="mt-6 space-y-4">
-      <p className="text-base font-medium text-foreground">
-        {t("learning.manualMulti.title")}
-      </p>
+      {!hideTitle && (
+        <p className="text-base font-medium text-foreground">
+          {t("learning.manualMulti.title")}
+        </p>
+      )}
 
       <div className="space-y-3">
         {questions.map((q, i) => {
@@ -217,7 +225,7 @@ export function ManualMultiAnswerForm({
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting
               ? t("learning.manualMulti.submitting")
-              : t("learning.manualMulti.submit")}
+              : (submitLabel ?? t("learning.manualMulti.submit"))}
           </Button>
         </div>
       )}

@@ -11,7 +11,7 @@ public record UnitSummary(
         boolean hasPdf,
         Integer pageCount,
         int activityCount,
-        int homeworkCount,
+        int quizCount,
         List<String> assignedStudentIds,
         boolean hasUnseenActivitySubmissions
 ) {}

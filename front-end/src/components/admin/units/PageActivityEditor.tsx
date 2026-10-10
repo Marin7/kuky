@@ -62,6 +62,10 @@ export function PageActivityEditor({
   }, [activity?.id, page, t]);
 
   const handleSave = async () => {
+    if (!title.trim()) {
+      setError(t("admin.units.editor.titleRequired"));
+      return;
+    }
     if (questions.length === 0) {
       setError(t("admin.homework.editor.questionsRequired"));
       return;
@@ -167,7 +171,8 @@ export function PageActivityEditor({
           id={`activity-title-${page}`}
           value={title}
           maxLength={200}
-          placeholder={t("learning.activities.pageTitle", { page })}
+          required
+          placeholder={t("admin.units.editor.titlePlaceholder")}
           onChange={(e) => setTitle(e.target.value)}
         />
       </div>

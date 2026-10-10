@@ -10,9 +10,7 @@ interface Props {
 /** A page activity, always open in the PDF viewer right after its page (which is the instructions). */
 export function ActivityPageSlot({ activity, onChanged }: Props) {
   const { t } = useTranslation();
-  const title =
-    activity.title ??
-    t("learning.activities.pageTitle", { page: activity.page });
+  const title = activity.title;
 
   return (
     <section

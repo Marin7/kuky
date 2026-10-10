@@ -312,7 +312,7 @@ export interface StudentProfileUnitActivity {
   unitSubject: string;
   activityId: string;
   page: number;
-  title: string | null;
+  title: string;
   format: HomeworkFormat;
   status: SubmissionStatus;
   scorePercent: number | null;
@@ -927,8 +927,7 @@ export interface ActivityAdminDetail {
   unitId: string | null;
   presentationId: string;
   page: number;
-  /** null → "Actividad – página N" fallback. */
-  title: string | null;
+  title: string;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
   questions: AdminQuestion[];
@@ -1027,7 +1026,7 @@ export const saveActivityExerciseFeedback = (
   );
 
 // ---------------------------------------------------------------------------
-// Units (a PDF with page activities + homeworks)
+// Units (a PDF with page activities)
 // ---------------------------------------------------------------------------
 
 export interface UnitSummary {
@@ -1038,17 +1037,9 @@ export interface UnitSummary {
   hasPdf: boolean;
   pageCount: number | null;
   activityCount: number;
-  homeworkCount: number;
+  quizCount: number;
   assignedStudentIds: string[];
   hasUnseenActivitySubmissions: boolean;
-}
-
-export type UnitContentType = "PDF" | "HOMEWORK";
-
-export interface UnitContentItem {
-  type: UnitContentType;
-  unitPosition: number;
-  homework: HomeworkAdminItem | null;
 }
 
 export interface UnitPdfInfo {
@@ -1057,13 +1048,15 @@ export interface UnitPdfInfo {
   originalName: string;
   byteSize: number;
   pageCount: number;
+  /** One title per page (index 0 = page 1). */
+  pageTitles: string[];
 }
 
 /** Counts are over assigned students; submitted = awaitingCorrection + graded. */
 export interface UnitActivitySummary {
   id: string;
   page: number;
-  title: string | null;
+  title: string;
   format: HomeworkFormat;
   composition: HomeworkComposition;
   submittedCount: number;
@@ -1078,20 +1071,10 @@ export interface UnitDetail {
   subject: string;
   position: number;
   pdf: UnitPdfInfo | null;
-  contents: UnitContentItem[];
   activities: UnitActivitySummary[];
+  /** Quizzes shown at the end of the unit, in order. */
+  quizzes: UnitQuizItem[];
   assignedStudents: Student[];
-}
-
-export interface UnitActivityProgressRow {
-  activityId: string;
-  page: number;
-  studentId: string;
-  status: SubmissionStatus;
-  scorePercent: number | null;
-  submissionId: string | null;
-  submittedAt: string | null;
-  unseen: boolean;
 }
 
 export const listUnits = () => apiCall<UnitSummary[]>("/units");
@@ -1119,20 +1102,24 @@ export const reorderUnits = (level: HomeworkLevel, orderedIds: string[]) =>
     body: JSON.stringify({ level, orderedIds }),
   });
 
-/** `id` is the presentation id for the PDF item, the homework id otherwise. */
-export const reorderUnitContents = (
-  id: string,
-  items: { type: UnitContentType; id: string }[],
-) =>
-  apiCall<UnitDetail>(`/units/${id}/contents/reorder`, {
+export interface UnitQuizItem {
+  id: string;
+  title: string;
+  questionCount: number;
+}
+
+/** Sets the unit's end quizzes in this order (moves a quiz out of any other unit). */
+export const setUnitQuizzes = (id: string, quizIds: string[]) =>
+  apiCall<UnitDetail>(`/units/${id}/quizzes`, {
     method: "PUT",
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({ quizIds }),
   });
 
-export const setUnitHomeworks = (id: string, homeworkIds: string[]) =>
-  apiCall<UnitDetail>(`/units/${id}/homeworks`, {
+/** Renames one page of the unit's PDF (titles are required). */
+export const setUnitPageTitle = (id: string, page: number, title: string) =>
+  apiCall<UnitDetail>(`/units/${id}/pages/${page}/title`, {
     method: "PUT",
-    body: JSON.stringify({ homeworkIds }),
+    body: JSON.stringify({ title }),
   });
 
 export const setUnitAssignees = (id: string, studentIds: string[]) =>
@@ -1176,9 +1163,6 @@ export const fetchUnitPdfBlob = async (unitId: string): Promise<Blob> => {
   return res.blob();
 };
 
-export const getUnitActivityProgress = (unitId: string) =>
-  apiCall<UnitActivityProgressRow[]>(`/units/${unitId}/activity-progress`);
-
 // ---------------------------------------------------------------------------
 // Quizzes — /api/v1/admin/quizzes/**
 // ---------------------------------------------------------------------------
@@ -1199,6 +1183,9 @@ export interface QuizAdminListItem {
   assigneeCount: number;
   attemptCount: number;
   hasUnseenAttempts?: boolean;
+  /** Unit the quiz is shown at the end of (null when standalone). */
+  unitId: string | null;
+  unitLabel: string | null;
 }
 
 export interface QuizAssignee {

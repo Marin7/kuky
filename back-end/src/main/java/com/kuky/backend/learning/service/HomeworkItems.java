@@ -5,7 +5,6 @@ import com.kuky.backend.learning.dto.ExerciseQuestionDto;
 import com.kuky.backend.learning.dto.ExerciseResultResponse;
 import com.kuky.backend.learning.dto.HomeworkItemResponse;
 import com.kuky.backend.learning.dto.ManualAnswerViewDto;
-import com.kuky.backend.learning.dto.UnitRef;
 import com.kuky.backend.learning.model.FormattedTextSegment;
 import com.kuky.backend.learning.model.HomeworkAnswer;
 import com.kuky.backend.learning.model.HomeworkAssignment;
@@ -31,26 +30,21 @@ final class HomeworkItems {
     private HomeworkItems() {}
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission, LocalDate today) {
-        return toResponse(a, submission, today, null, null, null, List.of(), List.of(), null, null, false);
+        return toResponse(a, submission, today, null, List.of(), List.of(), null, null, false);
     }
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
-                                           LocalDate today, UnitRef unit, Integer unitPosition) {
-        return toResponse(a, submission, today, null, unit, unitPosition, List.of(), List.of(), null, null, false);
-    }
-
-    static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
-                                           LocalDate today, UnitRef unit, Integer unitPosition,
+                                           LocalDate today,
                                            List<HomeworkQuestion> questions,
                                            List<HomeworkAnswer> answers,
                                            List<ExerciseQuestionDto> studentQuestions,
                                            ExerciseResultResponse result) {
-        return toResponse(a, submission, today, null, unit, unitPosition, questions, answers,
+        return toResponse(a, submission, today, null, questions, answers,
                 studentQuestions, result, false);
     }
 
     static HomeworkItemResponse toResponse(HomeworkAssignment a, HomeworkSubmission submission,
-                                           LocalDate today, LocalDate dueOn, UnitRef unit, Integer unitPosition,
+                                           LocalDate today, LocalDate dueOn,
                                            List<HomeworkQuestion> questions,
                                            List<HomeworkAnswer> answers,
                                            List<ExerciseQuestionDto> studentQuestions,
@@ -132,8 +126,6 @@ final class HomeworkItems {
                 a.getAudioUrl(),
                 a.getAudioFileId(),
                 a.getMediaSourceKind() == null ? null : a.getMediaSourceKind().name(),
-                unit,
-                unitPosition,
                 hasTeacherFeedback,
                 unseen,
                 questionDtos,

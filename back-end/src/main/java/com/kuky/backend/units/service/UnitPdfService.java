@@ -88,11 +88,12 @@ public class UnitPdfService {
                     presentationRepository.deleteFile(presentationId, oldFileId);
                 }
             } else {
-                presentationId = presentationRepository.insertOwned(
-                        unitId, unit.getSubject(), unit.getLevel(), unitRepository.nextContentPosition(unitId));
+                presentationId = presentationRepository.insertOwned(unitId, unit.getSubject(), unit.getLevel());
             }
             presentationRepository.insertFile(newFileId, presentationId, originalName, originalName,
                     PDF_CONTENT_TYPE, data.length, pageCount);
+            // Every page has a title: new pages get "Página N", kept pages keep theirs (like activities).
+            presentationRepository.syncPageTitles(presentationId, pageCount);
             presentationRepository.touch(presentationId);
             unitRepository.touch(unitId);
             if (oldFileId != null) {

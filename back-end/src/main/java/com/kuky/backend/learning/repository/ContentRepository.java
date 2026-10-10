@@ -104,28 +104,6 @@ public class ContentRepository {
         return jdbc.query(sql, Map.of("userId", userId), ASSIGNMENT_MAPPER);
     }
 
-    /** Maps each of the student's assigned homeworks to its owning unit (only those in a unit). */
-    public record AssignmentUnit(UUID assignmentId, UUID unitId, String level, String subject,
-                                 int position, int unitPosition) {}
-
-    public List<AssignmentUnit> findAssignmentUnitsForUser(UUID userId) {
-        String sql = """
-                SELECT a.id AS assignment_id, u.id AS unit_id, u.level, u.subject, u.position,
-                       a.unit_position AS content_position
-                FROM homework_assignments a
-                JOIN homework_targets t ON t.assignment_id = a.id
-                JOIN units u ON u.id = a.unit_id
-                WHERE t.user_id = :userId
-                """;
-        return jdbc.query(sql, Map.of("userId", userId), (rs, n) -> new AssignmentUnit(
-                rs.getObject("assignment_id", UUID.class),
-                rs.getObject("unit_id", UUID.class),
-                rs.getString("level"),
-                rs.getString("subject"),
-                rs.getInt("position"),
-                rs.getInt("content_position")));
-    }
-
     public Optional<HomeworkAssignment> findPublishedAssignmentById(UUID id) {
         String sql = "SELECT * FROM homework_assignments WHERE id = :id AND published = true";
         return jdbc.query(sql, Map.of("id", id), ASSIGNMENT_MAPPER).stream().findFirst();

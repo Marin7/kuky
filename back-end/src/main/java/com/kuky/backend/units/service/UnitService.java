@@ -1,39 +1,31 @@
 package com.kuky.backend.units.service;
 
-import com.kuky.backend.admin.dto.AssigneeDto;
-import com.kuky.backend.admin.dto.HomeworkAdminItem;
 import com.kuky.backend.admin.exception.StudentNotFoundException;
 import com.kuky.backend.auth.model.User;
 import com.kuky.backend.auth.repository.UserRepository;
-import com.kuky.backend.config.SchedulingProperties;
-import com.kuky.backend.learning.repository.HomeworkTargetRepository;
-import com.kuky.backend.learning.service.HomeworkAssignmentEmailService;
-import com.kuky.backend.learning.service.HomeworkDueDates;
-import com.kuky.backend.learning.service.NewHomeworkGrants;
 import com.kuky.backend.presentations.repository.PresentationRepository;
+import com.kuky.backend.quiz.exception.QuizNotFoundException;
+import com.kuky.backend.quiz.repository.QuizAssigneeRepository;
+import com.kuky.backend.quiz.repository.QuizQuestionRepository;
+import com.kuky.backend.quiz.repository.QuizRepository;
 import com.kuky.backend.units.dto.*;
-import com.kuky.backend.units.exception.InvalidContentOrderException;
 import com.kuky.backend.units.exception.UnitNotFoundException;
 import com.kuky.backend.units.model.Unit;
 import com.kuky.backend.units.repository.UnitRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
+/**
+ * Units: a PDF with page activities, optionally followed by quizzes, assigned to students.
+ * Assigning a unit assigns its quizzes; homework is not part of a unit.
+ */
 @Service
 @Transactional
 public class UnitService {
@@ -43,25 +35,25 @@ public class UnitService {
     private final UnitRepository repository;
     private final UserRepository userRepository;
     private final PresentationRepository presentationRepository;
-    private final HomeworkTargetRepository targetRepository;
-    private final SchedulingProperties schedulingProperties;
-    private final HomeworkAssignmentEmailService assignmentEmailService;
     private final UnitPdfService unitPdfService;
+    private final QuizRepository quizRepository;
+    private final QuizQuestionRepository quizQuestionRepository;
+    private final QuizAssigneeRepository quizAssigneeRepository;
 
     public UnitService(UnitRepository repository,
                        UserRepository userRepository,
                        PresentationRepository presentationRepository,
-                       HomeworkTargetRepository targetRepository,
-                       SchedulingProperties schedulingProperties,
-                       HomeworkAssignmentEmailService assignmentEmailService,
-                       UnitPdfService unitPdfService) {
+                       UnitPdfService unitPdfService,
+                       QuizRepository quizRepository,
+                       QuizQuestionRepository quizQuestionRepository,
+                       QuizAssigneeRepository quizAssigneeRepository) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.presentationRepository = presentationRepository;
-        this.targetRepository = targetRepository;
-        this.schedulingProperties = schedulingProperties;
-        this.assignmentEmailService = assignmentEmailService;
         this.unitPdfService = unitPdfService;
+        this.quizRepository = quizRepository;
+        this.quizQuestionRepository = quizQuestionRepository;
+        this.quizAssigneeRepository = quizAssigneeRepository;
     }
 
     public List<UnitSummary> list() {
@@ -92,17 +84,12 @@ public class UnitService {
         return detail(id);
     }
 
-    /** Cascades to the unit's PDF, its activities and their submissions; homeworks stay in the library. */
+    /** Cascades to the unit's PDF, its activities and their submissions. */
     public void delete(UUID id) {
         unitPdfService.deleteFileAfterCommit(id);
         if (repository.delete(id) == 0) {
             throw new UnitNotFoundException("Unidad no encontrada.");
         }
-    }
-
-    public List<UnitActivityProgressRow> activityProgress(UUID id) {
-        requireUnit(id);
-        return repository.findActivityProgress(id);
     }
 
     public List<UnitSummary> reorder(String level, List<UUID> orderedIds) {
@@ -117,103 +104,84 @@ public class UnitService {
                 .toList();
     }
 
-    public UnitDetail reorderContents(UUID id, List<UnitContentRef> items) {
-        requireUnit(id);
-        List<UnitContentRef> normalized = items == null ? List.of() : items;
-        List<UnitRepository.ContentMember> current = repository.findContentMembers(id);
-
-        if (normalized.size() != current.size()) {
-            throw new InvalidContentOrderException(
-                    "La lista de contenidos no es una permutación válida de la unidad.");
-        }
-
-        Set<String> currentKeys = current.stream()
-                .map(m -> key(m.type(), m.id()))
-                .collect(Collectors.toSet());
-        Set<String> requestKeys = new HashSet<>();
-        List<UnitContentRef> cleaned = new ArrayList<>();
-        for (UnitContentRef ref : normalized) {
-            String type = normalizeType(ref.type());
-            String k = key(type, ref.id());
-            if (!requestKeys.add(k) || !currentKeys.contains(k)) {
-                throw new InvalidContentOrderException(
-                        "La lista de contenidos no es una permutación válida de la unidad.");
-            }
-            cleaned.add(new UnitContentRef(type, ref.id()));
-        }
-        if (!requestKeys.equals(currentKeys)) {
-            throw new InvalidContentOrderException(
-                    "La lista de contenidos no es una permutación válida de la unidad.");
-        }
-
-        repository.reorderContents(id, cleaned);
-        return detail(id);
-    }
-
-    public UnitDetail setHomeworks(UUID id, List<UUID> homeworkIds) {
-        requireUnit(id);
-        List<UUID> previousHomeworks = repository.findHomeworkIds(id);
-        List<UUID> assignees = repository.findAssigneeIds(id);
-        LinkedHashSet<UUID> desired = new LinkedHashSet<>(
-                homeworkIds == null ? List.of() : homeworkIds);
-
-        for (UUID hw : previousHomeworks) {
-            if (!desired.contains(hw)) {
-                targetRepository.removeTargets(hw, assignees);
-            }
-        }
-        for (UUID hw : desired) {
-            if (!previousHomeworks.contains(hw)) {
-                repository.findUnitIdForHomework(hw).ifPresent(priorUnit -> {
-                    if (!priorUnit.equals(id)) {
-                        targetRepository.removeTargets(hw, repository.findAssigneeIds(priorUnit));
-                    }
-                });
-            }
-        }
-
-        repository.setHomeworks(id, List.copyOf(desired));
-
-        // Already-seen: student is notified by the unit assignment (or already had the unit).
-        // Email is different — a homework added to a unit a student already holds is genuinely
-        // new to them, so it is collected here even though it raises no in-site dot.
-        Instant seen = Instant.now();
-        NewHomeworkGrants grants = new NewHomeworkGrants();
-        for (UUID hw : repository.findHomeworkIds(id)) {
-            grants.add(hw, targetRepository.addTargets(hw, assignees, seen));
-        }
-        // Flushed once, after the loop: one email per teacher action, not one per homework.
-        assignmentEmailService.notifyNewlyAssigned(grants);
-        return detail(id);
-    }
-
     /**
-     * Replaces unit assignees. Newly assigned students receive every homework in the
-     * unit (via {@code homework_targets}); removed students lose those targets.
-     * Presentations remain accessible via {@code unit_assignments} as before.
-     * Homework targets created here are marked seen — the unit assignment carries the
-     * student notification (direct homework assign from Tareas creates unseen targets).
+     * Replaces unit assignees: assigned students can open the unit's PDF, do its activities and
+     * take its quizzes. Removed students lose the unit's quizzes they have not started yet.
      */
     public UnitDetail setAssignees(UUID id, List<UUID> studentIds) {
         requireUnit(id);
         List<UUID> next = studentIds == null ? List.of() : studentIds;
         validateStudents(next);
 
-        List<UUID> previous = repository.findAssigneeIds(id);
+        Set<UUID> previous = new HashSet<>(repository.findAssigneeIds(id));
+        Set<UUID> nextSet = new HashSet<>(next);
         repository.replaceAssignees(id, next);
 
-        Set<UUID> prevSet = new HashSet<>(previous);
-        Set<UUID> nextSet = new HashSet<>(next);
-        List<UUID> added = next.stream().filter(s -> !prevSet.contains(s)).toList();
+        List<UUID> added = next.stream().filter(s -> !previous.contains(s)).toList();
         List<UUID> removed = previous.stream().filter(s -> !nextSet.contains(s)).toList();
-        Instant seen = Instant.now();
-        NewHomeworkGrants grants = new NewHomeworkGrants();
-        for (UUID hw : repository.findHomeworkIds(id)) {
-            grants.add(hw, targetRepository.addTargets(hw, added, seen));
-            targetRepository.removeTargets(hw, removed);
+        for (UnitRepository.UnitQuiz quiz : repository.findQuizzes(id)) {
+            quizAssigneeRepository.addUnitAssignees(quiz.id(), added);
+            quizAssigneeRepository.removeUnstartedAssignees(quiz.id(), removed);
         }
-        // Flushed once, after the loop: assigning a unit with N homeworks sends 1 email, not N.
-        assignmentEmailService.notifyNewlyAssigned(grants);
+        return detail(id);
+    }
+
+    /**
+     * Sets the quizzes shown at the end of the unit, in order. A quiz belongs to at most one
+     * unit, so linking it here moves it out of its previous unit. The unit's students get every
+     * linked quiz; a quiz that leaves the unit is unassigned from them unless they started it.
+     */
+    public UnitDetail setQuizzes(UUID id, List<UUID> quizIds) {
+        requireUnit(id);
+        List<UUID> desired = List.copyOf(new LinkedHashSet<>(quizIds == null ? List.of() : quizIds));
+        for (UUID quizId : desired) {
+            quizRepository.findById(quizId)
+                    .orElseThrow(() -> new QuizNotFoundException("Prueba de evaluación no encontrada."));
+            if (quizQuestionRepository.countLive(quizId) < 1) {
+                throw new IllegalArgumentException(
+                        "La prueba de evaluación necesita al menos una pregunta antes de añadirla a una unidad.");
+            }
+        }
+
+        List<UUID> assignees = repository.findAssigneeIds(id);
+        Set<UUID> previous = new HashSet<>(repository.findQuizzes(id).stream().map(UnitRepository.UnitQuiz::id).toList());
+        for (UUID quizId : previous) {
+            if (!desired.contains(quizId)) {
+                quizAssigneeRepository.removeUnstartedAssignees(quizId, assignees);
+            }
+        }
+        for (UUID quizId : desired) {
+            if (previous.contains(quizId)) continue;
+            repository.findUnitIdForQuiz(quizId)
+                    .filter(prior -> !prior.equals(id))
+                    .ifPresent(prior -> quizAssigneeRepository.removeUnstartedAssignees(
+                            quizId, repository.findAssigneeIds(prior)));
+        }
+
+        repository.setQuizzes(id, desired);
+        for (UUID quizId : desired) {
+            quizAssigneeRepository.addUnitAssignees(quizId, assignees);
+        }
+        return detail(id);
+    }
+
+    /** Renames one page of the unit's PDF (every page keeps a non-blank title). */
+    public UnitDetail setPageTitle(UUID id, int page, String title) {
+        requireUnit(id);
+        PresentationRepository.OwnedPdf pdf = presentationRepository.findOwnedByUnit(id)
+                .filter(p -> p.fileId() != null && p.pageCount() != null)
+                .orElseThrow(() -> new IllegalArgumentException("La unidad no tiene PDF."));
+        String trimmed = title == null ? "" : title.strip();
+        if (trimmed.isEmpty()) {
+            throw new IllegalArgumentException("Cada página necesita un título.");
+        }
+        if (trimmed.length() > 200) {
+            throw new IllegalArgumentException("El título no puede superar los 200 caracteres.");
+        }
+        if (page < 1 || page > pdf.pageCount()
+                || presentationRepository.setPageTitle(pdf.presentationId(), page, trimmed) == 0) {
+            throw new IllegalArgumentException("La página debe estar entre 1 y " + pdf.pageCount() + ".");
+        }
         return detail(id);
     }
 
@@ -229,26 +197,9 @@ public class UnitService {
         UnitPdfInfo pdf = presentationRepository.findOwnedByUnit(id)
                 .filter(p -> p.fileId() != null && p.pageCount() != null)
                 .map(p -> new UnitPdfInfo(p.presentationId(), p.fileId(), p.originalName(),
-                        p.byteSize() == null ? 0 : p.byteSize(), p.pageCount()))
+                        p.byteSize() == null ? 0 : p.byteSize(), p.pageCount(),
+                        presentationRepository.findPageTitles(p.presentationId())))
                 .orElse(null);
-
-        Map<UUID, HomeworkAdminItem> homeworksById = repository.findHomeworks(id).stream()
-                .map(this::withAssignees)
-                .collect(Collectors.toMap(HomeworkAdminItem::id, Function.identity()));
-
-        List<UnitContentItem> contents = new ArrayList<>();
-        for (UnitRepository.ContentMember m : repository.findContentMembers(id)) {
-            if (UnitContentItem.PDF.equals(m.type())) {
-                if (pdf != null) {
-                    contents.add(new UnitContentItem(UnitContentItem.PDF, m.unitPosition(), null));
-                }
-            } else if (UnitContentItem.HOMEWORK.equals(m.type())) {
-                HomeworkAdminItem h = homeworksById.get(m.id());
-                if (h != null) {
-                    contents.add(new UnitContentItem(UnitContentItem.HOMEWORK, m.unitPosition(), h));
-                }
-            }
-        }
 
         List<UnitActivitySummary> activities = repository.findActivityCounts(id).stream()
                 .map(a -> new UnitActivitySummary(
@@ -262,8 +213,10 @@ public class UnitService {
                 u.getSubject(),
                 u.getPosition(),
                 pdf,
-                contents,
                 activities,
+                repository.findQuizzes(id).stream()
+                        .map(q -> new UnitQuizItem(q.id(), q.title(), q.questionCount()))
+                        .toList(),
                 repository.findAssignedStudents(id));
     }
 
@@ -273,20 +226,6 @@ public class UnitService {
             case "EXERCISE" -> "ALL_AUTO";
             default -> "ALL_MANUAL";
         };
-    }
-
-    private HomeworkAdminItem withAssignees(HomeworkAdminItem h) {
-        LocalDate today = LocalDate.now(ZoneId.of(schedulingProperties.getScheduling().getTeacherTimezone()));
-        List<AssigneeDto> assignees = targetRepository.findAssigneesWithSubmissions(h.id()).stream()
-                .map(v -> new AssigneeDto(v.userId(), v.email(), v.firstName(), v.lastName(), v.username(),
-                        v.status(), v.responseText(), v.submittedAt(), v.scorePercent(), v.submissionId(),
-                        v.hasTeacherFeedback(), v.unseen(), v.dueOn(),
-                        HomeworkDueDates.overdue(v.dueOn(), today, v.status())))
-                .toList();
-        return new HomeworkAdminItem(
-                h.id(), h.title(), h.instructions(), h.homeworkType(), h.level(), h.format(),
-                h.composition(), h.questions(), h.audioUrl(), h.audioFileId(), h.audioFileName(),
-                h.mediaSourceKind(), h.labels(), assignees, assignees.stream().anyMatch(AssigneeDto::unseen));
     }
 
     private void validateStudents(List<UUID> userIds) {
@@ -308,20 +247,5 @@ public class UnitService {
             throw new IllegalArgumentException("Nivel inválido: " + raw + ". Debe ser uno de A1, A2, B1, B2, C1, C2.");
         }
         return upper;
-    }
-
-    private static String normalizeType(String raw) {
-        if (raw == null || raw.isBlank()) {
-            throw new InvalidContentOrderException("Tipo de contenido inválido.");
-        }
-        String upper = raw.toUpperCase(Locale.ROOT);
-        if (!UnitContentItem.PDF.equals(upper) && !UnitContentItem.HOMEWORK.equals(upper)) {
-            throw new InvalidContentOrderException("Tipo de contenido inválido: " + raw);
-        }
-        return upper;
-    }
-
-    private static String key(String type, UUID id) {
-        return type + ":" + Objects.requireNonNull(id);
     }
 }

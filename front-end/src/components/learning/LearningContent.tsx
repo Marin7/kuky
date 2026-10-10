@@ -1,7 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { HomeworkItem, SharedPresentationSummary } from "@/lib/learning";
+import type {
+  HomeworkItem,
+  SharedPresentationSummary,
+  UnitQuizSummary,
+} from "@/lib/learning";
 import { Card, CardContent } from "@/components/ui/card";
 import { NotificationDot } from "@/components/NotificationDot";
 import { buildGroups, type UnitGroup } from "./unitGroups";
@@ -9,13 +13,14 @@ import { buildGroups, type UnitGroup } from "./unitGroups";
 interface Props {
   presentations: SharedPresentationSummary[];
   homework: HomeworkItem[];
+  unitQuizzes: UnitQuizSummary[];
 }
 
 function UnitCardBody({ group }: { group: UnitGroup }) {
   const { t } = useTranslation();
-  const pendingCount = group.homework.filter(
-    (h) => h.status === "PENDING",
-  ).length;
+  const pendingCount =
+    group.homework.filter((h) => h.status === "PENDING").length +
+    group.quizzes.filter((q) => q.status === "AVAILABLE").length;
   const title = group.label ?? t("learning.units.other");
 
   return (
@@ -47,6 +52,11 @@ function UnitCardBody({ group }: { group: UnitGroup }) {
                   : t("learning.units.homeworkCountPlural", {
                       count: group.homework.length,
                     })}
+              </span>
+            )}
+            {group.quizzes.length > 0 && (
+              <span>
+                {t("learning.units.quizCount", { count: group.quizzes.length })}
               </span>
             )}
             {pendingCount > 0 && (
@@ -89,9 +99,13 @@ function UnitCard({ group }: { group: UnitGroup }) {
   );
 }
 
-export function LearningContent({ presentations, homework }: Props) {
+export function LearningContent({
+  presentations,
+  homework,
+  unitQuizzes,
+}: Props) {
   const { t } = useTranslation();
-  const groups = buildGroups(presentations, homework);
+  const groups = buildGroups(presentations, homework, unitQuizzes);
 
   return (
     <section className="space-y-4">

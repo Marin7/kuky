@@ -266,7 +266,7 @@ export function UnitCard({
           {" · "}
           {t("admin.units.summaryActivities", { count: unit.activityCount })}
           {" · "}
-          {t("admin.units.summaryHomeworks", { count: unit.homeworkCount })}
+          {t("admin.units.summaryQuizzes", { count: unit.quizCount })}
         </p>
 
         {error && <p className="text-xs text-destructive">{error}</p>}
