@@ -86,7 +86,7 @@ public class ActivityStudentService {
                 ActivitySubmission sub = byActivity.get(a.getId());
                 String status = sub == null ? HomeworkStatus.PENDING.name() : sub.getStatus();
                 list.add(new ActivitySummary(
-                        a.getId(), a.getTitle(), a.getPage(), a.getFormat().name(), status));
+                        a.getId(), a.getPage(), a.getFormat().name(), status));
             }
             result.put(presentationId, list);
         }
@@ -263,7 +263,6 @@ public class ActivityStudentService {
 
         return new ActivityItemResponse(
                 activity.getId(),
-                activity.getTitle(),
                 format,
                 composition.name(),
                 status,

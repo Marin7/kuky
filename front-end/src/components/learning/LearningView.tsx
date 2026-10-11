@@ -31,6 +31,12 @@ export function LearningView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const reload = () => {
+    getLearning()
+      .then(setData)
+      .catch(() => setError(t("learning.loadError")));
+  };
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -52,8 +58,12 @@ export function LearningView() {
             presentations={data.sharedPresentations}
             homework={data.homework}
             unitQuizzes={data.unitQuizzes}
+            onHomeworkChanged={reload}
           />
-          <AssignedQuizList />
+          {/* Quizzes that end a unit are taken from their unit, not listed here. */}
+          <AssignedQuizList
+            excludeQuizIds={new Set(data.unitQuizzes.map((q) => q.id))}
+          />
           <PastClassesList classes={data.pastClasses} />
           <MyTestimonial />
         </>

@@ -10,8 +10,6 @@ import {
   type UnitActivitySummary,
 } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { QuestionListEditor } from "@/components/admin/homework/QuestionListEditor";
 
 interface Props {
@@ -31,7 +29,6 @@ export function PageActivityEditor({
 }: Props) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -40,7 +37,6 @@ export function PageActivityEditor({
   useEffect(() => {
     setError(null);
     setEditing(false);
-    setTitle("");
     setQuestions([]);
     if (!activity) return;
     let cancelled = false;
@@ -48,7 +44,6 @@ export function PageActivityEditor({
     getActivityAdmin(activity.id)
       .then((a) => {
         if (cancelled) return;
-        setTitle(a.title ?? "");
         setQuestions(a.questions ?? []);
         setEditing(true);
       })
@@ -62,10 +57,6 @@ export function PageActivityEditor({
   }, [activity?.id, page, t]);
 
   const handleSave = async () => {
-    if (!title.trim()) {
-      setError(t("admin.units.editor.titleRequired"));
-      return;
-    }
     if (questions.length === 0) {
       setError(t("admin.homework.editor.questionsRequired"));
       return;
@@ -73,7 +64,7 @@ export function PageActivityEditor({
     setSaving(true);
     setError(null);
     try {
-      const fields = { title: title.trim(), questions };
+      const fields = { questions };
       if (activity) {
         await updateActivity(activity.id, fields);
       } else {
@@ -163,20 +154,11 @@ export function PageActivityEditor({
           {activity ? t("admin.units.editor.unmark") : t("common.cancel")}
         </Button>
       </div>
-      <div className="space-y-1">
-        <Label htmlFor={`activity-title-${page}`}>
-          {t("admin.units.editor.titleLabel")}
-        </Label>
-        <Input
-          id={`activity-title-${page}`}
-          value={title}
-          maxLength={200}
-          required
-          placeholder={t("admin.units.editor.titlePlaceholder")}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
-      <QuestionListEditor questions={questions} onChange={setQuestions} />
+      <QuestionListEditor
+        questions={questions}
+        onChange={setQuestions}
+        freeTextPromptOptional
+      />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving}>

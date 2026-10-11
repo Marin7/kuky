@@ -160,12 +160,12 @@ public class UnitRepository {
     // --- Page activities -------------------------------------------------------
 
     /** Per-activity submission counts (assigned students only) for the unit's PDF, in page order. */
-    public record ActivityCounts(UUID id, int page, String title, String format,
+    public record ActivityCounts(UUID id, int page, String format,
                                  int submitted, int awaitingCorrection, int graded, boolean hasUnseen) {}
 
     public List<ActivityCounts> findActivityCounts(UUID unitId) {
         String sql = """
-                SELECT a.id, a.page, a.title, a.format,
+                SELECT a.id, a.page, a.format,
                        COUNT(ua.user_id) FILTER (WHERE s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED')) AS submitted,
                        COUNT(ua.user_id) FILTER (WHERE s.status = 'SUBMITTED') AS awaiting,
                        COUNT(ua.user_id) FILTER (WHERE s.status IN ('REVIEWED', 'GRADED')) AS graded,
@@ -177,13 +177,12 @@ public class UnitRepository {
                 LEFT JOIN activity_submissions s ON s.activity_id = a.id
                 LEFT JOIN unit_assignments ua ON ua.unit_id = p.unit_id AND ua.user_id = s.user_id
                 WHERE p.unit_id = :uid
-                GROUP BY a.id, a.page, a.title, a.format
+                GROUP BY a.id, a.page, a.format
                 ORDER BY a.page
                 """;
         return jdbc.query(sql, Map.of("uid", unitId), (rs, n) -> new ActivityCounts(
                 rs.getObject("id", UUID.class),
                 rs.getInt("page"),
-                rs.getString("title"),
                 rs.getString("format"),
                 rs.getInt("submitted"),
                 rs.getInt("awaiting"),

@@ -312,7 +312,6 @@ export interface StudentProfileUnitActivity {
   unitSubject: string;
   activityId: string;
   page: number;
-  title: string;
   format: HomeworkFormat;
   status: SubmissionStatus;
   scorePercent: number | null;
@@ -927,7 +926,6 @@ export interface ActivityAdminDetail {
   unitId: string | null;
   presentationId: string;
   page: number;
-  title: string;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
   questions: AdminQuestion[];
@@ -936,7 +934,6 @@ export interface ActivityAdminDetail {
 }
 
 export interface ActivityWriteFields {
-  title: string;
   questions: AdminQuestion[];
 }
 
@@ -1056,7 +1053,6 @@ export interface UnitPdfInfo {
 export interface UnitActivitySummary {
   id: string;
   page: number;
-  title: string;
   format: HomeworkFormat;
   composition: HomeworkComposition;
   submittedCount: number;

@@ -303,8 +303,7 @@ export function UnitEditorPage({ unitId }: Props) {
                         : "hover:bg-muted",
                     ].join(" ")}
                   >
-                    {t("learning.activities.pageShort", { page: a.page })} ·{" "}
-                    {a.title}
+                    {t("learning.activities.pageShort", { page: a.page })}
                     {a.awaitingCorrectionCount > 0 &&
                       ` · ${t("admin.units.editor.toCorrect", { count: a.awaitingCorrectionCount })}`}
                   </button>

@@ -8,6 +8,8 @@ import {
   type ActivitySummary,
 } from "@/lib/learning";
 import { usePdfDocument } from "@/lib/pdf";
+import { pageAnchorId } from "@/lib/unitAnchors";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ActivityPageSlot } from "./ActivityPageSlot";
 import { PdfSinglePage } from "./PdfSinglePage";
@@ -17,11 +19,11 @@ function PdfPageStack({
   pdf,
   onPageVisible,
   activitiesByPage,
-  pageTitles,
   onActivityChanged,
+  currentPage,
 }: {
   pdf: PDFDocumentProxy;
-  pageTitles: string[];
+  currentPage?: number;
   onPageVisible?: (page: number) => void;
   activitiesByPage: Map<number, ActivitySummary>;
   onActivityChanged?: (activityId: string) => void;
@@ -42,18 +44,28 @@ function PdfPageStack({
   }, []);
 
   return (
-    <div ref={containerRef} className="flex flex-col gap-6 pb-10">
+    <div
+      ref={containerRef}
+      className={cn(
+        "flex flex-col gap-6",
+        currentPage === undefined && "pb-10",
+      )}
+    >
       {width > 0 &&
         Array.from({ length: pdf.numPages }, (_, i) => {
           const pageNumber = i + 1;
           const activity = activitiesByPage.get(pageNumber);
           return (
-            <div key={pageNumber} className="flex flex-col gap-3">
-              {pageTitles[i] && (
-                <h2 className="font-display text-lg font-semibold text-foreground">
-                  {pageTitles[i]}
-                </h2>
-              )}
+            <div
+              key={pageNumber}
+              id={pageAnchorId(pageNumber)}
+              // Hidden rather than unmounted: keeps rendered canvases and activity drafts.
+              className={
+                currentPage === undefined || currentPage === pageNumber
+                  ? "flex scroll-mt-36 flex-col gap-3 md:scroll-mt-24"
+                  : "hidden"
+              }
+            >
               <PdfSinglePage
                 pdf={pdf}
                 pageNumber={pageNumber}
@@ -82,8 +94,8 @@ export function PresentationPdfViewerClient({
   embedded = false,
   onPageVisible,
   activities = [],
-  pageTitles = [],
   onActivityChanged,
+  currentPage,
 }: PresentationPdfViewerProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -126,8 +138,8 @@ export function PresentationPdfViewerClient({
           pdf={state.pdf}
           onPageVisible={onPageVisible}
           activitiesByPage={activitiesByPage}
-          pageTitles={pageTitles}
           onActivityChanged={onActivityChanged}
+          currentPage={currentPage}
         />
       )}
     </>

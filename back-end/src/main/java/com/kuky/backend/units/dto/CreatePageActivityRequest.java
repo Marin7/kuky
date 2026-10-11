@@ -8,6 +8,5 @@ import java.util.List;
 
 public record CreatePageActivityRequest(
         @NotNull @Min(1) Integer page,
-        String title,
         @NotNull List<HomeworkQuestionDto> questions
 ) {}

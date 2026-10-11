@@ -6,7 +6,17 @@ import { UnitLearningView } from "@/components/learning/UnitLearningView";
 import { StudentOnlyNotice } from "@/components/StudentOnlyNotice";
 import { seo } from "@/lib/seo";
 
+/** `quiz`: one of the unit's end quizzes, shown in place of the PDF; `page`: the PDF page shown (1-based). */
+type UnidadSearch = { quiz?: string; page?: number };
+
 export const Route = createFileRoute("/aprendizaje_/unidad/$unitId")({
+  validateSearch: (search: Record<string, unknown>): UnidadSearch => ({
+    quiz: typeof search.quiz === "string" ? search.quiz : undefined,
+    page:
+      Number.isInteger(Number(search.page)) && Number(search.page) >= 1
+        ? Number(search.page)
+        : undefined,
+  }),
   head: () => ({
     meta: seo({
       title: "Unidad — Destino: Español",
@@ -20,6 +30,7 @@ export const Route = createFileRoute("/aprendizaje_/unidad/$unitId")({
 function UnidadPage() {
   const { t } = useTranslation();
   const { unitId } = Route.useParams();
+  const { quiz, page } = Route.useSearch();
   const [user, setUser] = useState<UserResponse | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
@@ -54,5 +65,7 @@ function UnidadPage() {
     );
   }
 
-  return <UnitLearningView unitId={unitId} />;
+  return (
+    <UnitLearningView unitId={unitId} quizId={quiz ?? null} page={page ?? 1} />
+  );
 }

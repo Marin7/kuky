@@ -8,7 +8,12 @@ import { NotificationDot } from "@/components/NotificationDot";
 
 const ACTIONABLE: QuizStatus[] = ["AVAILABLE", "IN_PROGRESS"];
 
-export function AssignedQuizList() {
+interface Props {
+  /** Quizzes not to list here (those that end a unit are taken from the unit). */
+  excludeQuizIds?: Set<string>;
+}
+
+export function AssignedQuizList({ excludeQuizIds }: Props) {
   const { t } = useTranslation();
   const [items, setItems] = useState<QuizListItem[] | null>(null);
   const [error, setError] = useState(false);
@@ -31,7 +36,10 @@ export function AssignedQuizList() {
   }
 
   if (items === null) return null;
-  if (items.length === 0) return null;
+  const shown = excludeQuizIds
+    ? items.filter((q) => !excludeQuizIds.has(q.id))
+    : items;
+  if (shown.length === 0) return null;
 
   return (
     <section className="space-y-4">
@@ -39,7 +47,7 @@ export function AssignedQuizList() {
         {t("quiz.title")}
       </h2>
       <div className="space-y-3">
-        {items.map((q) => (
+        {shown.map((q) => (
           <Link
             key={q.id}
             to="/quizzes/$quizId"

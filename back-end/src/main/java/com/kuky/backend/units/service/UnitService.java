@@ -203,7 +203,7 @@ public class UnitService {
 
         List<UnitActivitySummary> activities = repository.findActivityCounts(id).stream()
                 .map(a -> new UnitActivitySummary(
-                        a.id(), a.page(), a.title(), a.format(), compositionOfFormat(a.format()),
+                        a.id(), a.page(), a.format(), compositionOfFormat(a.format()),
                         a.submitted(), a.awaitingCorrection(), a.graded(), a.hasUnseen()))
                 .toList();
 

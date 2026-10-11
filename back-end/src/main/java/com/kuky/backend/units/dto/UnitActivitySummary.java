@@ -9,7 +9,6 @@ import java.util.UUID;
 public record UnitActivitySummary(
         UUID id,
         int page,
-        String title,
         String format,
         String composition,
         int submittedCount,

@@ -9,7 +9,6 @@ public record StudentProfileUnitActivityDto(
         String unitSubject,
         UUID activityId,
         int page,
-        String title,
         String format,
         String status,
         Integer scorePercent,

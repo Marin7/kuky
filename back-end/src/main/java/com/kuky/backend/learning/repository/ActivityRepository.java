@@ -28,7 +28,6 @@ public class ActivityRepository {
         a.setId(rs.getObject("id", UUID.class));
         a.setPresentationId(rs.getObject("presentation_id", UUID.class));
         a.setPage(rs.getInt("page"));
-        a.setTitle(rs.getString("title"));
         a.setFormat(HomeworkFormat.valueOf(rs.getString("format")));
         a.setCreatedAt(rs.getTimestamp("created_at").toInstant());
         a.setUpdatedAt(rs.getTimestamp("updated_at").toInstant());
@@ -66,13 +65,12 @@ public class ActivityRepository {
         Instant now = Instant.now();
         UUID id = activity.getId() == null ? UUID.randomUUID() : activity.getId();
         jdbc.update("""
-                INSERT INTO activities (id, presentation_id, page, title, format, created_at, updated_at)
-                VALUES (:id, :pid, :page, :title, :format, :createdAt, :updatedAt)
+                INSERT INTO activities (id, presentation_id, page, format, created_at, updated_at)
+                VALUES (:id, :pid, :page, :format, :createdAt, :updatedAt)
                 """, new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("pid", activity.getPresentationId())
                 .addValue("page", activity.getPage())
-                .addValue("title", activity.getTitle())
                 .addValue("format", activity.getFormat().name())
                 .addValue("createdAt", Timestamp.from(now))
                 .addValue("updatedAt", Timestamp.from(now)));
@@ -85,11 +83,10 @@ public class ActivityRepository {
     public void update(Activity activity) {
         Instant now = Instant.now();
         jdbc.update("""
-                UPDATE activities SET title = :title, format = :format, updated_at = :updatedAt
+                UPDATE activities SET format = :format, updated_at = :updatedAt
                 WHERE id = :id
                 """, new MapSqlParameterSource()
                 .addValue("id", activity.getId())
-                .addValue("title", activity.getTitle())
                 .addValue("format", activity.getFormat().name())
                 .addValue("updatedAt", Timestamp.from(now)));
         activity.setUpdatedAt(now);

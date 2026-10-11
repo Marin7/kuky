@@ -86,7 +86,7 @@ export function ActivityPanel({ activityId, onChanged }: Props) {
   if (!item) return null;
 
   const composition = resolveComposition(item);
-  const title = item.title;
+  const title = t("learning.activities.label", { page: item.page });
   return (
     <div className="space-y-4">
       {composition === "MIXED" ? (

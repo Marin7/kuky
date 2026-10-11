@@ -694,10 +694,23 @@ public class HomeworkAdminService {
     // --- question validation + mapping --------------------------------------
 
     /**
-     * Public entry for activity authoring (and tests). {@code writeHomework=true} requires
+     * Homework and quiz questions (and tests). {@code writeHomework=true} requires
      * an empty question list (WRITE homework); otherwise ≥1 question of any mix of kinds.
      */
     public List<HomeworkQuestion> validateAndMapQuestions(boolean writeHomework, List<HomeworkQuestionDto> dtos) {
+        return validateAndMapQuestions(writeHomework, dtos, false);
+    }
+
+    /**
+     * Page activities: the PDF page above is the instructions, so a free-text question may
+     * have no prompt either (homework and quizzes still require one).
+     */
+    public List<HomeworkQuestion> validateAndMapActivityQuestions(List<HomeworkQuestionDto> dtos) {
+        return validateAndMapQuestions(false, dtos, true);
+    }
+
+    private List<HomeworkQuestion> validateAndMapQuestions(
+            boolean writeHomework, List<HomeworkQuestionDto> dtos, boolean freeTextPromptOptional) {
         List<HomeworkQuestionDto> questions = dtos == null ? List.of() : dtos;
 
         if (writeHomework) {
@@ -713,17 +726,22 @@ public class HomeworkAdminService {
 
         List<HomeworkQuestion> mapped = new ArrayList<>();
         for (HomeworkQuestionDto q : questions) {
-            if (q.prompt() == null || q.prompt().isBlank()) {
+            QuestionKind kind = parseKind(q.kind());
+            boolean blankPrompt = q.prompt() == null || q.prompt().isBlank();
+            // A table or matching question carries its content in its structure, so its
+            // prompt (a short instruction or title) is optional.
+            boolean promptOptional = kind == QuestionKind.TABLE_FILL || kind == QuestionKind.MATCHING
+                    || (freeTextPromptOptional && kind == QuestionKind.FREE_TEXT);
+            if (blankPrompt && !promptOptional) {
                 throw new IllegalArgumentException("Cada pregunta necesita un enunciado.");
             }
-            QuestionKind kind = parseKind(q.kind());
             List<HomeworkQuestionDto.OptionDto> opts = q.options() == null ? List.of() : q.options();
 
             HomeworkQuestion model = new HomeworkQuestion();
             // Preserve client-supplied ids so updates upsert instead of wiping submissions.
             model.setId(q.id());
             model.setKind(kind);
-            model.setPrompt(q.prompt().strip());
+            model.setPrompt(blankPrompt ? "" : q.prompt().strip());
 
             if (kind == QuestionKind.FREE_TEXT) {
                 if (!opts.isEmpty()) {

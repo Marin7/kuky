@@ -57,7 +57,6 @@ import java.util.stream.Collectors;
 @Transactional
 public class ActivityAdminService {
 
-    private static final int MAX_TITLE_LENGTH = 200;
 
     private final ActivityRepository activityRepository;
     private final ActivityQuestionRepository questionRepository;
@@ -100,7 +99,7 @@ public class ActivityAdminService {
     }
 
     /** Marks {@code page} of the unit's PDF as an activity with the given work. */
-    public ActivityAdminDetail createOnPage(UUID unitId, int page, String title,
+    public ActivityAdminDetail createOnPage(UUID unitId, int page,
                                             List<HomeworkQuestionDto> questionDtos) {
         unitRepository.findById(unitId)
                 .orElseThrow(() -> new UnitNotFoundException("Unidad no encontrada."));
@@ -119,7 +118,6 @@ public class ActivityAdminService {
         Activity activity = new Activity();
         activity.setPresentationId(pdf.presentationId());
         activity.setPage(page);
-        activity.setTitle(normalizeTitle(title));
         activity.setFormat(deriveFormat(questions));
         activityRepository.insert(activity);
         questionRepository.replaceQuestions(activity.getId(), questions);
@@ -129,7 +127,6 @@ public class ActivityAdminService {
     public ActivityAdminDetail update(UUID id, SaveActivityRequest request) {
         Activity existing = requireActivity(id);
         List<ActivityQuestion> questions = mapQuestions(request == null ? null : request.questions());
-        existing.setTitle(normalizeTitle(request == null ? null : request.title()));
         existing.setFormat(deriveFormat(questions));
         activityRepository.update(existing);
         questionRepository.replaceQuestions(id, questions);
@@ -156,7 +153,7 @@ public class ActivityAdminService {
                 .map(r -> new ActivityReviewQueueItemDto(
                         r.submissionId(), r.studentId(), r.studentEmail(), r.studentFirstName(),
                         r.studentLastName(), r.studentUsername(),
-                        r.activityTitle(), r.submittedAt(), r.unseen(),
+                        Activity.displayName(r.page()), r.submittedAt(), r.unseen(),
                         r.activityId(), r.unitId(), r.page()))
                 .toList();
     }
@@ -186,7 +183,7 @@ public class ActivityAdminService {
         return new ExerciseSubmissionResultAdminDto(
                 submission.getId(),
                 activity.getId(),
-                activity.getTitle(),
+                Activity.displayName(activity.getPage()),
                 student.getId(),
                 student.getEmail(),
                 student.getFirstName(),
@@ -390,17 +387,6 @@ public class ActivityAdminService {
                 .orElseThrow(() -> new ActivityNotFoundException("Actividad no encontrada."));
     }
 
-    private static String normalizeTitle(String title) {
-        if (title == null || title.isBlank()) {
-            throw new ActivityValidationException("La actividad necesita un título.");
-        }
-        String trimmed = title.strip();
-        if (trimmed.length() > MAX_TITLE_LENGTH) {
-            throw new ActivityValidationException("El título no puede superar los 200 caracteres.");
-        }
-        return trimmed;
-    }
-
     private static HomeworkFormat deriveFormat(List<ActivityQuestion> questions) {
         return HomeworkCompositionSupport.deriveActivityFormat(
                 questions.stream().map(q -> (HomeworkCompositionSupport.HasKind) q::getKind).toList());
@@ -412,7 +398,7 @@ public class ActivityAdminService {
         }
         List<HomeworkQuestion> mapped;
         try {
-            mapped = homeworkAdminService.validateAndMapQuestions(false, questionDtos);
+            mapped = homeworkAdminService.validateAndMapActivityQuestions(questionDtos);
         } catch (IllegalArgumentException e) {
             throw new ActivityValidationException(e.getMessage());
         }
@@ -440,7 +426,6 @@ public class ActivityAdminService {
                 activityRepository.findUnitId(a.getId()).orElse(null),
                 a.getPresentationId(),
                 a.getPage(),
-                a.getTitle(),
                 a.getFormat().name(),
                 composition.name(),
                 questions,
@@ -495,7 +480,7 @@ public class ActivityAdminService {
                 student.getFirstName(),
                 student.getLastName(),
                 student.getUsername(),
-                activity.getTitle(),
+                Activity.displayName(activity.getPage()),
                 submission.getStatus(),
                 formatName,
                 composition.name(),

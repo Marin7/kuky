@@ -231,7 +231,7 @@ public class ActivitySubmissionRepository {
     public record ReviewQueueRow(
             UUID submissionId, UUID studentId, String studentEmail,
             String studentFirstName, String studentLastName, String studentUsername,
-            UUID activityId, String activityTitle, int page, UUID unitId,
+            UUID activityId, int page, UUID unitId,
             Instant submittedAt, boolean unseen) {}
 
     /** Submissions awaiting a teacher grade, optionally limited to one unit, oldest first. */
@@ -245,7 +245,7 @@ public class ActivitySubmissionRepository {
         return jdbc.query("""
                 SELECT s.id AS submission_id, u.id AS student_id, u.email AS student_email,
                        u.first_name AS student_first_name, u.last_name AS student_last_name,
-                       u.username AS student_username, a.id AS activity_id, a.title AS activity_title,
+                       u.username AS student_username, a.id AS activity_id,
                        a.page, p.unit_id, s.submitted_at, (s.teacher_seen_at IS NULL) AS unseen
                 FROM activity_submissions s
                 JOIN users u ON u.id = s.user_id
@@ -264,7 +264,6 @@ public class ActivitySubmissionRepository {
                     rs.getString("student_last_name"),
                     rs.getString("student_username"),
                     rs.getObject("activity_id", UUID.class),
-                    rs.getString("activity_title"),
                     rs.getInt("page"),
                     rs.getObject("unit_id", UUID.class),
                     submittedAt == null ? null : submittedAt.toInstant(),
@@ -274,14 +273,14 @@ public class ActivitySubmissionRepository {
 
     public record StudentUnitActivityRow(
             UUID unitId, String unitLevel, String unitSubject,
-            UUID activityId, int page, String title, String format,
+            UUID activityId, int page, String format,
             String status, Integer scorePercent, UUID submissionId, boolean unseen) {}
 
     /** Every activity of the units assigned to the student, with that student's submission (if any). */
     public List<StudentUnitActivityRow> findUnitActivitiesForStudent(UUID userId) {
         return jdbc.query("""
                 SELECT u.id AS unit_id, u.level AS unit_level, u.subject AS unit_subject,
-                       a.id AS activity_id, a.page, a.title, a.format,
+                       a.id AS activity_id, a.page, a.format,
                        COALESCE(s.status, 'PENDING') AS status, s.score_percent,
                        s.id AS submission_id,
                        (s.status IN ('SUBMITTED', 'REVIEWED', 'GRADED') AND s.teacher_seen_at IS NULL) AS unseen
@@ -298,7 +297,6 @@ public class ActivitySubmissionRepository {
                 rs.getString("unit_subject"),
                 rs.getObject("activity_id", UUID.class),
                 rs.getInt("page"),
-                rs.getString("title"),
                 rs.getString("format"),
                 rs.getString("status"),
                 rs.getObject("score_percent", Integer.class),

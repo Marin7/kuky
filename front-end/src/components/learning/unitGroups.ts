@@ -11,6 +11,7 @@ export interface UnitGroup {
   unitId: string | null;
   level: string | null;
   label: string | null; // null → "Other" bucket
+  subject: string | null;
   position: number;
   unseen: boolean;
   presentations: SharedPresentationSummary[];
@@ -30,6 +31,7 @@ export function buildGroups(
     unitId: null,
     level: null,
     label: null,
+    subject: null,
     position: Number.MAX_SAFE_INTEGER,
     unseen: false,
     presentations: [],
@@ -52,6 +54,7 @@ export function buildGroups(
         unitId: unit.id,
         level: unit.level,
         label: `${unit.level} · ${unit.subject}`,
+        subject: unit.subject,
         position: unit.position,
         unseen: Boolean(unit.unseen),
         presentations: [],

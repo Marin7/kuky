@@ -7,9 +7,15 @@ import { defaultQuestion } from "./questionDefaults";
 interface Props {
   questions: AdminQuestion[];
   onChange: (questions: AdminQuestion[]) => void;
+  /** Unit activities: a free-answer question may have no prompt. */
+  freeTextPromptOptional?: boolean;
 }
 
-export function QuestionListEditor({ questions, onChange }: Props) {
+export function QuestionListEditor({
+  questions,
+  onChange,
+  freeTextPromptOptional,
+}: Props) {
   const { t } = useTranslation();
 
   const update = (i: number, q: AdminQuestion) =>
@@ -60,6 +66,7 @@ export function QuestionListEditor({ questions, onChange }: Props) {
             onRemove={() => remove(i)}
             onMoveUp={() => move(i, -1)}
             onMoveDown={() => move(i, 1)}
+            freeTextPromptOptional={freeTextPromptOptional}
           />
         ))
       )}

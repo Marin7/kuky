@@ -529,6 +529,21 @@
       back: "Înapoi la Învățarea mea",
       notFound: "Unitatea nu a fost găsită.",
       unitEmpty: "Această unitate nu are încă conținut.",
+      contents: "Cuprins",
+      openContents: "Vezi cuprinsul",
+      levelHeading: "Nivel {{level}}",
+      noPages: "Această unitate nu are încă pagini.",
+      activityLabel: "Activitate",
+      quizLabel: "Test",
+      backToUnit: "Înapoi la unitate",
+      pagination: "Paginile unității",
+      prevPage: "Anterioara",
+      nextPage: "Următoarea",
+      pageOf: "Pagina {{page}} din {{count}}",
+      lockedHint:
+        "Completează activitatea de pe această pagină pentru a continua.",
+      lockedPage: "Completează mai întâi activitatea de pe pagina {{page}}.",
+      lockedQuiz: "Completează toate activitățile unității pentru a da testul.",
       inlineLoading: "Se încarcă…",
       inlineLoadError: "Nu s-a putut încărca conținutul.",
       viewingFile: "Se afișează",
@@ -538,6 +553,7 @@
       loadError: "Nu s-a putut încărca activitatea.",
       submit: "Predă activitatea",
       pageShort: "p. {{page}}",
+      label: "Activitate – pagina {{page}}",
     },
     resultDialog: {
       loading: "Se încarcă rezultatul…",
@@ -649,9 +665,6 @@
         pageTitleError: "Nu s-a putut salva titlul paginii.",
         markAsActivity: "Marchează ca activitate",
         activityOnPage: "Activitatea de pe pagina {{page}}",
-        titleLabel: "Titlu",
-        titlePlaceholder: "De exemplu: Descrie-ți cartierul",
-        titleRequired: "Activitatea are nevoie de un titlu.",
         unmark: "Elimină activitatea",
         confirmUnmark: "Elimini activitatea de pe pagina {{page}}?",
         confirmUnmarkWithSubmissions:
@@ -871,6 +884,8 @@
         promptPlaceholder: "Ex. Pluralul lui «el lápiz»",
         freeTextHint:
           "Elevul va scrie un răspuns liber pe care tu îl validezi sau invalidezi la corectare.",
+        freeTextOptionalHint:
+          "Enunț opțional: pagina activității servește deja drept instrucțiuni. Elevul va scrie un răspuns liber pe care tu îl corectezi.",
         acceptedAnswers: "Răspunsuri acceptate",
         acceptedAnswersHint:
           "Elevul răspunde corect dacă răspunsul său coincide cu unul dintre acestea (fără a distinge majusculele, dar respectând accentele).",

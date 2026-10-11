@@ -9,9 +9,9 @@ interface Props {
   title?: string;
   displayName?: string;
   embedded?: boolean;
-  /** Title per page (index 0 = page 1), shown above each page. */
-  pageTitles?: string[];
   onActivitiesChanged?: () => void;
+  /** Single-page mode: only this page (and its activity) is shown. */
+  currentPage?: number;
 }
 
 /**
@@ -25,8 +25,8 @@ export function ActivityViewerPrompts({
   title,
   displayName,
   embedded,
-  pageTitles,
   onActivitiesChanged,
+  currentPage,
 }: Props) {
   const [localActivities, setLocalActivities] =
     useState<ActivitySummary[]>(activities);
@@ -42,7 +42,7 @@ export function ActivityViewerPrompts({
       title={title}
       displayName={displayName}
       embedded={embedded}
-      pageTitles={pageTitles}
+      currentPage={currentPage}
       activities={localActivities}
       onActivityChanged={(activityId) => {
         setLocalActivities((prev) =>

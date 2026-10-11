@@ -113,6 +113,6 @@ public class UnitAdminController {
     public ResponseEntity<ActivityAdminDetail> createActivity(@PathVariable UUID id,
                                                               @Valid @RequestBody CreatePageActivityRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(activityService.createOnPage(id, req.page(), req.title(), req.questions()));
+                .body(activityService.createOnPage(id, req.page(), req.questions()));
     }
 }

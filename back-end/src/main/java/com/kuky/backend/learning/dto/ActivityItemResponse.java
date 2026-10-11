@@ -12,7 +12,6 @@ import java.util.UUID;
  */
 public record ActivityItemResponse(
         UUID id,
-        String title,
         String format,
         String composition,
         String status,

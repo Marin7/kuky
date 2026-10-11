@@ -66,15 +66,10 @@ export function StudentPresentationsPanel({
           </p>
           <div className="divide-y rounded-lg border">
             {activities.map((a) => {
-              const title = a.title;
+              const title = t("learning.activities.label", { page: a.page });
               const label = (
                 <>
-                  <span className="min-w-0 truncate">
-                    <span className="mr-2 text-muted-foreground">
-                      {t("learning.activities.pageShort", { page: a.page })}
-                    </span>
-                    {title}
-                  </span>
+                  <span className="min-w-0 truncate">{title}</span>
                   <span className="inline-flex shrink-0 items-center gap-1.5">
                     {a.unseen && (
                       <NotificationDot label={t("notification.activity")} />

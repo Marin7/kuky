@@ -68,7 +68,7 @@ public class StudentProfileAdminService {
         List<StudentProfileUnitActivityDto> unitActivities = activitySubmissionRepository
                 .findUnitActivitiesForStudent(studentId).stream()
                 .map(r -> new StudentProfileUnitActivityDto(r.unitId(), r.unitLevel(), r.unitSubject(),
-                        r.activityId(), r.page(), r.title(), r.format(), r.status(), r.scorePercent(),
+                        r.activityId(), r.page(), r.format(), r.status(), r.scorePercent(),
                         r.submissionId(), r.unseen()))
                 .toList();
 

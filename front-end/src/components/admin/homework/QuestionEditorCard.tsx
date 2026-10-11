@@ -60,6 +60,8 @@ interface Props {
   onMoveDown: () => void;
   moveUpDisabled?: boolean;
   moveDownDisabled?: boolean;
+  /** Unit activities: a free-answer question may have no prompt (the page is the instructions). */
+  freeTextPromptOptional?: boolean;
 }
 
 export function QuestionEditorCard({
@@ -72,6 +74,7 @@ export function QuestionEditorCard({
   onMoveDown,
   moveUpDisabled,
   moveDownDisabled,
+  freeTextPromptOptional = false,
 }: Props) {
   const { t } = useTranslation();
 
@@ -289,12 +292,14 @@ export function QuestionEditorCard({
                 ? t("admin.homework.questions.spotWrongWords.promptHint")
                 : question.kind === "SINGLE_CHOICE"
                   ? t("admin.homework.questions.promptSingleChoiceHint")
-                  : question.kind === "FREE_TEXT"
-                    ? t("admin.homework.questions.freeTextHint")
-                    : question.kind === "TABLE_FILL" ||
-                        question.kind === "MATCHING"
-                      ? t("admin.homework.questions.promptOptionalHint")
-                      : null}
+                  : question.kind === "FREE_TEXT" && freeTextPromptOptional
+                    ? t("admin.homework.questions.freeTextOptionalHint")
+                    : question.kind === "FREE_TEXT"
+                      ? t("admin.homework.questions.freeTextHint")
+                      : question.kind === "TABLE_FILL" ||
+                          question.kind === "MATCHING"
+                        ? t("admin.homework.questions.promptOptionalHint")
+                        : null}
           </p>
         </div>
       </div>

@@ -326,7 +326,6 @@ export interface PresentationFileSummary {
 /** A page of a unit's PDF that is an activity (the page itself is the instructions). */
 export interface ActivitySummary {
   id: string;
-  title: string;
   page: number;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
@@ -506,7 +505,6 @@ export const downloadPresentationFile = async (
 
 export interface ActivityItem {
   id: string;
-  title: string;
   format: HomeworkFormat;
   composition?: HomeworkComposition | null;
   status: HomeworkStatus;

@@ -519,6 +519,20 @@
       back: "Back to My learning",
       notFound: "This unit was not found.",
       unitEmpty: "This unit has no content yet.",
+      contents: "Contents",
+      openContents: "Show contents",
+      levelHeading: "Level {{level}}",
+      noPages: "This unit has no pages yet.",
+      activityLabel: "Activity",
+      quizLabel: "Quiz",
+      backToUnit: "Back to the unit",
+      pagination: "Unit pages",
+      prevPage: "Previous",
+      nextPage: "Next",
+      pageOf: "Page {{page}} of {{count}}",
+      lockedHint: "Complete this page's activity to keep going.",
+      lockedPage: "First complete the activity on page {{page}}.",
+      lockedQuiz: "Complete all of the unit's activities to take the quiz.",
       inlineLoading: "Loading…",
       inlineLoadError: "Could not load the content.",
       viewingFile: "Viewing",
@@ -528,6 +542,7 @@
       loadError: "Could not load the activity.",
       submit: "Submit activity",
       pageShort: "p. {{page}}",
+      label: "Activity – page {{page}}",
     },
     resultDialog: {
       loading: "Loading result…",
@@ -634,9 +649,6 @@
         pageTitleError: "Could not save the page title.",
         markAsActivity: "Mark as activity",
         activityOnPage: "Activity on page {{page}}",
-        titleLabel: "Title",
-        titlePlaceholder: "For example: Describe your neighbourhood",
-        titleRequired: "The activity needs a title.",
         unmark: "Remove activity",
         confirmUnmark: "Remove the activity on page {{page}}?",
         confirmUnmarkWithSubmissions:
@@ -858,6 +870,8 @@
         promptPlaceholder: "E.g. The plural of «el lápiz»",
         freeTextHint:
           "The student will write a free-text answer that you score with a percentage when reviewing.",
+        freeTextOptionalHint:
+          "Optional prompt: the activity's page already gives the instructions. The student will write a free-text answer that you review.",
         acceptedAnswers: "Accepted answers",
         acceptedAnswersHint:
           "The student is correct if their answer matches any of these (case-insensitive, but accent-sensitive).",

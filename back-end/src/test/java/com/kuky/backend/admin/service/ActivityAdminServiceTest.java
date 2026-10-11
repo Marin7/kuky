@@ -90,24 +90,14 @@ class ActivityAdminServiceTest {
     }
 
     @Test
-    void createOnPageStoresThePageAndTrimmedTitle() {
-        var detail = service.createOnPage(unitId, 4, "  Mi familia  ", oneQuestion);
+    void createOnPageStoresThePage() {
+        var detail = service.createOnPage(unitId, 4, oneQuestion);
 
         ArgumentCaptor<Activity> saved = ArgumentCaptor.forClass(Activity.class);
         verify(activityRepository).insert(saved.capture());
         assertThat(saved.getValue().getPage()).isEqualTo(4);
         assertThat(saved.getValue().getPresentationId()).isEqualTo(presentationId);
-        assertThat(saved.getValue().getTitle()).isEqualTo("Mi familia");
         assertThat(detail.page()).isEqualTo(4);
-    }
-
-    @Test
-    void createOnPageRequiresATitle() {
-        assertThatThrownBy(() -> service.createOnPage(unitId, 4, "   ", oneQuestion))
-                .isInstanceOf(ActivityValidationException.class);
-        assertThatThrownBy(() -> service.createOnPage(unitId, 4, null, oneQuestion))
-                .isInstanceOf(ActivityValidationException.class);
-        verify(activityRepository, never()).insert(any());
     }
 
     @Test
@@ -115,7 +105,7 @@ class ActivityAdminServiceTest {
         UUID other = UUID.randomUUID();
         when(unitRepository.findById(other)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.createOnPage(other, 1, "Actividad", oneQuestion))
+        assertThatThrownBy(() -> service.createOnPage(other, 1, oneQuestion))
                 .isInstanceOf(UnitNotFoundException.class);
     }
 
@@ -123,23 +113,23 @@ class ActivityAdminServiceTest {
     void createOnPageRequiresTheUnitToHaveAPdf() {
         when(presentationRepository.findOwnedByUnit(unitId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.createOnPage(unitId, 1, "Actividad", oneQuestion))
+        assertThatThrownBy(() -> service.createOnPage(unitId, 1, oneQuestion))
                 .isInstanceOf(ActivityValidationException.class);
         verify(activityRepository, never()).insert(any());
     }
 
     @Test
     void createOnPageRejectsPagesOutsideThePdf() {
-        assertThatThrownBy(() -> service.createOnPage(unitId, 0, "Actividad", oneQuestion))
+        assertThatThrownBy(() -> service.createOnPage(unitId, 0, oneQuestion))
                 .isInstanceOf(ActivityValidationException.class);
-        assertThatThrownBy(() -> service.createOnPage(unitId, 11, "Actividad", oneQuestion))
+        assertThatThrownBy(() -> service.createOnPage(unitId, 11, oneQuestion))
                 .isInstanceOf(ActivityValidationException.class);
         verify(activityRepository, never()).insert(any());
     }
 
     @Test
     void createOnPageRejectsAnActivityWithoutQuestions() {
-        assertThatThrownBy(() -> service.createOnPage(unitId, 2, "Actividad", List.of()))
+        assertThatThrownBy(() -> service.createOnPage(unitId, 2, List.of()))
                 .isInstanceOf(ActivityValidationException.class);
         verify(activityRepository, never()).insert(any());
     }
@@ -149,23 +139,22 @@ class ActivityAdminServiceTest {
         when(activityRepository.findByPresentationAndPage(presentationId, 3))
                 .thenReturn(Optional.of(new Activity()));
 
-        assertThatThrownBy(() -> service.createOnPage(unitId, 3, "Actividad", oneQuestion))
+        assertThatThrownBy(() -> service.createOnPage(unitId, 3, oneQuestion))
                 .isInstanceOf(ActivityPageTakenException.class);
         verify(activityRepository, never()).insert(any());
     }
 
     @Test
-    void updateChangesTitleAndQuestionsButNeverThePage() {
+    void updateChangesQuestionsButNeverThePage() {
         Activity existing = new Activity();
         existing.setId(UUID.randomUUID());
         existing.setPresentationId(presentationId);
         existing.setPage(5);
         when(activityRepository.findById(existing.getId())).thenReturn(Optional.of(existing));
 
-        service.update(existing.getId(), new SaveActivityRequest(" Mira la foto ", oneQuestion));
+        service.update(existing.getId(), new SaveActivityRequest(oneQuestion));
 
         verify(activityRepository).update(existing);
-        assertThat(existing.getTitle()).isEqualTo("Mira la foto");
         assertThat(existing.getPage()).isEqualTo(5);
         verify(questionRepository).replaceQuestions(any(), anyList());
     }
@@ -190,7 +179,6 @@ class ActivityAdminServiceTest {
         Activity activity = new Activity();
         activity.setId(UUID.randomUUID());
         activity.setPage(2);
-        activity.setTitle("Mi barrio");
         User student = new User();
         student.setId(UUID.randomUUID());
         ActivitySubmission submission = new ActivitySubmission();
@@ -206,6 +194,6 @@ class ActivityAdminServiceTest {
         var dto = service.getSubmissionDetail(submission.getId());
 
         verify(notificationService).markActivitySeen(submission.getId());
-        assertThat(dto.assignmentTitle()).isEqualTo("Mi barrio");
+        assertThat(dto.assignmentTitle()).isEqualTo("Actividad – página 2");
     }
 }

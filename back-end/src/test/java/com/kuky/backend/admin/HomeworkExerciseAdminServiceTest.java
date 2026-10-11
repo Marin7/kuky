@@ -400,6 +400,37 @@ class HomeworkExerciseAdminServiceTest {
     }
 
     @Test
+    void matchingAndTableQuestionsMayHaveNoPrompt() throws Exception {
+        ObjectNode matching = objectMapper.readValue("""
+                {"left":[{"id":"l1","label":"perro"}],"right":[{"id":"r1","label":"dog"}],
+                 "pairs":[{"leftId":"l1","rightId":"r1"}]}
+                """, ObjectNode.class);
+
+        List<HomeworkQuestion> mapped = service.validateAndMapQuestions(false, List.of(
+                new HomeworkQuestionDto(null, "MATCHING", "  ", List.of(), matching)));
+
+        assertThat(mapped.getFirst().getPrompt()).isEmpty();
+        assertThatThrownBy(() -> service.validateAndMapQuestions(false, List.of(
+                new HomeworkQuestionDto(null, "FREE_TEXT", " ", List.of(), null))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("enunciado");
+    }
+
+    @Test
+    void onlyActivitiesAllowAFreeTextQuestionWithoutPrompt() {
+        var blankFreeText = List.of(new HomeworkQuestionDto(null, "FREE_TEXT", " ", List.of(), null));
+
+        assertThat(service.validateAndMapActivityQuestions(blankFreeText).getFirst().getPrompt())
+                .isEmpty();
+        assertThatThrownBy(() -> service.validateAndMapQuestions(false, blankFreeText))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.validateAndMapActivityQuestions(List.of(
+                new HomeworkQuestionDto(null, "TRUE_FALSE", "", List.of(), null))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("enunciado");
+    }
+
+    @Test
     void classicIgnoresStaleItemsInStructure() throws Exception {
         ObjectNode stale = objectMapper.readValue("""
                 {"items":[{"number":1,"options":[{"id":"x","label":"stale","correct":true}]}]}

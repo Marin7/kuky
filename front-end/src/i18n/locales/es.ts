@@ -529,6 +529,21 @@ export const esDict = {
       back: "Volver a Mi aprendizaje",
       notFound: "No se encontró esta unidad.",
       unitEmpty: "Esta unidad no tiene contenido todavía.",
+      contents: "Contenido",
+      openContents: "Ver contenido",
+      levelHeading: "Nivel {{level}}",
+      noPages: "Esta unidad aún no tiene páginas.",
+      activityLabel: "Actividad",
+      quizLabel: "Prueba",
+      backToUnit: "Volver a la unidad",
+      pagination: "Páginas de la unidad",
+      prevPage: "Anterior",
+      nextPage: "Siguiente",
+      pageOf: "Página {{page}} de {{count}}",
+      lockedHint: "Completa la actividad de esta página para seguir avanzando.",
+      lockedPage: "Completa antes la actividad de la página {{page}}.",
+      lockedQuiz:
+        "Completa todas las actividades de la unidad para hacer la prueba.",
       inlineLoading: "Cargando…",
       inlineLoadError: "No se pudo cargar el contenido.",
       viewingFile: "Viendo",
@@ -538,6 +553,7 @@ export const esDict = {
       loadError: "No se pudo cargar la actividad.",
       submit: "Entregar actividad",
       pageShort: "p. {{page}}",
+      label: "Actividad – página {{page}}",
     },
     resultDialog: {
       loading: "Cargando resultado…",
@@ -647,9 +663,6 @@ export const esDict = {
         pageTitleError: "No se pudo guardar el título de la página.",
         markAsActivity: "Marcar como actividad",
         activityOnPage: "Actividad de la página {{page}}",
-        titleLabel: "Título",
-        titlePlaceholder: "Por ejemplo: Describe tu barrio",
-        titleRequired: "La actividad necesita un título.",
         unmark: "Quitar actividad",
         confirmUnmark: "¿Quitar la actividad de la página {{page}}?",
         confirmUnmarkWithSubmissions:
@@ -870,6 +883,8 @@ export const esDict = {
         promptPlaceholder: "Ej. El plural de «el lápiz»",
         freeTextHint:
           "El alumno escribirá una respuesta libre que tú validarás o anularás al corregir.",
+        freeTextOptionalHint:
+          "Enunciado opcional: la página de la actividad ya sirve de instrucciones. El alumno escribirá una respuesta libre que tú corregirás.",
         acceptedAnswers: "Respuestas aceptadas",
         acceptedAnswersHint:
           "El alumno acierta si su respuesta coincide con alguna (sin distinguir mayúsculas, pero respetando los acentos).",
