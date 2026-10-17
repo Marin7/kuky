@@ -233,7 +233,7 @@ public class ActivityStudentService {
                     .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
                     .map(a -> ManualAnswerViewDto.fromStored(
                             a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText())
-                            .withSentenceStarters(a.getAnswerJson(), HomeworkStatus.GRADED.name().equals(status)))
+                            .withSentenceStarters(a.getAnswerJson()))
                     .toList();
         }
 

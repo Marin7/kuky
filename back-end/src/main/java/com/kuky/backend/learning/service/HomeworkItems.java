@@ -184,12 +184,12 @@ final class HomeworkItems {
         if (stripTeacherScores) {
             return ManualAnswerViewDto.fromStored(
                     a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText())
-                    .withSentenceStarters(a.getAnswerJson(), false);
+                    .withSentenceStarters(a.getAnswerJson());
         }
         Double score = a.getScore() == null ? null : a.getScore().doubleValue();
         return ManualAnswerViewDto.fromStored(
                 a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
                 a.getTeacherScorePercent(), score)
-                .withSentenceStarters(a.getAnswerJson(), true);
+                .withSentenceStarters(a.getAnswerJson());
     }
 }

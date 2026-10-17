@@ -490,7 +490,6 @@ export const esDict = {
     sentenceStarter: {
       placeholder: "…",
       counter: "{{count}} / {{max}}",
-      modelAnswer: "Respuesta modelo",
     },
     pastClasses: {
       title: "Clases anteriores",
@@ -940,9 +939,8 @@ export const esDict = {
             "Enunciado opcional: la página de la actividad ya sirve de instrucciones. Añade abajo los inicios de frase.",
           startersTitle: "Inicios de frase",
           startersHint:
-            "El alumno completará cada frase a continuación del inicio (máximo {{max}}). La respuesta modelo es opcional y solo se muestra tras la corrección.",
+            "El alumno completará cada frase a continuación del inicio (máximo {{max}}).",
           starterPlaceholder: "Ej. porque",
-          modelAnswerPlaceholder: "Respuesta modelo (opcional)",
           add: "Añadir inicio de frase",
           remove: "Eliminar inicio de frase",
           moveUp: "Subir",

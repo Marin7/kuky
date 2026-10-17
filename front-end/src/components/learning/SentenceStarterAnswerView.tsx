@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 import type { FormattedText } from "./richtext/types";
 
@@ -8,8 +7,6 @@ interface Props {
   /** Teacher-annotated version of the same text, when present. */
   formatted?: FormattedText | null;
   starters: string[];
-  /** Shown under each sentence once the correction is visible. */
-  modelAnswers?: (string | null)[] | null;
 }
 
 /** Splits segments into lines at "\n", keeping each segment's styles. */
@@ -47,15 +44,13 @@ function splitAt(
 
 /**
  * SENTENCE_STARTER answer, one sentence per line with its starter emphasised
- * (teacher annotations kept), plus model answers when provided (specs/057).
+ * (teacher annotations kept) (specs/057).
  */
 export function SentenceStarterAnswerView({
   text,
   formatted,
   starters,
-  modelAnswers,
 }: Props) {
-  const { t } = useTranslation();
   const segments: FormattedText =
     formatted && formatted.length > 0 ? formatted : [{ text: text ?? "" }];
   const lines = splitLines(segments);
@@ -68,26 +63,15 @@ export function SentenceStarterAnswerView({
           starter && plain.startsWith(starter)
             ? splitAt(line, starter.length)
             : [[], line];
-        const model = modelAnswers?.[i];
         return (
-          <li key={i} className="space-y-1">
-            <div className="text-sm">
-              {head.length > 0 && (
-                <RichTextViewer
-                  segments={head}
-                  className="inline text-sm font-semibold"
-                />
-              )}
-              <RichTextViewer segments={tail} className="inline text-sm" />
-            </div>
-            {model && (
-              <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                <span className="font-medium">
-                  {t("learning.sentenceStarter.modelAnswer")}:
-                </span>{" "}
-                {model}
-              </p>
+          <li key={i} className="text-sm">
+            {head.length > 0 && (
+              <RichTextViewer
+                segments={head}
+                className="inline text-sm font-semibold"
+              />
             )}
+            <RichTextViewer segments={tail} className="inline text-sm" />
           </li>
         );
       })}

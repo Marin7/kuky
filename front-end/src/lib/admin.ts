@@ -523,10 +523,9 @@ export interface SpotWrongWordsStructure {
   errors: SpotWrongWordsError[];
 }
 
-/** SENTENCE_STARTER: ordered starters, each with an optional model answer (specs/057). */
+/** SENTENCE_STARTER: ordered starters the student completes (specs/057). */
 export interface SentenceStarterItem {
   starter: string;
-  modelAnswer?: string;
 }
 
 export interface SentenceStarterStructure {
@@ -728,9 +727,8 @@ export interface ManualSubmissionAnswerAdmin {
   teacherScorePercent?: number | null;
   score?: number | null;
   correct?: boolean | null;
-  /** SENTENCE_STARTER: starters and model answers at submit time. */
+  /** SENTENCE_STARTER: starters at submit time. */
   starters?: string[] | null;
-  modelAnswers?: (string | null)[] | null;
 }
 
 export type ReviewModel = "LEGACY_RICH" | "ANNOTATED" | null;

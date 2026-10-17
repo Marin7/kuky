@@ -480,7 +480,6 @@
     sentenceStarter: {
       placeholder: "…",
       counter: "{{count}} / {{max}}",
-      modelAnswer: "Model answer",
     },
     pastClasses: {
       title: "Past classes",
@@ -926,9 +925,8 @@
             "Optional prompt: the activity page already gives the instructions. Add the sentence starters below.",
           startersTitle: "Sentence starters",
           startersHint:
-            "The student completes each sentence after its starter (up to {{max}}). The model answer is optional and only shown after correction.",
+            "The student completes each sentence after its starter (up to {{max}}).",
           starterPlaceholder: "e.g. porque",
-          modelAnswerPlaceholder: "Model answer (optional)",
           add: "Add sentence starter",
           remove: "Remove sentence starter",
           moveUp: "Move up",

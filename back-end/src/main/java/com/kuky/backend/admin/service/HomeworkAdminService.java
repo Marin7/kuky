@@ -494,7 +494,7 @@ public class HomeworkAdminService {
                         a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
                         a.getTeacherScorePercent(),
                         a.getScore() == null ? null : a.getScore().doubleValue())
-                        .withSentenceStarters(a.getAnswerJson(), true))
+                        .withSentenceStarters(a.getAnswerJson()))
                 .toList();
         List<FormattedTextSegment> response = answers.isEmpty()
                 ? FormattedTextSegment.fromJson(row.responseText())

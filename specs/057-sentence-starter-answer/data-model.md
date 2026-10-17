@@ -13,14 +13,13 @@ No new tables. One migration widens two `kind` CHECK constraints.
 |---|---|
 | `kind` | `SENTENCE_STARTER` |
 | `prompt` | Instruction / stimulus text. Required in homework; optional in activities (page is the stimulus). |
-| `structure_json` | `{"items":[{"starter":"porque","modelAnswer":"Porque quiere vivir en una ciudad grande."}, …]}` |
+| `structure_json` | `{"items":[{"starter":"porque"}, …]}` |
 | options | none (rejected if sent) |
 
 **Validation (save)** — `HomeworkAdminService.validateAndMapQuestions` → `SentenceStarters.normalizeStructure`:
 - `items`: 1–10 entries, order = display order.
 - `starter`: strip, drop trailing `...`/`…` and whitespace; then 1–80 chars. Empty → "Cada inicio de frase necesita texto."
-- `modelAnswer`: optional; blank → omitted; ≤ 300 chars.
-- Unknown keys dropped. Quiz save with this kind → 422.
+- Unknown keys dropped (including a legacy `modelAnswer`). Quiz save with this kind → 422.
 
 **Student view** (`stripStructureForStudent`): `{"starters":["porque","para","por"]}`.
 
@@ -30,7 +29,7 @@ No new tables. One migration widens two `kind` CHECK constraints.
 |---|---|
 | `answer_text` | Composed sentences, one per line, joined by `\n` (later replaced by the teacher's annotated formatted JSON, as for FREE_TEXT). |
 | `prompt_snapshot` | Question prompt at submit. |
-| `answer_json` | `{"starters":[…],"modelAnswers":[…|null],"continuations":[…]}` — snapshot at submit. |
+| `answer_json` | `{"starters":[…],"continuations":[…]}` — snapshot at submit. |
 | `teacher_score_percent`, `score` | As FREE_TEXT (null/0 until teacher scores). |
 
 **Validation (submit)** — `SentenceStarters.composeAnswer(question, continuations)`:

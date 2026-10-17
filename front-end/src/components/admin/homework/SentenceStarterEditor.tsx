@@ -1,10 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { SentenceStarterStructure } from "@/lib/admin";
-import {
-  MAX_MODEL_ANSWER_CHARS,
-  MAX_STARTERS,
-  MAX_STARTER_CHARS,
-} from "@/lib/sentenceStarter";
+import { MAX_STARTERS, MAX_STARTER_CHARS } from "@/lib/sentenceStarter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,8 +11,7 @@ interface Props {
 }
 
 /**
- * SENTENCE_STARTER authoring: ordered starters, each with an optional model
- * answer shown to the student only after correction (specs/057).
+ * SENTENCE_STARTER authoring: ordered starters the student completes (specs/057).
  */
 export function SentenceStarterEditor({ structure, onChange }: Props) {
   const { t } = useTranslation();
@@ -57,7 +52,7 @@ export function SentenceStarterEditor({ structure, onChange }: Props) {
             <span className="hidden pt-2 text-xs text-muted-foreground sm:block">
               {i + 1}.
             </span>
-            <div className="min-w-0 flex-1 space-y-2">
+            <div className="min-w-0 flex-1">
               <Input
                 value={item.starter}
                 maxLength={MAX_STARTER_CHARS}
@@ -66,14 +61,6 @@ export function SentenceStarterEditor({ structure, onChange }: Props) {
                   "admin.homework.questions.sentenceStarter.starterPlaceholder",
                 )}
                 aria-invalid={!item.starter.trim()}
-              />
-              <Input
-                value={item.modelAnswer ?? ""}
-                maxLength={MAX_MODEL_ANSWER_CHARS}
-                onChange={(e) => setItem(i, { modelAnswer: e.target.value })}
-                placeholder={t(
-                  "admin.homework.questions.sentenceStarter.modelAnswerPlaceholder",
-                )}
               />
             </div>
             <div className="flex shrink-0 gap-1">

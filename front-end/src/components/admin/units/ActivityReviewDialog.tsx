@@ -396,7 +396,6 @@ export function ActivityReviewDialog({
                                   formatted={formatted}
                                   text={a.text}
                                   starters={a.starters}
-                                  modelAnswers={a.modelAnswers}
                                 />
                               </div>
                             )}
@@ -408,7 +407,6 @@ export function ActivityReviewDialog({
                                 formatted={formatted}
                                 text={a.text}
                                 starters={a.starters}
-                                modelAnswers={a.modelAnswers}
                               />
                             ) : formatted.length > 0 ? (
                               <RichTextViewer segments={formatted} />

@@ -10,11 +10,11 @@ Add a tenth question kind, `SENTENCE_STARTER`, to the homework/activity question
 **manually graded** exactly like `FREE_TEXT`: a new `QuestionKind.isManual()` predicate replaces
 the `kind == FREE_TEXT` checks that mean "manual" across composition, submission, scoring and
 review, so the lifecycle, teacher %, annotations, note, unseen dots and combined score are reused
-unchanged. `structure_json` holds ordered `{starter, modelAnswer?}` items (starter normalised at
+unchanged. `structure_json` holds ordered `{starter}` items (starter normalised at
 save: trailing `...`/`…` removed). The student sends only continuations; the server composes each
 sentence (`SentenceStarters.compose`) so every stored sentence begins with its starter, stores
-them one per line in `answer_text`, and snapshots `{starters, modelAnswers, continuations}` in
-`answer_json`. `ManualAnswerViewDto` exposes `starters` and (post-finalisation) `modelAnswers`.
+them one per line in `answer_text`, and snapshots `{starters, continuations}` in
+`answer_json`. `ManualAnswerViewDto` exposes `starters`. (Model answers were planned and built, then removed on 2026-10-17.)
 Front-end: one editor, one input component used by both student forms (MIXED and ALL_MANUAL),
 one answer renderer for results and review dialogs. Not offered in quizzes.
 
@@ -34,7 +34,7 @@ one answer renderer for results and review dialogs. Not offered in quizzes.
 
 **Performance Goals**: No new requests or endpoints; composition is O(starters)
 
-**Constraints**: Model answers never sent to students before finalisation; composed answer ≤ 2,000 chars (annotation limit); no horizontal scroll at 375 px; es/en/ro labels
+**Constraints**: Composed answer ≤ 2,000 chars (annotation limit); no horizontal scroll at 375 px; es/en/ro labels
 
 **Scale/Scope**: ≤ 10 starters per question; 1 migration, 1 new back-end helper + ~10 files touched; 3 new front-end components + ~12 files touched; 3 locale files
 
@@ -77,13 +77,13 @@ back-end/src/main/java/com/kuky/backend/
 │   ├── ExerciseStructureLimits.java            # + starter limits (10 items, 80, 300, 500, 2000)
 │   ├── model/QuestionKind.java                 # + SENTENCE_STARTER, isManual()
 │   ├── dto/ManualAnswerDto.java                # + continuations
-│   ├── dto/ManualAnswerViewDto.java            # + starters, modelAnswers
+│   ├── dto/ManualAnswerViewDto.java            # + starters
 │   └── service/
 │       ├── SentenceStarters.java               # NEW: normalizeStructure, studentStructure, composeAnswer
 │       ├── HomeworkCompositionSupport.java     # isAutoGradable / composition / contributions → isManual()
 │       ├── HomeworkSubmissionService.java      # manual filters → isManual(); compose for SENTENCE_STARTER
 │       ├── ActivityStudentService.java         # same for activities
-│       ├── HomeworkItems.java                  # answer view starters/modelAnswers; student DTO
+│       ├── HomeworkItems.java                  # answer view starters; student DTO
 │       ├── ExerciseGradingService.java         # strip → {starters}; manual guard
 │       ├── ActivityExerciseGradingService.java # strip + guard
 │       └── QuestionScoring.java                # "not auto-graded" guard covers kind
@@ -100,7 +100,7 @@ front-end/src/
 │   ├── learning.ts                             # kind, isManualKind, continuations payload, ManualAnswerView fields
 │   └── admin.ts                                # kind, SentenceStarterStructure
 ├── components/admin/homework/
-│   ├── SentenceStarterEditor.tsx               # NEW: starter + model-answer rows, add/remove/reorder
+│   ├── SentenceStarterEditor.tsx               # NEW: starter rows, add/remove/reorder
 │   ├── QuestionEditorCard.tsx                  # kind option + editor branch + excludedKinds prop
 │   ├── questionDefaults.ts                     # default { items: [{ starter: "" }] }
 │   ├── HomeworkPreview.tsx                     # render SentenceStarterInput
@@ -109,11 +109,11 @@ front-end/src/
 ├── components/quiz/admin/…                     # pass excludedKinds=["SENTENCE_STARTER"]
 ├── components/learning/
 │   ├── SentenceStarterInput.tsx                # NEW: fixed starter + input lines, counter
-│   ├── SentenceStarterAnswerView.tsx           # NEW: lines with semibold starter + model answers
+│   ├── SentenceStarterAnswerView.tsx           # NEW: lines with semibold starter
 │   ├── MixedHomeworkForm.tsx                   # manual kinds, continuations state/payload, render
 │   ├── ManualMultiAnswerForm.tsx               # kind-aware questions, continuations payload, render
 │   ├── HomeworkInlinePanel.tsx / ActivityPanel.tsx  # pass kind/structure to ManualMultiAnswerForm
-└── i18n/locales/{es,en,ro}.ts                  # kind name, editor labels, "Respuesta modelo", limits
+└── i18n/locales/{es,en,ro}.ts                  # kind name, editor labels, limits
 ```
 
 **Structure Decision**: Existing web-app layout. The kind plugs into the manual-question code

@@ -164,7 +164,7 @@ public class ExerciseGradingService {
                                             a.getAnswerText(),
                                             a.getTeacherScorePercent(),
                                             a.getScore() == null ? null : a.getScore().doubleValue()))
-                                    .withSentenceStarters(a.getAnswerJson(), !stripTeacherScores))
+                                    .withSentenceStarters(a.getAnswerJson()))
                             .toList();
                 }
             }

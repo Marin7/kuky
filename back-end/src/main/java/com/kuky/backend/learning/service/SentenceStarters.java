@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import static com.kuky.backend.learning.ExerciseStructureLimits.MAX_CONTINUATION_CHARS;
-import static com.kuky.backend.learning.ExerciseStructureLimits.MAX_MODEL_ANSWER_CHARS;
 import static com.kuky.backend.learning.ExerciseStructureLimits.MAX_SENTENCE_STARTER_ANSWER_CHARS;
 import static com.kuky.backend.learning.ExerciseStructureLimits.MAX_STARTERS;
 import static com.kuky.backend.learning.ExerciseStructureLimits.MAX_STARTER_CHARS;
@@ -20,10 +19,10 @@ import static com.kuky.backend.learning.ExerciseStructureLimits.MAX_STARTER_CHAR
 /**
  * SENTENCE_STARTER helpers shared by authoring validation and the homework/activity submit
  * paths ({@code specs/057-sentence-starter-answer}). The question structure is
- * {@code {"items":[{"starter","modelAnswer"?}]}}; the student sends only continuations and the
+ * {@code {"items":[{"starter"}]}}; the student sends only continuations and the
  * server composes each sentence, so every stored sentence begins with its starter. The answer
  * row keeps the composed lines in {@code answer_text} and a snapshot
- * {@code {"starters","modelAnswers","continuations"}} in {@code answer_json}.
+ * {@code {"starters","continuations"}} in {@code answer_json}.
  */
 public final class SentenceStarters {
 
@@ -63,16 +62,7 @@ public final class SentenceStarters {
                 throw new IllegalArgumentException(
                         "Cada inicio de frase admite como máximo " + MAX_STARTER_CHARS + " caracteres.");
             }
-            ObjectNode o = outItems.addObject();
-            o.put("starter", starter);
-            String model = item.path("modelAnswer").asText("").strip();
-            if (!model.isEmpty()) {
-                if (model.length() > MAX_MODEL_ANSWER_CHARS) {
-                    throw new IllegalArgumentException(
-                            "La respuesta modelo admite como máximo " + MAX_MODEL_ANSWER_CHARS + " caracteres.");
-                }
-                o.put("modelAnswer", model);
-            }
+            outItems.addObject().put("starter", starter);
         }
         return out.toString();
     }
@@ -83,16 +73,7 @@ public final class SentenceStarters {
         return out;
     }
 
-    public static List<String> modelAnswers(String structureJson) {
-        List<String> out = new ArrayList<>();
-        for (JsonNode item : items(structureJson)) {
-            JsonNode m = item.get("modelAnswer");
-            out.add(m == null || m.isNull() || m.asText().isBlank() ? null : m.asText());
-        }
-        return out;
-    }
-
-    /** Student-safe structure: starters only, never model answers. */
+    /** Student structure: the starters, in order. */
     public static ObjectNode studentStructure(String structureJson) {
         ObjectNode out = JsonNodeFactory.instance.objectNode();
         ArrayNode arr = out.putArray("starters");
@@ -135,8 +116,6 @@ public final class SentenceStarters {
         ObjectNode snapshot = JsonNodeFactory.instance.objectNode();
         ArrayNode s = snapshot.putArray("starters");
         starters.forEach(s::add);
-        ArrayNode m = snapshot.putArray("modelAnswers");
-        modelAnswers(structureJson).forEach(m::add);
         snapshot.set("continuations", stored);
         return new Composed(text, snapshot.toString());
     }
@@ -152,17 +131,8 @@ public final class SentenceStarters {
 
     /** Snapshot starters from a stored answer JSON; null when it is not a sentence-starter answer. */
     public static List<String> snapshotStarters(String answerJson) {
-        return snapshotList(answerJson, "starters");
-    }
-
-    /** Snapshot model answers (entries may be null); null when absent. */
-    public static List<String> snapshotModelAnswers(String answerJson) {
-        return snapshotList(answerJson, "modelAnswers");
-    }
-
-    private static List<String> snapshotList(String answerJson, String field) {
         JsonNode root = read(answerJson);
-        JsonNode arr = root == null ? null : root.get(field);
+        JsonNode arr = root == null ? null : root.get("starters");
         if (arr == null || !arr.isArray()) return null;
         List<String> out = new ArrayList<>();
         for (JsonNode n : arr) out.add(n.isNull() ? null : n.asText());

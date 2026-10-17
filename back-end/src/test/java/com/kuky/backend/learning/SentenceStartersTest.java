@@ -39,12 +39,10 @@ class SentenceStartersTest {
     }
 
     @Test
-    void normalizeStructure_normalisesAndDropsBlankModelAnswers() throws Exception {
+    void normalizeStructure_normalisesStartersAndDropsOtherKeys() throws Exception {
         String out = SentenceStarters.normalizeStructure(json(
-                "{\"items\":[{\"starter\":\"porque...\",\"modelAnswer\":\" Porque sí. \",\"x\":1},"
-                        + "{\"starter\":\"para\",\"modelAnswer\":\"  \"}]}"));
-        assertThat(json(out)).isEqualTo(json(
-                "{\"items\":[{\"starter\":\"porque\",\"modelAnswer\":\"Porque sí.\"},{\"starter\":\"para\"}]}"));
+                "{\"items\":[{\"starter\":\"porque...\",\"modelAnswer\":\"Porque sí.\",\"x\":1},{\"starter\":\"para\"}]}"));
+        assertThat(json(out)).isEqualTo(json("{\"items\":[{\"starter\":\"porque\"},{\"starter\":\"para\"}]}"));
     }
 
     @Test
@@ -58,14 +56,11 @@ class SentenceStartersTest {
                 .hasMessage("Cada inicio de frase necesita texto.");
         assertThatThrownBy(() -> SentenceStarters.normalizeStructure(json(structure("a".repeat(81)))))
                 .isInstanceOf(IllegalArgumentException.class);
-        String longModel = "{\"items\":[{\"starter\":\"por\",\"modelAnswer\":\"" + "a".repeat(301) + "\"}]}";
-        assertThatThrownBy(() -> SentenceStarters.normalizeStructure(json(longModel)))
-                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    void studentStructure_hidesModelAnswers() {
-        String stored = "{\"items\":[{\"starter\":\"porque\",\"modelAnswer\":\"Porque sí.\"}]}";
+    void studentStructure_listsStarters() {
+        String stored = "{\"items\":[{\"starter\":\"porque\"}]}";
         assertThat(SentenceStarters.studentStructure(stored).toString())
                 .isEqualTo("{\"starters\":[\"porque\"]}");
     }
@@ -81,14 +76,12 @@ class SentenceStartersTest {
 
     @Test
     void composeAnswer_buildsLinesAndSnapshot() throws Exception {
-        String stored = "{\"items\":[{\"starter\":\"porque\",\"modelAnswer\":\"Porque sí.\"},{\"starter\":\"para\"}]}";
+        String stored = structure("porque", "para");
         SentenceStarters.Composed c = SentenceStarters.composeAnswer(stored, List.of("quiere.", "verla."));
         assertThat(c.answerText()).isEqualTo("porque quiere.\npara verla.");
         assertThat(json(c.answerJson())).isEqualTo(json(
-                "{\"starters\":[\"porque\",\"para\"],\"modelAnswers\":[\"Porque sí.\",null],"
-                        + "\"continuations\":[\"quiere.\",\"verla.\"]}"));
+                "{\"starters\":[\"porque\",\"para\"],\"continuations\":[\"quiere.\",\"verla.\"]}"));
         assertThat(SentenceStarters.snapshotStarters(c.answerJson())).containsExactly("porque", "para");
-        assertThat(SentenceStarters.snapshotModelAnswers(c.answerJson())).containsExactly("Porque sí.", null);
     }
 
     @Test

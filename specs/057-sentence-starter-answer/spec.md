@@ -15,6 +15,10 @@
 - Q: Should a homework sentence-starter question support attaching a photo? → A: No — text prompt only in homework for v1; photo-based exercises use unit page activities.
 - Q: How is a question with several starters graded? → A: One teacher % for the whole question (all sentences judged together), exactly like FREE_TEXT; annotations/note point at individual sentences.
 
+### Session 2026-10-17
+
+- Q: Should the teacher be able to write a model answer per starter? → A: No — the "Respuesta modelo" field is removed from the editor, so model answers are dropped from the feature entirely.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Student completes sentences from given starters (Priority: P1)
@@ -55,17 +59,17 @@ In the homework editor — and in the unit page activity editor — the teacher 
 
 ### User Story 3 - Teacher corrects and the student sees the result (Priority: P1)
 
-The teacher opens the submission in the existing correction view. They see each starter with the student's continuation, can annotate and leave a note as for other free answers, and assign a 0–100% for the question. When the correction is finalised the student gets the usual unseen dot and sees their sentences, the teacher's % and feedback, and — if the teacher provided one — a model answer for each starter.
+The teacher opens the submission in the existing correction view. They see each starter with the student's continuation, can annotate and leave a note as for other free answers, and assign a 0–100% for the question. When the correction is finalised the student gets the usual unseen dot and sees their sentences, the teacher's % and feedback.
 
 **Why this priority**: Without correction the exercise has no feedback loop; it reuses the existing manual-correction flow, so it is cheap and required for the MVP.
 
-**Independent Test**: With a submitted sentence-starter answer, finalize a 75% correction with a note; verify the student's graded result shows the sentences, 75%, the note, and model answers where given.
+**Independent Test**: With a submitted sentence-starter answer, finalize a 75% correction with a note; verify the student's graded result shows the sentences, 75% and the note.
 
 **Acceptance Scenarios**:
 
 1. **Given** a submitted sentence-starter question, **When** the teacher opens the submission, **Then** each starter is shown clearly distinguished from the student's continuation, in the teacher's starter order.
 2. **Given** the correction view, **When** the teacher assigns a % to the question, **Then** it is treated exactly like a FREE_TEXT question in the homework's lifecycle and combined % (partial saves allowed, finalised only when every manual question has a %).
-3. **Given** a finalised correction, **When** the student opens the graded result, **Then** they see each sentence, the question's %, any annotation/note, and, under each sentence, the model answer if one was set.
+3. **Given** a finalised correction, **When** the student opens the graded result, **Then** they see each sentence, the question's % and any annotation/note.
 4. **Given** the question is a unit page activity, **When** the student submits it, **Then** it counts as submitted for unlocking the following pages and end-of-unit quizzes, and appears in the teacher's activity review queue like other manually graded activities.
 
 ---
@@ -90,7 +94,7 @@ The teacher opens the submission in the existing correction view. They see each 
 - **FR-001**: The teacher MUST be able to add a "completa la frase" (sentence-starter) question to a homework and to a unit page activity, mixed freely with all existing question types.
 - **FR-002**: A sentence-starter question MUST consist of a prompt (the instruction and/or the stimulus text, like any other question's prompt) and an ordered list of starters; each starter is a word or group of words.
 - **FR-003**: The question MUST have at least 1 and at most 10 starters; each starter MUST be non-empty and at most 80 characters. Violations are refused on save with a clear message.
-- **FR-004**: For each starter the teacher MAY provide a model answer (a full example sentence), shown to the student only after the correction is finalised.
+- **FR-004**: The question has no model answers: the teacher only writes the starters (removed after implementation, 2026-10-17).
 - **FR-005**: The teacher MUST be able to add, edit, reorder and remove starters, and preview the question as the student will see it before saving.
 - **FR-006**: The stimulus the student answers about is the question's prompt text (homework) or the unit page shown above the activity (activities). No image can be attached to a homework question in v1; photo-based exercises are authored as unit page activities, where the page carries the photo.
 
@@ -106,7 +110,7 @@ The teacher opens the submission in the existing correction view. They see each 
 
 - **FR-012**: The question MUST behave as a manually graded question exactly like FREE_TEXT: it makes a homework MANUAL/MIXED in composition, keeps the submission SUBMITTED until the teacher assigns a 0–100% to it, participates in the combined % as one question, supports annotations and the ≤500-character note, and triggers the same unseen dots for the student when finalised. Submissions are always shown and corrected against the version of the question the student answered.
 - **FR-013**: The teacher MUST give one % for the whole question (not one per starter); in the correction view each starter MUST be visually distinguished from the student's continuation.
-- **FR-014**: After finalisation the student MUST see their sentences, the question's %, the teacher's feedback, and the model answer under each sentence where one was set. Model answers MUST NOT be visible before finalisation.
+- **FR-014**: After finalisation the student MUST see their sentences, the question's %, and the teacher's feedback.
 - **FR-015**: As a unit page activity, a submitted sentence-starter question MUST count as submitted for the existing page and end-of-unit quiz unlocking, and MUST appear in the teacher's activity review (Unidades dot) like other manually graded activities.
 
 **Wider integration**
@@ -116,7 +120,7 @@ The teacher opens the submission in the existing correction view. They see each 
 
 ### Key Entities
 
-- **Sentence-starter question**: a question within a homework or page activity. Attributes: prompt, ordered list of starters, each with an optional model answer.
+- **Sentence-starter question**: a question within a homework or page activity. Attributes: prompt, ordered list of starters.
 - **Student answer**: one continuation per starter, stored as the full sentence (starter + continuation); corrected as a whole with one teacher % plus optional annotations and note.
 
 ## Success Criteria *(mandatory)*

@@ -1,5 +1,7 @@
 # Research: Sentence-Starter Answer
 
+> **2026-10-17**: model answers (R2 snapshot field, R4 limit, R7 display, R8 editor rows, R9 stripping) were removed from the feature; the teacher only writes starters. The decisions below are kept as the record of what was first built.
+
 All Technical Context unknowns were resolved by reading the existing question pipeline
 (FREE_TEXT manual questions and the 054 SPOT_WRONG_WORDS addition). No external research
 was needed.

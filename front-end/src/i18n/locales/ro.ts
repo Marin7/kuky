@@ -489,7 +489,6 @@
     sentenceStarter: {
       placeholder: "…",
       counter: "{{count}} / {{max}}",
-      modelAnswer: "Răspuns model",
     },
     pastClasses: {
       title: "Cursuri anterioare",
@@ -941,9 +940,8 @@
             "Enunț opțional: pagina activității servește deja drept instrucțiuni. Adaugă mai jos începuturile de propoziție.",
           startersTitle: "Începuturi de propoziție",
           startersHint:
-            "Elevul completează fiecare propoziție după începutul ei (maximum {{max}}). Răspunsul model este opțional și apare doar după corectare.",
+            "Elevul completează fiecare propoziție după începutul ei (maximum {{max}}).",
           starterPlaceholder: "ex. porque",
-          modelAnswerPlaceholder: "Răspuns model (opțional)",
           add: "Adaugă un început de propoziție",
           remove: "Șterge începutul de propoziție",
           moveUp: "Mută în sus",

@@ -6,7 +6,6 @@
 
 export const MAX_STARTERS = 10;
 export const MAX_STARTER_CHARS = 80;
-export const MAX_MODEL_ANSWER_CHARS = 300;
 export const MAX_CONTINUATION_CHARS = 500;
 
 const TRAILING_ELLIPSIS = /(\s*(\.\.\.|…))+\s*$/;

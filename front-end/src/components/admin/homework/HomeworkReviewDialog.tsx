@@ -403,7 +403,6 @@ export function HomeworkReviewDialog({
                                   formatted={formatted}
                                   text={a.text}
                                   starters={a.starters}
-                                  modelAnswers={a.modelAnswers}
                                 />
                               </div>
                             )}
@@ -415,7 +414,6 @@ export function HomeworkReviewDialog({
                                 formatted={formatted}
                                 text={a.text}
                                 starters={a.starters}
-                                modelAnswers={a.modelAnswers}
                               />
                             ) : formatted.length > 0 ? (
                               <RichTextViewer segments={formatted} />

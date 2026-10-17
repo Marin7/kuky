@@ -441,7 +441,6 @@ export function MixedHomeworkForm({
                           text={ans.text}
                           formatted={ans.formatted}
                           starters={ans.starters}
-                          modelAnswers={ans.modelAnswers}
                         />
                       ) : ans?.formatted && ans.formatted.length > 0 ? (
                         <RichTextViewer segments={ans.formatted} />

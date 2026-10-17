@@ -73,8 +73,6 @@ export interface ManualAnswerItem {
   correct?: boolean | null;
   /** SENTENCE_STARTER: starters at submit time (one per answer line). */
   starters?: string[] | null;
-  /** SENTENCE_STARTER: model answers; only once the correction is visible. */
-  modelAnswers?: (string | null)[] | null;
 }
 
 export interface ManualAnswerPayload {
@@ -203,7 +201,7 @@ export interface StudentStructure {
   right?: StudentMatchItem[]; // MATCHING
   items?: StudentSingleChoiceItem[]; // numbered SINGLE_CHOICE (no `correct`)
   errorCount?: number; // SPOT_WRONG_WORDS (no indices before submit)
-  starters?: string[]; // SENTENCE_STARTER (model answers hidden)
+  starters?: string[]; // SENTENCE_STARTER
   // MULTI_BLANK carries no extra structure — blanks render from `___` in prompt.
 }
 

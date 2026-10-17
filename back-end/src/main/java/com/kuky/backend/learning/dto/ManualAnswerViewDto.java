@@ -8,8 +8,7 @@ import java.util.UUID;
 
 /**
  * Student/teacher view of one manual answer (includes prompt snapshot). For SENTENCE_STARTER,
- * {@code starters} is the submit-time snapshot and {@code modelAnswers} is filled only once the
- * correction is visible; both are null for FREE_TEXT.
+ * {@code starters} is the submit-time snapshot; null for FREE_TEXT.
  */
 public record ManualAnswerViewDto(
         UUID questionId,
@@ -18,8 +17,7 @@ public record ManualAnswerViewDto(
         List<FormattedTextSegment> formatted,
         Integer teacherScorePercent,
         Double score,
-        List<String> starters,
-        List<String> modelAnswers
+        List<String> starters
 ) {
     public static ManualAnswerViewDto fromStored(UUID questionId, String promptSnapshot, String answerText) {
         return fromStored(questionId, promptSnapshot, answerText, null, null);
@@ -34,17 +32,14 @@ public record ManualAnswerViewDto(
                 FormattedTextSegment.tryParseFormatted(answerText),
                 teacherScorePercent,
                 score,
-                null,
                 null);
     }
 
     /** Adds the SENTENCE_STARTER snapshot from the stored {@code answer_json}, if any. */
-    public ManualAnswerViewDto withSentenceStarters(String answerJson, boolean includeModelAnswers) {
+    public ManualAnswerViewDto withSentenceStarters(String answerJson) {
         List<String> snapshot = SentenceStarters.snapshotStarters(answerJson);
         if (snapshot == null) return this;
         return new ManualAnswerViewDto(
-                questionId, promptSnapshot, text, formatted, teacherScorePercent, score,
-                snapshot,
-                includeModelAnswers ? SentenceStarters.snapshotModelAnswers(answerJson) : null);
+                questionId, promptSnapshot, text, formatted, teacherScorePercent, score, snapshot);
     }
 }

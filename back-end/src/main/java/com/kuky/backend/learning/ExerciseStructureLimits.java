@@ -30,9 +30,6 @@ public final class ExerciseStructureLimits {
     /** Max length of one SENTENCE_STARTER starter (after trailing-ellipsis removal). */
     public static final int MAX_STARTER_CHARS = 80;
 
-    /** Max length of one SENTENCE_STARTER model answer. */
-    public static final int MAX_MODEL_ANSWER_CHARS = 300;
-
     /** Max length of one student continuation. */
     public static final int MAX_CONTINUATION_CHARS = 500;
 
