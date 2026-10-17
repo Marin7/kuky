@@ -1,6 +1,6 @@
--- C7 · Escucha: Juanes – A Dios le pido — completa la letra con el verbo
--- entre paréntesis en presente de subjuntivo.
--- One MULTI_BLANK question covering the whole song passage.
+-- Adjetivos: concordancia de género y número — completa las frases con la
+-- forma correcta del adjetivo entre paréntesis.
+-- One MULTI_BLANK question per numbered item (11 questions).
 -- Unassigned: no homework_targets. Assign later from /panel.
 --
 -- This file is UTF-8; without this psql assumes the shell's locale encoding and
@@ -15,72 +15,96 @@ DECLARE
 BEGIN
 
   INSERT INTO homework_assignments (
-      title, instructions, published, format, homework_type, level, sort_order,
-      media_source_kind, audio_url
+      title, instructions, published, format, homework_type, level, sort_order
   ) VALUES (
-      'C7 · Escucha: Juanes – A Dios le pido',
-      'Escucha la canción "A Dios le pido" de Juanes, presta atención al estribillo y completa la letra conjugando cada verbo entre paréntesis en presente de subjuntivo.',
-      true, 'EXERCISE', 'AUDIO', 'B1', 0,
-      'YOUTUBE', 'https://www.youtube.com/watch?v=kMIaYXxLnUA'
+      'Adjetivos: género y número',
+      'Completa las frases con la forma correcta de los adjetivos entre paréntesis.',
+      true, 'EXERCISE', 'GRAMMAR', 'A1', 0
   ) RETURNING id INTO v_hw;
 
   INSERT INTO homework_questions (assignment_id, position, kind, prompt, structure_json)
   VALUES
   (v_hw, 0, 'MULTI_BLANK',
-   $p$Que mis ojos ___ (despertarse) con la luz de tu mirada, yo
-a Dios le pido.
-Que mi madre no ___ (morirse) y que mi padre ___ (recordarme),
-a Dios le pido.
-Que ___ (quedarte) a mi lado y que más nunca te me ___ (ir), mi vida,
-a Dios le pido.
-Que mi alma no ___ (descansar) cuando de amarte se trate, mi cielo,
-a Dios le pido.
+   $p$Vivo en un piso ___ (pequeño).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["pequeño"]}
+   ]}$j$::jsonb),
 
-Por los días que me quedan y las noches que aún no llegan yo,
-a Dios le pido.
-Por los hijos de mis hijos y los hijos de tus hijos,
-a Dios le pido.
-Que mi pueblo no ___ (derramar) tanta sangre y ___ (levantarse) mi gente,
-a Dios le pido.
-Que mi alma no ___ (descansar) cuando de amarte se trate, mi cielo,
-a Dios le pido.
+  (v_hw, 1, 'MULTI_BLANK',
+   $p$Rosa tiene los ojos ___ (verde). Es ___ (rubio) y tiene el pelo ___ (corto) y ___ (rizado). Es muy ___ (simpático).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["verdes"]},
+     {"acceptedAnswers": ["rubia"]},
+     {"acceptedAnswers": ["corto"]},
+     {"acceptedAnswers": ["rizado"]},
+     {"acceptedAnswers": ["simpática"]}
+   ]}$j$::jsonb),
 
-Un segundo más de vida para darte y mi corazón
-entero entregarte.
-Un segundo más de vida para darte y a tu lado para
-siempre yo quedarme.
-Un segundo más de vida yo...
-a Dios le pido.
+  (v_hw, 2, 'MULTI_BLANK',
+   $p$Gerardo y Ana son muy ___ (inteligente), ___ (alegre) y muy ___ (charlatán).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["inteligentes"]},
+     {"acceptedAnswers": ["alegres"]},
+     {"acceptedAnswers": ["charlatanes"]}
+   ]}$j$::jsonb),
 
-Que si me muero ___ (ser) de amor.
-Y si me enamoro ___ (ser) de vos.
-Y que de tu voz ___ (ser) este corazón todos los días,
-a Dios le pido.
+  (v_hw, 3, 'MULTI_BLANK',
+   $p$Me gustan las rosas ___ (blanco).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["blancas"]}
+   ]}$j$::jsonb),
 
-Que si me muero ___ (ser) de amor.
-y si me enamoro ___ (ser) de vos.
-Y que de tu voz ___ (ser) este corazón
-Todos los días a Dios le pido
-a Dios le pido.$p$,
-   $j${
-     "blanks": [
-       {"acceptedAnswers": ["se despierten"]},
-       {"acceptedAnswers": ["se muera"]},
-       {"acceptedAnswers": ["me recuerde"]},
-       {"acceptedAnswers": ["te quedes"]},
-       {"acceptedAnswers": ["vayas"]},
-       {"acceptedAnswers": ["descanse"]},
-       {"acceptedAnswers": ["derrame"]},
-       {"acceptedAnswers": ["se levante"]},
-       {"acceptedAnswers": ["descanse"]},
-       {"acceptedAnswers": ["sea"]},
-       {"acceptedAnswers": ["sea"]},
-       {"acceptedAnswers": ["sea"]},
-       {"acceptedAnswers": ["sea"]},
-       {"acceptedAnswers": ["sea"]},
-       {"acceptedAnswers": ["sea"]}
-     ]
-   }$j$::jsonb);
+  (v_hw, 4, 'MULTI_BLANK',
+   $p$Don Santiago es una persona ___ (encantador).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["encantadora"]}
+   ]}$j$::jsonb),
+
+  (v_hw, 5, 'MULTI_BLANK',
+   $p$Chus y Lolo no son ___ (feliz). Están siempre ___ (enfadado).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["felices"]},
+     {"acceptedAnswers": ["enfadados"]}
+   ]}$j$::jsonb),
+
+  (v_hw, 6, 'MULTI_BLANK',
+   $p$Me he comprado una camisa ___ (rojo) y unos pantalones ___ (gris).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["roja"]},
+     {"acceptedAnswers": ["grises"]}
+   ]}$j$::jsonb),
+
+  (v_hw, 7, 'MULTI_BLANK',
+   $p$Eduardo es ___ (alto) y ___ (fuerte). Es ___ (moreno) y tiene los ojos ___ (negro). Es muy ___ (guapo), pero es un poco ___ (antipático).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["alto"]},
+     {"acceptedAnswers": ["fuerte"]},
+     {"acceptedAnswers": ["moreno"]},
+     {"acceptedAnswers": ["negros"]},
+     {"acceptedAnswers": ["guapo"]},
+     {"acceptedAnswers": ["antipático"]}
+   ]}$j$::jsonb),
+
+  (v_hw, 8, 'MULTI_BLANK',
+   $p$Begoña lleva una falda ___ (marrón) y una blusa ___ (amarillo).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["marrón"]},
+     {"acceptedAnswers": ["amarilla"]}
+   ]}$j$::jsonb),
+
+  (v_hw, 9, 'MULTI_BLANK',
+   $p$Concha y Rodrigo son muy ___ (simpático) y muy ___ (trabajador). Además son muy ___ (amable).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["simpáticos"]},
+     {"acceptedAnswers": ["trabajadores"]},
+     {"acceptedAnswers": ["amables"]}
+   ]}$j$::jsonb),
+
+  (v_hw, 10, 'MULTI_BLANK',
+   $p$Las hijas de Andrés son muy ___ (joven).$p$,
+   $j${"blanks": [
+     {"acceptedAnswers": ["jóvenes"]}
+   ]}$j$::jsonb);
 
   RAISE NOTICE 'Created homework: %', v_hw;
 END
@@ -90,8 +114,7 @@ COMMIT;
 
 -- Verify
 SELECT a.id, a.title, a.format, a.homework_type, a.level,
-       a.media_source_kind, a.audio_url,
        (SELECT COUNT(*) FROM homework_questions q WHERE q.assignment_id = a.id) AS questions
 FROM homework_assignments a
-WHERE a.title = 'C7 · Escucha: Juanes – A Dios le pido'
+WHERE a.title = 'Adjetivos: género y número'
 ORDER BY a.created_at;
