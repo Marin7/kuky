@@ -4,6 +4,7 @@ import {
   type HomeworkAdminItem,
   type MatchingStructure,
   type SingleChoiceStructure,
+  type SentenceStarterStructure,
   type SpotWrongWordsStructure,
   type TableFillStructure,
 } from "@/lib/admin";
@@ -24,6 +25,8 @@ import { MatchingQuestion } from "@/components/learning/MatchingQuestion";
 import { MultiBlankQuestion } from "@/components/learning/MultiBlankQuestion";
 import { NumberedSingleChoiceQuestion } from "@/components/learning/NumberedSingleChoiceQuestion";
 import { SpotWrongWordsQuestion } from "@/components/learning/SpotWrongWordsQuestion";
+import { SentenceStarterInput } from "@/components/learning/SentenceStarterInput";
+import { normalizeStarter } from "@/lib/sentenceStarter";
 import {
   QuestionCard,
   QuestionHeading,
@@ -81,6 +84,13 @@ function toStudentStructure(
   if (q.kind === "MATCHING") {
     const m = s as MatchingStructure;
     return { left: m.left ?? [], right: m.right ?? [] };
+  }
+  if (q.kind === "SENTENCE_STARTER") {
+    return {
+      starters: ((s as SentenceStarterStructure).items ?? []).map((it) =>
+        normalizeStarter(it.starter),
+      ),
+    };
   }
   if (q.kind === "SPOT_WRONG_WORDS") {
     return { errorCount: (s as SpotWrongWordsStructure).errors?.length ?? 0 };
@@ -274,6 +284,15 @@ export function HomeworkPreview({ item }: Props) {
                     selected={[]}
                     onChange={noop}
                     readOnly
+                  />
+                )}
+
+                {q.kind === "SENTENCE_STARTER" && (
+                  <SentenceStarterInput
+                    starters={q.structure?.starters ?? []}
+                    values={[]}
+                    onChange={noop}
+                    disabled
                   />
                 )}
               </>

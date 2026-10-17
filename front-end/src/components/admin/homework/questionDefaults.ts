@@ -18,7 +18,12 @@ export function isStructuredKind(kind: QuestionKind): boolean {
 }
 
 export function defaultOptionsForKind(kind: QuestionKind): AdminOption[] {
-  if (isStructuredKind(kind) || kind === "FREE_TEXT") return [];
+  if (
+    isStructuredKind(kind) ||
+    kind === "FREE_TEXT" ||
+    kind === "SENTENCE_STARTER"
+  )
+    return [];
   if (kind === "TRUE_FALSE") {
     return [
       { label: "true", correct: false },
@@ -51,6 +56,8 @@ export function defaultStructureForKind(kind: QuestionKind): QuestionStructure {
       };
     case "SPOT_WRONG_WORDS":
       return { errors: [] };
+    case "SENTENCE_STARTER":
+      return { items: [{ starter: "" }] };
     default:
       return {};
   }

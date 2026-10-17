@@ -8,7 +8,7 @@ import {
   type HomeworkSubmissionAdmin,
   type SaveHomeworkReviewPayload,
 } from "@/lib/admin";
-import { resolveComposition } from "@/lib/learning";
+import { isManualKind, resolveComposition } from "@/lib/learning";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,7 @@ import {
 } from "@/components/learning/richtext/ClassroomEmojiPicker";
 import { RichTextEditor } from "@/components/learning/richtext/RichTextEditor";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
+import { SentenceStarterAnswerView } from "@/components/learning/SentenceStarterAnswerView";
 import { TextWithLinks } from "@/components/learning/TextWithLinks";
 import { ExerciseResult } from "@/components/learning/ExerciseResult";
 import {
@@ -62,7 +63,7 @@ function isEditableReview(s: HomeworkSubmissionAdmin): boolean {
 }
 
 function isFreeTextAnswer(a: { kind?: string | null; text?: string }): boolean {
-  return !a.kind || a.kind === "FREE_TEXT";
+  return !a.kind || a.kind === "FREE_TEXT" || a.kind === "SENTENCE_STARTER";
 }
 
 function parsePercentInput(raw: string): number | null {
@@ -337,7 +338,7 @@ export function HomeworkReviewDialog({
                   </p>
                   <ExerciseResult
                     questions={submission.questions.filter(
-                      (q) => q.kind !== "FREE_TEXT",
+                      (q) => !isManualKind(q.kind),
                     )}
                     result={submission.result}
                     showAllAnswers
@@ -383,21 +384,40 @@ export function HomeworkReviewDialog({
                           {t("admin.homeworkReview.answerLabel")}
                         </p>
                         {editable ? (
-                          <RichTextEditor
-                            value={formatted}
-                            onChange={(next) =>
-                              setAnswerFormats((prev) => ({
-                                ...prev,
-                                [key]: next,
-                              }))
-                            }
-                            formatOnly
-                            rows={4}
-                            disabled={saving}
-                          />
+                          <>
+                            <RichTextEditor
+                              value={formatted}
+                              onChange={(next) =>
+                                setAnswerFormats((prev) => ({
+                                  ...prev,
+                                  [key]: next,
+                                }))
+                              }
+                              formatOnly
+                              rows={4}
+                              disabled={saving}
+                            />
+                            {a.starters && (
+                              <div className="mt-2 rounded-md border border-dashed p-2">
+                                <SentenceStarterAnswerView
+                                  formatted={formatted}
+                                  text={a.text}
+                                  starters={a.starters}
+                                  modelAnswers={a.modelAnswers}
+                                />
+                              </div>
+                            )}
+                          </>
                         ) : (
                           <div className="text-sm break-all [overflow-wrap:anywhere]">
-                            {formatted.length > 0 ? (
+                            {a.starters ? (
+                              <SentenceStarterAnswerView
+                                formatted={formatted}
+                                text={a.text}
+                                starters={a.starters}
+                                modelAnswers={a.modelAnswers}
+                              />
+                            ) : formatted.length > 0 ? (
                               <RichTextViewer segments={formatted} />
                             ) : (
                               <p className="whitespace-pre-wrap">

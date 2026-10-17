@@ -202,7 +202,8 @@ public class ActivityExerciseGradingService {
                 yield new GradedAnswer(graded.score(), graded.selectedOptionIds(),
                         graded.answerJson(), graded.unitResults());
             }
-            case FREE_TEXT -> throw new IllegalStateException("FREE_TEXT no se califica automáticamente.");
+            case FREE_TEXT, SENTENCE_STARTER -> throw new IllegalStateException(
+                    q.getKind() + " no se califica automáticamente.");
         };
     }
 
@@ -465,6 +466,8 @@ public class ActivityExerciseGradingService {
                 structure = SingleChoiceItems.stripForStudent(q);
             } else if (q.getKind().isStructured()) {
                 structure = stripStructureForStudent(q);
+            } else if (q.getKind() == QuestionKind.SENTENCE_STARTER) {
+                structure = SentenceStarters.studentStructure(q.getStructureJson());
             } else {
                 structure = null;
             }

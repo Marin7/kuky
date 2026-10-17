@@ -7,16 +7,22 @@ import {
   type ApiError,
   type ManualAnswerItem,
   type ManualAnswerPayload,
+  type QuestionKind,
 } from "@/lib/learning";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { autosizeTextarea } from "@/lib/autosizeTextarea";
 import { RichTextViewer } from "@/components/learning/richtext/RichTextViewer";
 import { QuestionCard, QuestionHeading } from "./QuestionHeading";
+import { SentenceStarterInput } from "./SentenceStarterInput";
+import { SentenceStarterAnswerView } from "./SentenceStarterAnswerView";
 
 interface QuestionPrompt {
   id: string;
   prompt: string;
+  kind?: QuestionKind;
+  /** SENTENCE_STARTER: fixed starters, one answer line each. */
+  starters?: string[];
 }
 
 interface Props {
@@ -59,6 +65,18 @@ function initialTextMap(
   return map;
 }
 
+function initialContinuations(
+  questions: QuestionPrompt[],
+): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const q of questions) {
+    if (q.kind === "SENTENCE_STARTER") {
+      map[q.id] = Array(q.starters?.length ?? 0).fill("");
+    }
+  }
+  return map;
+}
+
 /**
  * Compact plain-text answers for MANUAL non-WRITE homework/activities.
  * Every question must be non-empty before submit.
@@ -81,6 +99,9 @@ export function ManualMultiAnswerForm({
   const [texts, setTexts] = useState<Record<string, string>>(() =>
     initialTextMap(questions, initialAnswers),
   );
+  const [continuations, setContinuations] = useState<Record<string, string[]>>(
+    () => initialContinuations(questions),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const prevToken = useRef(contentRevisedAt);
@@ -89,6 +110,7 @@ export function ManualMultiAnswerForm({
     const next = contentRevisedAt;
     if (prevToken.current && next && prevToken.current !== next) {
       setTexts(initialTextMap(questions, null));
+      setContinuations(initialContinuations(questions));
       setError(t("learning.homeworkUpdated"));
     }
     prevToken.current = next ?? null;
@@ -98,12 +120,23 @@ export function ManualMultiAnswerForm({
     setTexts((prev) => ({ ...prev, [questionId]: value }));
   };
 
+  const setContinuation = (questionId: string, index: number, value: string) =>
+    setContinuations((prev) => {
+      const next = [...(prev[questionId] ?? [])];
+      next[index] = value;
+      return { ...prev, [questionId]: next };
+    });
+
   const handleSubmit = async () => {
-    const answers: ManualAnswerPayload[] = questions.map((q) => ({
-      questionId: q.id,
-      text: (texts[q.id] ?? "").trim(),
-    }));
-    if (answers.some((a) => a.text.length === 0)) {
+    const answers: ManualAnswerPayload[] = questions.map((q) =>
+      q.kind === "SENTENCE_STARTER"
+        ? { questionId: q.id, continuations: continuations[q.id] ?? [] }
+        : { questionId: q.id, text: (texts[q.id] ?? "").trim() },
+    );
+    const incomplete = answers.some((a) =>
+      a.continuations ? a.continuations.some((c) => !c.trim()) : !a.text,
+    );
+    if (incomplete) {
       setError(t("learning.manualMulti.allRequired"));
       return;
     }
@@ -124,6 +157,7 @@ export function ManualMultiAnswerForm({
       const err = e as ApiError;
       if (!submitAnswer && isHomeworkUpdatedError(e)) {
         setTexts(initialTextMap(questions, null));
+        setContinuations(initialContinuations(questions));
         setError(t("learning.homeworkUpdated"));
         onHomeworkUpdated?.();
       } else if (err.error === "VALIDATION_ERROR") {
@@ -167,7 +201,11 @@ export function ManualMultiAnswerForm({
                 index={i + 1}
                 questionCount={questions.length}
                 prompt={q.prompt}
-                htmlFor={readOnly ? undefined : `manual-ans-${q.id}`}
+                htmlFor={
+                  readOnly || q.kind === "SENTENCE_STARTER"
+                    ? undefined
+                    : `manual-ans-${q.id}`
+                }
               />
               {readOnly ? (
                 <div className="space-y-1.5">
@@ -184,7 +222,14 @@ export function ManualMultiAnswerForm({
                           </span>
                         )}
                         <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm break-all [overflow-wrap:anywhere]">
-                          {ans?.formatted && ans.formatted.length > 0 ? (
+                          {ans?.starters ? (
+                            <SentenceStarterAnswerView
+                              text={ans.text}
+                              formatted={ans.formatted}
+                              starters={ans.starters}
+                              modelAnswers={ans.modelAnswers}
+                            />
+                          ) : ans?.formatted && ans.formatted.length > 0 ? (
                             <RichTextViewer segments={ans.formatted} />
                           ) : (
                             <p className="whitespace-pre-wrap">
@@ -197,6 +242,15 @@ export function ManualMultiAnswerForm({
                     );
                   })()}
                 </div>
+              ) : q.kind === "SENTENCE_STARTER" ? (
+                <SentenceStarterInput
+                  starters={q.starters ?? []}
+                  values={continuations[q.id] ?? []}
+                  onChange={(index, value) =>
+                    setContinuation(q.id, index, value)
+                  }
+                  disabled={submitting}
+                />
               ) : (
                 <Textarea
                   id={`manual-ans-${q.id}`}

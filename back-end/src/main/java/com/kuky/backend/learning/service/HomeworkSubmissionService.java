@@ -195,7 +195,7 @@ public class HomeworkSubmissionService {
         // ALL_MANUAL via /answers
         List<ManualAnswerDto> manual = toManualDtos(byQuestion);
         List<HomeworkAnswer> mapped = validateAndMapFreeTextAnswers(
-                questions.stream().filter(q -> q.getKind() == QuestionKind.FREE_TEXT).toList(), manual);
+                questions.stream().filter(q -> q.getKind().isManual()).toList(), manual);
         HomeworkSubmission saved = submissionRepository.upsert(
                 user.getId(), assignmentId, HomeworkStatus.SUBMITTED.name(), null, Instant.now());
         answerRepository.saveAll(saved.getId(), mapped);
@@ -261,7 +261,7 @@ public class HomeworkSubmissionService {
 
     private List<HomeworkQuestion> freeTextQuestions(UUID assignmentId) {
         return questionRepository.findByAssignment(assignmentId).stream()
-                .filter(q -> q.getKind() == QuestionKind.FREE_TEXT)
+                .filter(q -> q.getKind().isManual())
                 .toList();
     }
 
@@ -272,21 +272,16 @@ public class HomeworkSubmissionService {
                 .collect(Collectors.toMap(SubmitExerciseRequest.AnswerDto::questionId, Function.identity(), (a, b) -> a));
     }
 
-    private static void requireEveryQuestionAnswered(
+    /** Shared with {@code ActivityStudentService} (same unified submit rules). */
+    static void requireEveryQuestionAnswered(
             List<HomeworkQuestion> questions, Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
         for (HomeworkQuestion q : questions) {
             SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
             if (given == null) {
                 throw new IllegalArgumentException("Debes responder a todas las preguntas.");
             }
-            if (q.getKind() == QuestionKind.FREE_TEXT) {
-                String text = given.text() == null ? "" : given.text().strip();
-                if (text.isEmpty()) {
-                    throw new IllegalArgumentException("Debes responder a todas las preguntas.");
-                }
-                if (text.length() > MAX_PLAIN_ANSWER_CHARS) {
-                    throw new IllegalArgumentException("Una de las respuestas es demasiado larga.");
-                }
+            if (q.getKind().isManual()) {
+                manualAnswerRow(q, given.text(), SentenceStarters.continuationsFrom(given.answerJson()));
             }
             SingleChoiceItems.requireCompleteSelections(q, given);
         }
@@ -295,30 +290,51 @@ public class HomeworkSubmissionService {
         }
     }
 
-    private static List<HomeworkAnswer> mapFreeTextFromUnified(
+    static List<HomeworkAnswer> mapFreeTextFromUnified(
             List<HomeworkQuestion> questions, Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
         List<HomeworkAnswer> mapped = new ArrayList<>();
         for (HomeworkQuestion q : questions) {
-            if (q.getKind() != QuestionKind.FREE_TEXT) continue;
+            if (!q.getKind().isManual()) continue;
             SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
-            String text = given.text().strip();
-            HomeworkAnswer row = new HomeworkAnswer();
-            row.setQuestionId(q.getId());
-            row.setAnswerText(text);
-            row.setPromptSnapshot(q.getPrompt());
-            row.setScore(BigDecimal.ZERO);
-            row.setSelectedOptionIds(List.of());
-            mapped.add(row);
+            mapped.add(manualAnswerRow(q, given.text(), SentenceStarters.continuationsFrom(given.answerJson())));
         }
         return mapped;
     }
 
-    private static List<ManualAnswerDto> toManualDtos(Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
+    static List<ManualAnswerDto> toManualDtos(Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
         List<ManualAnswerDto> out = new ArrayList<>();
         for (var e : byQuestion.entrySet()) {
-            out.add(new ManualAnswerDto(e.getKey(), e.getValue().text()));
+            SubmitExerciseRequest.AnswerDto a = e.getValue();
+            out.add(new ManualAnswerDto(e.getKey(), a.text(), SentenceStarters.continuationsFrom(a.answerJson())));
         }
         return out;
+    }
+
+    /**
+     * Validates one manual answer and builds its row: FREE_TEXT keeps the plain text;
+     * SENTENCE_STARTER composes one sentence per starter from the continuations.
+     */
+    private static HomeworkAnswer manualAnswerRow(HomeworkQuestion q, String text, List<String> continuations) {
+        HomeworkAnswer row = new HomeworkAnswer();
+        row.setQuestionId(q.getId());
+        row.setPromptSnapshot(q.getPrompt());
+        row.setScore(BigDecimal.ZERO);
+        row.setSelectedOptionIds(List.of());
+        if (q.getKind() == QuestionKind.SENTENCE_STARTER) {
+            SentenceStarters.Composed composed = SentenceStarters.composeAnswer(q.getStructureJson(), continuations);
+            row.setAnswerText(composed.answerText());
+            row.setAnswerJson(composed.answerJson());
+            return row;
+        }
+        String plain = text == null ? "" : text.strip();
+        if (plain.isEmpty()) {
+            throw new IllegalArgumentException("Debes responder a todas las preguntas.");
+        }
+        if (plain.length() > MAX_PLAIN_ANSWER_CHARS) {
+            throw new IllegalArgumentException("Una de las respuestas es demasiado larga.");
+        }
+        row.setAnswerText(plain);
+        return row;
     }
 
     /** Once delivered (SUBMITTED / REVIEWED / GRADED), the student cannot change answers. */
@@ -375,7 +391,7 @@ public class HomeworkSubmissionService {
             throw new IllegalArgumentException("Esta tarea no tiene preguntas configuradas.");
         }
         List<ManualAnswerDto> given = answers == null ? List.of() : answers;
-        Map<UUID, String> byQuestion = new HashMap<>();
+        Map<UUID, ManualAnswerDto> byQuestion = new HashMap<>();
         for (ManualAnswerDto a : given) {
             if (a == null || a.questionId() == null) {
                 throw new IllegalArgumentException("Cada respuesta necesita una pregunta.");
@@ -383,31 +399,18 @@ public class HomeworkSubmissionService {
             if (byQuestion.containsKey(a.questionId())) {
                 throw new IllegalArgumentException("Hay respuestas duplicadas para la misma pregunta.");
             }
-            String text = a.text() == null ? "" : a.text().strip();
-            if (text.isEmpty()) {
-                throw new IllegalArgumentException("Debes responder a todas las preguntas.");
-            }
-            if (text.length() > MAX_PLAIN_ANSWER_CHARS) {
-                throw new IllegalArgumentException("Una de las respuestas es demasiado larga.");
-            }
-            byQuestion.put(a.questionId(), text);
+            byQuestion.put(a.questionId(), a);
         }
 
         Set<UUID> expected = new HashSet<>();
         List<HomeworkAnswer> mapped = new ArrayList<>();
         for (HomeworkQuestion q : questions) {
             expected.add(q.getId());
-            String text = byQuestion.get(q.getId());
-            if (text == null) {
+            ManualAnswerDto a = byQuestion.get(q.getId());
+            if (a == null) {
                 throw new IllegalArgumentException("Debes responder a todas las preguntas.");
             }
-            HomeworkAnswer row = new HomeworkAnswer();
-            row.setQuestionId(q.getId());
-            row.setAnswerText(text);
-            row.setPromptSnapshot(q.getPrompt());
-            row.setScore(BigDecimal.ZERO);
-            row.setSelectedOptionIds(List.of());
-            mapped.add(row);
+            mapped.add(manualAnswerRow(q, a.text(), a.continuations()));
         }
         if (!byQuestion.keySet().equals(expected)) {
             throw new IllegalArgumentException("Las respuestas no coinciden con las preguntas actuales.");

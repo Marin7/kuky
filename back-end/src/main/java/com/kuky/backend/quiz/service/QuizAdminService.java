@@ -324,6 +324,9 @@ public class QuizAdminService {
         List<UUID> audioFileIds = new ArrayList<>();
 
         for (QuizQuestionDto q : incoming) {
+            if ("SENTENCE_STARTER".equalsIgnoreCase(q.kind())) {
+                throw new IllegalArgumentException("Este tipo de pregunta no está disponible en las pruebas.");
+            }
             if (q.skill() == null || q.skill().isBlank()) {
                 throw new IllegalArgumentException("Cada pregunta necesita una destreza.");
             }

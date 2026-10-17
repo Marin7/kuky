@@ -327,6 +327,7 @@ export function QuizEditorPage({ quizId }: { quizId?: string }) {
                     </div>
                   )}
                   <QuestionEditorCard
+                    excludedKinds={["SENTENCE_STARTER"]}
                     index={i}
                     count={questions.length}
                     question={q}

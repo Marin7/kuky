@@ -46,7 +46,8 @@ public class QuestionScoring {
             case TABLE_FILL -> gradeTableFill(q, given);
             case MATCHING -> gradeMatching(q, given);
             case SPOT_WRONG_WORDS -> SpotWrongWords.grade(q, answerJsonOf(given), objectMapper);
-            case FREE_TEXT -> throw new IllegalStateException("FREE_TEXT no se califica automáticamente.");
+            case FREE_TEXT, SENTENCE_STARTER -> throw new IllegalStateException(
+                    q.getKind() + " no se califica automáticamente.");
         };
     }
 

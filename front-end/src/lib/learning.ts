@@ -41,7 +41,13 @@ export type QuestionKind =
   | "MATCHING"
   | "TRUE_FALSE"
   | "FREE_TEXT"
-  | "SPOT_WRONG_WORDS";
+  | "SPOT_WRONG_WORDS"
+  | "SENTENCE_STARTER";
+
+/** Kinds graded by the teacher (0–100 %), not automatically. */
+export function isManualKind(kind: QuestionKind | null | undefined): boolean {
+  return kind === "FREE_TEXT" || kind === "SENTENCE_STARTER";
+}
 
 export interface PresentationBlock {
   heading: string;
@@ -65,11 +71,17 @@ export interface ManualAnswerItem {
   teacherScorePercent?: number | null;
   score?: number | null;
   correct?: boolean | null;
+  /** SENTENCE_STARTER: starters at submit time (one per answer line). */
+  starters?: string[] | null;
+  /** SENTENCE_STARTER: model answers; only once the correction is visible. */
+  modelAnswers?: (string | null)[] | null;
 }
 
 export interface ManualAnswerPayload {
   questionId: string;
-  text: string;
+  text?: string;
+  /** SENTENCE_STARTER: one continuation per starter (the server composes the sentences). */
+  continuations?: string[];
 }
 
 export interface HomeworkItem {
@@ -123,8 +135,8 @@ export function resolveComposition(item: {
   if (item.format === "MANUAL") return "ALL_MANUAL";
   const qs = item.questions ?? [];
   if (qs.length === 0) return "ALL_MANUAL";
-  const hasFree = qs.some((q) => q.kind === "FREE_TEXT");
-  const hasAuto = qs.some((q) => q.kind !== "FREE_TEXT");
+  const hasFree = qs.some((q) => isManualKind(q.kind));
+  const hasAuto = qs.some((q) => !isManualKind(q.kind));
   if (hasFree && hasAuto) return "MIXED";
   if (hasAuto) return "ALL_AUTO";
   return "ALL_MANUAL";
@@ -191,6 +203,7 @@ export interface StudentStructure {
   right?: StudentMatchItem[]; // MATCHING
   items?: StudentSingleChoiceItem[]; // numbered SINGLE_CHOICE (no `correct`)
   errorCount?: number; // SPOT_WRONG_WORDS (no indices before submit)
+  starters?: string[]; // SENTENCE_STARTER (model answers hidden)
   // MULTI_BLANK carries no extra structure — blanks render from `___` in prompt.
 }
 

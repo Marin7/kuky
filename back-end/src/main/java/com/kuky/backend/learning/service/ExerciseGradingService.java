@@ -155,7 +155,7 @@ public class ExerciseGradingService {
                     boolean stripTeacherScores = mixedAwaiting;
                     answerViews = answerRepository.findBySubmission(submission.getId()).stream()
                             .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
-                            .map(a -> stripTeacherScores
+                            .map(a -> (stripTeacherScores
                                     ? ManualAnswerViewDto.fromStored(
                                             a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText())
                                     : ManualAnswerViewDto.fromStored(
@@ -164,6 +164,7 @@ public class ExerciseGradingService {
                                             a.getAnswerText(),
                                             a.getTeacherScorePercent(),
                                             a.getScore() == null ? null : a.getScore().doubleValue()))
+                                    .withSentenceStarters(a.getAnswerJson(), !stripTeacherScores))
                             .toList();
                 }
             }
@@ -446,6 +447,8 @@ public class ExerciseGradingService {
                 structure = SingleChoiceItems.stripForStudent(q);
             } else if (q.getKind().isStructured()) {
                 structure = stripStructureForStudent(q);
+            } else if (q.getKind() == QuestionKind.SENTENCE_STARTER) {
+                structure = SentenceStarters.studentStructure(q.getStructureJson());
             } else {
                 structure = null;
             }

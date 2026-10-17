@@ -13,6 +13,8 @@ package com.kuky.backend.learning.model;
  *   <li>{@code FREE_TEXT} — plain free-text prompt (manual grading; may mix with structured kinds).</li>
  *   <li>{@code SPOT_WRONG_WORDS} — passage in prompt; wrong words by word index in {@code structure_json};
  *       student toggles words, capped at the error count; score = found ÷ errors.</li>
+ *   <li>{@code SENTENCE_STARTER} — ordered {@code {starter, modelAnswer?}} items in {@code structure_json};
+ *       the student writes each sentence's continuation; manual grading like FREE_TEXT.</li>
  * </ul>
  */
 public enum QuestionKind {
@@ -24,11 +26,17 @@ public enum QuestionKind {
     MATCHING,
     TRUE_FALSE,
     FREE_TEXT,
-    SPOT_WRONG_WORDS;
+    SPOT_WRONG_WORDS,
+    SENTENCE_STARTER;
 
     /** Kinds that store answer keys in {@code structure_json} rather than options rows. */
     public boolean isStructured() {
         return this == MULTI_BLANK || this == DRAG_DROP || this == TABLE_FILL || this == MATCHING
                 || this == SPOT_WRONG_WORDS;
+    }
+
+    /** Kinds graded by the teacher (0–100 %) rather than automatically. */
+    public boolean isManual() {
+        return this == FREE_TEXT || this == SENTENCE_STARTER;
     }
 }

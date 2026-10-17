@@ -21,7 +21,6 @@ import com.kuky.backend.learning.model.HomeworkComposition;
 import com.kuky.backend.learning.model.HomeworkFormat;
 import com.kuky.backend.learning.model.HomeworkQuestion;
 import com.kuky.backend.learning.model.HomeworkStatus;
-import com.kuky.backend.learning.model.QuestionKind;
 import com.kuky.backend.learning.repository.ActivityAnswerRepository;
 import com.kuky.backend.learning.repository.ActivityQuestionRepository;
 import com.kuky.backend.learning.repository.ActivityRepository;
@@ -30,7 +29,6 @@ import com.kuky.backend.presentations.repository.PresentationRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,7 +43,6 @@ import java.util.stream.Collectors;
 @Service
 public class ActivityStudentService {
 
-    private static final int MAX_PLAIN_ANSWER_CHARS = 2000;
 
     private final ActivityRepository activityRepository;
     private final ActivitySubmissionRepository submissionRepository;
@@ -160,7 +157,7 @@ public class ActivityStudentService {
 
         try {
             if (composition == HomeworkComposition.ALL_AUTO || composition == HomeworkComposition.MIXED) {
-                requireEveryQuestionAnswered(questions, byQuestion);
+                HomeworkSubmissionService.requireEveryQuestionAnswered(questions, byQuestion);
                 ActivityExerciseGradingService.StructuredGradeResult graded =
                         gradingService.gradeStructuredSubset(questions, byQuestion);
                 allAnswers.addAll(graded.structuredAnswers());
@@ -174,7 +171,7 @@ public class ActivityStudentService {
                             gradingService.studentQuestionsFor(questions), autoResult);
                 }
 
-                allAnswers.addAll(mapFreeTextFromUnified(questions, byQuestion));
+                allAnswers.addAll(HomeworkSubmissionService.mapFreeTextFromUnified(questions, byQuestion));
                 ActivitySubmission saved = submissionRepository.upsertManual(
                         user.getId(), activityId, HomeworkStatus.SUBMITTED.name(), null, Instant.now());
                 answerRepository.saveAll(saved.getId(), allAnswers);
@@ -183,9 +180,9 @@ public class ActivityStudentService {
             }
 
             // ALL_MANUAL via /answers
-            List<ManualAnswerDto> manual = toManualDtos(byQuestion);
+            List<ManualAnswerDto> manual = HomeworkSubmissionService.toManualDtos(byQuestion);
             List<HomeworkAnswer> mapped = HomeworkSubmissionService.validateAndMapFreeTextAnswers(
-                    questions.stream().filter(q -> q.getKind() == QuestionKind.FREE_TEXT).toList(), manual);
+                    questions.stream().filter(q -> q.getKind().isManual()).toList(), manual);
             ActivitySubmission saved = submissionRepository.upsertManual(
                     user.getId(), activityId, HomeworkStatus.SUBMITTED.name(), null, Instant.now());
             answerRepository.saveAll(saved.getId(), mapped);
@@ -235,7 +232,8 @@ public class ActivityStudentService {
             answerViews = answers.stream()
                     .filter(a -> a.getPromptSnapshot() != null || a.getAnswerText() != null)
                     .map(a -> ManualAnswerViewDto.fromStored(
-                            a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText()))
+                            a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText())
+                            .withSentenceStarters(a.getAnswerJson(), HomeworkStatus.GRADED.name().equals(status)))
                     .toList();
         }
 
@@ -288,7 +286,7 @@ public class ActivityStudentService {
 
     private List<ActivityQuestion> freeTextQuestions(UUID activityId) {
         return questionRepository.findByActivityId(activityId).stream()
-                .filter(q -> q.getKind() == QuestionKind.FREE_TEXT)
+                .filter(q -> q.getKind().isManual())
                 .toList();
     }
 
@@ -297,55 +295,6 @@ public class ActivityStudentService {
         return request.answers().stream()
                 .filter(a -> a.questionId() != null)
                 .collect(Collectors.toMap(SubmitExerciseRequest.AnswerDto::questionId, Function.identity(), (a, b) -> a));
-    }
-
-    private static void requireEveryQuestionAnswered(
-            List<HomeworkQuestion> questions, Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
-        for (HomeworkQuestion q : questions) {
-            SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
-            if (given == null) {
-                throw new IllegalArgumentException("Debes responder a todas las preguntas.");
-            }
-            if (q.getKind() == QuestionKind.FREE_TEXT) {
-                String text = given.text() == null ? "" : given.text().strip();
-                if (text.isEmpty()) {
-                    throw new IllegalArgumentException("Debes responder a todas las preguntas.");
-                }
-                if (text.length() > MAX_PLAIN_ANSWER_CHARS) {
-                    throw new IllegalArgumentException("Una de las respuestas es demasiado larga.");
-                }
-            }
-            SingleChoiceItems.requireCompleteSelections(q, given);
-        }
-        if (!byQuestion.keySet().equals(questions.stream().map(HomeworkQuestion::getId).collect(Collectors.toSet()))) {
-            throw new IllegalArgumentException("Las respuestas no coinciden con las preguntas actuales.");
-        }
-    }
-
-    private static List<HomeworkAnswer> mapFreeTextFromUnified(
-            List<HomeworkQuestion> questions, Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
-        List<HomeworkAnswer> mapped = new ArrayList<>();
-        for (HomeworkQuestion q : questions) {
-            if (q.getKind() != QuestionKind.FREE_TEXT) continue;
-            SubmitExerciseRequest.AnswerDto given = byQuestion.get(q.getId());
-            String text = given.text().strip();
-            HomeworkAnswer row = new HomeworkAnswer();
-            row.setQuestionId(q.getId());
-            row.setAnswerText(text);
-            row.setPromptSnapshot(q.getPrompt());
-            row.setScore(BigDecimal.ZERO);
-            row.setSelectedOptionIds(List.of());
-            mapped.add(row);
-        }
-        return mapped;
-    }
-
-    private static List<ManualAnswerDto> toManualDtos(Map<UUID, SubmitExerciseRequest.AnswerDto> byQuestion) {
-        List<ManualAnswerDto> out = new ArrayList<>();
-        for (var e : byQuestion.entrySet()) {
-            out.add(new ManualAnswerDto(e.getKey(), e.getValue().text()));
-        }
-        return out;
     }
 
     /** Once delivered (SUBMITTED / REVIEWED / GRADED), the student cannot change answers. */

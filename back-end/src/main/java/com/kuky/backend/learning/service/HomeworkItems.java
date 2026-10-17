@@ -162,6 +162,14 @@ final class HomeworkItems {
                     List.of(),
                     JsonNodeFactory.instance.objectNode());
         }
+        if (q.getKind() == QuestionKind.SENTENCE_STARTER) {
+            return new ExerciseQuestionDto(
+                    q.getId(),
+                    QuestionKind.SENTENCE_STARTER.name(),
+                    q.getPrompt(),
+                    List.of(),
+                    SentenceStarters.studentStructure(q.getStructureJson()));
+        }
         // Without strip helper here — callers that need key-stripped structured questions
         // should pass studentQuestions from ExerciseGradingService.
         return new ExerciseQuestionDto(
@@ -175,11 +183,13 @@ final class HomeworkItems {
     private static ManualAnswerViewDto toAnswerView(HomeworkAnswer a, boolean stripTeacherScores) {
         if (stripTeacherScores) {
             return ManualAnswerViewDto.fromStored(
-                    a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText());
+                    a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText())
+                    .withSentenceStarters(a.getAnswerJson(), false);
         }
         Double score = a.getScore() == null ? null : a.getScore().doubleValue();
         return ManualAnswerViewDto.fromStored(
                 a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
-                a.getTeacherScorePercent(), score);
+                a.getTeacherScorePercent(), score)
+                .withSentenceStarters(a.getAnswerJson(), true);
     }
 }

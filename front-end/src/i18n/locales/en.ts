@@ -477,6 +477,11 @@
       missed: "Missed",
       extra: "Marked by mistake",
     },
+    sentenceStarter: {
+      placeholder: "…",
+      counter: "{{count}} / {{max}}",
+      modelAnswer: "Model answer",
+    },
     pastClasses: {
       title: "Past classes",
       empty: "You don't have any past classes yet.",
@@ -900,6 +905,7 @@
           TRUE_FALSE: "True / False",
           FREE_TEXT: "Free text",
           SPOT_WRONG_WORDS: "Spot the mistakes",
+          SENTENCE_STARTER: "Complete the sentence",
         },
         spotWrongWords: {
           promptHint:
@@ -912,6 +918,22 @@
           noMarks: "No words marked yet. You need at least one.",
           correctionPlaceholder: "Correction (optional)",
           correctionFor: "Correction for “{{word}}”",
+        },
+        sentenceStarter: {
+          promptHint:
+            "Instruction or text the student answers about. Then add the sentence starters.",
+          promptOptionalHint:
+            "Optional prompt: the activity page already gives the instructions. Add the sentence starters below.",
+          startersTitle: "Sentence starters",
+          startersHint:
+            "The student completes each sentence after its starter (up to {{max}}). The model answer is optional and only shown after correction.",
+          starterPlaceholder: "e.g. porque",
+          modelAnswerPlaceholder: "Model answer (optional)",
+          add: "Add sentence starter",
+          remove: "Remove sentence starter",
+          moveUp: "Move up",
+          moveDown: "Move down",
+          emptyStarter: "Every sentence starter needs text.",
         },
         trueFalseHint: "Mark whether the statement is true or false.",
         trueLabel: "True",

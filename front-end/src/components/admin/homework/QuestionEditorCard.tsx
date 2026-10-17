@@ -9,6 +9,7 @@ import type {
   MatchingStructure,
   SingleChoiceStructure,
   SpotWrongWordsStructure,
+  SentenceStarterStructure,
 } from "@/lib/admin";
 import { carryMarks } from "@/lib/spotWrongWords";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { TableFillEditor } from "./TableFillEditor";
 import { MatchingEditor } from "./MatchingEditor";
 import { SingleChoiceItemsEditor } from "./SingleChoiceItemsEditor";
 import { SpotWrongWordsEditor } from "./SpotWrongWordsEditor";
+import { SentenceStarterEditor } from "./SentenceStarterEditor";
 import { distinctMarkerNumbers } from "@/lib/singleChoiceMarkers";
 import { genId } from "@/lib/utils";
 
@@ -48,6 +50,7 @@ const KINDS: QuestionKind[] = [
   "MATCHING",
   "SPOT_WRONG_WORDS",
   "FREE_TEXT",
+  "SENTENCE_STARTER",
 ];
 
 interface Props {
@@ -62,6 +65,8 @@ interface Props {
   moveDownDisabled?: boolean;
   /** Unit activities: a free-answer question may have no prompt (the page is the instructions). */
   freeTextPromptOptional?: boolean;
+  /** Kinds hidden from the type picker (e.g. SENTENCE_STARTER in quizzes). */
+  excludedKinds?: QuestionKind[];
 }
 
 export function QuestionEditorCard({
@@ -75,6 +80,7 @@ export function QuestionEditorCard({
   moveUpDisabled,
   moveDownDisabled,
   freeTextPromptOptional = false,
+  excludedKinds = [],
 }: Props) {
   const { t } = useTranslation();
 
@@ -268,7 +274,9 @@ export function QuestionEditorCard({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {KINDS.map((v) => (
+              {KINDS.filter(
+                (v) => v === question.kind || !excludedKinds.includes(v),
+              ).map((v) => (
                 <SelectItem key={v} value={v}>
                   {t(`admin.homework.questions.kind.${v}`)}
                 </SelectItem>
@@ -292,14 +300,20 @@ export function QuestionEditorCard({
                 ? t("admin.homework.questions.spotWrongWords.promptHint")
                 : question.kind === "SINGLE_CHOICE"
                   ? t("admin.homework.questions.promptSingleChoiceHint")
-                  : question.kind === "FREE_TEXT" && freeTextPromptOptional
-                    ? t("admin.homework.questions.freeTextOptionalHint")
-                    : question.kind === "FREE_TEXT"
-                      ? t("admin.homework.questions.freeTextHint")
-                      : question.kind === "TABLE_FILL" ||
-                          question.kind === "MATCHING"
-                        ? t("admin.homework.questions.promptOptionalHint")
-                        : null}
+                  : question.kind === "SENTENCE_STARTER"
+                    ? freeTextPromptOptional
+                      ? t(
+                          "admin.homework.questions.sentenceStarter.promptOptionalHint",
+                        )
+                      : t("admin.homework.questions.sentenceStarter.promptHint")
+                    : question.kind === "FREE_TEXT" && freeTextPromptOptional
+                      ? t("admin.homework.questions.freeTextOptionalHint")
+                      : question.kind === "FREE_TEXT"
+                        ? t("admin.homework.questions.freeTextHint")
+                        : question.kind === "TABLE_FILL" ||
+                            question.kind === "MATCHING"
+                          ? t("admin.homework.questions.promptOptionalHint")
+                          : null}
           </p>
         </div>
       </div>
@@ -360,6 +374,17 @@ export function QuestionEditorCard({
         />
       )}
 
+      {question.kind === "SENTENCE_STARTER" && (
+        <SentenceStarterEditor
+          structure={
+            (question.structure as SentenceStarterStructure | undefined) ?? {
+              items: [],
+            }
+          }
+          onChange={(structure) => onChange({ ...question, structure })}
+        />
+      )}
+
       {numberedSingleChoice && (
         <SingleChoiceItemsEditor
           prompt={question.prompt}
@@ -402,7 +427,8 @@ export function QuestionEditorCard({
       {!structured &&
         !numberedSingleChoice &&
         question.kind !== "TRUE_FALSE" &&
-        question.kind !== "FREE_TEXT" && (
+        question.kind !== "FREE_TEXT" &&
+        question.kind !== "SENTENCE_STARTER" && (
           <div className="space-y-2">
             <Label>{t("admin.homework.questions.optionsLabel")}</Label>
             <p className="text-xs text-muted-foreground">

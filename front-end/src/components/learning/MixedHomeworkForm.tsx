@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   isHomeworkUpdatedError,
+  isManualKind,
   pinInstructionsAboveWordBank,
   submitHomeworkAnswers,
   type ApiError,
@@ -27,6 +28,8 @@ import { DragDropQuestion } from "./DragDropQuestion";
 import { TableFillQuestion } from "./TableFillQuestion";
 import { MatchingQuestion } from "./MatchingQuestion";
 import { SpotWrongWordsQuestion } from "./SpotWrongWordsQuestion";
+import { SentenceStarterInput } from "./SentenceStarterInput";
+import { SentenceStarterAnswerView } from "./SentenceStarterAnswerView";
 import { RichTextEditor } from "./richtext/RichTextEditor";
 import { RichTextViewer } from "./richtext/RichTextViewer";
 import { TextWithLinks } from "./TextWithLinks";
@@ -41,6 +44,7 @@ interface AnswerState {
   cells: Record<string, string>;
   pairs: MatchingAnswer["pairs"];
   wrongWords: number[];
+  continuations: string[];
   text: string;
   formatted: FormattedText;
 }
@@ -115,13 +119,10 @@ function initialAnswerState(q: StudentQuestion): AnswerState {
     cells: {},
     pairs: [],
     wrongWords: [],
+    continuations: Array(q.structure?.starters?.length ?? 0).fill(""),
     text: "",
     formatted: [],
   };
-}
-
-function isFreeText(kind: StudentQuestion["kind"]): boolean {
-  return kind === "FREE_TEXT";
 }
 
 /**
@@ -168,9 +169,11 @@ export function MixedHomeworkForm({
   const finalized =
     assignment.status === "GRADED" || assignment.status === "REVIEWED";
   const freeTextQuestions = assignment.questions.filter((q) =>
-    isFreeText(q.kind),
+    isManualKind(q.kind),
   );
-  const autoQuestions = assignment.questions.filter((q) => !isFreeText(q.kind));
+  const autoQuestions = assignment.questions.filter(
+    (q) => !isManualKind(q.kind),
+  );
 
   const setSingle = (qId: string, optionId: string | null) =>
     setAnswers((prev) => ({
@@ -217,6 +220,13 @@ export function MixedHomeworkForm({
   const setWrongWords = (qId: string, wrongWords: number[]) =>
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], wrongWords } }));
 
+  const setContinuation = (qId: string, index: number, value: string) =>
+    setAnswers((prev) => {
+      const continuations = [...prev[qId].continuations];
+      continuations[index] = value;
+      return { ...prev, [qId]: { ...prev[qId], continuations } };
+    });
+
   const setText = (qId: string, text: string) =>
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], text } }));
 
@@ -228,6 +238,13 @@ export function MixedHomeworkForm({
 
   const submit = async () => {
     for (const q of freeTextQuestions) {
+      if (q.kind === "SENTENCE_STARTER") {
+        if ((answers[q.id]?.continuations ?? []).some((c) => !c.trim())) {
+          setError(t("learning.manualMulti.allRequired"));
+          return;
+        }
+        continue;
+      }
       const value = richFreeText
         ? plainText(answers[q.id]?.formatted ?? []).trim()
         : (answers[q.id]?.text ?? "").trim();
@@ -252,7 +269,14 @@ export function MixedHomeworkForm({
       const payload: HeterogeneousAnswerPayload[] = assignment.questions.map(
         (q) => {
           const a = answers[q.id];
-          if (isFreeText(q.kind)) {
+          if (q.kind === "SENTENCE_STARTER") {
+            return {
+              questionId: q.id,
+              selectedOptionIds: [],
+              answerJson: { continuations: a?.continuations ?? [] },
+            };
+          }
+          if (isManualKind(q.kind)) {
             const formatted = a?.formatted ?? [];
             const text = (a?.text ?? "").trim();
             return richFreeText
@@ -412,7 +436,14 @@ export function MixedHomeworkForm({
                       )}
                     </div>
                     <div className="text-sm break-all [overflow-wrap:anywhere]">
-                      {ans?.formatted && ans.formatted.length > 0 ? (
+                      {ans?.starters ? (
+                        <SentenceStarterAnswerView
+                          text={ans.text}
+                          formatted={ans.formatted}
+                          starters={ans.starters}
+                          modelAnswers={ans.modelAnswers}
+                        />
+                      ) : ans?.formatted && ans.formatted.length > 0 ? (
                         <RichTextViewer segments={ans.formatted} />
                       ) : (
                         <p className="whitespace-pre-wrap">
@@ -473,15 +504,28 @@ export function MixedHomeworkForm({
                 </p>
               )}
               <QuestionCard>
-                {isFreeText(q.kind) ? (
+                {isManualKind(q.kind) ? (
                   <>
                     <QuestionHeading
                       index={i + 1}
                       questionCount={questionCount}
                       prompt={q.prompt}
-                      htmlFor={`mixed-ft-${q.id}`}
+                      htmlFor={
+                        q.kind === "SENTENCE_STARTER"
+                          ? undefined
+                          : `mixed-ft-${q.id}`
+                      }
                     />
-                    {richFreeText ? (
+                    {q.kind === "SENTENCE_STARTER" ? (
+                      <SentenceStarterInput
+                        starters={q.structure?.starters ?? []}
+                        values={answers[q.id]?.continuations ?? []}
+                        onChange={(index, value) =>
+                          setContinuation(q.id, index, value)
+                        }
+                        disabled={submitting}
+                      />
+                    ) : richFreeText ? (
                       <RichTextEditor
                         id={`mixed-ft-${q.id}`}
                         value={answers[q.id]?.formatted ?? []}

@@ -487,6 +487,11 @@ export const esDict = {
       missed: "No encontrada",
       extra: "Marcada por error",
     },
+    sentenceStarter: {
+      placeholder: "…",
+      counter: "{{count}} / {{max}}",
+      modelAnswer: "Respuesta modelo",
+    },
     pastClasses: {
       title: "Clases anteriores",
       empty: "Aún no tienes clases anteriores.",
@@ -913,6 +918,7 @@ export const esDict = {
           TRUE_FALSE: "Verdadero / Falso",
           FREE_TEXT: "Respuesta libre",
           SPOT_WRONG_WORDS: "Encontrar errores",
+          SENTENCE_STARTER: "Completa la frase",
         },
         spotWrongWords: {
           promptHint:
@@ -926,6 +932,22 @@ export const esDict = {
             "Aún no has marcado ninguna palabra. Necesitas al menos una.",
           correctionPlaceholder: "Corrección (opcional)",
           correctionFor: "Corrección de «{{word}}»",
+        },
+        sentenceStarter: {
+          promptHint:
+            "Instrucción o texto sobre el que responde el alumno. Después añade los inicios de frase.",
+          promptOptionalHint:
+            "Enunciado opcional: la página de la actividad ya sirve de instrucciones. Añade abajo los inicios de frase.",
+          startersTitle: "Inicios de frase",
+          startersHint:
+            "El alumno completará cada frase a continuación del inicio (máximo {{max}}). La respuesta modelo es opcional y solo se muestra tras la corrección.",
+          starterPlaceholder: "Ej. porque",
+          modelAnswerPlaceholder: "Respuesta modelo (opcional)",
+          add: "Añadir inicio de frase",
+          remove: "Eliminar inicio de frase",
+          moveUp: "Subir",
+          moveDown: "Bajar",
+          emptyStarter: "Cada inicio de frase necesita texto.",
         },
         trueFalseHint: "Marca si el enunciado es verdadero o falso.",
         trueLabel: "Verdadero",

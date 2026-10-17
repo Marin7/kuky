@@ -266,7 +266,8 @@ public class ActivityAdminService {
 
         List<HomeworkAnswer> freeTextAnswers = storedAnswers.stream()
                 .filter(a -> a.getQuestionId() != null
-                        && kindByQuestion.get(a.getQuestionId()) == QuestionKind.FREE_TEXT)
+                        && kindByQuestion.get(a.getQuestionId()) != null
+                        && kindByQuestion.get(a.getQuestionId()).isManual())
                 .toList();
 
         for (var stored : freeTextAnswers) {
@@ -461,7 +462,8 @@ public class ActivityAdminService {
                 .map(a -> ManualAnswerViewDto.fromStored(
                         a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
                         a.getTeacherScorePercent(),
-                        a.getScore() == null ? null : a.getScore().doubleValue()))
+                        a.getScore() == null ? null : a.getScore().doubleValue())
+                        .withSentenceStarters(a.getAnswerJson(), true))
                 .toList();
         List<FormattedTextSegment> response = answers.isEmpty()
                 ? FormattedTextSegment.fromJson(submission.getResponseText())

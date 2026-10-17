@@ -24,5 +24,20 @@ public final class ExerciseStructureLimits {
     /** Max length of one SPOT_WRONG_WORDS correction. */
     public static final int MAX_SPOT_CORRECTION_CHARS = 100;
 
+    /** Max starters on one SENTENCE_STARTER question ({@code specs/057-sentence-starter-answer}). */
+    public static final int MAX_STARTERS = 10;
+
+    /** Max length of one SENTENCE_STARTER starter (after trailing-ellipsis removal). */
+    public static final int MAX_STARTER_CHARS = 80;
+
+    /** Max length of one SENTENCE_STARTER model answer. */
+    public static final int MAX_MODEL_ANSWER_CHARS = 300;
+
+    /** Max length of one student continuation. */
+    public static final int MAX_CONTINUATION_CHARS = 500;
+
+    /** Max length of a whole composed answer (the teacher-annotation limit). */
+    public static final int MAX_SENTENCE_STARTER_ANSWER_CHARS = 2000;
+
     private ExerciseStructureLimits() {}
 }

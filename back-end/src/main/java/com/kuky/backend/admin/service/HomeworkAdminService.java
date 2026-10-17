@@ -47,6 +47,7 @@ import com.kuky.backend.learning.repository.HomeworkTargetRepository;
 import com.kuky.backend.learning.service.AssignmentSnapshot;
 import com.kuky.backend.learning.service.BlankPassageParser;
 import com.kuky.backend.learning.service.ExerciseGradingService;
+import com.kuky.backend.learning.service.SentenceStarters;
 import com.kuky.backend.learning.service.HomeworkAssignmentEmailService;
 import com.kuky.backend.learning.service.HomeworkCompositionSupport;
 import com.kuky.backend.learning.service.HomeworkDueDates;
@@ -325,7 +326,8 @@ public class HomeworkAdminService {
 
         List<com.kuky.backend.learning.model.HomeworkAnswer> freeTextAnswers = storedAnswers.stream()
                 .filter(a -> a.getQuestionId() != null
-                        && kindByQuestion.get(a.getQuestionId()) == QuestionKind.FREE_TEXT)
+                        && kindByQuestion.get(a.getQuestionId()) != null
+                        && kindByQuestion.get(a.getQuestionId()).isManual())
                 .toList();
 
         for (var stored : freeTextAnswers) {
@@ -491,7 +493,8 @@ public class HomeworkAdminService {
                 .map(a -> ManualAnswerViewDto.fromStored(
                         a.getQuestionId(), a.getPromptSnapshot(), a.getAnswerText(),
                         a.getTeacherScorePercent(),
-                        a.getScore() == null ? null : a.getScore().doubleValue()))
+                        a.getScore() == null ? null : a.getScore().doubleValue())
+                        .withSentenceStarters(a.getAnswerJson(), true))
                 .toList();
         List<FormattedTextSegment> response = answers.isEmpty()
                 ? FormattedTextSegment.fromJson(row.responseText())
@@ -731,7 +734,7 @@ public class HomeworkAdminService {
             // A table or matching question carries its content in its structure, so its
             // prompt (a short instruction or title) is optional.
             boolean promptOptional = kind == QuestionKind.TABLE_FILL || kind == QuestionKind.MATCHING
-                    || (freeTextPromptOptional && kind == QuestionKind.FREE_TEXT);
+                    || (freeTextPromptOptional && kind.isManual());
             if (blankPrompt && !promptOptional) {
                 throw new IllegalArgumentException("Cada pregunta necesita un enunciado.");
             }
@@ -751,6 +754,12 @@ public class HomeworkAdminService {
                     throw new IllegalArgumentException("Las preguntas de texto libre no admiten una estructura adicional.");
                 }
                 model.setStructureJson("{}");
+                model.setOptions(List.of());
+            } else if (kind == QuestionKind.SENTENCE_STARTER) {
+                if (!opts.isEmpty()) {
+                    throw new IllegalArgumentException("Este tipo de pregunta no admite opciones.");
+                }
+                model.setStructureJson(SentenceStarters.normalizeStructure(q.structure()));
                 model.setOptions(List.of());
             } else if (kind == QuestionKind.SINGLE_CHOICE) {
                 mapSingleChoice(model, model.getPrompt(), opts, q.structure());

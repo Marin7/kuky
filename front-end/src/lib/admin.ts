@@ -431,7 +431,8 @@ export type QuestionKind =
   | "MATCHING"
   | "TRUE_FALSE"
   | "FREE_TEXT"
-  | "SPOT_WRONG_WORDS";
+  | "SPOT_WRONG_WORDS"
+  | "SENTENCE_STARTER";
 
 export interface AdminOption {
   id?: string;
@@ -522,6 +523,16 @@ export interface SpotWrongWordsStructure {
   errors: SpotWrongWordsError[];
 }
 
+/** SENTENCE_STARTER: ordered starters, each with an optional model answer (specs/057). */
+export interface SentenceStarterItem {
+  starter: string;
+  modelAnswer?: string;
+}
+
+export interface SentenceStarterStructure {
+  items: SentenceStarterItem[];
+}
+
 export type QuestionStructure =
   | MultiBlankStructure
   | DragDropStructure
@@ -529,6 +540,7 @@ export type QuestionStructure =
   | MatchingStructure
   | SingleChoiceStructure
   | SpotWrongWordsStructure
+  | SentenceStarterStructure
   | Record<string, never>; // legacy kinds: {}
 
 export interface AdminQuestion {
@@ -716,6 +728,9 @@ export interface ManualSubmissionAnswerAdmin {
   teacherScorePercent?: number | null;
   score?: number | null;
   correct?: boolean | null;
+  /** SENTENCE_STARTER: starters and model answers at submit time. */
+  starters?: string[] | null;
+  modelAnswers?: (string | null)[] | null;
 }
 
 export type ReviewModel = "LEGACY_RICH" | "ANNOTATED" | null;

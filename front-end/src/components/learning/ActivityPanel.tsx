@@ -139,6 +139,8 @@ export function ActivityPanel({ activityId, onChanged }: Props) {
             questions={(item.questions ?? []).map((q) => ({
               id: q.id,
               prompt: q.prompt,
+              kind: q.kind,
+              starters: q.structure?.starters,
             }))}
             initialAnswers={item.answers}
             readOnly={!isStudentHomeworkEditable(item.status)}

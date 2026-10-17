@@ -24,7 +24,7 @@ public final class HomeworkCompositionSupport {
     private HomeworkCompositionSupport() {}
 
     public static boolean isAutoGradable(QuestionKind kind) {
-        return kind != null && kind != QuestionKind.FREE_TEXT;
+        return kind != null && !kind.isManual();
     }
 
     public static HomeworkComposition composition(HomeworkType type, Collection<QuestionKind> kinds) {
@@ -35,7 +35,7 @@ public final class HomeworkCompositionSupport {
         boolean hasAuto = false;
         if (kinds != null) {
             for (QuestionKind kind : kinds) {
-                if (kind == QuestionKind.FREE_TEXT) hasManual = true;
+                if (kind != null && kind.isManual()) hasManual = true;
                 else if (kind != null) hasAuto = true;
             }
         }
@@ -122,14 +122,14 @@ public final class HomeworkCompositionSupport {
     /**
      * Overall-% contributions for one question row. Numbered SINGLE_CHOICE expands
      * to N times 0/1 (one per {@code (N)} item). Other kinds contribute a single score
-     * (the stored mean, or teacher percent for FREE_TEXT). Do not treat the numbered
+     * (the stored mean, or teacher percent for manual kinds). Do not treat the numbered
      * entry's mean {@code answer.score} as one contribution.
      */
     public static List<BigDecimal> contributions(HomeworkQuestion question, HomeworkAnswer answer) {
         if (question != null && SingleChoiceItems.isNumbered(question)) {
             return SingleChoiceItems.itemContributions(question, answer);
         }
-        if (question != null && question.getKind() == QuestionKind.FREE_TEXT) {
+        if (question != null && question.getKind().isManual()) {
             Integer percent = answer == null ? null : answer.getTeacherScorePercent();
             if (percent == null) return List.of(scoreAsDecimal(0.0));
             return List.of(scoreAsDecimal(teacherPercentAsScore(percent)));

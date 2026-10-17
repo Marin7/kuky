@@ -486,6 +486,11 @@
       missed: "Negăsit",
       extra: "Marcat din greșeală",
     },
+    sentenceStarter: {
+      placeholder: "…",
+      counter: "{{count}} / {{max}}",
+      modelAnswer: "Răspuns model",
+    },
     pastClasses: {
       title: "Cursuri anterioare",
       empty: "Nu ai încă cursuri anterioare.",
@@ -914,6 +919,7 @@
           TRUE_FALSE: "Adevărat / Fals",
           FREE_TEXT: "Răspuns liber",
           SPOT_WRONG_WORDS: "Găsește greșelile",
+          SENTENCE_STARTER: "Completează propoziția",
         },
         spotWrongWords: {
           promptHint:
@@ -927,6 +933,22 @@
             "Nu ai marcat încă niciun cuvânt. Ai nevoie de cel puțin unul.",
           correctionPlaceholder: "Corectură (opțional)",
           correctionFor: "Corectura pentru „{{word}}”",
+        },
+        sentenceStarter: {
+          promptHint:
+            "Instrucțiunea sau textul despre care răspunde elevul. Apoi adaugă începuturile de propoziție.",
+          promptOptionalHint:
+            "Enunț opțional: pagina activității servește deja drept instrucțiuni. Adaugă mai jos începuturile de propoziție.",
+          startersTitle: "Începuturi de propoziție",
+          startersHint:
+            "Elevul completează fiecare propoziție după începutul ei (maximum {{max}}). Răspunsul model este opțional și apare doar după corectare.",
+          starterPlaceholder: "ex. porque",
+          modelAnswerPlaceholder: "Răspuns model (opțional)",
+          add: "Adaugă un început de propoziție",
+          remove: "Șterge începutul de propoziție",
+          moveUp: "Mută în sus",
+          moveDown: "Mută în jos",
+          emptyStarter: "Fiecare început de propoziție are nevoie de text.",
         },
         trueFalseHint: "Marchează dacă enunțul este adevărat sau fals.",
         trueLabel: "Adevărat",
