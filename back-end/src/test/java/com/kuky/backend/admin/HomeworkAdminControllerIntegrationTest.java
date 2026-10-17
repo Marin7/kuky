@@ -195,6 +195,7 @@ class HomeworkAdminControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void updateAssigneeDueOn_setsAndClearsOneStudent() throws Exception {
+        String due = java.time.LocalDate.now().plusYears(1).toString();
         UUID otherId = UUID.randomUUID();
         jdbcTemplate.update(
                 "INSERT INTO users (id, email, password_hash, status, role, gdpr_consent) VALUES (?, ?, 'hash', 'ACTIVE', 'STUDENT', true)",
@@ -206,9 +207,9 @@ class HomeworkAdminControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees/" + studentId + "/due-on")
                         .with(authentication(adminPrincipal(adminEmail)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"dueOn\":\"2026-09-15\"}"))
+                        .content("{\"dueOn\":\"" + due + "\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.assignees[?(@.userId=='" + studentId + "')].dueOn").value("2026-09-15"));
+                .andExpect(jsonPath("$.assignees[?(@.userId=='" + studentId + "')].dueOn").value(due));
 
         java.sql.Date otherDue = jdbcTemplate.queryForObject(
                 "SELECT due_on FROM homework_targets WHERE assignment_id = ? AND user_id = ?",
@@ -232,10 +233,11 @@ class HomeworkAdminControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void updateAssigneeDueOn_unknownAssignee_returns404() throws Exception {
+        String due = java.time.LocalDate.now().plusYears(1).toString();
         mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees/" + UUID.randomUUID() + "/due-on")
                         .with(authentication(adminPrincipal(adminEmail)))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"dueOn\":\"2026-09-15\"}"))
+                        .content("{\"dueOn\":\"" + due + "\"}"))
                 .andExpect(status().isNotFound());
     }
 }

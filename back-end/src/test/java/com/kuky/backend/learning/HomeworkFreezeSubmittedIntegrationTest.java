@@ -199,6 +199,7 @@ class HomeworkFreezeSubmittedIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void dueDateOnlyDoesNotBumpRevisionToken() throws Exception {
+        String due = java.time.LocalDate.now().plusYears(1).toString();
         Timestamp beforeTs = jdbcTemplate.queryForObject(
                 "SELECT content_revised_at FROM homework_assignments WHERE id = ?",
                 Timestamp.class, assignmentId);
@@ -207,22 +208,22 @@ class HomeworkFreezeSubmittedIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees/" + studentId + "/due-on")
                         .with(authentication(admin()))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"dueOn\": \"2026-09-01\"}"))
+                        .content("{\"dueOn\": \"" + due + "\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.assignees[?(@.userId=='" + studentId + "')].dueOn").value("2026-09-01"));
+                .andExpect(jsonPath("$.assignees[?(@.userId=='" + studentId + "')].dueOn").value(due));
 
         mockMvc.perform(put("/api/v1/admin/homework/" + assignmentId + "/assignees")
                         .with(authentication(admin()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"assigneeIds":["%s","%s"],"dueOn":"2026-10-01"}
-                                """.formatted(studentId, pendingStudentId)))
+                                {"assigneeIds":["%s","%s"],"dueOn":"%s"}
+                                """.formatted(studentId, pendingStudentId, java.time.LocalDate.now().plusYears(2))))
                 .andExpect(status().isOk());
 
         java.sql.Date studentDue = jdbcTemplate.queryForObject(
                 "SELECT due_on FROM homework_targets WHERE assignment_id = ? AND user_id = ?",
                 java.sql.Date.class, assignmentId, studentId);
-        assertEquals(java.sql.Date.valueOf("2026-09-01"), studentDue);
+        assertEquals(java.sql.Date.valueOf(due), studentDue);
 
         Timestamp afterTs = jdbcTemplate.queryForObject(
                 "SELECT content_revised_at FROM homework_assignments WHERE id = ?",
